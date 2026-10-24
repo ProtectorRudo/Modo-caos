@@ -106,7 +106,7 @@
    if(lbl){title.setAttribute('x',lbl[0]);title.setAttribute('y',lbl[1]);title.setAttribute('text-anchor','middle');
     title.setAttribute('font-weight','1000');title.setAttribute('font-size','18');title.setAttribute('fill',hot);
     title.setAttribute('stroke','#051427');title.setAttribute('stroke-width','4');title.setAttribute('paint-order','stroke');
-    title.textContent=g.signal.toUpperCase();}
+    title.textContent=g.state==='playing'?({green:'VERDE',amber:'AMARILLO',red:'ROJO'}[g.signal]||'LISTO'):'LISTO';}
    return{visible:!!visible,player};
   }
   return {renderAR,clear(){for(const n of svg.children)if(n!==defs)n.style.display='none'}};
