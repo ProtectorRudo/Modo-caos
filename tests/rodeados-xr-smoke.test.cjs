@@ -127,9 +127,10 @@ const server=http.createServer((req,res)=>{
  await page.waitForTimeout(100);
  const aimFresh=await page.evaluate(()=>__RodeadosDebug.aimAge);
  assert(aimFresh!==null&&aimFresh<1000,'reticle must be sampled from active XRFrames');
- const ammoBefore=await page.evaluate(()=>__RodeadosDebug.game.ammo);
+ const shotsBefore=await page.evaluate(()=>__RodeadosDebug.game.shots);
  await page.locator('#fire').tap();
- await page.waitForFunction(v=>__RodeadosDebug.game.ammo<v,ammoBefore,{timeout:2000});
+ await page.waitForFunction(v=>__RodeadosDebug.game.shots>v,shotsBefore,{timeout:2000});
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.game.ammo),28,'AR shooter never runs out of bullets');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.shots),1,
   'Android XR touch dispatched pointerdown and fired once');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.shotStatus),'IMPACTO',
