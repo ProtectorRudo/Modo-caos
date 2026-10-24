@@ -77,8 +77,8 @@ function create3D(gl){
     const x=(col-2)*pitch,z=(row-2)*pitch;
     const picked=g.calibrationCell===row*5+col;
     const shade=(row+col)%2;
-    const fill=picked?[.08,.98,.60,.94]:shade?[.07,.30,.45,.79]:[.035,.19,.34,.81];
-    draw('box',x,.028,z,half,.005,half,fill,picked?.30:.035);
+    const fill=picked?[.22,1,.63,.98]:shade?[.085,.66,.94,.95]:[.08,.86,.80,.94];
+    draw('box',x,.028,z,half,.005,half,fill,picked?.70:.48);
     if(picked)draw('box',x,.038,z,pitch*.46,.003,pitch*.46,[.19,.95,.75,.26],.36);
    }
    for(const s of [-1,1]){
