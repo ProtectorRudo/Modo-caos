@@ -266,12 +266,33 @@
   $('recenter').style.display='none';notify('LISTO · PRESIONÁ ¡A JUGAR! · ▲ AVANZAR · ◀ ▶ CARRILES');
   requestAnimationFrame(demoFrame);
  }
+ function syncedTick(dt){
+  if(game.paused)return;
+  if(!online?.room?.startedAt){G.tick(game,dt);return}
+  const start=Date.parse(online.room.startedAt);
+  if(!Number.isFinite(start)){G.tick(game,dt);return}
+  // Common server timestamp drives the light schedule. Never trust client
+  // reports for permanent scores or authoritative winners.
+  const target=clamp((Date.now()+online.skew-start)/1000,0,G.LIMIT+game.startDelay);
+  const elapsed=()=>game.state==='countdown'?game.clock:game.startDelay+game.raceTime;
+  let gap=target-elapsed();
+  if(gap<=-.08)return; // too far ahead: wait for shared clock
+  if(gap>.10){
+   const restore={...game.input};G.input(game,{});
+   let loops=0;
+   while(gap>.08&&loops++<260&&game.state!=='finished'){
+    G.tick(game,Math.min(.32,gap-.06));
+    gap=target-elapsed();
+   }
+   G.input(game,restore);
+  }else G.tick(game,Math.max(.001,Math.min(dt,gap+.04)));
+ }
  function demoFrame(t){
   if(!demo)return;const dt=lastFrame?clamp((t-lastFrame)/1000,.001,.07):.016;lastFrame=t;
   const c=$('demoCanvas'),dpr=Math.min(devicePixelRatio||1,2);
   const w=innerWidth,h=innerHeight;
   if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr)}
-  if(running){controls(dt,null);G.tick(game,dt);renderEvents();if(t-lastHUD>130){hud();lastHUD=t}}
+  if(running){controls(dt,null);syncedTick(dt);renderEvents();if(t-lastHUD>130){hud();lastHUD=t}}
   try{A.drawDemo(demoCtx,w,h,game,t)}catch(e){console.warn('Arte demo:',e)}
   requestAnimationFrame(demoFrame);
  }
@@ -288,13 +309,19 @@
      notify('📡 SEGUIMIENTO PERDIDO · SOSTENÉ QUIETO EL TELÉFONO');
      G.input(game,{}); // prevents a false red-light penalty
     }else{
-     controls(dt,pos);G.tick(game,dt);renderEvents();
+     controls(dt,pos);syncedTick(dt);renderEvents();
     }
    }
    if(t-lastHUD>125){lastHUD=t;hud()}
    if(t-(arFrame.drawAt||0)>38){
     arFrame.drawAt=t;
-    art.renderAR(frame,W,game,{tile:typeof boardSize==='number'?boardSize:.45});
+    const out=art.renderAR(frame,W,game,{tile:typeof boardSize==='number'?boardSize:.45});
+    const arrow=$('youArrow'),p=out?.player;
+    const lost=!p||p[0]<innerWidth*.05||p[0]>innerWidth*.95||p[1]<0||p[1]>innerHeight*.72;
+    arrow.style.display=running&&lost?'block':'none';
+    if(lost){arrow.textContent=!p?'◈ APUNTÁ A LA PISTA':p[0]<innerWidth/2?'◀ VOS POR ACÁ':'VOS POR ACÁ ▶';
+     arrow.style.left=p&&p[0]>innerWidth/2?'auto':'9px';arrow.style.right=p&&p[0]>innerWidth/2?'9px':'auto'}
+    
    }
   }catch(e){if(!arFrame.warned){console.warn('Semáforo AR:',e);arFrame.warned=true;notify('PROBLEMA DE RENDER AR · '+e.message)}}
  }
