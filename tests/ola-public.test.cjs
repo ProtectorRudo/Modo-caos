@@ -11,7 +11,11 @@ const URL=process.env.OLA_PUBLIC_URL||'https://raw.githack.com/ProtectorRudo/Mod
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const response=await page.goto(URL,{waitUntil:'domcontentloaded',timeout:35000});
   assert(response?.ok(),'public HTTP '+response?.status());
-  await page.locator('#demo').waitFor({state:'visible',timeout:12000});
+  try{await page.locator('#demo').waitFor({state:'visible',timeout:12000})}
+  catch(error){console.error('PUBLIC DIAG',JSON.stringify({
+   url:page.url(),status:response?.status(),title:await page.title(),
+   body:(await page.locator('body').innerText().catch(()=>'' )).slice(0,1200),
+   html:(await page.content()).slice(0,600)}));throw error}
   const title=await page.title();assert(title.includes('OLA ROJA'),'right public game');
   await page.locator('#demo').click();
   assert(await page.locator('#canvas2D').isVisible(),'public 2D canvas visible');
