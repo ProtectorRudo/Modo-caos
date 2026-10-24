@@ -29,6 +29,12 @@ jobs:
           HTTP=$(curl -sSL -m 15 -o /tmp/rodeados-mirror.html -w "%{http_code}" "$URL")
           echo "MIRROR_HTTP=$HTTP"
           test "$HTTP" = "200"
+          echo "PUBLIC VERSION TOKENS:"
+          grep -oE 'rodeados-(core|runtime).js\\?v=[0-9]+' /tmp/rodeados-mirror.html || true
+          echo "INFINITE HUD PRESENT?"
+          grep -o '∞  BALAS' /tmp/rodeados-mirror.html || true
+          echo "RELOAD BUTTON PRESENT?"
+          grep -o 'id="reload"' /tmp/rodeados-mirror.html || true
           grep -q 'RODEADOS 360' /tmp/rodeados-mirror.html
           grep -q 'id="botGuide"' /tmp/rodeados-mirror.html
           grep -q 'rodeados-runtime.js?v=10' /tmp/rodeados-mirror.html
