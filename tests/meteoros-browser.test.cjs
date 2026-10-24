@@ -11,6 +11,7 @@ const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=u
 const server=http.createServer((req,res)=>{
  let file;try{file=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{res.writeHead(400);res.end();return}
  if(file==='/')file='/index.html';
+ if(file==='/favicon.ico'){res.writeHead(204);res.end();return}
  const absolute=path.resolve(root,'.'+file);
  if(!absolute.startsWith(root+path.sep)){res.writeHead(403);res.end();return}
  fs.readFile(absolute,(err,data)=>{
@@ -55,7 +56,7 @@ const server=http.createServer((req,res)=>{
   assert((await page.locator('#precheck').innerText()).includes('Fallo al iniciar') ||
          (await page.locator('#precheck').innerText()).includes('no ofrece WebXR'),
          'unsupported desktop WebXR gives a clear fallback');
-  assert.equal(errors.length,0,'no errors while entering AR without WebXR');
+  assert.equal(errors.length,0,'no errors while entering AR without WebXR: '+errors.join(' / '));
   await page.goto(url+'/index.html',{waitUntil:'load'});
   assert((await page.locator('a[href="/meteoros.html"]').count())===1,'game appears in arcade');
   await page.goto(url+'/salas.html',{waitUntil:'load'});
