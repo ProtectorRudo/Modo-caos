@@ -84,6 +84,8 @@
     fx('💥 ¡TE DESCUBRIÓ! −11%',true);vibrate([95,30,105]);sound(230,.42,'square');
    }else if(ev.type==='combo'&&ev.id===game.players[0].id){
     fx('⚡ COMBO ×'+ev.combo+' · +'+ev.bonus);sound(1090,.23);vibrate(35);
+   }else if(ev.type==='bump'&&ev.id===game.players[0].id){
+    fx('💫 ¡CHOCARON LOS CASCOS!');sound(380,.12);vibrate(25);
    }else if(ev.type==='goal'){
     if(ev.id===game.players[0].id){fx('🏁 ¡LLEGASTE A META!');sound(1220,.32)}
    }else if(ev.type==='finish'){showResult()}
@@ -107,8 +109,22 @@
    row.append(a,b);$('ranking').appendChild(row);
   });
   $('result').style.display='flex';
-  if(won){sound(1200,.45);vibrate([80,80,90])}
+  if(won){confetti();sound(1200,.45);vibrate([80,80,90])}
   if(online?.host){online.mc.finishRoom(online.room.id).catch(e=>console.warn('Fin online:',e))}
+ }
+ function confetti(){
+  const layer=$('confettiLayer');if(!layer)return;layer.replaceChildren();
+  for(let i=0;i<55;i++){
+   const bit=document.createElement('i');bit.className='party';
+   bit.style.left=(8+Math.random()*84)+'%';
+   bit.style.top=(-7-Math.random()*35)+'%';
+   bit.style.background=['#4affd3','#ffd665','#ff649f','#64b9ff','#f7ffff'][i%5];
+   bit.style.animationDelay=(Math.random()*.65)+'s';
+   bit.style.animationDuration=(2+Math.random()*1.3)+'s';
+   bit.style.setProperty('--spin',(Math.random()*900-450)+'deg');
+   layer.appendChild(bit);
+  }
+  setTimeout(()=>layer.replaceChildren(),3700);
  }
  function setup(){
   $('home').style.display='none';$('overlay').style.display='block';
