@@ -68,7 +68,7 @@ const server=http.createServer((req,res)=>{
     requestSession:async()=>session
    }});
   });
-  await page.goto('http://127.0.0.1:'+server.address().port+'/meteoros.html?mc_test=1',{waitUntil:'load'});
+  await page.goto('http://127.0.0.1:'+server.address().port+''+(process.env.METEORS_PAGE||'/meteoros.html')+'?mc_test=1',{waitUntil:'load'});
   await page.locator('#enter').click();
   await page.waitForFunction(()=>{
    const b=document.getElementById('lock');return b&&!b.disabled&&getComputedStyle(b).display!=='none';
