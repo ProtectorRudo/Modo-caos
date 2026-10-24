@@ -24,7 +24,12 @@
 6. Si no hay AR, botón de **JUGAR EN 3D** accesible desde PC/Android.
 
 ## Pruebas
-- `node tests/torre.test.cjs` valida cantidad y área de polígonos, orden de aprendizaje, aleatoriedad semillada, rotación, puntos y derrumbes.
-- Faltan pruebas físicas reales con Android ARCore y tests automáticos de navegador / de estabilidad de Rapier dentro del dispositivo. No declararlos superados sin ejecución.
+- `node tests/torre.test.cjs` valida cantidad y área de polígonos, orden de aprendizaje, aleatoriedad semillada, rotación, puntos y derrumbes. **Ejecutado, OK**.
+- `npm install --no-save @dimforge/rapier3d-compat@0.17.3` y `node tests/torre-rapier.test.mjs`: **ejecutado, OK** en Linux Node 24, pruebas numéricas de las 14 figuras físicas, colisionadores compuestos, no penetración del piso, restricciones de plano X/Y y estabilidad de un segundo bloque sobre un cubo. No sustituye a Android real.
+- Se probó en **Chromium headless** (390×844 px, WebGL SwiftShader, Playwright) la carga del módulo, botón 3D, entrada a la partida, soltado, retorno a pieza nueva, giro por tap, pausa/reanudación, sonido/vibración y visor auxiliar: cero errores de página/console. Es navegador de escritorio simulado, **NO es prueba física AR Android**.
+- Queda pendiente prueba en dos modelos de teléfono Android ARCore y prueba del encuadre de una torre alta. La AR real no se pudo simular de forma equivalente.
 - Validar que `/torre.html`, `/torre-core.js`, `/torre-art.js`, `/torre-runtime.js` se sirven con HTTP 200 en preview y que no se alteraron archivos de otros juegos.
 - No mezclar código 3D nuevo en `engine.js` global.
+- Tamaño inicial de escenario en AR: escala 0,48 (plataforma aprox. 1,2 m de ancho), regulable con dedos de 0,30 a 1,15. La guía de caída usa ray cast real de Rapier, solo como sombra visual, sin corregir la física. Al reubicar una pista en AR se conservan piezas y estado de simulación.
+- El selector AR se habilita solamente si `navigator.xr.isSessionSupported('immersive-ar')` confirma soporte, no por la presencia de `navigator.xr`.
+- Las geometrías de mallas Three.js se liberan al reintentar para reducir consumo de memoria.
