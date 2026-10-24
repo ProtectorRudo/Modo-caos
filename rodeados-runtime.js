@@ -210,6 +210,25 @@ function newPreview(pose){
  $('size').textContent=floorSize.toFixed(2).replace('.',',')+' m';
  setPhase('edit');worldForEditor();hint('MIRÁ LA CUADRÍCULA TURQUESA · ARRASTRÁ, PELLIZCÁ Y GIRÁ');
 }
+function placeFromCurrentView(){
+ if(!xrSession||!lastXRFrame)return false;
+ const h=getHit(lastXRFrame);
+ if(h){hit=h.result;newPreview(h.pose);notice('✅ PISO DETECTADO · AJUSTÁ LA PISTA',2);return true}
+ const pose=cameraXRView(lastXRFrame);
+ if(!pose)return false;
+ const p=pose.transform.position,q=pose.transform.orientation;
+ const aim=THREEVec(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));
+ const floorY=p.y-1.45;
+ // Manual approximation when ARCore hit-test does not deliver a floor.
+ // Intersect a downward-looking ray; otherwise use a short forward offset.
+ const dist=aim.y<-.15?clamp((floorY-p.y)/aim.y,.65,2.3):1.4;
+ let dx=aim.x*dist,dz=aim.z*dist;
+ if(Math.hypot(dx,dz)<.45){const forward=THREEVec(aim.x,0,aim.z).normalize();dx=forward.x*.75;dz=forward.z*.75}
+ hit=null;
+ newPreview({transform:{position:{x:p.x+dx,y:floorY,z:p.z+dz},orientation:q}});
+ notice('📍 POSICIÓN APROXIMADA · AJUSTÁ Y CENTRÁ EL PISO',3);
+ return true;
+}
 function worldForEditor(){
  art.root.position.copy(basePos).add(shift.clone().applyQuaternion(baseQ));
  art.root.quaternion.copy(baseQ).multiply(quaternionY.setFromAxisAngle(new THREE.Vector3(0,1,0),yaw));
@@ -614,6 +633,14 @@ $('touch').addEventListener('pointermove',e=>{
 for(const name of ['pointerup','pointercancel','lostpointercapture'])$('touch').addEventListener(name,e=>{pointer.delete(e.pointerId);lastPinch=null});
 $('overlay').addEventListener('beforexrselect',e=>e.preventDefault());
 $('lock').onclick=freezeEditor;
+$('refreshFloor').onclick=()=>{
+ if(stage!=='edit')return;
+ if(!placeFromCurrentView())notice('MOVÉ LA CÁMARA LENTAMENTE PARA RECUPERAR SEGUIMIENTO',2);
+};
+$('manualPlace').onclick=()=>{
+ if(stage!=='search')return;
+ if(!placeFromCurrentView())notice('NO HAY SEGUIMIENTO DEL CELULAR · MOVÉ LENTAMENTE',2);
+};
 $('center').onclick=()=>chooseCell(12);
 $('changeCell').onclick=prepareCell;
 $('begin').onclick=countdownBegin;
