@@ -23,6 +23,9 @@
  };
  function prng(seed){
   let n=(seed>>>0)||0x9e3779b9;
+  n=Math.imul(n^(n>>>16),0x85ebca6b)>>>0;
+  n=Math.imul(n^(n>>>13),0xc2b2ae35)>>>0;
+  n=(n^(n>>>16))>>>0;
   return ()=>{n^=n<<13;n^=n>>>17;n^=n<<5;return (n>>>0)/4294967296};
  }
  function create(config={}){
