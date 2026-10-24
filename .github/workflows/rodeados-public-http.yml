@@ -1,0 +1,20 @@
+name: RODEADOS 360 — public HTTPS availability
+on:
+  pull_request:
+    paths:
+      - tests/rodeados-public-http.test.cjs
+      - .github/workflows/rodeados-public-http.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify live Vercel 200 + actual game files + no auth wall
+        run: node --test tests/rodeados-public-http.test.cjs
