@@ -29,7 +29,7 @@ const server=http.createServer((req,res)=>{
   WebGLRenderingContext.prototype.makeXRCompatible=async()=>{};
   if(window.WebGL2RenderingContext)WebGL2RenderingContext.prototype.makeXRCompatible=async()=>{};
   const ori={x:0,y:0,z:0,w:1};
-  const floorPose={transform:{matrix:matrix(0,0,-1.40),position:{x:0,y:0,z:-1.4},orientation:ori}};
+  const floorPose={transform:{matrix:matrix(0,0,-2.8),position:{x:0,y:0,z:-2.8},orientation:ori}};
   const hit={getPose:()=>floorPose,createAnchor:async()=>({anchorSpace:{name:'anchor'},delete(){}})};
   const proj=new Float32Array([3.1,0,0,0,0,1.58,0,0,0,0,-1.003,-1,0,0,-.10,0]);
   const frame={
@@ -66,6 +66,11 @@ const server=http.createServer((req,res)=>{
  await page.locator('#startAR').click();
  await page.waitForFunction(()=>window.__RodeadosDebug?.stage==='edit',null,{timeout:7000});
  assert(await page.locator('#touch').isVisible(),'touch editing surface visible');
+ await page.waitForFunction(()=>__RodeadosDebug.gridVisible>0,null,{timeout:4000});
+ assert.equal(await page.locator('#cellsvg polygon').count(),25,'all 25 floor cells are visible as an anchored overlay DURING placement');
+ assert(await page.locator('#cellsvg').isVisible(),'floor projection is visible before lock, not only after');
+ await page.locator('#refreshFloor').click();
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.stage),'edit','recenter returns an editable visible floor');
  const before=await page.evaluate(()=>({size:__RodeadosDebug.floorSize,pose:__RodeadosDebug.floorTransform,yaw:__RodeadosDebug.yaw}));
  await page.locator('#larger').click();
  assert((await page.evaluate(()=>__RodeadosDebug.floorSize))>before.size+.10,'increase tile size');
