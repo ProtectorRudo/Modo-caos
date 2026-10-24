@@ -93,7 +93,7 @@ const eng=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert(eng.includes("window.modoCaosXRFrame(time,frame,W)"),'XR draws inside engine frame after clear');
 const runtime=fs.readFileSync(path.join(__dirname,'..','meteoros-runtime.js'),'utf8');
 assert(runtime.includes('window.modoCaosXRFrame=arFrame'),'game registers frame hook');
-assert(runtime.includes('renderer.render(frame,multiply(W,translate(center.x,center.z)),game)'), 'game transforms selected floor pose with one frozen player-centered offset');
+assert(runtime.includes('renderer.render(frame,fixedWorld,game)'), 'game renders fixed world transform after floor placement');
 assert(runtime.includes('placement||(preview&&pos)'), 'placement locks at first fixed frame; preview follows phone only before locking');
 assert(/#lock\{[^}]*display:block/.test(html),'AR placement action remains visible');
 const art=fs.readFileSync(path.join(__dirname,'..','meteoros-art.js'),'utf8');
