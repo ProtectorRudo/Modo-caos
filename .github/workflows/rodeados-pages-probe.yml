@@ -24,6 +24,17 @@ jobs:
             curl -sSL -m 12 -o /tmp/body -w "HTTP=%{http_code} TYPE=%{content_type} BYTES=%{size_download}\n" "$url" || true
             head -c 90 /tmp/body | tr '\n' ' '; echo
           done
+          echo "VERIFY NOW-PUBLISHED MIRROR HTTP 200"
+          URL="https://protectorrudo.github.io/Modo-caos/rodeados.html"
+          HTTP=$(curl -sSL -m 15 -o /tmp/rodeados-mirror.html -w "%{http_code}" "$URL")
+          echo "MIRROR_HTTP=$HTTP"
+          test "$HTTP" = "200"
+          grep -q 'RODEADOS 360' /tmp/rodeados-mirror.html
+          for file in rodeados-core.js rodeados-art.js rodeados-ux.js rodeados-runtime.js rodeados-progression.js mc-config.js mc-rooms-client.js; do
+            HTTP=$(curl -sSL -m 12 -o /tmp/rodeados-mirror-js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/$file")
+            echo "$file: $HTTP"
+            test "$HTTP" = "200"
+          done
           echo "PAGES CONFIG (if enabled)"
           gh api repos/ProtectorRudo/Modo-caos/pages --jq '{status:.status,html_url:.html_url,build_type:.build_type,source:.source}' || true
           echo "LAST PAGES WORKFLOW"
