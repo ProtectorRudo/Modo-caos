@@ -1,0 +1,51 @@
+# Simón Traicionero — implementación AR 3×3 (24/10/2026)
+
+## Objetivo y accesos
+Juego de memoria sobre nueve cerámicos reales, basado en el documento «DESARROLLO INTEGRAL DE SIMÓN TRAICIONERO». Fuentes: `simon.html`, `simon-core.js`, `simon-art.js`, `simon-runtime.js`. Menú y selector de salas beta integrados; motor compartido `engine.js` permanece compatible con los demás juegos mediante una **opción opt-in**.
+
+**Rama para pruebas:** `feat/simon-traicionero-ar`. No utilizar el proyecto antiguo `color-rush-ar-demo` para este juego.
+
+## Flujo WebXR
+1. Chrome Android/ARCore abre cámara mediante `immersive-ar` con Hit Test y DOM overlay.
+2. El motor busca una superficie real y visualiza una cuadrícula WebGL **3×3** en lugar de la cuadrícula 5×5 original mediante `window.modoCaosXRCustomBoard=true`.
+3. Arrastrar, pellizcar con dos dedos, girar y fijar. Paso de `boardSize` = distancia entre centros de celdas de 0,32–0,80 m.
+4. Elegir celda inicial 1–9. Se muestrea el `XRViewerPose` durante 1,05 s. Si las muestras varían más de 9,5 cm, se repite la muestra.
+5. Desplazamiento: posición local de **teléfono** calculada a partir de `W` (matriz fija del tablero), más el offset de calibración; no se infiere seguimiento real de pies.
+6. **Confirmación manual por paso:** después de calibrar, el teléfono indica celda/color actuales. Cada celda requiere aproximadamente 340 ms dentro del centro del tablero, estabilidad de pose y pulsar **✓ CONFIRMAR CELDA N**. Caminar sobre baldosas nunca ingresa una respuesta automáticamente; se bloquean dobles confirmaciones sin cambiar de celda. El botón se deshabilita en movimiento, pausa o pérdida de tracking. La baliza verde WebGL señala una celda lista. Recalibración disponible sin perder puntuación.
+7. Una pérdida de pose mayor a 1 s pausa la acción. Reanudar sólo tras recuperar la posición. El teléfono calcula su posición, **no los pies del jugador**.
+
+## Modos y trampas
+- `clasica`: secuencias sin trampas, una vida; `mortal`: tres vidas, trampas y desafío escalonado; `panico`: tres rondas largas y rápidas.
+- Ocho eventos: eléctrica, identidad/intercambio de colores, reloj, fantasmas, mentira visual/sonora (seguir lo visual), apagón de los **objetos virtuales**, eco de audio e inversión de secuencia.
+- Un generador xorshift produce secuencias por semilla reproducibles; no se generan repeticiones inmediatamente consecutivas.
+- El tiempo activo depende de la longitud de la secuencia y hay pausas entre fases. No correr ni saltar.
+
+## Reutilización y degradación
+- WebGL nativo, tablero de nueve baldosas, relieve, bordes neón, host robótico, colores intensos, destellos de acierto/error y marcador VOS.
+- El dibujo opt-in sólo reemplaza las baldosas predeterminadas cuando `modoCaosXRCustomBoard` está activo. Otros juegos conservan sus 25 celdas.
+- Modo 2D convencional, jugable mediante toques; **se anuncia claramente que no es AR**. En AR la confirmación es explícita mediante un botón grande, distinta de la calibración inicial.
+- Síntesis de voz optativa; señales y mensajes legibles sin voz. Control básico de volumen/silencio.
+
+## Multijugador
+- Opción `simon-traicionero` visible en salas y navegación al juego; el navegador muestra aviso de beta.
+- **NO está implementada la validación autoritativa del resultado ni la sincronización final entre dos móviles reales.** Sin nuevas RPCs no se deben dar puntos competitivos oficiales; esta versión individual no debe presentarse como multijugador completo.
+- Aislamiento de la BD compartida: esta entrega **no realiza ninguna migración** y no modifica tablas de Viralio, Te Hice Esto ni Auth.
+
+## Validación y pendientes
+- Núcleo: tests determinísticos de los tres modos, vidas, timeout, reintentos, las ocho trampas y transiciones.
+- Revisión estática de sintaxis JS y de elementos DOM; Chromium móvil para iniciar juego 2D, reproducir secuencia, introducir aciertos y llegar a ronda 2. Un smoke test XR simulado verifica que quedarse en una celda NO la confirma y que pulsar **CONFIRMAR** en celdas 5→6 completa la secuencia sin volver a calibrar. Ver `tests/simon.test.cjs`, `tests/simon-browser.test.cjs`, `.github/workflows/simon-tests.yml`.
+- **PENDIENTE:** prueba física Android/ARCore con 9 posiciones, distancias reales, giros, gesto de pinza, pose perdida, seguimiento y seguridad.
+- **PENDIENTE:** prueba online independiente 2–4 JWT/dispositivos y resultados validados por servidor.
+- **PUBLICACIÓN:** la cuota de la cuenta Vercel devolvió `api-deployments-free-per-day` (402; límite de despliegues diarios). GitHub Pages alternativo requiere habilitar GitHub Pages con permisos adecuados; el workflow existente falla en `actions/configure-pages` por `Resource not accessible by integration`. No declarar desplegada esta rama hasta que un endpoint HTTP de la versión final responda.
+
+## Mejoras de legibilidad e interacción
+- Reproducción de Simón: destellos más prolongados, celdas restantes atenuadas, identificación visible de cada paso y pausa entre destellos. El HUD cambia explícitamente entre **MIRÁ** y **TU TURNO**.
+- AR: indicación actual de celda y color, margen central, vibración corta al quedar estable, botón de confirmación con texto dinámico (fuera del centro / esperando estabilidad / listo / registrada), resultado sonoro y vibración de acierto/error.
+- Seguridad: evitar desplazamientos rápidos mirando la pantalla; utilizar un área despejada, sin suponer seguimiento corporal.
+
+## Interacción AR legible sin girar la cámara (v4)
+- Mientras Simón enseña la secuencia aparece una **réplica cenital fija de las 9 celdas**, en el overlay DOM. La réplica reproduce en tiempo real cada destello, indicando el número de celda y paso. Así puede verse el orden completo desde un único campo de visión, incluso si las placas WebGL quedan a un costado.
+- Al pasar a **TU TURNO**, el mapa se hace pequeño y muestra un punto verde correspondiente a la posición **estimada del teléfono**, no a los pies. No revela las respuestas pendientes.
+- El jugador llega a la celda y pulsa el botón grande **CONFIRMAR CELDA N** después de la detección estable. El movimiento no introduce respuestas.
+- Si ARCore interpreta incorrectamente la celda, tocar **¿CELDA EQUIVOCADA? CORREGIR**, elegir la celda actual en el minimapa y después **CONFIRMAR**. La interfaz informa que es una **selección manual**, no una ubicación física verificada; sigue vigente el bloqueo de puntuación doble y se registra el paso sólo al pulsar CONFIRMAR. No se modifica el ancla ni se repite la calibración.
+- Tests del navegador XR simulado cubren minimapa visible con 9 celdas, reproducción, ausencia de pistas durante respuesta, confirmación explícita y corrección manual; **no sustituyen Android físico**.
