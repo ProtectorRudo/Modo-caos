@@ -25,6 +25,7 @@ jobs:
       - run: node --test tests/rodeados-coop.test.cjs
       - run: node --test tests/rodeados-combat-v6.test.cjs
       - run: node --test tests/rodeados-bomb.test.cjs
+      - run: node --test tests/rodeados-war-floor.test.cjs
       - run: node --test tests/rodeados-progression.test.cjs
   chromium:
     runs-on: ubuntu-latest
