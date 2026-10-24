@@ -17,7 +17,7 @@
  let running=false,buttons={forward:false,left:false,right:false},keys=new Set();
  let mode='hybrid',calForce=false,demoCtx=null,lastEvent=0,lastGreenMove=0,rewardedRound=-1;
  let audio=null,lastSfx=0,nextBeat=0,muted=false,best=0,arStarted=false,frameId=0;
- let online=null,onlineTimer=null,onlineConnecting=false,onlineActive=false,peerLast=0;
+ let online=null,onlineTimer=null,onlineConnecting=false,onlineActive=false,peerLast=0,lastRoomPoll=0,onlineRefreshing=false;
  try{best=Number(localStorage.getItem('mc-semaforo-best')||0)}catch(e){}
  $('introRecords').textContent=(best?'🏆 RÉCORD: '+best.toLocaleString('es-AR')+' PTS · ':'')+'4 COMPETIDORES · 3 VIDAS · 76 SEGUNDOS';
  if(hasRoom)$('onlineLink').textContent='SALA '+roomCode+' · VER ESTADO';
@@ -382,13 +382,16 @@
   const r=online.room,p=r.players?.find(p=>p.userId===online.me);
   $('onlineReady').style.display=r.status==='lobby'?'inline-block':'none';
   $('onlineReady').textContent=p?.ready?'↻ NO LISTO':'✓ ESTOY LISTO';
+  $('onlineReady').disabled=!calibrated&&!p?.ready;
   $('onlineStart').style.display=online.host&&r.status==='lobby'?'inline-block':'none';
   $('onlineStart').disabled=!(r.players?.length>=2&&r.players.every(p=>p.ready));
   onlineLabel('SALA '+r.code+' · '+(r.players?.length||0)+'/'+r.maxPlayers+' · '+
     (r.status==='playing'?'¡PARTIDA INICIADA!':r.status==='finished'?'TERMINADA':'PREPARÁ TU CÁMARA'));
  }
  async function onlineRefresh(){
-  if(!online?.mc||!online?.room)return;
+  if(!online?.mc||!online?.room||onlineRefreshing)return;
+  onlineRefreshing=true;
+  try{
   const now=Date.now(),r=await online.mc.getRoom(online.room.id);
   if(r.id!==online.room.id)return;
   const server=Date.parse(r.serverTime||'');
@@ -396,6 +399,7 @@
   online.room=r;online.host=r.hostUserId===online.me;onlineShow();
   if(r.status==='playing'&&!running&&status==='fixed'&&calibrated&&
      (!r.startedAt||Date.now()+online.skew>=Date.parse(r.startedAt)))begin();
+  }finally{onlineRefreshing=false}
  }
  async function initOnline(){
   if(!hasRoom||onlineConnecting)return;
@@ -431,14 +435,16 @@
    });
    onlineTimer=setInterval(()=>{
     if(!online?.room)return;
-    onlineRefresh().catch(e=>onlineLabel('SINCRONIZACIÓN: '+e.message));
-    if(running&&online.conn?.connected&&Date.now()-peerLast>220){
+    const now=Date.now();
+    if(now-lastRoomPoll>1800){lastRoomPoll=now;
+      onlineRefresh().catch(e=>onlineLabel('SINCRONIZACIÓN: '+e.message))}
+    if(running&&online.conn?.connected&&now-peerLast>235){
      peerLast=Date.now();const p=game.players[0];
      online.conn.sendGameEvent({type:'move',progress:p.progress,lane:p.lane,
       lives:p.lives,penalties:p.penalties,score:Math.round(p.score),
       finishedAt:p.finishedAt,eliminated:p.eliminated}).catch(()=>{});
     }
-   },450);
+   },250);
   }catch(e){onlineLabel('⚠ '+e.message+' · Abrí SALAS');console.warn('Sala semáforo:',e)}
  }
  $('onlineReady').onclick=async()=>{
