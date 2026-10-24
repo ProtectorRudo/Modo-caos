@@ -63,7 +63,9 @@ function tab(what){
 }
 $('tabCreate').onclick=()=>tab('create');
 $('tabJoin').onclick=()=>tab('join');
-const chosen=(new URLSearchParams(location.search)).get('game');\nif(chosen&&[...$('gameChoice').options].some(o=>o.value===chosen))$('gameChoice').value=chosen;\nconst deep=(new URLSearchParams(location.search)).get('room');
+const chosen=(new URLSearchParams(location.search)).get('game');
+if(chosen&&[...$('gameChoice').options].some(o=>o.value===chosen))$('gameChoice').value=chosen;
+const deep=(new URLSearchParams(location.search)).get('room');
 if(deep&&/^[A-Fa-f0-9]{8}$/.test(deep)){tab('join');$('joinCode').value=deep.toUpperCase()}
 $('nickname').value=stored('mc-player-name')||'';
 const old=stored('mc-last-room');
