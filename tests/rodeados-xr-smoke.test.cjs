@@ -85,6 +85,7 @@ const server=http.createServer((req,res)=>{
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
  await page.locator('#lock').click();
  await page.waitForFunction(()=>__RodeadosDebug.stage==='cell',null,{timeout:4000});
+ await page.waitForFunction(()=>document.querySelectorAll('#cellsvg polygon').length===25,null,{timeout:3500});
  assert.equal(await page.locator('#cellsvg polygon').count(),25,'25 physical floor squares projected');
  assert(await page.locator('#begin').isDisabled(),'start blocked until manual cell pick');
  await page.evaluate(()=>{document.querySelectorAll('#cellsvg polygon')[6].dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true}));});
