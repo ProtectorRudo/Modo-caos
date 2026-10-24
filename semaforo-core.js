@@ -15,12 +15,13 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function rng(seed){let n=(seed>>>0)||42;return()=>{n^=n<<13;n^=n>>>17;n^=n<<5;return(n>>>0)/4294967296}}
 function make({seed=0xC0A5,difficulty='normal',players=null}={}){
  const cfg=difficulty==='facil'?{grace:.83,pace:3.65}:difficulty==='caos'?{grace:.66,pace:4.0}:{grace:.74,pace:3.8};
+ const starts=[0,-.48,.48,.76];
  const people=(Array.isArray(players)&&players.length?players:PERSONALITIES).slice(0,4).map((p,i)=>({
   id:String(p.id??i),name:String(p.name||PERSONALITIES[i].name).slice(0,22),
   kind:p.kind||(i===0?'human':PERSONALITIES[i].kind),
-  color:p.color||PERSONALITIES[i].color,progress:0,lane:(i-1.5)*.27,score:0,
+  color:p.color||PERSONALITIES[i].color,progress:0,lane:starts[i],score:0,
   penalties:0,lives:3,combo:0,bestCombo:0,finishedAt:null,eliminated:false,
-  streak:0,accuracy:0,decision:0,lastPunish:-99,distraction:0
+  streak:0,accuracy:0,decision:0,lastPunish:-99,lastBump:-99,distraction:0
  }));
  const g={state:'ready',phase:'ready',clock:0,raceTime:0,signalTime:0,signalTotal:0,
   signal:'green',visual:'green',round:0,trap:'none',trapCount:0,seed:seed>>>0,random:rng(seed),
@@ -119,10 +120,10 @@ function advance(g,dt){
   p.lane=clamp(p.lane+dt*g.input.lateral*1.15,-.83,.83);
   if(g.signal==='green'){
    if(g.input.forward>.08){
-    const boost=g.trap==='turbo'?1.27:1;
+    const boost=g.trap==='turbo'?1.27:g.trap==='gold'?1.16:1;
     const speed=g.cfg.pace*g.input.forward*boost;
     p.progress=clamp(p.progress+dt*speed,0,GOAL);
-    p.score+=dt*(23+p.combo*1.2)*g.input.forward;
+    p.score+=dt*(23+p.combo*1.2)*g.input.forward*(g.trap==='gold'?2.2:1);
    }
   }else if(g.signal==='amber'){
     // Yellow always signals release; it never directly punishes movement.
@@ -132,6 +133,15 @@ function advance(g,dt){
   if(p.progress>=GOAL)finishPlayer(g,p);
  }
  updateBots(g,dt);
+ // Soft lane collision (local bots only). Never an instant elimination.
+ if(p?.kind==='human'&&!p.eliminated&&p.finishedAt===null&&g.raceTime-p.lastBump>2.25){
+  const other=g.players.find(q=>q!==p&&q.kind!=='remote'&&!q.eliminated&&q.finishedAt===null&&
+   Math.abs(q.progress-p.progress)<2.4&&Math.abs(q.lane-p.lane)<.11);
+  if(other){
+   p.lastBump=g.raceTime;p.lane=clamp(p.lane+(p.lane>=other.lane?.16:-.16),-.83,.83);
+   p.progress=Math.max(0,p.progress-.75);emit(g,'bump',{id:p.id,other:other.id});
+  }
+ }
  if(g.raceTime>=LIMIT||g.players.every(p=>p.finishedAt!==null||p.eliminated)){
   end(g,g.raceTime>=LIMIT?'timeout':'all-finished');
  }
