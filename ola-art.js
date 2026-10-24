@@ -29,18 +29,23 @@ function create3D(gl){
   const pulse=.70+.30*Math.sin(performance.now()*.006);
   for(let r=0;r<N;r++)for(let c=0;c<N;c++){
    const i=r*N+c,s=states[i],x=(c-3)*tile,z=(r-3)*tile,margin=tile*.035;
-   const dark=s==='red'?[.31,.014,.042,.97]:s==='yellow'?[.30,.17,.03,.95]:[(c+r)%2?.045:.035,.14,.23,.91];
+   const refuge=g.safeZone&&g.elapsed<g.safeZone.until&&g.safeZone.r===r&&g.safeZone.c===c;
+   const dark=refuge?[.04,.37,.19,.98]:s==='red'?[.33,.018,.048,.98]:s==='yellow'?[.32,.18,.025,.98]:[(c+r)%2?.045:.035,.14,.23,.94];
    quad(x+margin,z+margin,x+tile-margin,z+tile-margin,low,dark);
-   const edge=s==='red'?[1,.16*pulse,.17,.99]:s==='yellow'?[1,.70*pulse,.12,.99]:[.09,.78+(c+r)%3*.06,.95,.96];
+   const edge=refuge?[.49,1,.54,.99]:s==='red'?[1,.16*pulse,.17,.99]:s==='yellow'?[1,.70*pulse,.12,.99]:[.09,.78+(c+r)%3*.06,.95,.96];
    const width=s==='red'?tile*.038:tile*.020,y=low+.005;
    quad(x+margin,z+margin,x+tile-margin,z+margin+width,y,edge);
    quad(x+margin,z+tile-margin-width,x+tile-margin,z+tile-margin,y,edge);
    quad(x+margin,z+margin,x+margin+width,z+tile-margin,y,edge);
    quad(x+tile-margin-width,z+margin,x+tile-margin,z+tile-margin,y,edge);
    if(s==='red'){
+    const sweep=(performance.now()*.0016+(c+r)*.14)%1;
+    const zSweep=z+tile*(.12+.76*sweep);
+    quad(x+tile*.16,zSweep,x+tile*.84,zSweep+tile*.035,low+.015,[1,.40,.27,.80*pulse]);
     quad(x+tile*.30,z+tile*.16,x+tile*.39,z+tile*.84,low+.008,[1,.22,.10,.42*pulse]);
     quad(x+tile*.55,z+tile*.16,x+tile*.64,z+tile*.84,low+.008,[1,.22,.10,.35*pulse]);
    }
+   if(refuge)ring(x+tile*.5,z+tile*.5,tile*.31,low+.017,[.37,1,.54,.85*pulse],tile*.06,16);
    if(s==='yellow')quad(x+tile*.2,z+tile*.46,x+tile*.8,z+tile*.54,low+.01,[1,.89,.28,.86]);
   }
   // Marco físico de pista; el indicador de jugador se dibuja en el mismo mundo.
@@ -83,12 +88,15 @@ function create2D(canvas){
   const states=root.OlaRojaCore.cells(g);
   for(let r=0;r<6;r++)for(let c=0;c<6;c++){
    const s=states[r*6+c],bx=x+c*tile,by=y+r*tile,pulse=.55+.45*Math.sin(t*.007+c*.36+r*.6);
-   ctx.shadowBlur=s==='red'?19:s==='yellow'?12:8;ctx.shadowColor=s==='red'?'#ff193c':s==='yellow'?'#ffb32d':'#13c7ff';
-   ctx.fillStyle=s==='red'?'#801123':s==='yellow'?'#8c560d':(c+r)%2?'#082b45':'#103451';
+   const refuge=g.safeZone&&g.elapsed<g.safeZone.until&&g.safeZone.r===r&&g.safeZone.c===c;
+   ctx.shadowBlur=s==='red'?22:s==='yellow'?14:8;ctx.shadowColor=refuge?'#57ff96':s==='red'?'#ff193c':s==='yellow'?'#ffb32d':'#13c7ff';
+   ctx.fillStyle=refuge?'#0c653d':s==='red'?'#801123':s==='yellow'?'#8c560d':(c+r)%2?'#082b45':'#103451';
    ctx.fillRect(bx+3,by+3,tile-6,tile-6);
-   ctx.lineWidth=s==='red'?3.8:2;ctx.strokeStyle=s==='red'?'#ff344c':s==='yellow'?'#ffd04a':'#16b8e5';
+   ctx.lineWidth=s==='red'?3.8:2;ctx.strokeStyle=refuge?'#5dff95':s==='red'?'#ff344c':s==='yellow'?'#ffd04a':'#16b8e5';
    ctx.strokeRect(bx+3,by+3,tile-6,tile-6);
-   if(s==='red'){ctx.fillStyle='rgba(255,80,89,'+(.24+.25*pulse)+')';ctx.fillRect(bx+tile*.40,by+tile*.16,tile*.2,tile*.68)}
+   if(s==='red'){ctx.fillStyle='rgba(255,80,89,'+(.24+.25*pulse)+')';ctx.fillRect(bx+tile*.40,by+tile*.16,tile*.2,tile*.68);
+    ctx.fillStyle='#ff817aaa';ctx.fillRect(bx+tile*.15,by+tile*(.13+.7*((t*.0016+(c+r)*.14)%1)),tile*.7,tile*.04)}
+   if(refuge){ctx.shadowBlur=14;ctx.strokeStyle='#87ffb5';ctx.beginPath();ctx.arc(bx+tile*.5,by+tile*.5,tile*.31,0,TAU);ctx.stroke()}
    if(s==='yellow'){ctx.fillStyle='#fff0a6';ctx.fillRect(bx+tile*.25,by+tile*.46,tile*.5,tile*.09)}
   }
   ctx.shadowBlur=0;ctx.strokeStyle='#55ffef';ctx.lineWidth=4;ctx.strokeRect(x,y,size,size);
