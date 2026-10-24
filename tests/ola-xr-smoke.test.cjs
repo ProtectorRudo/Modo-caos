@@ -48,11 +48,30 @@ const server=http.createServer((req,res)=>{
   await page.locator('#enter').click();
   await page.waitForFunction(()=>{const b=document.querySelector('#lock');return b&&!b.disabled&&getComputedStyle(b).display!=='none'},null,{timeout:12000});
   assert(await page.locator('#touchpad').isVisible(),'surface can be moved before lock');
-  const size0=await page.locator('#size').innerText();await page.locator('#plus').click();
+  const size0=await page.locator('#size').innerText();
+  assert(size0.includes('2,40'),'compact 2.40m default instead of previous 2.70m: '+size0);
+  assert(await page.locator('#autoCenter').isVisible(),'one-touch align-and-lock placement visible');
+  await page.locator('#plus').click();
   assert.notEqual(await page.locator('#size').innerText(),size0,'arena size really changes');
   await page.locator('#rotate').click();
   const preDraws=await page.evaluate(()=>window.__draws);
   assert(preDraws>0,'WebGL draws anchored 6x6 field');
+  if(process.env.OLA_AUTOCENTER==='1'){
+   await page.locator('#autoCenter').click();
+   await page.waitForFunction(()=>document.querySelector('#calBox')?.offsetParent!==null,null,{timeout:5000});
+   assert(!await page.locator('#autoCenter').isVisible(),'auto center also locks the floor');
+   const local=await page.evaluate(()=>{
+    const W=worldMatrix,dX=window.__position.x-W[12],dZ=window.__position.z-W[14];
+    return {x:W[0]*dX+W[2]*dZ,z:W[8]*dX+W[10]*dZ,tile:boardSize};
+   });
+   assert(Math.abs(local.x-local.tile*.5)<.065&&Math.abs(local.z-local.tile*.5)<.065,
+     'physical phone is centered over cell 4-4 after auto place '+JSON.stringify(local));
+   await page.locator('#calCenter').click();
+   await page.waitForFunction(()=>document.querySelector('#begin')?.disabled===false,null,{timeout:6500});
+   assert.equal(errors.length,0,'no auto-center XR errors: '+errors.join(' / '));
+   console.log('PASS: 2.40m, un toque CENTRAR Y FIJAR, móvil situado sobre casilla 4-4 sin reposicionar al calibrar');
+   return;
+  }
   await page.locator('#lock').click();
   await page.waitForFunction(()=>document.querySelector('#calBox')?.offsetParent!==null,null,{timeout:5000});
   assert.equal(await page.locator('#arenaSvg polygon').count(),36,'36 physically projected selectable tiles');
@@ -63,6 +82,9 @@ const server=http.createServer((req,res)=>{
   await page.locator('#begin').click();
   await page.waitForTimeout(4450);
   assert(Number(await page.locator('#time').innerText())<90,'90 s AR clock advances');
+  assert(await page.locator('#radar').isVisible(),'top-down radar visible while playing AR');
+  assert.equal(await page.locator('#radarCells i').count(),36,'radar has 6x6 tiles');
+  assert((await page.locator('#radarTime').innerText()).length>0,'hazard anticipation displayed');
   const before=await page.evaluate(()=>window.__draws);
   assert(before>preDraws+100,'real WebGL keeps painting after lock');
   for(let i=0;i<9;i++){await page.evaluate(()=>window.__position.x+=.07);await page.waitForTimeout(85)}
