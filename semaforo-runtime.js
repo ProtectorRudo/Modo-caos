@@ -79,6 +79,13 @@
   const label=game.signal==='red'&&game.state==='playing'&&game.signalTime<game.warning?
     '¡FRENÁ! · TIEMPO DE REACCIÓN':game.comment;
   if(running)$('message').textContent=label;
+  const hint=$('gestureHint');
+  if(hint){
+   hint.hidden=!running||demo||mode!=='motion'||game.raceTime>13||motion.strides>=3;
+   if(!hint.hidden)hint.textContent=game.signal==='red'?
+      '🔴 ¡QUIETO! · NO MUEVAS EL CELULAR':
+      '↔ EN VERDE: ACERCÁ EL CELULAR 8 CM Y VOLVÉ (SIN CAMINAR)';
+  }
  }
  function renderEvents(){
   for(const ev of game.events){
@@ -265,7 +272,7 @@
   $('actionbar').style.display='flex';$('toggleControls').style.display=demo?'none':'block';
   $('status').style.display='none';if(online)$('onlinePanel').style.display='none';
   $('toggleControls').textContent=demo?'🎮 DEMO':mode==='motion'?'🎮 BOTONES':'🚶 MOVIMIENTO';
-  notify('🟢 IMPULSOS SUAVES · 🟡 FRENÁ · 🔴 QUIETO');
+  if(!demo)notify('🟢 IMPULSOS SUAVES · 🟡 FRENÁ · 🔴 QUIETO');
   hud();sound(780,.35);renderEvents();
   nextBeat=0;if(online)onlineActive=true;
  }
@@ -314,6 +321,7 @@
   try{
    const W=typeof buildWorld==='function'?buildWorld():null;if(!W)return;
    const pos=posePosition(frame,W);
+   if(pos)trackLast={...pos};
    if(sampling)calibrate(t,pos);
    if(running){
     if(pos)lastTrack=t;
@@ -357,6 +365,7 @@
   $('toggleControls').textContent=mode==='motion'?'🎮 BOTONES':'🚶 MOVIMIENTO';
   $('movePad').style.display=running&&mode==='buttons'?'flex':'none';
   if(!running)notify(mode==='motion'?'MODO MOVIMIENTO · SIN BOTONES':'MODO BOTONES · OPCIONAL');
+  hud();
   sound(690,.1);
  };
  $('lock').addEventListener('click',()=>setTimeout(()=>{
