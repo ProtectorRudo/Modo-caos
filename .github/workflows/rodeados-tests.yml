@@ -30,3 +30,4 @@ jobs:
       - run: npm install --ignore-scripts --no-save playwright@1.56.0
       - run: npx playwright install --with-deps chromium
       - run: node tests/rodeados-browser.test.cjs
+      - run: node tests/rodeados-xr-smoke.test.cjs
