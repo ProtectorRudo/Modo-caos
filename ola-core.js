@@ -17,7 +17,7 @@ function make(opts={}){
   duration:opts.mode==='infinito'?Infinity:DURATION,elapsed:0,countdown:3,paused:false,
   lives:3,shield:0,invuln:0,score:0,combo:0,dodges:0,waves:0,hitCount:0,
   pos:{x:3,z:3},cell:{r:3,c:3},tileMeters:clamp(opts.tileMeters||.45,.28,.7),
-  active:[],nextAt:2.1,fx:[],fxId:0,finishReason:'',event:'',eventUntil:0,slowUntil:0,
+  active:[],safeZone:null,nextAt:2.1,fx:[],fxId:0,finishReason:'',event:'',eventUntil:0,slowUntil:0,
   waveKinds:['frontal','trasera','lateral','doble','serpiente','corredor','falsa','caos']};
 }
 function event(g,type,label){g.fx.push({id:++g.fxId,type,label,t:g.elapsed});if(g.fx.length>35)g.fx.shift()}
@@ -79,6 +79,8 @@ function pattern(g,name){
   for(let r=0;r<N;r++){c=clamp(c+(pick(g,3)-1),1,4);steps.push(bit(r,c)|bit(r,c-1))}
  }else if(name==='corredor'){
   for(let r=0;r<N;r++)steps.push(row(r,safeHole())| (r>2?bit(r-2,5-hole):0n));
+ }else if(name==='inversion'){
+  const route=[0,1,2,1,0,1];for(const r of route)steps.push(row(r,safeHole()));
  }else if(name==='falsa'){
   for(let i=0;i<5;i++){let r=pick(g,N),c=pick(g,N);steps.push(i%2===0?0n:bit(r,c)|bit(r,clamp(c+1,0,5)))}
  }else if(name==='caos'){
@@ -92,8 +94,9 @@ function pattern(g,name){
  return steps;
 }
 function spawn(g){
- const name=kind(g),lead=g.elapsed<15?2.0:g.elapsed<55?1.85:1.65;
- const slot=speed(g)*(g.elapsed<15?1:.9);
+ const upcoming=g.waves+1,reverse=upcoming%9===0;
+ const name=reverse?'inversion':kind(g),lead=g.elapsed<15?2.0:g.elapsed<55?1.85:1.65;
+ const slot=speed(g)*(g.elapsed<15?1:.9)*(upcoming%7===0?1.38:1);
  let steps=null,chosen=name;
  for(let k=0;k<26;k++){const p=pattern(g,name);if(ensureRoute(g,p,lead,slot)){steps=p;break}}
  if(!steps){chosen='serpiente';steps=pattern(g,'serpiente')}
@@ -102,10 +105,12 @@ function spawn(g){
  g.active.push(w);
  g.nextAt=w.end+(g.elapsed<35?.46:.28);
  event(g,'wave',chosen.toUpperCase());
+ if(reverse){g.event='INVERSIÓN';g.eventUntil=g.elapsed+lead+3*slot;event(g,'warning','↩ INVERSIÓN · ¡CAMBIA DE DIRECCIÓN!')}
+ if(g.waves%5===0){g.safeZone={r:g.cell.r,c:g.cell.c,until:g.elapsed+lead+3*slot};event(g,'bonus','✦ ZONA SEGURA ACTIVA')}
  if(g.waves===4||g.waves%8===0){
   g.shield=1;g.event='ESCUDO';g.eventUntil=g.elapsed+5;event(g,'bonus','🛡 ESCUDO ACTIVADO');
  }else if(g.waves%7===0){
-  g.slowUntil=g.elapsed+4;g.event='TIEMPO LENTO';g.eventUntil=g.elapsed+4;event(g,'bonus','⏳ TIEMPO LENTO');
+  g.slowUntil=w.end;g.event='TIEMPO LENTO';g.eventUntil=w.end;event(g,'bonus','⏳ TIEMPO LENTO');
  }else if(g.waves%6===0){g.event='TORMENTA ROJA';g.eventUntil=g.elapsed+4;event(g,'warning','⚠ TORMENTA ROJA')}
 }
 function cells(g,t=g.elapsed){
@@ -122,7 +127,7 @@ function cells(g,t=g.elapsed){
    }
   }
  }
- return red.map((r,i)=>r?'red':yellow[i]?'yellow':'safe');
+ return red.map((r,i)=>g.safeZone&&t<g.safeZone.until&&i===index(g.safeZone.r,g.safeZone.c)?'safe':r?'red':yellow[i]?'yellow':'safe');
 }
 function hit(g){
  const c=g.cell.r*N+g.cell.c;
