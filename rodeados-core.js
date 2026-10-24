@@ -32,17 +32,17 @@
   const mode=MODES[config.mode]?config.mode:'survival';
   const seed=(config.seed??Date.now())>>>0;
   const g={seed,mode,phase:'ready',elapsed:0,wave:0,lives:100,score:0,shots:0,hits:0,kills:0,combo:0,bestCombo:0,ammo:28,mag:28,reload:0,skill:1,skillCooldown:0,spawnClock:0,enemyId:0,
-   enemies:[],fx:[],scores:{},player:{x:0,z:0},arena:clamp(config.arena||2.6,1.8,4),
+   enemies:[],fx:[],scores:{},peerWeapons:Object.create(null),ownerId:config.ownerId||null,player:{x:0,z:0},arena:clamp(config.arena||2.6,1.8,4),
    duration:MODES[mode].duration,paused:false,finishedReason:'',announcedBoss:false,lastDamage:0};
   Object.defineProperty(g,'rand',{value:prng(seed),enumerable:false});
   return g;
  }
  function reset(g,config={}){
-  return create({...config,mode:config.mode||g.mode,arena:config.arena||g.arena});
+  return create({...config,mode:config.mode||g.mode,arena:config.arena||g.arena,ownerId:config.ownerId??g.ownerId});
  }
  function begin(g){if(g.phase==='ready'){g.phase='playing';g.spawnClock=.5;}return g}
  function copy(g){
-  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,ammo:g.ammo,mag:g.mag,reload:g.reload,skill:g.skill,skillCooldown:g.skillCooldown,player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason};
+  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,ammo:g.ammo,mag:g.mag,reload:g.reload,skill:g.skill,skillCooldown:g.skillCooldown,player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},peerWeapons:{...g.peerWeapons},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason};
  }
  function pickKind(g){
   if(g.mode==='joker')return g.rand()<.68?'joker':g.rand()<.55?'fast':'flanker';
@@ -90,6 +90,7 @@
    if(!e)g.spawnClock=.5;
   }
   if(g.reload>0){g.reload=Math.max(0,g.reload-dt);if(g.reload===0)g.ammo=g.mag;}
+  for(const w of Object.values(g.peerWeapons)){if(w.reload>0){w.reload=Math.max(0,w.reload-dt);if(w.reload===0)w.ammo=g.mag;}}
   g.skillCooldown=Math.max(0,g.skillCooldown-dt);
   const P=g.player,half=g.arena*.5+.72;
   for(const e of g.enemies){
@@ -129,8 +130,16 @@
   return g;
  }
  function finish(g,reason){if(g.phase==='playing'){g.phase='finished';g.finishedReason=reason||'tiempo';}return g}
- function reload(g){
-  if(g.phase!=='playing'||g.reload>0||g.ammo===g.mag)return false;
+ function weaponOf(g,shooter){
+  if(!g.ownerId||!shooter||shooter===g.ownerId)return null;
+  const key=String(shooter);
+  return g.peerWeapons[key]||(g.peerWeapons[key]={ammo:g.mag,reload:0,lastFire:-100});
+ }
+ function reload(g,shooter='vos'){
+  if(g.phase!=='playing'||g.paused)return false;
+  const w=weaponOf(g,shooter);
+  if(w){if(w.reload>0||w.ammo===g.mag)return false;w.reload=1.35;return true;}
+  if(g.reload>0||g.ammo===g.mag)return false;
   g.reload=1.35;g.combo=0;return true;
  }
  // Analytic world-space capsule proxies: torso and head; nearest valid positive ray wins.
@@ -153,8 +162,11 @@
   return hit;
  }
  function fire(g,ray,shooter='vos'){
-  if(g.phase!=='playing'||g.paused||g.reload>0||g.ammo<=0)return {ok:false,reason:g.ammo<=0?'sin_municion':'bloqueado'};
-  g.ammo--;g.shots++;
+  const w=weaponOf(g,shooter),ammo=w?w.ammo:g.ammo,reloading=w?w.reload:g.reload;
+  if(g.phase!=='playing'||g.paused||reloading>0||ammo<=0)return {ok:false,reason:ammo<=0?'sin_municion':'bloqueado'};
+  if(w&&g.elapsed-w.lastFire<.16)return {ok:false,reason:'cadencia'};
+  if(w){w.ammo--;w.lastFire=g.elapsed}else g.ammo--;
+  g.shots++;
   let h=rayHit(g,ray.origin,ray.direction);
   if(!h){g.combo=0;g.fx.push({type:'miss',t:g.elapsed});return {ok:true,hit:false};}
   const e=g.enemies.find(x=>x.id===h.id);if(!e)return {ok:true,hit:false};

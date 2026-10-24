@@ -77,3 +77,9 @@ Animaciones GLB esqueléticas con licencias verificadas; audio espacial HRTF y m
 - Chromium/WebGL y WebXR simulado ahora comprueban HUD radar presente durante juego y ausente durante la selección de celda.
 
 **Seguimos sin pruebas físicas certificadas de ARCore ni gameplay online real de dos equipos; estas pruebas de software no las sustituyen.**
+
+## Co-op beta: cargadores independientes (24/10/2026)
+
+En salas de 2–4 participantes cada usuario tiene su propio cargador de 28 disparos y recarga independiente de 1,35 s, incluso cuando el anfitrión mantiene la simulación de robots. La cadencia de mensajes de disparo de invitados está limitada por el tiempo simulado a 0,16 s y se retransmite el estado de munición de cada integrante mediante snapshots Realtime autenticados; no se requiere migración SQL. El anfitrión sigue controlando vida de equipo y oleadas. Pruebas deterministas en `tests/rodeados-coop.test.cjs` y regresión Chromium.
+
+**Alcance:** la autoridad sigue estando en el navegador anfitrión, no en un servidor antitrampas. No hay aún anclas AR compartidas verificadas y no se probó la experiencia física con dos Android. Las municiones independientes no equivalen a un multijugador espacial certificado.
