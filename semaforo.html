@@ -49,7 +49,7 @@ h1 span{display:block;color:var(--mint)}
 #signalBadge.red{background:#491527e8;border-color:var(--red);color:#ff98ae}
 #signalBadge.amber{background:#523313e8;border-color:var(--yellow);color:#ffdf73}
 #message{position:absolute;top:26%;left:8px;right:8px;text-align:center;font-weight:950;font-size:15px;text-shadow:0 4px 12px #000;z-index:7;pointer-events:none}
-#fx{position:absolute;top:39%;left:6%;right:6%;z-index:20;text-align:center;font-size:clamp(20px,6vw,34px);font-weight:1000;text-shadow:0 0 18px #45ffd0,0 4px 14px black;display:none;pointer-events:none}
+#youArrow{position:absolute;top:55%;left:10px;z-index:8;font-size:13px;font-weight:1000;color:#cafff1;text-shadow:0 2px 12px #000;display:none;pointer-events:none;background:#092a46c9;border:1px solid #55d8bb;border-radius:9px;padding:8px}\n#fx{position:absolute;top:39%;left:6%;right:6%;z-index:20;text-align:center;font-size:clamp(20px,6vw,34px);font-weight:1000;text-shadow:0 0 18px #45ffd0,0 4px 14px black;display:none;pointer-events:none}
 #fx.show{display:block;animation:pop .9s ease both}
 @keyframes pop{0%{opacity:0;transform:translateY(20px) scale(.8)}20%{opacity:1;transform:scale(1.13)}80%{opacity:1}100%{opacity:0;transform:translateY(-24px)}}
 #bottom{position:absolute;bottom:max(8px,env(safe-area-inset-bottom));left:8px;right:8px;z-index:12;display:grid;gap:7px;pointer-events:auto}
@@ -112,7 +112,7 @@ h1 span{display:block;color:var(--mint)}
  <div id="reticle"></div><div id="calibrate">AJUSTÁ LA PISTA</div><div id="fallback"></div>
  <button id="diagbtn" class="secondary">DIAGNÓSTICO</button><button id="goHome" class="secondary">←</button>
  <div id="scorebar"><span>TIEMPO<b id="clock">76</b></span><span>AVANCE<b id="distance">0%</b></span><span>VIDAS<b id="lives">♥♥♥</b></span><span>PUNTOS<b id="points">0</b></span></div>
- <div id="signalBadge">🟢 VERDE</div><div id="message"></div><div id="fx"></div>
+ <div id="signalBadge">🟢 VERDE</div><div id="message"></div><div id="youArrow">◈ VOS POR ACÁ</div><div id="fx"></div>
  <div id="bottom">
   <div id="onlinePanel"><span id="onlineStatus">Conectando sala…</span> <button id="onlineReady" class="secondary">✓ LISTO</button> <button id="onlineStart">▶ INICIAR SALA</button></div>
   <div id="status">FIJÁ LA PISTA PARA EMPEZAR</div>
