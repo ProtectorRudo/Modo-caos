@@ -31,11 +31,14 @@ jobs:
           test "$HTTP" = "200"
           grep -q 'RODEADOS 360' /tmp/rodeados-mirror.html
           grep -q 'id="botGuide"' /tmp/rodeados-mirror.html
-          grep -q 'rodeados-runtime.js?v=6' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-runtime.js?v=7' /tmp/rodeados-mirror.html
           grep -q 'id="arWorldOverlay"' /tmp/rodeados-mirror.html
           curl -fsSL -m 15 "https://protectorrudo.github.io/Modo-caos/rodeados-runtime.js" -o /tmp/rodeados-published-runtime.js
           grep -q 'spawnOpeningEnemies' /tmp/rodeados-published-runtime.js
           grep -q 'distance:3.15,lateral:0' /tmp/rodeados-published-runtime.js
+          grep -q 'openingEyePosition' /tmp/rodeados-published-runtime.js
+          grep -q 'eyeLocal.x+direction.x\*slot.distance' /tmp/rodeados-published-runtime.js
+          echo 'V7: disparo y robots centrados según la cámara XR real'
           grep -q "addEventListener('pointerdown'" /tmp/rodeados-published-runtime.js
           curl -fsSL -m 12 "https://protectorrudo.github.io/Modo-caos/rodeados-core.js" -o /tmp/rodeados-v6-core.js
           grep -q 'SAFE_DISTANCE=2.45' /tmp/rodeados-v6-core.js
