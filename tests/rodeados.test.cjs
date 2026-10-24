@@ -35,14 +35,15 @@ test('headshot deals extra damage and awards combo, kill and points',()=>{
  const r=G.fire(g,ray,'player1');
  assert.equal(r.ok,true);assert.equal(r.hit,true);assert.equal(r.killed,true);
  assert.equal(g.kills,1);assert.equal(g.hits,1);assert.equal(g.shots,1);
- assert.equal(g.ammo,27);assert.ok(g.score>100);assert.equal(g.scores.player1,g.score);
+ assert.equal(g.ammo,28);assert.equal(g.infiniteAmmo,true);assert.ok(g.score>100);assert.equal(g.scores.player1,g.score);
 });
-test('empty magazine requires reload, reload honors 1.35s',()=>{
+test('infinite energy gun never blocks shots or introduces a reload delay',()=>{
  const g=G.create();G.begin(g);g.ammo=0;
- assert.equal(G.fire(g,ray).ok,false);
- assert.equal(G.reload(g),true);assert.equal(G.reload(g),false);
- G.advance(g,.07);for(let i=0;i<19;i++)G.advance(g,.07);
- assert.equal(g.ammo,g.mag);assert.equal(g.reload,0);
+ assert.equal(G.fire(g,ray).ok,true,'even a restored old 0-ammo save must fire');
+ assert.equal(G.reload(g),false,'reload removed');
+ assert.equal(g.reload,0);
+ for(let i=0;i<100;i++)assert.equal(G.fire(g,ray).ok,true);
+ assert.equal(g.shots,101);
 });
 test('EMP stuns bots and has cooldown',()=>{
  const g=G.create();G.begin(g);g.enemies=[mkEnemy()];
