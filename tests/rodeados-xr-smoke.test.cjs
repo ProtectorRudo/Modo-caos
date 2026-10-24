@@ -66,6 +66,12 @@ const server=http.createServer((req,res)=>{
  await page.locator('#startAR').click();
  await page.waitForFunction(()=>window.__RodeadosDebug?.stage==='edit',null,{timeout:7000});
  assert(await page.locator('#touch').isVisible(),'touch editing surface visible');
+ await page.waitForFunction(()=>__RodeadosDebug.compositorFrames>4,null,{timeout:6500});
+ assert.equal(await page.locator('#arWorldOverlay canvas').count(),1,'separate WebGL world inside XR DOM overlay');
+ assert(await page.locator('#arWorldOverlay').isVisible(),'AR world canvas is visible over camera passthrough');
+ assert((await page.evaluate(()=>__RodeadosDebug.compositorCalls))>0,'actual floor geometry reaches Blackzone compositor draw call');
+ assert.equal(await page.locator('#arWorldOverlay').evaluate(el=>getComputedStyle(el).pointerEvents),'none',
+  'transparent 3D world does not steal taps from HUD and floor editor');
  await page.waitForFunction(()=>__RodeadosDebug.gridVisible>0,null,{timeout:4000});
  assert.equal(await page.locator('#cellsvg polygon').count(),25,'all 25 floor cells are visible as an anchored overlay DURING placement');
  assert(await page.locator('#cellsvg').isVisible(),'floor projection is visible before lock, not only after');
@@ -106,6 +112,12 @@ const server=http.createServer((req,res)=>{
  const start=await page.evaluate(()=>({game:__RodeadosDebug.game,meshes:__RodeadosDebug.renderedRobots}));
  assert(start.game.enemies.length>=2,'two robots exist at start');
  assert(start.meshes>=2,'both robots have live Three.js 3D meshes');
+ assert((await page.evaluate(()=>__RodeadosDebug.compositorFrames))>8,
+  'WebXR frames project actual world to separate DOM WebGL compositor');
+ assert((await page.evaluate(()=>__RodeadosDebug.compositorCalls))>=2,
+  'at least two physical 3D floor/robot objects reach compositor while playing');
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.compositorError),null,
+  'overlay compositor produces no WebGL errors');
  assert(start.game.enemies.some(e=>e.z<start.game.player.z-.7),'at least one opening robot appears in front of forward-facing camera');
  await page.evaluate(()=>window.__simPhone.x=.18);
  await page.waitForTimeout(400);
