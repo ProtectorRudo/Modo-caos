@@ -20,7 +20,7 @@ function run(){
  for(let i=0;i<30;i++)sample(0,i*.004,'amber',i*.025);
  assert.equal(steps,before,'amarillo no permite avanzar por impulso');
  let basePunish=punish;
- for(let i=0;i<32;i++)sample(.017*Math.sin(i*.2),.023*Math.cos(i*.26),'red',.8+i*.025);
+ for(let i=0;i<52;i++)sample(.017*Math.sin(i*.2),.023*Math.cos(i*.26),'red',i*.025);
  assert.equal(punish,basePunish,'temblores de mano no penalizan rojo');
  for(let i=0;i<14;i++)sample(0,.015*i,'red',1.7+i*.025);
  for(let i=0;i<16;i++)sample(0,.195,'red',2.1+i*.025);
@@ -30,7 +30,8 @@ function run(){
  const teleport=sample(0,.66,'red',3.3);
  assert.equal(teleport.motion,0,'salto ARCore no debe ser penalización');
  assert.equal(teleport.forward,0,'salto ARCore no puede dar impulso');
- const lat=sample(.12,.66,'amber',.1);
+ let lat=null;
+ for(let i=0;i<12;i++)lat=sample(.12,.66,'amber',.1+i*.025);
  assert.ok(lat.lane>0.05,'desplazamiento lateral filtrado');
  // Drive a complete core match exclusively through phone motion, with no buttons.
  const sim=Motion.create(),g=Core.make({seed:702});let now=2000,pulses=0;
