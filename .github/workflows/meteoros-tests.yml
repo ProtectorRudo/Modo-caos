@@ -1,0 +1,37 @@
+name: Modo Caos · Lluvia de Meteoros
+on:
+  push:
+    branches:
+      - main
+      - feature/lluvia-meteoros-ar
+  pull_request:
+    paths:
+      - 'meteoros*'
+      - 'tests/**'
+      - 'index.html'
+      - 'salas.html'
+      - 'mc-lobby.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  javascript-tests:
+    name: Gameplay and regression (Node)
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Check gameplay modules
+        run: |
+          node --check meteoros-core.js
+          node --check meteoros-art.js
+          node --check meteoros-runtime.js
+          node --check semaforo-core.js
+      - name: Meteors deterministic and fairness tests
+        run: node tests/meteoros.test.cjs
+      - name: Existing Semaforo gameplay tests
+        run: node tests/semaforo.test.cjs
+      - name: Existing Semaforo AR motion tests
+        run: node tests/semaforo-motion.test.cjs
