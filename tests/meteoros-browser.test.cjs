@@ -59,7 +59,7 @@ const server=http.createServer((req,res)=>{
   const unexpected=errors.filter(x=>!x.includes('No runtimes supported the requested configuration'));
   assert.equal(unexpected.length,0,'no unexpected errors during graceful WebXR fallback: '+unexpected.join(' / '));
   await page.goto(url+'/index.html',{waitUntil:'load'});
-  assert((await page.locator('a[href="'+(process.env.METEORS_PAGE||'/meteoros.html')+'"]').count())===1,'game appears in arcade');
+  assert((await page.locator('a[href="/meteoros.html"]').count())===1,'game appears in arcade');
   await page.goto(url+'/salas.html',{waitUntil:'load'});
   assert((await page.locator('#gameChoice option[value="lluvia-meteoros"]').count())===1,'game selectable in room lobby');
   console.log('PASS: Chromium mobile viewport, game entry, full Canvas render, countdown, scoring, movement, sound, fallback, arcade and rooms.');
