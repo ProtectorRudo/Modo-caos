@@ -64,3 +64,16 @@ No tocar ni exponer datos de Viralio o Te Hice Esto. No ampliar SQL ni autentica
 ## Mejoras posteriores pendientes
 
 Animaciones GLB esqueléticas con licencias verificadas; audio espacial HRTF y música original; optimización y análisis ARCore real; validación antifraude server-side, mejores reconocimientos y retos diarios, alignment multi-AR con puntos compartidos y control de distancia; equipos; tornados de spawn más variados; atención a accesibilidad y fotografía real. Estas tareas no se confunden con funciones verificadas.
+
+## V2 · Diseño y seguridad incorporados (24/10/2026)
+
+- Radar 360° con orientación relativa a la cámara: blanco representa el celular; enemigos próximos se marcan en rojo, jefes en amarillo y otros robots en menta. No muestra datos de objetos/muebles reales.
+- Indicador de oleada, racha, confirmación de impacto y daño sin ocupar el centro durante toda la partida.
+- Retícula centrada al 50% de la pantalla para corresponder al rayo 3D `(0,0,-1)`.
+- La posición estimada fuera del perímetro + 35 cm produce pausa de seguridad, sin animar a correr.
+- Ancla WebXR solicitada dentro del siguiente `XRFrame` tras fijar pista. Si `frame.createAnchor` no se ofrece, se intenta Hit Test vivo y, si tampoco funciona, continúa el tracking del sistema de coordenadas local.
+- Al usar WebXR inmersivo no se reconfigura dinámicamente el pixel ratio del renderer. El control adaptativo sigue disponible en entrenamiento 3D.
+- Test unitario `tests/rodeados-ux.test.cjs`: izquierda/derecha/atrás, orientación del radar, alertas por oleada y daño.
+- Chromium/WebGL y WebXR simulado ahora comprueban HUD radar presente durante juego y ausente durante la selección de celda.
+
+**Seguimos sin pruebas físicas certificadas de ARCore ni gameplay online real de dos equipos; estas pruebas de software no las sustituyen.**
