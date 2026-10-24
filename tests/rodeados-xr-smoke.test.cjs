@@ -131,7 +131,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#fire').tap();
  await page.waitForFunction(v=>__RodeadosDebug.game.ammo<v,ammoBefore,{timeout:2000});
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.shots),1,
-  'Android XR touch dispatched pointerdown and fired exactly one bullet');
+  'Android XR touch dispatched pointerdown and fired once');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.shotStatus),'IMPACTO',
   'shot must use the cached live XR ray, never silently abort due to stale XRFrame');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.aimFailures),0,
