@@ -360,5 +360,7 @@ if(new URLSearchParams(location.search).has('mc_test')){
     {x:worldMatrix[12],y:worldMatrix[13],z:worldMatrix[14]}:null
  });
 }
+$('enter').disabled=false;$('demo').disabled=false;
+$('loadStatus').textContent='✓ JUEGO CARGADO · ELEGÍ TU MODO';
 if(navigator.xr){/* engine.js consulta compatibilidad cuando empieza */}
 })();
