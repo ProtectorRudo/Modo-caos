@@ -32,9 +32,10 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 #touchpad{position:absolute;inset:17% 0 29%;display:none;pointer-events:auto;touch-action:none;z-index:9}
 #calibrate{position:absolute;top:20%;left:7%;right:7%;display:none;font-size:11px;background:#08182cda;border:1px solid #5997b2;padding:9px;border-radius:11px;text-align:center;z-index:13}
 #fallback{position:absolute;top:45%;left:9%;right:9%;display:none;text-align:center;background:#061a30ed;border-radius:11px;padding:12px;z-index:14}
-#toolbar{position:absolute;left:6%;right:6%;bottom:max(129px,env(safe-area-inset-bottom) + 127px);display:none;gap:7px;z-index:16;pointer-events:auto}
+#toolbar{position:absolute;left:6%;right:6%;bottom:max(190px,env(safe-area-inset-bottom) + 188px);display:none;gap:7px;z-index:16;pointer-events:auto}
 #toolbar button{flex:1;min-width:0;background:#17364dee;color:#dffeff;border:1px solid #5ed9dc}
 #toolbar #size{flex:1.6;font-size:12px}
+#autoCenter{position:absolute;bottom:max(126px,env(safe-area-inset-bottom) + 121px);left:7%;width:86%;z-index:18;display:none;pointer-events:auto;min-height:47px;background:#0b263af0;border:1px solid #62cde1;color:#c9fff9;font-size:12px}
 #lock{position:absolute;bottom:max(64px,env(safe-area-inset-bottom) + 58px);left:7%;width:86%;z-index:18;pointer-events:auto;min-height:59px;font-size:15px;background:linear-gradient(105deg,#65f6f1,#b6ffec)}
 #exit,#music,#pause,#recalibrateLive{position:absolute;top:max(9px,env(safe-area-inset-top));z-index:17;pointer-events:auto;background:#071a33e8;color:#e3faff;border:1px solid #55718a;min-height:37px;font-size:11px}
 #exit{left:9px}#recalibrateLive{left:84px;display:none}#music{right:9px}#pause{right:70px;display:none}
@@ -42,6 +43,17 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 .stat{background:#071a2ad9;border:1px solid #4d7184;border-radius:12px;padding:6px 10px;text-align:center;font-size:9px;min-width:75px;font-weight:900}
 .stat strong{display:block;font-size:21px;font-weight:1000;font-variant-numeric:tabular-nums;color:white}
 #lives{color:#ff6077}.redStat strong{color:#ff7c8f}
+#radar{position:absolute;top:168px;right:9px;width:124px;display:none;z-index:16;background:#071b31e0;border:1px solid #5a8599;border-radius:13px;padding:8px;pointer-events:none;box-shadow:0 6px 25px #0008}
+#radarTitle{display:block;text-align:center;color:#b6faf5;font-size:10px;font-weight:950;letter-spacing:1px;margin-bottom:4px}
+#radarCells{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
+#radarCells i{display:block;aspect-ratio:1;background:#134158;border:1px solid #397387;border-radius:3px}
+#radarCells i.future{background:#a9630e;border-color:#ffb84b;box-shadow:0 0 6px #ffa12b6b}
+#radarCells i.warning{background:#e4a22e;border-color:#ffea84}
+#radarCells i.danger{background:#fa3158;border-color:#ff8699;box-shadow:0 0 7px #ff3455aa}
+#radarCells i.player{outline:2px solid #c6fffc;outline-offset:-1px;position:relative}
+#radarCells i.player:after{content:'';position:absolute;inset:33%;background:white;border-radius:50%}
+#radarDirection{font-size:10px;font-weight:900;color:#ffe19a;text-align:center;margin-top:7px;line-height:1.24;min-height:22px}
+#radarTime{font-size:11px;color:#ffb3bd;text-align:center;font-weight:950}
 #banner{position:absolute;top:124px;left:5%;right:5%;font-size:11px;font-weight:1000;letter-spacing:1px;text-shadow:0 1px 7px #000;text-align:center;color:#ffeaa1;z-index:16;pointer-events:none}
 #toast{position:absolute;top:21%;left:8%;right:8%;font-size:clamp(20px,6vw,29px);font-weight:1000;text-align:center;color:#fff2ba;text-shadow:0 3px 16px #000;pointer-events:none;z-index:17}
 #statusPanel{position:absolute;bottom:max(12px,env(safe-area-inset-bottom));left:7px;right:7px;display:none;flex-direction:column;align-items:center;gap:8px;z-index:18;pointer-events:none}
@@ -61,7 +73,8 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 #pauseDialog{position:absolute;inset:0;background:#050b1bdd;z-index:31;display:none;pointer-events:auto;align-items:center;justify-content:center}
 #pauseDialog>div{border:1px solid #4e96ac;background:#0e2437;border-radius:18px;text-align:center;padding:24px;max-width:310px}
 #pauseDialog button{width:100%;margin-top:8px}
-@media(max-height:700px){#head{top:48px}#gameHud{top:45px}#banner{top:109px}#toast{top:18%}#statusPanel{bottom:5px}.stat strong{font-size:18px}}
+@media(max-height:700px){#radar{top:137px;width:109px}#toolbar{bottom:176px}#autoCenter{bottom:117px}
+#head{top:48px}#gameHud{top:45px}#banner{top:109px}#toast{top:18%}#statusPanel{bottom:5px}.stat strong{font-size:18px}}
 </style></head><body>
 <div id="home"><a id="back" href="./index.html">← MODO CAOS</a>
 <div class="kicker">EL PISO COBRÓ VIDA · SUPERVIVENCIA FÍSICA AR</div>
@@ -77,12 +90,12 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 <svg id="tiles" xmlns="http://www.w3.org/2000/svg"></svg><svg id="arenaSvg" xmlns="http://www.w3.org/2000/svg"></svg>
 <canvas id="canvas2D"></canvas>
 <div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Apuntá a una superficie plana.</div></div>
-<div id="reticle"></div><div id="mock"></div><button id="support"></button><div id="calibrate">ARRASTRÁ PARA UBICAR · PELLIZCÁ PARA ESCALAR · GIRÁ CON DOS DEDOS</div><div id="fallback"></div><div id="touchpad"></div>
-<div id="toolbar"><button id="minus">−</button><button id="size" disabled>2,70 m</button><button id="plus">+</button><button id="rotate">↻ GIRAR</button></div>
+<div id="reticle"></div><div id="mock"></div><button id="support"></button><div id="calibrate">CENTRÁ DEBAJO TUYO O ARRASTRÁ · PINZA PARA TAMAÑO · GIRÁ CON DOS DEDOS</div><div id="fallback"></div><div id="touchpad"></div>
+<div id="toolbar"><button id="minus">−</button><button id="size" disabled>2,40 m</button><button id="plus">+</button><button id="rotate">↻ GIRAR</button></div>
 <div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
-<button id="lock" disabled>📍 FIJAR PISTA</button><button id="exit">← SALIR</button><button id="recalibrateLive" title="Recalibrar posición sin mover pista">⊕</button><button id="music">🔊</button><button id="pause">Ⅱ</button>
+<button id="autoCenter" type="button">◎ CENTRAR PISTA DEBAJO DE MÍ</button><button id="lock" disabled>📍 FIJAR PISTA</button><button id="exit">← SALIR</button><button id="recalibrateLive" title="Recalibrar posición sin mover pista">⊕</button><button id="music">🔊</button><button id="pause">Ⅱ</button>
 <div id="gameHud"><div class="stat redStat">TIEMPO<strong id="time">90</strong></div><div class="stat">VIDAS<strong id="lives">♥♥♥</strong></div><div class="stat">PUNTOS<strong id="score">0</strong></div></div>
-<div id="banner"></div><div id="toast" role="status" aria-live="polite"></div>
+<div id="banner"></div><div id="radar"><span id="radarTitle">VISTA DEL PISO · VOS ●</span><div id="radarCells"></div><div id="radarDirection">MIRÁ DE DÓNDE VIENE</div><div id="radarTime"></div></div><div id="toast" role="status" aria-live="polite"></div>
 <div id="statusPanel"><div id="calBox"><div id="calTitle">👣 TOCÁ LA CASILLA DONDE ESTÁS</div><div id="calTrack"><div id="calFill"></div></div><button id="calCenter">👣 ESTOY EN LA CASILLA CENTRAL</button></div>
 <div id="whereAmI">📍 VOS · SIN CALIBRAR</div><div id="safety">Detectando una superficie despejada…</div>
 <div id="gameActions"><button id="recalibrate" class="secondary">⊕ RECALIBRAR</button><button id="begin" disabled>🔴 ¡EMPEZAR!</button></div></div>
@@ -90,7 +103,7 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 <div id="pauseDialog"><div><h2>PARTIDA EN PAUSA</h2><p>Respirá, la ola te espera.</p><button id="resume">▶ CONTINUAR</button><button id="pauseCal" class="secondary">⊕ RECALIBRAR</button></div></div>
 </div>
 <script defer src="./engine.js?v=meteoros1"></script>
-<script defer src="./ola-core.js?v=1"></script>
-<script defer src="./ola-art.js?v=1"></script>
-<script defer src="./ola-runtime.js?v=1"></script>
+<script defer src="./ola-core.js?v=2"></script>
+<script defer src="./ola-art.js?v=2"></script>
+<script defer src="./ola-runtime.js?v=2"></script>
 </body></html>
