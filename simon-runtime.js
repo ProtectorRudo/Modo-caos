@@ -216,7 +216,7 @@ function setup(){
  const q=new URLSearchParams(location.search),room=q.get('room');
  if(room){offlineRoom=true;ui('roomInfo','SALA '+room+' · SINCRONIZACIÓN DEL JUEGO PENDIENTE');show('roomInfo',true)}
  $('mode').addEventListener('change',()=>newGame());$('seed').addEventListener('change',()=>newGame());
- $('demo').addEventListener('click',()=>{beep(440,.06);mode='demo';newGame();show('home',false);show('overlay',true);show('grid',true,'grid');show('touchpad',false);show('toolbar',false);show('startGame',true);show('position',true);show('how',true);hint('MODO 2D · SIN CAMINAR','Memorizá la secuencia y tocá las baldosas.');lastFrame=0;requestAnimationFrame(demoLoop)});
+ $('demo').addEventListener('click',()=>{beep(440,.06);mode='demo';newGame();show('home',false);show('overlay',true);show('grid',true,'grid');show('touchpad',false);show('toolbar',false);show('lock',false);show('edit',false);show('calibrate',false);show('startGame',true);show('position',true);show('how',true);hint('MODO 2D · SIN CAMINAR','Memorizá la secuencia y tocá las baldosas.');lastFrame=0;requestAnimationFrame(demoLoop)});
  $('enter').addEventListener('click',()=>{mode='ar';newGame();hint('BUSCÁ EL PISO','Apuntá a un espacio libre; luego ajustá y fijá la pista.')});
  $('lock').addEventListener('click',()=>{if(stage==='fixed'){show('calPanel',true);show('picker',true,'grid');hint('¿DÓNDE ESTÁS PARADO?','Elegí tu celda actual para calibrar.');ui('calTitle','TOCÁ LA CELDA EN LA QUE ESTÁS');}});
  $('edit').addEventListener('click',()=>{if(g.phase==='act')g.paused=true;calibrated=false;picked=-1;samples=[];show('calPanel',false);show('startGame',false);cancel();if(g.phase!=='idle')g.phase='idle'});
