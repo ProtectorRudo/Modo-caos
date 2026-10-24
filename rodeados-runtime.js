@@ -19,7 +19,7 @@ if(!UX)throw Error('RODEADOS: falta el radar 360');
 const art=createRodeadosArt(THREE,scene,camera);
 let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null,hitSource=null,hit=null,anchor=null,anchorOffset=null;
 let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
-let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
+let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
 let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
 let sounds=true,vibration=true,ctx=null,lastLaugh=0,fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
 let online=null,onlineBusy=false,onlineRoomCode=new URLSearchParams(location.search).get('room')?.toUpperCase()||'',roomTimer=0;
@@ -126,7 +126,7 @@ function setupGame(keepCalibration=false){
  game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
  fxShown.clear();fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
- $('result').style.display='none';visible('healthTrack',true,'block');visible('topHud',true);
+ $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
  updateHud(true);
 }
 function updateHud(force=false){
@@ -168,7 +168,9 @@ function setPhase(next){
  stage=next;
  visible('calControls',next==='edit');visible('touch',next==='edit','block');
  visible('cellControls',next==='cell'||next==='sample'||next==='ready');
- visible('cellsvg',next==='cell'||next==='sample','block');
+ visible('cellsvg',next==='edit'||next==='cell'||next==='sample','block');
+ visible('manualPlace',next==='search'&&performance.now()-searchSince>1800,'block');
+ visible('placementHelp',false);visible('healthTrack',['ready','countdown','playing','paused'].includes(next),'block');
  visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown','block');
  visible('radarWrap',next==='playing','block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
@@ -197,12 +199,35 @@ function getHit(frame){
 }
 function newPreview(pose){
  const p=pose.transform.position,q=pose.transform.orientation;
- basePos.set(p.x,p.y,p.z);baseQ.set(q.x,q.y,q.z,q.w);
- // Plane alignment can include yaw from ARCore. Stabilize floor normal but preserve
- // local orientation so multiple devices can manually agree on the north arrow.
+ basePos.set(p.x,p.y,p.z);
+ // The hit-test rotation may contain pitch/roll; force the square HORIZONTAL.
+ // Copy yaw only, never tilt the floor along with the camera/plane estimate.
+ const orientation=new THREE.Quaternion(q.x,q.y,q.z,q.w).normalize();
+ const facing=new THREE.Vector3(0,0,-1).applyQuaternion(orientation);facing.y=0;
+ const heading=facing.lengthSq()>.001?Math.atan2(-facing.x,-facing.z):0;
+ baseQ.setFromAxisAngle(THREEVec(0,1,0),heading);
  shift.set(0,0,0);yaw=0;stage='edit';
  $('size').textContent=floorSize.toFixed(2).replace('.',',')+' m';
- setPhase('edit');hint('ARRASTRÁ, PELLIZCÁ Y GIRÁ LA PISTA · DESPUÉS FIJALA');
+ setPhase('edit');worldForEditor();hint('MIRÁ LA CUADRÍCULA TURQUESA · ARRASTRÁ, PELLIZCÁ Y GIRÁ');
+}
+function placeFromCurrentView(){
+ if(!xrSession||!lastXRFrame)return false;
+ const h=getHit(lastXRFrame);
+ if(h){hit=h.result;newPreview(h.pose);notice('✅ PISO DETECTADO · AJUSTÁ LA PISTA',2);return true}
+ const pose=cameraXRView(lastXRFrame);
+ if(!pose)return false;
+ const p=pose.transform.position,q=pose.transform.orientation;
+ const aim=THREEVec(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));
+ const floorY=p.y-1.45;
+ // Manual approximation when ARCore hit-test does not deliver a floor.
+ // Intersect a downward-looking ray; otherwise use a short forward offset.
+ const dist=aim.y<-.15?clamp((floorY-p.y)/aim.y,.65,2.3):1.4;
+ let dx=aim.x*dist,dz=aim.z*dist;
+ if(Math.hypot(dx,dz)<.45){const forward=THREEVec(aim.x,0,aim.z).normalize();dx=forward.x*.75;dz=forward.z*.75}
+ hit=null;
+ newPreview({transform:{position:{x:p.x+dx,y:floorY,z:p.z+dz},orientation:q}});
+ notice('📍 POSICIÓN APROXIMADA · AJUSTÁ Y CENTRÁ EL PISO',3);
+ return true;
 }
 function worldForEditor(){
  art.root.position.copy(basePos).add(shift.clone().applyQuaternion(baseQ));
@@ -263,37 +288,64 @@ function samplePose(t,pose){
  notice('📍 CELDA CALIBRADA',1.5);vib(45);
  if(pausedForCalibration){game.paused=true;$('begin').textContent='▶ REANUDAR COMBATE'}else $('begin').textContent='▶ ¡DEFENDERME!';
 }
-function drawCells(){
- const svg=$('cellsvg'),editing=stage==='cell'||stage==='sample';
- if(!editing){svg.replaceChildren();return}
- const xrCamera=renderer.xr.getCamera(camera),eye=xrCamera?.cameras?.[0]||xrCamera;
- if(!eye)return;
- art.root.updateMatrixWorld(true);eye.updateMatrixWorld(true);
+function drawCells(frame){
+ const svg=$('cellsvg'),edit=stage==='edit',choosing=stage==='cell'||stage==='sample';
+ if(!edit&&!choosing){svg.replaceChildren();gridVisible=0;return}
+ // XRView's own projection/view matrices are authoritative in immersive AR.
+ // renderer.xr.getCamera can be one frame behind renderer.render().
+ const view=frame&&space?frame.getViewerPose(space)?.views?.[0]:null;
+ let viewProjection=null;
+ if(view?.projectionMatrix&&view.transform?.inverse?.matrix){
+  const projection=new THREE.Matrix4().fromArray(view.projectionMatrix);
+  const viewMatrix=new THREE.Matrix4().fromArray(view.transform.inverse.matrix);
+  viewProjection=projection.multiply(viewMatrix);
+ }
+ const xrCam=renderer.xr.getCamera(camera),eye=xrCam?.cameras?.[0]||xrCam;
+ if(!viewProjection&&!eye)return;
+ art.root.updateMatrixWorld(true);
+ if(!viewProjection)eye.updateMatrixWorld(true);
  svg.setAttribute('viewBox','0 0 '+innerWidth+' '+innerHeight);
  if(svg.children.length!==25){
   svg.replaceChildren();
   for(let i=0;i<25;i++){
-   const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-   p.setAttribute('stroke','#baffee');p.setAttribute('stroke-width','2.4');
-   p.style.cursor='pointer';p.style.pointerEvents='all';
-   p.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();chooseCell(i)});
-   svg.appendChild(p);
+   const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+   poly.setAttribute('stroke','#bbffef');poly.setAttribute('stroke-width','2.4');
+   poly.setAttribute('stroke-linejoin','round');
+   poly.style.cursor='pointer';poly.style.pointerEvents='all';
+   poly.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();chooseCell(i)});
+   svg.appendChild(poly);
   }
  }
- const pitch=floorSize/5,half=pitch*.475;
+ const pitch=floorSize/5,half=pitch*.46;
+ let seen=0;
  for(let i=0;i<25;i++){
   const x=(i%5-2)*pitch,z=(Math.floor(i/5)-2)*pitch;
-  const corners=[[x-half,.043,z-half],[x+half,.043,z-half],[x+half,.043,z+half],[x-half,.043,z+half]];
-  const points=corners.map(([a,b,c])=>{
-   const v=THREEVec(a,b,c).applyMatrix4(art.root.matrixWorld).project(eye);
-   return v.z>1||v.z< -1?null:((v.x+1)*innerWidth/2).toFixed(1)+','+((1-v.y)*innerHeight/2).toFixed(1);
+  const corners=[[x-half,.06,z-half],[x+half,.06,z-half],[x+half,.06,z+half],[x-half,.06,z+half]];
+  let inside=0;
+  const coords=corners.map(([a,b,c])=>{
+   const w=THREEVec(a,b,c).applyMatrix4(art.root.matrixWorld);
+   const v=viewProjection?w.applyMatrix4(viewProjection):w.project(eye);
+   if(!Number.isFinite(v.x)||!Number.isFinite(v.y)||!Number.isFinite(v.z)||v.z<=-1||v.z>=1)return null;
+   if(Math.abs(v.x)<=1&&Math.abs(v.y)<=1)inside++;
+   return ((v.x+1)*innerWidth/2).toFixed(1)+','+((1-v.y)*innerHeight/2).toFixed(1);
   });
-  const poly=svg.children[i];
-  poly.style.display=points.some(p=>!p)?'none':'block';
-  if(points.every(Boolean))poly.setAttribute('points',points.join(' '));
-  poly.setAttribute('fill',i===selected?'#a0ffe8ba':'#4ed8e536');
+  const poly=svg.children[i],projected=coords.every(Boolean);
+  poly.style.display=projected?'block':'none';
+  if(projected){
+   poly.setAttribute('points',coords.join(' '));
+   if(inside)seen++;
+  }
+  poly.setAttribute('fill',i===selected?'#9effe6e8':(edit?(i%2?'#20c8f09c':'#14ffcf91'):'#50ffe87d'));
+  poly.setAttribute('stroke',i===selected?'#fff5b7':'#c7fff2');
+  poly.style.pointerEvents=stage==='cell'?'all':'none';
  }
+ gridVisible=seen;
  svg.style.pointerEvents=stage==='cell'?'auto':'none';
+ const help=$('placementHelp');
+ if(edit&&seen===0){
+  help.textContent='⚠ NO SE VE LA PISTA · APUNTÁ MÁS ABAJO O TOCÁ «CENTRAR EN EL PISO»';
+  visible('placementHelp',true,'block');
+ }else visible('placementHelp',false);
 }
 function updateMotion(t,pose){
  if(!calibrated||!pose){if(stage==='playing'&&t-lastTracked>1100){game.paused=true;notice('📡 SEGUIMIENTO PERDIDO · PAUSA',2);setPhase('paused')}return}
@@ -516,7 +568,11 @@ function animate(t,frame){
    if(stage==='search'){
     const h=getHit(frame);
     if(h){hit=h.result;newPreview(h.pose)}
-   }else worldForEditor();
+    else if(t-searchSince>1800)visible('manualPlace',true,'block');
+   }else{
+    const h=getHit(frame);if(h)hit=h.result;
+    worldForEditor();
+   }
   }else if(anchor){
    const a=frame.getPose(anchor.anchorSpace,renderer.xr.getReferenceSpace());
    if(a){
@@ -527,10 +583,10 @@ function animate(t,frame){
     fixedPos.copy(art.root.position);fixedQ.copy(art.root.quaternion);
    }
   }
-  if(['cell','sample','ready','playing','paused'].includes(stage)){
+  if(['edit','cell','sample','ready','playing','paused'].includes(stage)){
    if(stage==='sample')samplePose(t,pose);
    if(stage==='playing'||stage==='paused'||stage==='ready')updateMotion(t,pose);
-   if(stage==='cell'||stage==='sample')drawCells();
+   if(stage==='cell'||stage==='sample'||stage==='edit')drawCells(frame);
   }
   if(!pose&&stage==='playing'&&t-lastTracked>1000){game.paused=true;setPhase('paused');notice('CÁMARA SIN SEGUIMIENTO · RECALIBRÁ',3)}
  }else if(demo){
@@ -577,6 +633,14 @@ $('touch').addEventListener('pointermove',e=>{
 for(const name of ['pointerup','pointercancel','lostpointercapture'])$('touch').addEventListener(name,e=>{pointer.delete(e.pointerId);lastPinch=null});
 $('overlay').addEventListener('beforexrselect',e=>e.preventDefault());
 $('lock').onclick=freezeEditor;
+$('refreshFloor').onclick=()=>{
+ if(stage!=='edit')return;
+ if(!placeFromCurrentView())notice('MOVÉ LA CÁMARA LENTAMENTE PARA RECUPERAR SEGUIMIENTO',2);
+};
+$('manualPlace').onclick=()=>{
+ if(stage!=='search')return;
+ if(!placeFromCurrentView())notice('NO HAY SEGUIMIENTO DEL CELULAR · MOVÉ LENTAMENTE',2);
+};
 $('center').onclick=()=>chooseCell(12);
 $('changeCell').onclick=prepareCell;
 $('begin').onclick=countdownBegin;
@@ -635,7 +699,7 @@ async function startXR(){
   session.addEventListener('end',()=>{xrSession=null;anchor?.delete?.();anchor=null;hitSource?.cancel?.();hitSource=null;space=null;
    setPhase('home');$('overlay').style.display='none';$('home').style.display='block';});
   setupGame(false);
-  setPhase('search');hint('BUSCÁ EL PISO PARA COLOCAR LA ARENA');
+  searchSince=performance.now();setPhase('search');hint('BUSCÁ EL PISO PARA COLOCAR LA ARENA');
   if(/^[A-F0-9]{8}$/.test(onlineRoomCode))connectOnline();
  }catch(e){
   $('support').textContent='No se pudo iniciar AR: '+(e?.message||e)+'. Probá el entrenamiento 3D.';
@@ -658,4 +722,4 @@ globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(g
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
  get player(){return {x:game.player.x,z:game.player.z}},
- get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
+ get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};

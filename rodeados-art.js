@@ -18,9 +18,10 @@ export function createRodeadosArt(THREE,scene,camera){
   orange:material(0xff7733,.36,.3,1.2),green:material(0x7fffc5,.2,.3,.6)
  };
  const overlay=(color,opacity=.5)=>new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthWrite:false,side:THREE.DoubleSide});
- const tileMat=[overlay(0x0bc3c5,.65),overlay(0x067eab,.65)];
- const pickMat=overlay(0x8fffd3,.92),lowMat=overlay(0x167e87,.065);
- const borderMat=material(0x35f8d6,.2,.4,.7);
+ const tileMat=[overlay(0x03c9d0,.9),overlay(0x08729f,.92)];
+ const pickMat=overlay(0x8fffd3,.96),lowMat=overlay(0x167e87,.18);
+ for(const mat of [...tileMat,pickMat,lowMat]){mat.depthWrite=false;mat.depthTest=false;mat.toneMapped=false;}
+ const borderMat=new THREE.MeshBasicMaterial({color:0x65ffe6,depthTest:false,depthWrite:false,toneMapped:false});
  const box=(parent,mat,p,s,geometry=geo.box)=>{
   const v=new THREE.Mesh(geometry,mat);v.position.set(...p);v.scale.set(...s);parent.add(v);return v;
  };
@@ -41,12 +42,12 @@ export function createRodeadosArt(THREE,scene,camera){
  function setFloor(side,editing,cell=-1,player=null){
   const pitch=side/5,half=side*.5;
   for(let i=0;i<25;i++){const tile=tiles[i];
-   tile.position.set((i%5-2)*pitch,.012,(Math.floor(i/5)-2)*pitch);
-   tile.scale.set(pitch*.96,.015,pitch*.96);
+   tile.position.set((i%5-2)*pitch,.024,(Math.floor(i/5)-2)*pitch);
+   tile.scale.set(pitch*.95,.012,pitch*.95);
    tile.material=i===cell?pickMat:(editing?tileMat[(i%5+Math.floor(i/5))%2]:lowMat);
   }
   for(let i=0;i<4;i++){const e=edges[i];const xx=i===0?-half:i===1?half:0,zz=i===2?-half:i===3?half:0;
-   e.position.set(xx,.033,zz);e.scale.set(i<2?.021:side,.025,i<2?side:.021);
+   e.position.set(xx,.045,zz);e.scale.set(i<2?.034:side,.027,i<2?side:.034);
    e.material=borderMat;
   }
   compass.position.set(0,.015,-half+.35);compass.visible=editing;
