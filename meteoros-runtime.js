@@ -186,11 +186,11 @@ function tick(dt,t){
  if(t-lastHud>110){lastHud=t;hud()}
  if(toastAt&&t>toastAt){$('toast').textContent='';toastAt=0}
 }
-function arFrame(t,frame){
- if(!sess)return;sess.requestAnimationFrame(arFrame);
+function arFrame(t,frame,W){
+ if(!sess)return;
  const dt=lastFrame?clamp((t-lastFrame)/1000,.001,.07):.016;lastFrame=t;
  try{
-  const W=typeof buildWorld==='function'?buildWorld():null;if(!W)return;
+  if(!W)return;
   const pos=localPose(frame,W);
   if(sampling)sample(t,pos);
   if(running&&mode==='motion'&&calibrated){
@@ -211,8 +211,8 @@ function bootAR(){
  if(demo||arLoop||typeof sess==='undefined'||!sess||typeof ref==='undefined'||!ref)return;
  arLoop=true;lastFrame=0;
  try{renderer=A.create3D(gl);shader=null;}catch(e){console.error('Error arte AR',e);toast('AR WEBGL NO DISPONIBLE · USÁ MODO 2D')}
- sess.requestAnimationFrame(arFrame);
- sess.addEventListener('end',()=>{arLoop=false;running=false});
+ window.modoCaosXRFrame=arFrame;
+ sess.addEventListener('end',()=>{arLoop=false;running=false;if(window.modoCaosXRFrame===arFrame)window.modoCaosXRFrame=null});
 }
 setInterval(()=>{
  if(demo)return;bootAR();
