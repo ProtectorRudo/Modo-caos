@@ -224,7 +224,7 @@ function freezeEditor(){
 function resetEditor(fromGame=false){
  if(!xrSession)return;
  if(fromGame){pausedForCalibration=game.phase==='playing';game.paused=true;}
- anchor?.delete?.();anchor=null;anchorOffset=null;
+ anchor?.delete?.();anchor=null;anchorOffset=null;anchorPending=false;
  basePos.copy(art.root.position);baseQ.copy(art.root.quaternion);shift.set(0,0,0);yaw=0;
  selected=-1;calibrated=false;calSamples=[];setPhase('edit');
  $('result').style.display='none';
