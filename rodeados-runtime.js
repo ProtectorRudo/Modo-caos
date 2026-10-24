@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js';
+import {createRodeadosArt} from './rodeados-art.js?v=6';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
