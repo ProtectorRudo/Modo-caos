@@ -1,0 +1,96 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#090b1a"><title>OLA ROJA 🔴 · MODO CAOS</title>
+<style>
+:root{--red:#ff3153;--cyan:#53f4f1;--ink:#080e20}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#080e20;color:#e9faff;font:14px system-ui,-apple-system,Arial}
+button{border:0;border-radius:14px;min-height:44px;padding:10px 15px;font:900 13px system-ui;color:#071426;background:#66f5ef;cursor:pointer;touch-action:manipulation}
+button.secondary{background:#102842ee;color:#e3f7ff;border:1px solid #56758b}
+button:disabled{opacity:.39}
+#home{position:absolute;inset:0;background:radial-gradient(ellipse at 52% 16%,#46243f,#121b35 46%,#040918 95%);z-index:30;display:flex;flex-direction:column;align-items:center;padding:20px 17px 45px;text-align:center;overflow:auto}
+#back{align-self:flex-start;text-decoration:none;color:#affcf3;font-size:12px;font-weight:850}
+.kicker{font-size:10px;font-weight:950;letter-spacing:3px;color:#fdaabb;margin-top:20px}
+h1{font-size:clamp(53px,15vw,88px);line-height:.92;letter-spacing:-4px;margin:15px 0;font-weight:1000;text-shadow:0 9px 45px #fa174d44}
+h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;font-size:13px}
+#hero{height:min(32vh,245px);width:min(92vw,405px);position:relative;overflow:hidden;border-radius:25px;border:1px solid #a64e68;background:radial-gradient(ellipse at 50% 80%,#292e60,#0a1025 85%);margin:12px 0}
+#hero:before{content:'';position:absolute;left:-18%;top:18%;width:150%;height:125%;background:repeating-linear-gradient(90deg,transparent 0 50px,#3effeb88 51px 54px),repeating-linear-gradient(0deg,transparent 0 38px,#26afff89 39px 42px);transform:perspective(260px) rotateX(55deg);box-shadow:0 0 50px #28fdef}
+#hero:after{content:'';position:absolute;top:48%;left:-30%;width:140%;height:25%;transform:rotate(-14deg);background:linear-gradient(90deg,#ff163f,#fc536e 49%,#ff163f);box-shadow:0 0 20px #ff325f,0 0 65px #ff173c}
+#hero strong{position:absolute;bottom:14px;right:14px;z-index:2;font-size:12px;letter-spacing:2px;text-shadow:0 1px 5px black}
+.chips{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin:9px 0 16px}.chips b{border:1px solid #945066;background:#3c253b77;padding:8px;border-radius:9px;font-size:10px}
+.actions{width:min(92vw,410px);display:grid;gap:10px}#enter{min-height:60px;background:linear-gradient(105deg,#ff5a7b,#ff284e);color:white;font-size:16px}#demo{min-height:52px}
+#record{color:#8ff9eb;font-size:11px;font-weight:850;margin-top:14px}
+#precheck{font-size:11px!important;color:#a7bece!important;margin:8px auto}
+#overlay{position:fixed;inset:0;display:none;pointer-events:none;overflow:hidden;background:transparent;z-index:15}
+#tiles{display:none}#mock,#support,#notice,#debug,#diagbtn,#play,#edit{display:none!important}
+#arenaSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:12}
+#arenaSvg polygon{pointer-events:all;touch-action:manipulation}
+#canvas2D{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:auto;touch-action:none}
+#head{position:absolute;top:70px;left:10px;right:10px;text-align:center;text-shadow:0 2px 7px #000;z-index:15;pointer-events:none}
+#headline{font-size:clamp(19px,5vw,30px);font-weight:1000}#subtitle{font-size:11px;color:#ebfdff;font-weight:850}
+#reticle{display:none;position:absolute;top:50%;left:50%;width:36px;height:36px;border:3px solid #57ffe9;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 23px #3ff}
+#touchpad{position:absolute;inset:17% 0 29%;display:none;pointer-events:auto;touch-action:none;z-index:9}
+#calibrate{position:absolute;top:20%;left:7%;right:7%;display:none;font-size:11px;background:#08182cda;border:1px solid #5997b2;padding:9px;border-radius:11px;text-align:center;z-index:13}
+#fallback{position:absolute;top:45%;left:9%;right:9%;display:none;text-align:center;background:#061a30ed;border-radius:11px;padding:12px;z-index:14}
+#toolbar{position:absolute;left:6%;right:6%;bottom:max(129px,env(safe-area-inset-bottom) + 127px);display:none;gap:7px;z-index:16;pointer-events:auto}
+#toolbar button{flex:1;min-width:0;background:#17364dee;color:#dffeff;border:1px solid #5ed9dc}
+#toolbar #size{flex:1.6;font-size:12px}
+#lock{position:absolute;bottom:max(64px,env(safe-area-inset-bottom) + 58px);left:7%;width:86%;z-index:18;pointer-events:auto;min-height:59px;font-size:15px;background:linear-gradient(105deg,#65f6f1,#b6ffec)}
+#exit,#music,#pause,#recalibrateLive{position:absolute;top:max(9px,env(safe-area-inset-top));z-index:17;pointer-events:auto;background:#071a33e8;color:#e3faff;border:1px solid #55718a;min-height:37px;font-size:11px}
+#exit{left:9px}#recalibrateLive{left:84px;display:none}#music{right:9px}#pause{right:70px;display:none}
+#gameHud{position:absolute;left:7px;right:7px;top:58px;display:none;justify-content:space-between;gap:6px;z-index:16;pointer-events:none}
+.stat{background:#071a2ad9;border:1px solid #4d7184;border-radius:12px;padding:6px 10px;text-align:center;font-size:9px;min-width:75px;font-weight:900}
+.stat strong{display:block;font-size:21px;font-weight:1000;font-variant-numeric:tabular-nums;color:white}
+#lives{color:#ff6077}.redStat strong{color:#ff7c8f}
+#banner{position:absolute;top:124px;left:5%;right:5%;font-size:11px;font-weight:1000;letter-spacing:1px;text-shadow:0 1px 7px #000;text-align:center;color:#ffeaa1;z-index:16;pointer-events:none}
+#toast{position:absolute;top:21%;left:8%;right:8%;font-size:clamp(20px,6vw,29px);font-weight:1000;text-align:center;color:#fff2ba;text-shadow:0 3px 16px #000;pointer-events:none;z-index:17}
+#statusPanel{position:absolute;bottom:max(12px,env(safe-area-inset-bottom));left:7px;right:7px;display:none;flex-direction:column;align-items:center;gap:8px;z-index:18;pointer-events:none}
+#calBox{display:none;background:#071d33f2;border:1px solid #67e7e7;border-radius:15px;padding:12px;width:min(94vw,400px);text-align:center;pointer-events:auto}
+#calTitle{font-weight:1000;font-size:12px}#calTrack{background:#203f55;height:5px;border-radius:9px;margin-top:9px;overflow:hidden}#calFill{background:#60f7e9;width:0;height:100%}
+#calCenter{display:block;width:100%;margin-top:10px;background:#123c51;color:#e8ffff;border:1px solid #55b7c8}
+#whereAmI{display:none;padding:7px 11px;border-radius:9px;border:1px solid #52dacb;background:#092239e8;font-size:11px;font-weight:850}
+#safety{padding:8px 12px;background:#07182ee3;border:1px solid #54768e;border-radius:9px;font-size:11px;font-weight:800;text-align:center;max-width:430px}
+#gameActions{display:none;gap:8px;width:min(98vw,460px);pointer-events:auto}
+#gameActions button{flex:1;font-size:12px;padding:8px}#begin{font-size:14px!important;background:linear-gradient(100deg,#ff6883,#ff2c51);color:white}
+#result{position:absolute;inset:0;background:#050c19f4;z-index:40;display:none;pointer-events:auto;align-items:center;justify-content:center;padding:19px}
+.resultCard{border:1px solid #83445e;background:radial-gradient(ellipse at 50% 0%,#303454,#101a31);width:min(95vw,440px);border-radius:24px;padding:24px;text-align:center;box-shadow:0 30px 80px #0008}
+.resultCard h2{font-size:clamp(32px,8vw,45px);line-height:1.04}
+#resultsMeta{font-size:13px;color:#c5dae9;line-height:1.6}
+.resultCard button{display:block;width:100%;margin:9px 0}#again{background:#ff4267;color:white}
+#overlay.hit:after{content:'';position:absolute;inset:0;background:#ff194765;pointer-events:none;z-index:29;animation:hitflash .26s ease-out forwards}@keyframes hitflash{from{opacity:1}to{opacity:0}}
+#pauseDialog{position:absolute;inset:0;background:#050b1bdd;z-index:31;display:none;pointer-events:auto;align-items:center;justify-content:center}
+#pauseDialog>div{border:1px solid #4e96ac;background:#0e2437;border-radius:18px;text-align:center;padding:24px;max-width:310px}
+#pauseDialog button{width:100%;margin-top:8px}
+@media(max-height:700px){#head{top:48px}#gameHud{top:45px}#banner{top:109px}#toast{top:18%}#statusPanel{bottom:5px}.stat strong{font-size:18px}}
+</style></head><body>
+<div id="home"><a id="back" href="/">← MODO CAOS</a>
+<div class="kicker">EL PISO COBRÓ VIDA · SUPERVIVENCIA FÍSICA AR</div>
+<h1>OLA <span>ROJA</span></h1>
+<p>Las baldosas rojas avanzan para atraparte. <b>Vos sos el protagonista:</b> esquivá caminando de verdad mientras apuntás la cámara al piso.</p>
+<div id="hero" aria-hidden="true"><strong>TE ESTÁ PERSIGUIENDO.</strong></div>
+<div class="chips"><b>🔴 8 TIPOS DE OLA</b><b>❤️ 3 VIDAS</b><b>⏱️ 90 SEGUNDOS</b></div>
+<div class="actions"><button id="enter">📷 JUGAR EN REALIDAD AUMENTADA</button><button id="demo" class="secondary">🎮 PROBAR VERSIÓN 2D</button></div>
+<div id="record">🏆 RÉCORD PERSONAL: 0</div>
+<p id="precheck">Necesitás Chrome Android compatible con ARCore y una superficie plana despejada. ¡Caminá despacio, sin correr ni saltar! El seguimiento corresponde al teléfono, no a tus pies.</p>
+</div>
+<div id="overlay">
+<svg id="tiles" xmlns="http://www.w3.org/2000/svg"></svg><svg id="arenaSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+<canvas id="canvas2D"></canvas>
+<div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Apuntá a una superficie plana.</div></div>
+<div id="reticle"></div><div id="mock"></div><button id="support"></button><div id="calibrate">ARRASTRÁ PARA UBICAR · PELLIZCÁ PARA ESCALAR · GIRÁ CON DOS DEDOS</div><div id="fallback"></div><div id="touchpad"></div>
+<div id="toolbar"><button id="minus">−</button><button id="size" disabled>2,70 m</button><button id="plus">+</button><button id="rotate">↻ GIRAR</button></div>
+<div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
+<button id="lock" disabled>📍 FIJAR PISTA</button><button id="exit">← SALIR</button><button id="recalibrateLive" title="Recalibrar posición sin mover pista">⊕</button><button id="music">🔊</button><button id="pause">Ⅱ</button>
+<div id="gameHud"><div class="stat redStat">TIEMPO<strong id="time">90</strong></div><div class="stat">VIDAS<strong id="lives">♥♥♥</strong></div><div class="stat">PUNTOS<strong id="score">0</strong></div></div>
+<div id="banner"></div><div id="toast" role="status" aria-live="polite"></div>
+<div id="statusPanel"><div id="calBox"><div id="calTitle">👣 TOCÁ LA CASILLA DONDE ESTÁS</div><div id="calTrack"><div id="calFill"></div></div><button id="calCenter">👣 ESTOY EN LA CASILLA CENTRAL</button></div>
+<div id="whereAmI">📍 VOS · SIN CALIBRAR</div><div id="safety">Detectando una superficie despejada…</div>
+<div id="gameActions"><button id="recalibrate" class="secondary">⊕ RECALIBRAR</button><button id="begin" disabled>🔴 ¡EMPEZAR!</button></div></div>
+<div id="result"><div class="resultCard"><div class="kicker">MODO CAOS · RESULTADO</div><h2 id="resultTitle">¡FIN DE PARTIDA!</h2><p id="resultsMeta"></p><button id="again">↻ VOLVER A JUGAR</button><button id="infinite" class="secondary">∞ MODO INFINITO</button><button id="share" class="secondary">↗ COMPARTIR RESULTADO</button><button id="leave" class="secondary">← VOLVER AL ARCADE</button></div></div>
+<div id="pauseDialog"><div><h2>PARTIDA EN PAUSA</h2><p>Respirá, la ola te espera.</p><button id="resume">▶ CONTINUAR</button><button id="pauseCal" class="secondary">⊕ RECALIBRAR</button></div></div>
+</div>
+<script defer src="./engine.js?v=meteoros1"></script>
+<script defer src="./ola-core.js?v=1"></script>
+<script defer src="./ola-art.js?v=1"></script>
+<script defer src="./ola-runtime.js?v=1"></script>
+</body></html>
