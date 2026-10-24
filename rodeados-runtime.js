@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=9';
+import {createRodeadosArt} from './rodeados-art.js?v=10';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
@@ -22,7 +22,7 @@ let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null
 let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
 let trackingLostSince=0,pausedByTracking=false,limitedTrackingSince=0,initialBotsSpawned=false,openingEyePosition=null;let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
-let sounds=true,vibration=true,ctx=null,lastLaugh=0,lastBlastSignal='',fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
+let sounds=true,vibration=true,ctx=null,lastLaugh=0,lastMenaceAt=0,lastBlastSignal='',fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
 let online=null,onlineBusy=false,onlineRoomCode=new URLSearchParams(location.search).get('room')?.toUpperCase()||'',roomTimer=0;
 const pointer=new Map();let lastPinch=null;
 const THREEVec=(x,y,z)=>new THREE.Vector3(x,y,z);
@@ -48,6 +48,7 @@ function audio(type='shot',position=null){
   if(type==='hit'){f=590;d=.11;vol=.13;wave='square';end=.22}
   if(type==='reload'){f=490;d=.27;vol=.055;wave='triangle';end=.70}
   if(type==='danger'){f=450;d=.24;vol=.11;wave='triangle';end=.60}
+  if(type==='menace'){f=88;d=.64;vol=.045;wave='sawtooth';end=.58}
   if(type==='laugh'){f=270;d=.30;vol=.085;end=1.8;wave='triangle'}
   if(type==='finish'){f=660;d=.6;vol=.10;end=.36}
   if(type==='blast'){f=105;d=.57;vol=.30;wave='sawtooth';end=.30}
@@ -162,7 +163,7 @@ function setupGame(keepCalibration=false){
  const keepArena=floorSize;
  game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
- fxShown.clear();lastBlastSignal='';initialBotsSpawned=false;openingEyePosition=null;latestAim=null;lastAimStamp=0;lastShotStatus='';pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
+ fxShown.clear();lastBlastSignal='';lastMenaceAt=0;initialBotsSpawned=false;openingEyePosition=null;latestAim=null;lastAimStamp=0;lastShotStatus='';pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
  updateHud(true);
 }
@@ -173,7 +174,7 @@ function updateHud(force=false){
  $('wave').textContent=game.wave||1;
  $('clock').textContent=Number.isFinite(game.duration)?Math.max(0,Math.ceil(game.duration-game.elapsed)):'∞';
  $('healthFill').style.width=Math.max(0,game.lives)+'%';
- $('ammo').textContent='∞  MUNICIÓN';
+ $('ammo').textContent='∞  BALAS';
  $('special').disabled=game.skillCooldown>0;
  $('special').textContent=game.skillCooldown>0?'EMP '+Math.ceil(game.skillCooldown)+'s':'⚡ EMP';
  $('bomb').disabled=game.bombCharges<=0;
@@ -567,7 +568,7 @@ function special(){if(stage!=='playing')return;
 function snapshot(){
  return {kind:'state',stamp:++online.seq,seed:game.seed,mode:game.mode,arena:game.arena,
   at:game.elapsed,hp:Math.round(game.lives*10)/10,wave:game.wave,score:game.score,
-  ammo:game.ammo,reload:0,infiniteAmmo:true,special:+game.skillCooldown.toFixed(1),
+  ammo:game.mag,reload:0,infiniteAmmo:true,special:+game.skillCooldown.toFixed(1),
   bomb:[game.bombCharges,+game.bombCooldown.toFixed(2),game.bombKillsAt,game.bombsUsed,game.bombHits],
   pendingBombs:game.bombs.map(b=>[+b.x.toFixed(2),+b.z.toFixed(2),+b.fromX.toFixed(2),+b.fromZ.toFixed(2),+b.fuse.toFixed(2)]),
   bombBlast:game.fx.filter(f=>f.type==='bombBlast').slice(-1).map(f=>[f.x,f.z,f.radius,f.hits,f.kills,f.points,f.t]),
@@ -587,7 +588,7 @@ function applySnapshot(data){
  if(![data.at,data.hp,data.score,data.arena].every(validNumber))return;
  if(data.seed!==game.seed||data.mode!==game.mode)game=G.create({seed:data.seed,mode:data.mode,arena:data.arena,ownerId:online.room.hostUserId});
  game.elapsed=clamp(data.at,0,999999);game.lives=clamp(data.hp,0,100);game.wave=data.wave||1;
- game.score=Math.max(0,data.score||0);game.ammo=clamp(data.ammo||0,0,28);
+ game.score=Math.max(0,data.score||0);game.ammo=game.mag;
  game.reload=0;game.ammo=game.mag;game.infiniteAmmo=true;game.skillCooldown=data.special||0;game.kills=data.kills||0;
  if(Array.isArray(data.bomb)&&data.bomb.length===5&&data.bomb.every(Number.isFinite)){
   game.bombCharges=clamp(data.bomb[0],0,1);game.bombCooldown=clamp(data.bomb[1],0,32);
@@ -709,7 +710,9 @@ function tickGame(dt,t){
  if(t-lastPing>1100){
   lastPing=t;
   const closest=game.enemies.filter(e=>e.portal<.05).sort((a,b)=>Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z))[0];
-  if(closest&&Math.hypot(closest.x-game.player.x,closest.z-game.player.z)<1.25&&Math.abs(relativeAngle(closest))>2.2){audio('danger',closest);vib(15);}
+  if(closest&&Math.hypot(closest.x-game.player.x,closest.z-game.player.z)<3.3&&t-lastMenaceAt>6100){
+   lastMenaceAt=t;audio('menace',closest);
+  }
   renderThreats();showBotDirection();
  }
 }
