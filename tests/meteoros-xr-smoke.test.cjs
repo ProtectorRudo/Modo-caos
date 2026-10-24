@@ -68,7 +68,7 @@ const server=http.createServer((req,res)=>{
     requestSession:async()=>session
    }});
   });
-  await page.goto('http://127.0.0.1:'+server.address().port+'/meteoros.html',{waitUntil:'load'});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/meteoros.html?mc_test=1',{waitUntil:'load'});
   await page.locator('#enter').click();
   await page.waitForFunction(()=>{
    const b=document.getElementById('lock');return b&&!b.disabled&&getComputedStyle(b).display!=='none';
@@ -81,6 +81,8 @@ const server=http.createServer((req,res)=>{
   assert(await page.locator('#begin').isEnabled(),'one-second calibration completes');
   const before=await page.evaluate(()=>window.__xrDrawCalls);
   assert(before>0,'XR WebGL made draw calls before gameplay');
+  const fixed=await page.evaluate(()=>window.__meteorTestSnapshot());
+  assert(fixed.placement&&fixed.origin&&fixed.calibrated,'placement and motion reference calibrated');
   await page.locator('#begin').click();
   await page.waitForTimeout(4200);
   const remaining=Number(await page.locator('#time').innerText());
@@ -89,6 +91,9 @@ const server=http.createServer((req,res)=>{
   assert(after>before+100,'XR 3D geometry keeps drawing after scene lock ('+before+' -> '+after+')');
   await page.evaluate(()=>window.__xrPos.x=.19);
   await page.waitForTimeout(450);
+  const moved=await page.evaluate(()=>window.__meteorTestSnapshot());
+  assert(Math.abs(moved.avatar.x-fixed.avatar.x)>.07,'avatar VOS follows simulated phone displacement');
+  assert.deepEqual(moved.placement,fixed.placement,'world-locked arena never moved after phone displacement');
   const fatal=pageErrors.filter(e=>!e.includes('No runtimes supported the requested configuration'));
   assert.equal(fatal.length,0,'no XR JavaScript errors: '+fatal.join(' / '));
   assert(!((await page.locator('#toast').innerText()).includes('RENDER AR')),'no render failures');
