@@ -126,7 +126,7 @@ function setupGame(keepCalibration=false){
  game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
  fxShown.clear();fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
- $('result').style.display='none';visible('healthTrack',true,'block');visible('topHud',true);
+ $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
  updateHud(true);
 }
 function updateHud(force=false){
@@ -269,37 +269,64 @@ function samplePose(t,pose){
  notice('📍 CELDA CALIBRADA',1.5);vib(45);
  if(pausedForCalibration){game.paused=true;$('begin').textContent='▶ REANUDAR COMBATE'}else $('begin').textContent='▶ ¡DEFENDERME!';
 }
-function drawCells(){
- const svg=$('cellsvg'),editing=stage==='cell'||stage==='sample';
- if(!editing){svg.replaceChildren();return}
- const xrCamera=renderer.xr.getCamera(camera),eye=xrCamera?.cameras?.[0]||xrCamera;
- if(!eye)return;
- art.root.updateMatrixWorld(true);eye.updateMatrixWorld(true);
+function drawCells(frame){
+ const svg=$('cellsvg'),edit=stage==='edit',choosing=stage==='cell'||stage==='sample';
+ if(!edit&&!choosing){svg.replaceChildren();gridVisible=0;return}
+ // XRView's own projection/view matrices are authoritative in immersive AR.
+ // renderer.xr.getCamera can be one frame behind renderer.render().
+ const view=frame&&space?frame.getViewerPose(space)?.views?.[0]:null;
+ let viewProjection=null;
+ if(view?.projectionMatrix&&view.transform?.inverse?.matrix){
+  const projection=new THREE.Matrix4().fromArray(view.projectionMatrix);
+  const viewMatrix=new THREE.Matrix4().fromArray(view.transform.inverse.matrix);
+  viewProjection=projection.multiply(viewMatrix);
+ }
+ const xrCam=renderer.xr.getCamera(camera),eye=xrCam?.cameras?.[0]||xrCam;
+ if(!viewProjection&&!eye)return;
+ art.root.updateMatrixWorld(true);
+ if(!viewProjection)eye.updateMatrixWorld(true);
  svg.setAttribute('viewBox','0 0 '+innerWidth+' '+innerHeight);
  if(svg.children.length!==25){
   svg.replaceChildren();
   for(let i=0;i<25;i++){
-   const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-   p.setAttribute('stroke','#baffee');p.setAttribute('stroke-width','2.4');
-   p.style.cursor='pointer';p.style.pointerEvents='all';
-   p.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();chooseCell(i)});
-   svg.appendChild(p);
+   const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+   poly.setAttribute('stroke','#bbffef');poly.setAttribute('stroke-width','2.4');
+   poly.setAttribute('stroke-linejoin','round');
+   poly.style.cursor='pointer';poly.style.pointerEvents='all';
+   poly.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();chooseCell(i)});
+   svg.appendChild(poly);
   }
  }
- const pitch=floorSize/5,half=pitch*.475;
+ const pitch=floorSize/5,half=pitch*.46;
+ let seen=0;
  for(let i=0;i<25;i++){
   const x=(i%5-2)*pitch,z=(Math.floor(i/5)-2)*pitch;
-  const corners=[[x-half,.043,z-half],[x+half,.043,z-half],[x+half,.043,z+half],[x-half,.043,z+half]];
-  const points=corners.map(([a,b,c])=>{
-   const v=THREEVec(a,b,c).applyMatrix4(art.root.matrixWorld).project(eye);
-   return v.z>1||v.z< -1?null:((v.x+1)*innerWidth/2).toFixed(1)+','+((1-v.y)*innerHeight/2).toFixed(1);
+  const corners=[[x-half,.06,z-half],[x+half,.06,z-half],[x+half,.06,z+half],[x-half,.06,z+half]];
+  let inside=0;
+  const coords=corners.map(([a,b,c])=>{
+   const w=THREEVec(a,b,c).applyMatrix4(art.root.matrixWorld);
+   const v=viewProjection?w.applyMatrix4(viewProjection):w.project(eye);
+   if(!Number.isFinite(v.x)||!Number.isFinite(v.y)||!Number.isFinite(v.z)||v.z<=-1||v.z>=1)return null;
+   if(Math.abs(v.x)<=1&&Math.abs(v.y)<=1)inside++;
+   return ((v.x+1)*innerWidth/2).toFixed(1)+','+((1-v.y)*innerHeight/2).toFixed(1);
   });
-  const poly=svg.children[i];
-  poly.style.display=points.some(p=>!p)?'none':'block';
-  if(points.every(Boolean))poly.setAttribute('points',points.join(' '));
-  poly.setAttribute('fill',i===selected?'#a0ffe8ba':'#4ed8e536');
+  const poly=svg.children[i],projected=coords.every(Boolean);
+  poly.style.display=projected?'block':'none';
+  if(projected){
+   poly.setAttribute('points',coords.join(' '));
+   if(inside)seen++;
+  }
+  poly.setAttribute('fill',i===selected?'#9effe6e8':(edit?(i%2?'#20c8f09c':'#14ffcf91'):'#50ffe87d'));
+  poly.setAttribute('stroke',i===selected?'#fff5b7':'#c7fff2');
+  poly.style.pointerEvents=stage==='cell'?'all':'none';
  }
+ gridVisible=seen;
  svg.style.pointerEvents=stage==='cell'?'auto':'none';
+ const help=$('placementHelp');
+ if(edit&&seen===0){
+  help.textContent='⚠ NO SE VE LA PISTA · APUNTÁ MÁS ABAJO O TOCÁ «CENTRAR EN EL PISO»';
+  visible('placementHelp',true,'block');
+ }else visible('placementHelp',false);
 }
 function updateMotion(t,pose){
  if(!calibrated||!pose){if(stage==='playing'&&t-lastTracked>1100){game.paused=true;notice('📡 SEGUIMIENTO PERDIDO · PAUSA',2);setPhase('paused')}return}
@@ -522,7 +549,11 @@ function animate(t,frame){
    if(stage==='search'){
     const h=getHit(frame);
     if(h){hit=h.result;newPreview(h.pose)}
-   }else worldForEditor();
+    else if(t-searchSince>1800)visible('manualPlace',true,'block');
+   }else{
+    const h=getHit(frame);if(h)hit=h.result;
+    worldForEditor();
+   }
   }else if(anchor){
    const a=frame.getPose(anchor.anchorSpace,renderer.xr.getReferenceSpace());
    if(a){
@@ -533,10 +564,10 @@ function animate(t,frame){
     fixedPos.copy(art.root.position);fixedQ.copy(art.root.quaternion);
    }
   }
-  if(['cell','sample','ready','playing','paused'].includes(stage)){
+  if(['edit','cell','sample','ready','playing','paused'].includes(stage)){
    if(stage==='sample')samplePose(t,pose);
    if(stage==='playing'||stage==='paused'||stage==='ready')updateMotion(t,pose);
-   if(stage==='cell'||stage==='sample')drawCells();
+   if(stage==='cell'||stage==='sample'||stage==='edit')drawCells(frame);
   }
   if(!pose&&stage==='playing'&&t-lastTracked>1000){game.paused=true;setPhase('paused');notice('CÁMARA SIN SEGUIMIENTO · RECALIBRÁ',3)}
  }else if(demo){
@@ -641,7 +672,7 @@ async function startXR(){
   session.addEventListener('end',()=>{xrSession=null;anchor?.delete?.();anchor=null;hitSource?.cancel?.();hitSource=null;space=null;
    setPhase('home');$('overlay').style.display='none';$('home').style.display='block';});
   setupGame(false);
-  setPhase('search');hint('BUSCÁ EL PISO PARA COLOCAR LA ARENA');
+  searchSince=performance.now();setPhase('search');hint('BUSCÁ EL PISO PARA COLOCAR LA ARENA');
   if(/^[A-F0-9]{8}$/.test(onlineRoomCode))connectOnline();
  }catch(e){
   $('support').textContent='No se pudo iniciar AR: '+(e?.message||e)+'. Probá el entrenamiento 3D.';
@@ -664,4 +695,4 @@ globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(g
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
  get player(){return {x:game.player.x,z:game.player.z}},
- get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
+ get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
