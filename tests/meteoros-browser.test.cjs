@@ -28,7 +28,7 @@ const server=http.createServer((req,res)=>{
   browser=await chromium.launch({headless:true,args:['--no-sandbox']});
   const page=await browser.newPage({viewport:{width:393,height:852},deviceScaleFactor:2,isMobile:true,hasTouch:true});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
-  await page.goto(url+'/meteoros.html',{waitUntil:'load'});
+  await page.goto(url+''+(process.env.METEORS_PAGE||'/meteoros.html')+'',{waitUntil:'load'});
   assert(await page.locator('#demo').isVisible(),'2D demo button visible');
   assert(await page.locator('#enter').isVisible(),'AR camera entry visible');
   await page.locator('#demo').click();
@@ -50,7 +50,7 @@ const server=http.createServer((req,res)=>{
   await page.locator('#music').click();
   assert.equal(await page.locator('#music').innerText(),'🔇','sound toggles');
   assert.equal(errors.length,0,'no browser runtime errors: '+errors.join(' / '));
-  await page.goto(url+'/meteoros.html',{waitUntil:'load'});
+  await page.goto(url+''+(process.env.METEORS_PAGE||'/meteoros.html')+'',{waitUntil:'load'});
   await page.locator('#enter').click();
   await page.waitForTimeout(200);
   assert((await page.locator('#precheck').innerText()).includes('Fallo al iniciar') ||
@@ -59,7 +59,7 @@ const server=http.createServer((req,res)=>{
   const unexpected=errors.filter(x=>!x.includes('No runtimes supported the requested configuration'));
   assert.equal(unexpected.length,0,'no unexpected errors during graceful WebXR fallback: '+unexpected.join(' / '));
   await page.goto(url+'/index.html',{waitUntil:'load'});
-  assert((await page.locator('a[href="/meteoros.html"]').count())===1,'game appears in arcade');
+  assert((await page.locator('a[href="'+(process.env.METEORS_PAGE||'/meteoros.html')+'"]').count())===1,'game appears in arcade');
   await page.goto(url+'/salas.html',{waitUntil:'load'});
   assert((await page.locator('#gameChoice option[value="lluvia-meteoros"]').count())===1,'game selectable in room lobby');
   console.log('PASS: Chromium mobile viewport, game entry, full Canvas render, countdown, scoring, movement, sound, fallback, arcade and rooms.');
