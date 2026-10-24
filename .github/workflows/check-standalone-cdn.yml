@@ -5,6 +5,10 @@ on:
     paths:
       - 'meteoros-autonomo.html'
       - '.github/workflows/check-standalone-cdn.yml'
+  pull_request:
+    paths:
+      - 'meteoros-autonomo.html'
+      - '.github/workflows/check-standalone-cdn.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,7 +19,7 @@ jobs:
     steps:
       - name: Check correct HTML MIME, content and HTTPS
         env:
-          METEOR_URL: https://rawcdn.githack.com/ProtectorRudo/Modo-caos/7c91107743eb6088e8aed6e56cf74f057a0de681/meteoros-autonomo.html
+          METEOR_URL: https://rawcdn.githack.com/ProtectorRudo/Modo-caos/2fc58d071f23b4bb9b1bbe9815e1014dbeb0f5a3/meteoros-autonomo.html
         run: |
           node --input-type=module <<'NODE'
           const u=process.env.METEOR_URL;
