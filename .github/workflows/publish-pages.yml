@@ -22,6 +22,8 @@ jobs:
         run: python3 scripts/build-pages.py
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - name: Upload arcade artifacts
         uses: actions/upload-pages-artifact@v4
         with:
