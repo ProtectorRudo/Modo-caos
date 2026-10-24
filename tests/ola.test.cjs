@@ -116,3 +116,38 @@ for (const tile of [.3,.4,.55]) for(let seed=41;seed<51;seed++){
  assert(after.state.includes('red'),'red tiles still become dangerous on schedule');
 }
 console.log('OLA ROJA: 30 seeds, three tile sizes, advance warning, radar and side directions PASS');
+
+/* V3 · cada BALDOSA permanece naranja 3 segundos, nunca solo durante
+   la fracción de segundo de desplazamiento de la ola. */
+assert.equal(G.WARNING_SECONDS,3);
+for(const scale of [.30,.40,.60])for(let seed=21;seed<=50;seed++){
+ const h=G.make({seed,tileMeters:scale});h.elapsed=0;G.setPosition(h,3.5,3.5);
+ G.spawn(h);const w=h.active[0];
+ const first=Array.from({length:36},(_,i)=>i).find(i=>!!(w.steps[0]&(1n<<BigInt(i))));
+ assert(Number.isInteger(first),'first wave must contain danger');
+ const impact=w.start;
+ assert(impact-h.elapsed>=3.3,'telegraph can start before wave moves');
+ assert.equal(G.cells(h,impact-3.12)[first],'safe','still safe >3s before red');
+ for(const secs of [2.99,2.5,2.05,1.25,.2,.02])
+  assert.equal(G.cells(h,impact-secs)[first],'yellow',
+   '3-second orange warning for seed '+seed+', scale '+scale+', remaining '+secs);
+ assert.equal(G.cells(h,impact+.02)[first],'red','red happens after full orange warning');
+ const radar=G.radar(h,5);
+ assert.equal(radar.eta.length,36,'all 36 cells have an independent countdown');
+ assert(radar.eta[first]>3.2&&radar.eta[first]<4.0,'per-tile ETA includes warning');
+ assert(radar.direction?.length>2,'offscreen hazard direction is available');
+}
+{
+ const h=G.make({seed:412});h.elapsed=12;
+ h.active=[{id:1,name:'frontal',direction:'⬇ DESDE ARRIBA',start:14,step:1,
+  steps:[G.bit(3,3),G.bit(3,4),G.bit(4,4)],end:17,credited:false}];
+ G.setPosition(h,3.5,3.5);
+ const r=G.radar(h,5);
+ assert.equal(r.playerEta,2,'player cell has an explicit danger ETA');
+ assert.equal(r.eta[3*6+4],3,'second cell has a different ETA');
+ assert.equal(r.eta[4*6+4],4,'third cell has an independent ETA');
+ assert(r.forecast.filter(Boolean).length>=3,'full look-ahead rather than two cells');
+ h.elapsed=14.1;
+ assert.equal(G.radar(h).playerEta,0,'a currently red player cell announces immediate risk');
+}
+console.log('OLA ROJA V3: 90 seed/scale wavechecks, >=3s naranja y 36 cuentas regresivas PASS');
