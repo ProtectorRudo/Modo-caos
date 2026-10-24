@@ -10,7 +10,6 @@ function rand(g){let v=g.seed>>>0;v^=v<<13;v^=v>>>17;v^=v<<5;g.seed=v>>>0;return
 const pick=(g,n)=>Math.floor(rand(g)*n);
 const bit=(r,c)=>1n<<BigInt(index(r,c));
 const has=(mask,r,c)=>r>=0&&c>=0&&r<N&&c<N&&!!(mask&bit(r,c));
-const at=(g)=>g.duration===Infinity?g.elapsed:clamp(g.elapsed,0,g.duration);
 function make(opts={}){
  const seed=(Number(opts.seed)>>>0)||0xCA052026;
  return {seed,originalSeed:seed,stage:'ready',mode:opts.mode==='infinito'?'infinito':'clasico',
@@ -34,7 +33,11 @@ function setPosition(g,x,z){
  return true;
 }
 function phases(t){return t<15?'APRENDIZAJE':t<35?'VELOCIDAD':t<55?'PRESIÓN':t<75?'CAOS':'SUPERVIVENCIA EXTREMA'}
-function speed(g){const t=g.elapsed;return t<15?1.12:t<35?1.02:t<55?.93:t<75?.85:.80}
+function speed(g){
+ // La casilla grande necesita más tiempo para caminar sin correr.
+ const t=g.elapsed,base=t<15?1.00:t<35?.93:t<55?.87:t<75?.82:.78;
+ return Math.max(base,g.tileMeters/.7*1.08);
+}
 function kind(g){
  const t=g.elapsed;
  const choices=t<15?['frontal','trasera','lateral']:t<35?['frontal','lateral','trasera','serpiente','falsa']:
@@ -48,13 +51,13 @@ function ensureRoute(g,steps,lead,stepSeconds){
  // desde la casilla real, a una velocidad caminando de <=0.7 m/s.
  const startR=g.cell.r,startC=g.cell.c;
  const travel=g.tileMeters/.7;
- const maxBefore=Math.max(0,Math.floor((lead-.20)/travel));
+ const maxBefore=Math.max(0,Math.floor((lead-.30)/travel));
  let reachable=new Set();
  for(let r=0;r<N;r++)for(let c=0;c<N;c++)
   if(Math.abs(r-startR)+Math.abs(c-startC)<=maxBefore)reachable.add(index(r,c));
  for(const mask of steps){
   const next=new Set();
-  const maxMove=Math.max(0,Math.floor((stepSeconds+.08)/travel));
+  const maxMove=Math.min(1,Math.max(0,Math.floor((stepSeconds+.04)/travel)));
   for(const i of reachable)for(let r=0;r<N;r++)for(let c=0;c<N;c++)
    if(Math.abs(r-Math.floor(i/N))+Math.abs(c-i%N)<=maxMove&&!has(mask,r,c))next.add(index(r,c));
   if(!next.size)return false;reachable=next;
@@ -62,7 +65,7 @@ function ensureRoute(g,steps,lead,stepSeconds){
  return true;
 }
 function pattern(g,name){
- let steps=[],holes=[],hole=clamp(g.cell.c+(pick(g,3)-1),0,5);
+ let steps=[],hole=clamp(g.cell.c+(pick(g,3)-1),0,5);
  const safeHole=()=>{hole=clamp(hole+(pick(g,3)-1),0,5);return hole};
  const row=(r,h)=>{let m=0n;for(let c=0;c<N;c++)if(c!==h)m|=bit(r,c);return m};
  const col=(c,h)=>{let m=0n;for(let r=0;r<N;r++)if(r!==h)m|=bit(r,c);return m};
@@ -96,14 +99,25 @@ function pattern(g,name){
 function spawn(g){
  const upcoming=g.waves+1,reverse=upcoming%9===0;
  const name=reverse?'inversion':kind(g),lead=g.elapsed<15?2.0:g.elapsed<55?1.85:1.65;
- const slot=speed(g)*(g.elapsed<15?1:.9)*(upcoming%7===0?1.38:1);
+ const slot=speed(g)*(upcoming%7===0?1.38:1);
  let steps=null,chosen=name;
  for(let k=0;k<26;k++){const p=pattern(g,name);if(ensureRoute(g,p,lead,slot)){steps=p;break}}
- if(!steps){chosen='serpiente';steps=pattern(g,'serpiente')}
- const w={id:++g.waves,name:chosen,steps,start:g.elapsed+lead,step:slot,
+ if(!steps){
+  // Recurso seguro: jamás publicar una oleada matemáticamente imposible.
+  const refugeRow=(g.cell.r+3)%N;
+  chosen='serpiente';
+  steps=Array.from({length:N},(_,i)=>bit(refugeRow,i));
+ }
+ const teases=chosen==='falsa'?steps.map((mask,i)=>{
+  if(mask!==0n)return mask;
+  const r=pick(g,N),c=pick(g,N);return bit(r,c)|bit(r,(c+1)%N);
+ }):null;
+ const w={id:++g.waves,name:chosen,steps,teases,start:g.elapsed+lead,step:slot,
   end:g.elapsed+lead+steps.length*slot,credited:false};
  g.active.push(w);
- g.nextAt=w.end+(g.elapsed<35?.46:.28);
+ // La señal amarilla de la siguiente ola comienza antes de terminar la roja:
+ // su impacto nunca se solapa con el anterior (gracia entre .45 y .70 s).
+ g.nextAt=w.end-lead+(g.elapsed<35?.70:.45);
  event(g,'wave',chosen.toUpperCase());
  if(reverse){g.event='INVERSIÓN';g.eventUntil=g.elapsed+lead+3*slot;event(g,'warning','↩ INVERSIÓN · ¡CAMBIA DE DIRECCIÓN!')}
  if(g.waves%5===0){g.safeZone={r:g.cell.r,c:g.cell.c,until:g.elapsed+lead+3*slot};event(g,'bonus','✦ ZONA SEGURA ACTIVA')}
@@ -118,10 +132,11 @@ function cells(g,t=g.elapsed){
  for(const w of g.active){
   for(let j=0;j<w.steps.length;j++){
    const at=w.start+j*w.step;
-   const mask=w.steps[j];if(!mask)continue;
    const danger=t>=at&&t<at+w.step*.70;
    const warn=t<at&&t>=at-Math.min(1.35,w.step+(.45));
    if(!danger&&!warn)continue;
+   // Las falsas alarmas muestran aviso AMARILLO incluso donde jamás habrá rojo.
+   const mask=danger?w.steps[j]:(w.teases?.[j]??w.steps[j]);if(!mask)continue;
    for(let i=0;i<N*N;i++)if(mask&(1n<<BigInt(i))){
     if(danger)red[i]=true;else yellow[i]=true;
    }
