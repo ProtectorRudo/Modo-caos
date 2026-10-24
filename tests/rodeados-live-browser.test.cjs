@@ -8,7 +8,7 @@ const assert=require('node:assert/strict');
  try{
   const page=await browser.newPage({viewport:{width:412,height:915},deviceScaleFactor:1,isMobile:true,hasTouch:true});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  const response=await page.goto('https://modo-caos-eta.vercel.app/rodeados.html',{waitUntil:'domcontentloaded',timeout:25000});
+  const response=await page.goto(process.env.RODEADOS_URL||'https://modo-caos-eta.vercel.app/rodeados.html',{waitUntil:'domcontentloaded',timeout:25000});
   assert.equal(response.status(),200);
   await page.waitForFunction(()=>!!window.__RodeadosDebug,{timeout:30000});
   await page.getByRole('button',{name:/ENTRENAMIENTO 3D SIN CÁMARA/}).click();
