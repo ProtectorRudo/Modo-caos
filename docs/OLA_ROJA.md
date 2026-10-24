@@ -45,3 +45,14 @@ Pruebas automatizadas de core, regresión de minijuegos, Chromium 2D y WebXR sin
 
 Vercel project: **modo-caos**, no el antiguo color-rush-ar-demo. Si Vercel no publica por cuota temporal, conservar commit y rama versionada, NO afirmar enlace público. GitHub Pages requiere habilitación inicial por titular del repositorio; no disponible automáticamente con permisos de Github Actions.
 Como opción **solo de prueba**, se comprueba la alternativa pública HTTPS raw.githack.com basada en este mismo repositorio. Esta alternativa depende de un tercero, no tiene SLA y puede no ofrecer todas las políticas de permisos XR de Vercel. Nunca denominarla lanzamiento de producción. Usar solo después de validar HTTP, dependencias JS y juego en Chromium remoto. Los demás juegos y el engine.js no se alteraron.
+
+## Mejoras de calibración y lectura de oleadas (revisión 2)
+
+- Tamaño físico inicial: **2,40 × 2,40 m**, 6 casillas por lado de **40 cm**. Antes eran 2,70 m y 45 cm; sigue siendo ajustable con dedos o controles de 2,5 cm.
+- Durante la vista previa, botón **CENTRAR PISTA DEBAJO DE MÍ**. Proyecta el teléfono sobre el suelo y sitúa el centro de la casilla 4-4 aproximadamente ahí; en el mismo gesto fija la pista. El teléfono no revela la ubicación exacta de los pies: el jugador puede seleccionar cualquier otra casilla visible y recalibrar durante un segundo. Una vez fijada, no se cambia la posición del tablero al calibrar.
+- La primera amenaza se anuncia aproximadamente **3,25 segundos antes**, después 3,05 y finalmente 2,80 según la fase. Las casillas amarillas se pintan 2,35–2,75 segundos antes de la transición a rojo, en vez de ~1 segundo.
+- Un **radar 6×6** persistente y discreto en AR muestra dónde está **VOS**, rojo actual y ámbar proyectado para las próximas dos filas/columnas de peligro, con texto de origen/dirección y segundos hasta el próximo impacto.
+- Un aviso de orientación nombra origen según el tablero (arriba/abajo/izquierda/derecha), no según la brújula: es necesario mirar la pista o el radar para determinar físicamente la dirección.
+- Las pruebas del core verifican que aparecen pistas amarillas con >2 s de margen y que se muestra el patrón siguiente. Las pruebas de WebXR simulado deben confirmar que el móvil queda centrado en 4-4 y que tocar FIJAR no desplaza el piso posteriormente. La velocidad siempre debe probarse caminando en una habitación despejada; **no se requiere ni se recomienda correr**.
+
+Validación pendiente de **Chrome Android + ARCore físico** del usuario: los tests de navegador realizan poses simuladas y no sustituyen el dispositivo real.
