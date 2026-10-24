@@ -114,6 +114,12 @@ const server=http.createServer((req,res)=>{
   const side=2*1.12*(pinched.gestures.size/.45);
   assert(side>=1.59&&side<=3.25,'playable physical square is bounded to safe size range');
   await page.locator('#lock').click();
+  await page.waitForFunction(()=>window.__meteorTestSnapshot?.()?.pickerActive,{timeout:6500});
+  assert(await page.locator('#arenaSvg').isVisible(),'floor-cell picking grid is visible after floor lock');
+  assert(await page.locator('#begin').isDisabled(),'game cannot start before explicit cell selection');
+  assert.equal(await page.locator('#arenaSvg polygon').count(),25,'5x5 projected calibration squares');
+  // Pick a NON-central cell to prove a specific real-world foot position maps to gameplay.
+  await page.locator('#calCell-13').click({timeout:5500});
   await page.waitForFunction(()=>{
    const b=document.getElementById('begin');return b&&!b.disabled&&getComputedStyle(b).display!=='none';
   },{timeout:6500});
@@ -122,6 +128,9 @@ const server=http.createServer((req,res)=>{
   assert(before>0,'XR WebGL made draw calls before gameplay');
   const fixed=await page.evaluate(()=>window.__meteorTestSnapshot());
   assert(fixed.placement&&fixed.origin&&fixed.calibrated,'placement and motion reference calibrated');
+  assert.equal(fixed.selectedCell,13,'physical standing cell chosen from camera view');
+  assert(Math.abs(fixed.marker.x-.448)<.015,'human floor marker starts in the chosen column');
+  assert(await page.locator('#whereAmI').isVisible(),'live row and column tracking readout visible');
   await page.locator('#begin').click();
   await page.waitForTimeout(4200);
   const remaining=Number(await page.locator('#time').innerText());
@@ -131,7 +140,9 @@ const server=http.createServer((req,res)=>{
   await page.evaluate(()=>window.__xrPos.x=.57);
   await page.waitForTimeout(450);
   const moved=await page.evaluate(()=>window.__meteorTestSnapshot());
-  assert(Math.abs(moved.avatar.x-fixed.avatar.x)>.07,'avatar VOS follows simulated phone displacement');
+  assert(Math.abs(moved.marker.x-fixed.marker.x)>.07,'floor-locked YO dot moves with physical phone displacement');
+  assert(Math.abs(moved.marker.x-fixed.marker.x)<.35,'movement matches phone movement without jumping across tiles');
+  assert((await page.locator('#whereAmI').innerText()).includes('YO'),'current physical tile is continuously reported');
   assert.deepEqual(moved.placement,fixed.placement,'world-locked arena never moved after phone displacement');
   assert(Math.abs(fixed.arenaWorld.edge-side)<.035,'rendered square width equals size chosen with fingers');
   assert(!await page.locator('#touchpad').isVisible(),'gestures stop moving the floor after placement');
@@ -141,7 +152,7 @@ const server=http.createServer((req,res)=>{
   const fatal=pageErrors.filter(e=>!e.includes('No runtimes supported the requested configuration'));
   assert.equal(fatal.length,0,'no XR JavaScript errors: '+fatal.join(' / '));
   assert(!((await page.locator('#toast').innerText()).includes('RENDER AR')),'no render failures');
-  console.log('PASS: mocked Hit Test / placement / 1s calibration / start / WebGL geometry / simulated phone move.');
+  console.log('PASS: 5x5 pick, selected physical cell, XR world-locked YO dot, real-motion tracking and 1s calibration.');
  }catch(e){console.error(e.stack||e);process.exitCode=1}
  finally{await browser?.close();await new Promise(resolve=>server.close(resolve))}
 })();
