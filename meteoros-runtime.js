@@ -11,7 +11,7 @@ const params=new URLSearchParams(location.search),roomCode=(params.get('room')||
 const K='mc-meteoros-record-v1';
 let best=0;try{best=Math.max(0,Number(localStorage.getItem(K))||0)}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
-let demo=false,calibrated=false,sampling=false,origin=null,placement=null,avg=null,calSamples=[],calStart=0;
+let demo=false,calibrated=false,sampling=false,origin=null,placement=null,arenaWorld=null,avg=null,calSamples=[],calStart=0;
 let game=G.make((Math.random()*4294967295)>>>0),running=false,finished=false,renderer=null,trackLast=0;
 let lastFrame=0,lastHud=0,trackingLast=null,arLoop=false,status='intro',mode='motion';
 let muted=false,audio=null,impactBuffer=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
@@ -232,7 +232,9 @@ function arFrame(t,frame,W){
    const preview=typeof stage!=='undefined'&&stage==='preview';
    const center=placement||(preview&&pos)||{x:0,z:0};
    game.showCalibrationMarker=!running&&calibrated&&!demo;
-   renderer.render(frame,multiply(W,translate(center.x,center.z)),game);
+   const fixedWorld=multiply(W,translate(center.x,center.z));
+   arenaWorld={x:fixedWorld[12],y:fixedWorld[13],z:fixedWorld[14]};
+   renderer.render(frame,fixedWorld,game);
   }
   if(!running&&t-lastHud>160){lastHud=t;hud()}
  }catch(e){if(!arFrame.warned){console.error('Meteoros AR:',e);arFrame.warned=true;toast('⚠️ PROBLEMA CON EL RENDER AR')}}
@@ -383,6 +385,7 @@ window.addEventListener('pagehide',()=>{clearInterval(onlineTimer);online?.conn?
 if((location.hostname==='localhost'||location.hostname==='127.0.0.1')&&params.has('mc_test')){
   Object.defineProperty(window,'__meteorTestSnapshot',{value:()=>({
     placement:placement?{...placement}:null,
+    arenaWorld:arenaWorld?{...arenaWorld}:null,
     origin:origin?{...origin}:null,
     avatar:{x:game.players[0].x,z:game.players[0].z},
     status,calibrated
