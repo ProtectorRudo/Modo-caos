@@ -130,7 +130,7 @@
   $('home').style.display='none';$('overlay').style.display='block';
   $('status').style.display='block';$('actionbar').style.display='flex';
   $('scorebar').style.display='flex';$('signalBadge').style.display='block';
-  $('progressTrack').style.display='block';$('movePad').style.display='flex';
+  $('progressTrack').style.display='block';$('movePad').style.display='none';
   $('startRace').style.display='block';$('startRace').disabled=true;
   $('play').style.display='none';
   $('result').style.display='none';hud();
@@ -252,6 +252,7 @@
   $('calPanel').style.display='none';$('overlay').classList.add('sf-running','sf-fixed');
   $('movePad').style.display='flex';$('signalBadge').style.display='block';
   $('actionbar').style.display='flex';$('toggleControls').style.display=demo?'none':'block';
+  $('status').style.display='none';if(online)$('onlinePanel').style.display='none';
   notify('🎮 VERDE AVANZAR · AMARILLO SOLTAR · ROJO QUIETO');
   hud();sound(780,.35);renderEvents();
   if(online)onlineActive=true;
@@ -326,8 +327,8 @@
   $('result').style.display='none';$('startRace').style.display='block';
   $('startRace').disabled=!calibrated;game=make();lastEvent=0;
   $('overlay').classList.remove('sf-running');
-  $('actionbar').style.display='flex';
-  if(demo){$('startRace').disabled=false;$('movePad').style.display='flex'}
+  $('actionbar').style.display='flex';$('status').style.display='block';
+  if(demo){$('startRace').disabled=false;$('movePad').style.display='none'}
   notify('¡REVANCHA! · ¡ESTE SEMÁFORO NO PERDONA!');hud();
  };
  $('shareResult').onclick=async()=>{
