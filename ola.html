@@ -57,6 +57,7 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 .resultCard h2{font-size:clamp(32px,8vw,45px);line-height:1.04}
 #resultsMeta{font-size:13px;color:#c5dae9;line-height:1.6}
 .resultCard button{display:block;width:100%;margin:9px 0}#again{background:#ff4267;color:white}
+#overlay.hit:after{content:'';position:absolute;inset:0;background:#ff194765;pointer-events:none;z-index:29;animation:hitflash .26s ease-out forwards}@keyframes hitflash{from{opacity:1}to{opacity:0}}
 #pauseDialog{position:absolute;inset:0;background:#050b1bdd;z-index:31;display:none;pointer-events:auto;align-items:center;justify-content:center}
 #pauseDialog>div{border:1px solid #4e96ac;background:#0e2437;border-radius:18px;text-align:center;padding:24px;max-width:310px}
 #pauseDialog button{width:100%;margin-top:8px}
@@ -88,8 +89,8 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 <div id="result"><div class="resultCard"><div class="kicker">MODO CAOS · RESULTADO</div><h2 id="resultTitle">¡FIN DE PARTIDA!</h2><p id="resultsMeta"></p><button id="again">↻ VOLVER A JUGAR</button><button id="infinite" class="secondary">∞ MODO INFINITO</button><button id="share" class="secondary">↗ COMPARTIR RESULTADO</button><button id="leave" class="secondary">← VOLVER AL ARCADE</button></div></div>
 <div id="pauseDialog"><div><h2>PARTIDA EN PAUSA</h2><p>Respirá, la ola te espera.</p><button id="resume">▶ CONTINUAR</button><button id="pauseCal" class="secondary">⊕ RECALIBRAR</button></div></div>
 </div>
-<script defer src="/engine.js?v=meteoros1"></script>
-<script defer src="/ola-core.js?v=1"></script>
-<script defer src="/ola-art.js?v=1"></script>
-<script defer src="/ola-runtime.js?v=1"></script>
+<script defer src="./engine.js?v=meteoros1"></script>
+<script defer src="./ola-core.js?v=1"></script>
+<script defer src="./ola-art.js?v=1"></script>
+<script defer src="./ola-runtime.js?v=1"></script>
 </body></html>
