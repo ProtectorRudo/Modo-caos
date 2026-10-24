@@ -25,3 +25,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Play REAL deployed 3D game and shoot a robot from mobile Chromium
         run: node tests/rodeados-live-browser.test.cjs
+      - name: Play publicly published GitHub Pages AR mirror with mobile Chromium
+        env:
+          RODEADOS_URL: https://protectorrudo.github.io/Modo-caos/rodeados.html
+        run: node tests/rodeados-live-browser.test.cjs
