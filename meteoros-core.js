@@ -67,7 +67,7 @@ function planWave(g){
  // A safety check below rejects combinations needing sudden sprints.
  const count=f==='aprendizaje'?1+Number(g.wave%3===2):
    f==='lluvia'?2+Number(g.wave%3===0):
-   f==='caos'?3+Number(g.wave%3===1):3+Number(g.wave%2===0)+Number(g.wave%5===0);
+   f==='caos'?2+Number(g.wave%2===0):3+Number(g.wave%2===0);
  const lead=f==='aprendizaje'?2.30:f==='lluvia'?2.13:f==='caos'?1.98:1.82;
  const impact=g.elapsed+lead;
  // Solo: chase the tracked PHONE position; online: choose shared, deterministic targets.
@@ -231,9 +231,9 @@ function tick(g,dt){
  if(g.stage!=='playing'||g.paused)return;
  const step=clamp(dt,0,.08);g.elapsed=Math.min(g.duration,g.elapsed+step);
  if(g.elapsed>=g.nextWave&&g.elapsed<g.duration-1.1){
-  const wave=planWave(g);// A controlled ramp: ~2.65s initially → 2.40s at 18s → 2s at 50s → 1.67s in finale.
+  const wave=planWave(g);// A controlled ramp: ~2.80s early → 2.52s at 28s → 2.15s at 55s → 1.90s in the finale.
   // No abrupt difficulty cliff; each explosion has a >=1.82s warning.
-  const interval=g.elapsed<8?2.65:Math.max(1.65,2.54-Math.max(0,g.elapsed-8)*.014);
+  const interval=g.elapsed<8?2.80:Math.max(1.88,2.80-Math.max(0,g.elapsed-8)*.014);
   g.nextWave+=interval+(wave.length?0:.23);
  }
  for(const p of g.players.slice(1))botTick(g,p,step);
