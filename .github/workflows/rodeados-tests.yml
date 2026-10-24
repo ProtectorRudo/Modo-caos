@@ -19,3 +19,12 @@ jobs:
       - run: node --check rodeados-art.js
       - run: node --check rodeados-runtime.js
       - run: node --test tests/rodeados.test.cjs
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - run: npm install --ignore-scripts --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/rodeados-browser.test.cjs
