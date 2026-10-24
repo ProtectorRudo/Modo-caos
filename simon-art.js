@@ -21,7 +21,7 @@ function create(gl){
  const pos=gl.getAttribLocation(program,'pos'),uMvp=gl.getUniformLocation(program,'mvp'),uTint=gl.getUniformLocation(program,'tint'),uShine=gl.getUniformLocation(program,'shine');
  let VP=I(),W=I(),draws=0;
  function cube(x,y,z,sx,sy,sz,color,shine=0){const m=mul(VP,mul(W,box(x,y,z,sx,sy,sz)));gl.uniformMatrix4fv(uMvp,false,m);gl.uniform4fv(uTint,color);gl.uniform1f(uShine,shine);gl.drawArrays(gl.TRIANGLES,0,36);draws++}
- function render(frame,world,session,ref,g,pitch,selected,player,time,blackout=false){
+ function render(frame,world,session,ref,g,pitch,selected,player,time,blackout=false,readyTile=-1,confirmedTile=-1){
   if(!session||!ref||!frame||!world)return 0;
   const pose=frame.getViewerPose(ref),layer=session.renderState.baseLayer;if(!pose)return 0;
   W=world;draws=0;gl.useProgram(program);
@@ -38,7 +38,7 @@ function create(gl){
     const active=g.phase==='show'&&g.highlight===key;
     const flash=active?(Math.sin(time*.021)*.08+.92):0;
     const elec=g.trap==='electrica'&&g.phase==='act'&&g.electric===i&&root.SimonCore.electricalUnsafe(g,time);
-    const picked=(selected===i||player?.tile===i)&&g.phase!=='show';
+    const picked=(player?player.tile===i:selected===i)&&g.phase!=='show';
     const dim=(blackout?.22:1)*(g.phase==='show'&&!active?.27:1);
     cube(x,.021,z,pitch*.485,.013,pitch*.485,[.02,.06,.14,.96],.08);
     cube(x,.038,z,pitch*.451,.011,pitch*.451,[colr[0]*.27*dim,colr[1]*.27*dim,colr[2]*.27*dim,.99],.12+flash*.4);
@@ -53,6 +53,18 @@ function create(gl){
      cube(x,.106,z,pitch*.34,.054,pitch*.34,[colr[0],colr[1],colr[2],.34],1.30*glow);
      cube(x,.153,z,pitch*.19,.008,pitch*.19,[1,1,1,.88],1.20*glow);
     }
+    // Indicador espacial: una baliza verde marca que esta celda ya permite confirmar.
+    if(readyTile===i&&g.phase==='act'){
+     const halo=.18+.04*Math.sin(time*.009);
+     cube(x,.084,z,pitch*.33,.003,pitch*.33,[.10,1,.52,.79],.6);
+     cube(x,.116,z,pitch*.20,.006,pitch*.20,[.83,1,.94,.88],.85);
+     for(const dir of [-1,1]){
+      cube(x+dir*pitch*.38,.096,z,pitch*.008,.026,pitch*.35,[.34,1,.73,.91],.8+halo);
+      cube(x,.096,z+dir*pitch*.38,pitch*.35,.026,pitch*.008,[.34,1,.73,.91],.8+halo);
+     }
+    }
+    if(confirmedTile===i&&g.phase==='act'&&readyTile!==i)
+     cube(x,.090,z,pitch*.18,.005,pitch*.18,[.13,.75,1,.84],.70);
     if(active||elec||picked){
      const color=elec?[1,.15,.09,.83]:picked?[.7,1,.88,.86]:[1,1,1,.93];
      cube(x,.056,z,pitch*.436,.003,pitch*.436,color,.38+flash*.28);
