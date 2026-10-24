@@ -50,10 +50,11 @@ export class TorreArt{
   return grp;
  }
  startBlock(id,shape){const mesh=this.model(shape);this.objects.set(id,mesh);this.group.add(mesh);return mesh}
- setActive(shape){if(this.active){this.group.remove(this.active);this.active.userData.material.dispose()}this.active=this.model(shape,true);this.group.add(this.active);this.ghost.visible=true}
+ setActive(shape){if(this.active){this.group.remove(this.active);this.active.traverse(n=>{if(n.isMesh)n.geometry.dispose()});this.active.userData.material.dispose()}this.active=this.model(shape,true);this.group.add(this.active);this.ghost.visible=true}
  moveActive(x,y,angle){if(!this.active)return;this.active.position.set(x,y,0);this.active.rotation.z=angle;this.ghost.position.x=x;this.ghost.scale.x=1.1}
- releaseActive(){if(!this.active)return;this.group.remove(this.active);this.active.userData.material.dispose();this.active=null;this.ghost.visible=false}
- reset(){for(const ob of this.objects.values()){this.group.remove(ob);ob.userData.material?.dispose()}this.objects.clear();this.releaseActive();for(const e of this.effects){this.group.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose()}this.effects=[]}
+ setGhostLanding(x,y){this.ghost.position.set(x,Math.max(.145,y+.012),0);this.ghost.visible=!!this.active}
+ releaseActive(){if(!this.active)return;this.group.remove(this.active);this.active.traverse(n=>{if(n.isMesh)n.geometry.dispose()});this.active.userData.material.dispose();this.active=null;this.ghost.visible=false}
+ reset(){for(const ob of this.objects.values()){this.group.remove(ob);ob.traverse(n=>{if(n.isMesh)n.geometry.dispose()});ob.userData.material?.dispose()}this.objects.clear();this.releaseActive();for(const e of this.effects){this.group.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose()}this.effects=[]}
  sync(id,x,y,rotation){const m=this.objects.get(id);if(!m)return;m.position.set(x,y,0);m.rotation.set(0,0,rotation)}
  impact(x,y,intensity=1){if(this.effects.length>28)return;const geo=new THREE.TorusGeometry(.075, .007+Math.min(.012,intensity*.003),5,24),mat=new THREE.MeshBasicMaterial({color:intensity>3?0xffc78c:0x89fff2,transparent:true,opacity:.75,depthWrite:false});
   const ring=new THREE.Mesh(geo,mat);ring.position.set(x,Math.max(.145,y),.17);this.group.add(ring);this.effects.push({mesh:ring,life:0})}
