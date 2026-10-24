@@ -380,5 +380,9 @@ export function createRodeadosArt(THREE,scene,camera){
   for(const a of actors.values()){root.remove(a.group);a.visorMat.dispose()}actors.clear();
   for(const s of sparks){root.remove(s.mesh);s.mesh.material.dispose()}sparks.length=0;
  }
- return {root,arena,rifle,tiles,setFloor,setFloorDamage,drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
+ return {root,arena,rifle,tiles,setFloor,setFloorDamage,
+  getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
+   darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
+   scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity)}),
+  drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
 }
