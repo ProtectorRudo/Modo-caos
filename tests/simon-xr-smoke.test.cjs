@@ -60,7 +60,13 @@ const server=http.createServer((req,res)=>{
   assert(await page.locator('#startGame').isVisible(),'calibrated start button visible');
   await page.locator('#startGame').click();
   assert(!await page.locator('#confirmRow').isVisible(),'no gameplay confirmation during Simon playback');
+  assert(await page.locator('#simonMap').isVisible(),'overhead AR board visible even when physical tiles leave the camera');
+  assert.equal(await page.locator('#mapCells .mapTile').count(),9,'overhead map shows all nine tiles');
+  assert((await page.locator('#mapHeading').textContent()).includes('SECUENCIA COMPLETA'),'watch indicator in map');
+  await page.waitForFunction(()=>document.querySelector('#mapCells .mapTile.on')!==null,null,{timeout:4500});
+  assert.equal(await page.locator('#mapCells .mapTile.on').count(),1,'exactly one tile highlighted on the overhead map');
   await page.waitForFunction(()=>document.getElementById('phase').textContent.includes('AHORA VOS'),null,{timeout:14000});
+  assert.equal(await page.locator('#mapCells .mapTile.on').count(),0,'map does not leak the remembered sequence during player's turn');
   await page.waitForFunction(()=>!document.getElementById('confirmCell').disabled,null,{timeout:3000});
   assert((await page.locator('#confirmCell').textContent()).includes('CELDA 5'),'center confirmed and button names current cell');
   await page.waitForTimeout(1000);
@@ -68,15 +74,21 @@ const server=http.createServer((req,res)=>{
   await page.locator('#confirmCell').click();
   assert.equal(await page.locator('#progress').textContent(),'1/2','explicit tap registers first tile');
   assert(await page.locator('#confirmCell').isDisabled(),'cannot confirm same tile twice');
-  await page.evaluate(()=>{window.__xrPos.x=.55});
-  await page.waitForFunction(()=>document.getElementById('position').textContent.includes('CELDA 6'),null,{timeout:4500});
-  await page.waitForFunction(()=>!document.getElementById('confirmCell').disabled,null,{timeout:3200});
-  assert((await page.locator('#confirmCell').textContent()).includes('CELDA 6'),'second tile ready for deliberate confirmation');
-  assert.equal(await page.locator('#progress').textContent(),'1/2','movement itself does not register next tile');
+  // La posición XR puede no coincidir con los pies: corrección manual sin recalibración.
+  await page.locator('#mapCorrection').click();
+  assert((await page.locator('#mapCaption').textContent()).includes('Tocá en el mapa'),'manual correction invitation');
+  await page.locator('#mapCells .mapTile').nth(5).click();
+  assert((await page.locator('#position').textContent()).includes('MODO MANUAL'),'manual mode explicitly disclosed');
+  assert((await page.locator('#confirmCell').textContent()).includes('CELDA 6'),'manual correction selects tile six');
+  assert.equal(await page.locator('#progress').textContent(),'1/2','manual selection alone never scores');
   await page.locator('#confirmCell').click();
   await page.waitForFunction(()=>document.getElementById('round').textContent==='2',null,{timeout:12000});
+  await page.waitForFunction(()=>document.getElementById('phase').textContent.includes('AHORA VOS'),null,{timeout:15000});
+  await page.evaluate(()=>{window.__xrPos.x=.55});
+  await page.waitForFunction(()=>document.getElementById('position').textContent.includes('CELDA 6'),null,{timeout:4500});
+  assert.equal(await page.locator('#mapCells .mapTile.here').count(),1,'green dot moves on map with XR phone position');
   assert.deepEqual(errors,[],'no uncaught page errors');
-  console.log('PASS simulated XR: anchor/calibration, no automatic scoring, stable explicit confirm 5 → 6, round 2');
+  console.log('PASS simulated XR: fixed AR board, full 3x3 map, watch playback, explicit confirm, manual position correction, round 2');
  }finally{
   if(browser)await browser.close();server.close();
  }
