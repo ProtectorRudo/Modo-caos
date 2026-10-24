@@ -6,16 +6,33 @@
 const $=id=>document.getElementById(id),G=window.OlaRojaCore,A=window.OlaRojaArt;
 if(!G||!A){console.error('OLA ROJA: dependencias ausentes');return}
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),TAU=Math.PI*2;
-let tileMeters=.45,renderer=null,canvas=null,demo=false,mode='clasico';
+let tileMeters=.45,renderer=null,canvas=null,demo=false,mode='clasico',previewPose=null,previewSaved=0;
 window.modoCaosGestureConfig=Object.freeze({
- min:.30,max:.64,step:.025,label:value=>{tileMeters=value;return (value*6).toFixed(2).replace('.',',')+' m'}
+ min:.30,max:.60,step:.025,label:value=>{tileMeters=value;return (value*6).toFixed(2).replace('.',',')+' m'}
 });
 window.modoCaosLockReady=()=>!!renderer;
+// /engine.js inicia en .45 m. Dos pasos menos dejan 2,40 m en la primera sesión.
+// Mantenemos sus controles de pinza/rotación y no alteramos otros minijuegos.
+if(typeof setSize==='function'){setSize(-1);setSize(-1)}
 let game=G.make({tileMeters}),calibrated=false,selectedCell=null,sampling=false,
  sampleStart=0,samples=[],origin=null,smoothed=null,previous=null,lastGood=0,invalidSince=0,
  status='intro',running=false,finished=false,lastFrame=0,lastHUD=0,lastEvent=0,noticeUntil=0,
- picker=false,arBooted=false,muted=false,audio=null,best=0,target=null,keys=new Set(),trackingFrozen=false,recoverySince=0,nextBeat=0,beatIndex=0,lastYellow=0,waveAnnounceUntil=0,waveAnnounce='';
+ picker=false,arBooted=false,muted=false,audio=null,best=0,target=null,keys=new Set(),trackingFrozen=false,recoverySince=0,nextBeat=0,beatIndex=0,lastYellow=0,waveAnnounceUntil=0,waveAnnounce='',lastRadar=0;
 const KEY='modo-caos-ola-roja-records-v1';
+const radarCells=Array.from({length:36},()=>{
+ const el=document.createElement('i');$('radarCells').appendChild(el);return el;
+});
+function paintRadar(t){
+ if(t-lastRadar<90)return;lastRadar=t;
+ const data=G.radar(game,3.9),pos=game.cell.r*6+game.cell.c;
+ for(let i=0;i<36;i++){
+  const c=data.state[i],el=radarCells[i];
+  el.className=(c==='red'?'danger':c==='yellow'?'warning':data.forecast[i]?'future':'')+
+   (i===pos?' player':'');
+ }
+ $('radarDirection').textContent=data.direction||'MIRÁ EL TABLERO';
+ $('radarTime').textContent=data.seconds!==null?'🔴 ROJO EN '+data.seconds.toFixed(1)+' s':'PRÓXIMA OLA…';
+}
 try{const r=JSON.parse(localStorage.getItem(KEY)||'{}');best=Number(r.clasico)||0}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
 function speak(f=680,d=.12,type='sine',volume=.06){
@@ -38,6 +55,7 @@ function hud(){
  $('banner').textContent=game.stage==='countdown'?'ARRANCAMOS EN '+Math.ceil(game.countdown):
   (game.stage==='playing'?(performance.now()<waveAnnounceUntil?waveAnnounce:G.phases(game.elapsed))+
   (game.shield?' · 🛡 ESCUDO':''):'');
+ if(!demo&&calibrated&&game.stage==='playing')paintRadar(performance.now());
  if(demo&&game.stage==='playing')$('whereAmI').textContent='📍 VOS · FILA '+(game.cell.r+1)+' · COLUMNA '+(game.cell.c+1);
 }
 function consume(){
@@ -64,7 +82,7 @@ function record(){
 }
 function showResult(){
  if(finished)return;finished=true;running=false;record();
- $('result').style.display='flex';$('pause').style.display='none';$('recalibrateLive').style.display='none';$('statusPanel').style.display='none';
+ $('result').style.display='flex';$('pause').style.display='none';$('radar').style.display='none';$('recalibrateLive').style.display='none';$('statusPanel').style.display='none';
  $('resultTitle').textContent=game.finishReason==='victoria'?'🏆 ¡SOBREVIVISTE!':'💥 ¡TE ATRAPÓ LA OLA!';
  $('resultsMeta').textContent='SOBREVIVISTE '+Math.floor(game.elapsed)+' SEGUNDOS · '+Math.round(game.score).toLocaleString('es-AR')+
  ' PUNTOS · '+game.dodges+' OLAS ESQUIVADAS · RÉCORD '+Math.round(best).toLocaleString('es-AR')+
@@ -77,7 +95,7 @@ function reset(nextMode=mode){
  $('result').style.display='none';$('pauseDialog').style.display='none';
  $('gameHud').style.display='flex';$('statusPanel').style.display='flex';
  $('gameActions').style.display='flex';$('begin').disabled=!calibrated;
- $('pause').style.display='none';$('recalibrateLive').style.display='none';picker=false;sampling=false;hidePicker();
+ $('pause').style.display='none';$('recalibrateLive').style.display='none';$('radar').style.display='none';picker=false;sampling=false;hidePicker();
  if(calibrated&&selectedCell!==null)G.setPosition(game,selectedCell%6+.5,Math.floor(selectedCell/6)+.5);
  label(calibrated?'Pista fija · MOVETE DE VERDAD para esquivar.':'Tocá dónde estás sobre la pista para calibrar');
  hud();
@@ -87,7 +105,7 @@ function begin(){
  game.tileMeters=tileMeters;if(!G.start(game))return;
  running=true;status='playing';lastFrame=0;trackingFrozen=false;recoverySince=0;
  $('gameActions').style.display='none';$('calBox').style.display='none';
- $('pause').style.display='block';$('recalibrateLive').style.display=demo?'none':'block';$('gameHud').style.display='flex';
+ $('pause').style.display='block';$('recalibrateLive').style.display=demo?'none':'block';$('radar').style.display=demo?'none':'block';$('gameHud').style.display='flex';
  $('head').style.display='none';$('banner').style.display='block';
  label('ESQUIVÁ LAS BALDOSAS ROJAS. ¡MOVETE DE VERDAD!');
  toast('🔴 ¡ESQUIVÁ LAS ROJAS!',1800);speak(830,.2);
@@ -100,7 +118,7 @@ function resumeGame(){
 }
 function uiFixed(){
  if(demo||status==='fixed'||status==='playing'||status==='finished')return;
- status='fixed';$('head').style.display='none';$('lock').style.display='none';
+ status='fixed';$('head').style.display='none';$('lock').style.display='none';$('autoCenter').style.display='none';
  $('statusPanel').style.display='flex';$('gameActions').style.display='flex';
  $('gameHud').style.display='flex';$('begin').disabled=true;
  $('calBox').style.display='block';label('Elegí la casilla donde estás de pie · después un segundo quieto');
@@ -245,6 +263,7 @@ function arFrame(t,frame,W){
  try{
   if(!W)return;
   const pos=localPose(frame,W);
+  if(typeof stage!=='undefined'&&stage==='preview'){previewPose=pos;previewSaved=t}
   if(sampling)sample(t,pos);
   if(calibrated){
    if(pos&&motion(t,pos)){
@@ -265,6 +284,7 @@ function arFrame(t,frame,W){
    }
   }
   if(running)gameTick(dt,t);
+  if(calibrated&&!running)paintRadar(t);
   renderer?.render(frame,ref,W,game,tileMeters,{preview:stage==='preview'||stage==='search',calibrating:picker,calibrated});
   drawPick(frame,W);
   if(!running&&t-lastHUD>200){hud();lastHUD=t}
@@ -278,9 +298,24 @@ function bootAR(){
   sess.addEventListener('end',()=>{running=false;window.modoCaosXRFrame=null});
  }catch(e){console.error('OLA ROJA WebGL:',e);toast('NO SE PUDO INICIAR LA PISTA WEBGL',3000)}
 }
+// CENTRAR Y FIJAR: en un solo toque, la casilla 4-4 queda debajo de la
+// proyección del teléfono. No toca el anclaje una vez que el piso quedó fijo.
+$('autoCenter').addEventListener('click',()=>{
+ if(demo||typeof stage==='undefined'||stage!=='preview'||!previewPose||
+    performance.now()-previewSaved>650||$('lock').disabled)return;
+ const co=Math.cos(yaw),si=Math.sin(yaw);
+ const offsetX=previewPose.x-tileMeters*.5,offsetZ=previewPose.z-tileMeters*.5;
+ dx+=co*offsetX+si*offsetZ;
+ dz+=-si*offsetX+co*offsetZ;
+ previewPose=null;
+ $('autoCenter').style.display='none';
+ $('lock').click();
+ toast('◎ PISTA CENTRADA · INDICÁ TU CASILLA',1650);
+});
 const arWatch=setInterval(()=>{
  if(demo)return;
  bootAR();
+ $('autoCenter').style.display=typeof stage!=='undefined'&&stage==='preview'&&!!previewPose?'block':'none';
  // WebXR puede omitir por completo el callback del juego cuando pierde la pose.
  // Detectar también ese silencio mediante el reloj real (sin tocar engine.js).
  if(running&&arBooted&&lastFrame&&performance.now()-lastFrame>320&&!trackingFrozen){
@@ -328,7 +363,7 @@ $('resume').addEventListener('click',resumeGame);
 $('pauseCal').addEventListener('click',()=>{$('pauseDialog').style.display='none';recalibrate()});
 function recalibrate(){
  if(demo)return;
- trackingFrozen=true;recoverySince=0;game.paused=running;calibrated=false;sampling=false;picker=true;
+ trackingFrozen=true;recoverySince=0;game.paused=running;calibrated=false;sampling=false;picker=true;$('radar').style.display='none';
  $('statusPanel').style.display='flex';$('gameActions').style.display='flex';
  $('calBox').style.display='block';$('calTitle').textContent='👣 VOLVÉ A TOCAR TU CASILLA';
  $('begin').disabled=true;label('Pista fija · marcá tu nueva posición sin desplazarla');
@@ -353,7 +388,7 @@ if(new URLSearchParams(location.search).has('mc_test')){
   G.finish(game,reason);consume();hud();return true;
  };
  window.__olaTestSnapshot=()=>({
-  status,mode,running,calibrated,sampling,picker,trackingFrozen,
+  status,mode,running,calibrated,sampling,picker,trackingFrozen,boardSize,previewPose,
   elapsed:game.elapsed,paused:!!game.paused,lives:game.lives,waves:game.waves,
   cell:{...game.cell},pos:{...game.pos},
   world:typeof worldMatrix!=='undefined'&&worldMatrix?
