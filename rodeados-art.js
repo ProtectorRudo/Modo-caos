@@ -263,11 +263,16 @@ export function createRodeadosArt(THREE,scene,camera){
  const camTemp=new THREE.Vector3(),quatTemp=new THREE.Quaternion(),offset=new THREE.Vector3(.23,-.28,-.40);
  function positionWeapon(viewCamera,flash){
   viewCamera.getWorldPosition(camTemp);viewCamera.getWorldQuaternion(quatTemp);
-  rifle.position.copy(camTemp).add(offset.clone().applyQuaternion(quatTemp));
+  rifle.position.copy(camTemp).add(offset.clone().add(new THREE.Vector3(0,0,recoil*.075)).applyQuaternion(quatTemp));
   rifle.quaternion.copy(quatTemp);rifle.rotateY(-.045);
-  rifle.rotation.x+=flash?-.06:0;muzzle.visible=!!flash;
+  rifle.rotateX(-recoil*.15-(flash?.035:0));muzzle.visible=!!flash;
+  muzzle.scale.set(.13+recoil*.07,.13+recoil*.07,.30+recoil*.18);
  }
  function clear(){
+  if(bombProjectile){root.remove(bombProjectile);bombProjectile=null}
+  for(const tr of tracers){root.remove(tr.mesh);tr.mesh.material.dispose()}tracers.length=0;
+  for(const w of waves){root.remove(w.mesh);w.mesh.material.dispose();w.mesh.geometry.dispose()}waves.length=0;
+  recoil=0;
   for(const a of actors.values())root.remove(a.group);actors.clear();
   for(const s of sparks){root.remove(s.mesh);s.mesh.material.dispose()}sparks.length=0;
  }
