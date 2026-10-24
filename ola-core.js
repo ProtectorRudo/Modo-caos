@@ -98,7 +98,10 @@ function pattern(g,name){
 }
 function spawn(g){
  const upcoming=g.waves+1,reverse=upcoming%9===0;
- const name=reverse?'inversion':kind(g),lead=g.elapsed<15?2.0:g.elapsed<55?1.85:1.65;
+ const previousEnd=g.active.reduce((last,w)=>Math.max(last,w.end),0);
+ const name=reverse?'inversion':kind(g);
+ // El aviso no puede acelerar de golpe al cambiar de fase y superponer peligros.
+ const lead=Math.max(g.elapsed<15?2.0:g.elapsed<55?1.85:1.65,previousEnd+.55-g.elapsed);
  const slot=speed(g)*(upcoming%7===0?1.38:1);
  let steps=null,chosen=name;
  for(let k=0;k<26;k++){const p=pattern(g,name);if(ensureRoute(g,p,lead,slot)){steps=p;break}}
