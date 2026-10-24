@@ -130,7 +130,8 @@ function render(){
  ui.begin.classList.toggle('hidden',!isHost||!inLobby);
  ui.begin.disabled=!(room.players?.length>=2&&room.players.every(p=>p.ready));
  ui.finish.classList.toggle('hidden',!isHost||room.status!=='playing');
- $('goGame').classList.toggle('hidden',room.game!=='semaforo-traicionero');
+ $('goGame').classList.toggle('hidden',!['semaforo-traicionero','lluvia-meteoros'].includes(room.game));
+ $('goGame').textContent=room.game==='lluvia-meteoros'?'☄️ ABRIR METEOROS Y CALIBRAR':'🚦 ABRIR SEMÁFORO Y CALIBRAR';
  ui.conn.textContent=conn?.connected?'● CONECTADO':'○ '+(conn?'RECONECTANDO':'SIN CONEXIÓN');
  updateClock();
 }
@@ -209,7 +210,7 @@ $('pulseButton').onclick=()=>run(async()=>{
  await conn.pulse();
  label('⚡ Pulso enviado. Verificá que también aparezca en el otro celular.');
 });
-$('goGame').onclick=()=>{if(room?.game==='semaforo-traicionero')location.href='/semaforo.html?room='+encodeURIComponent(room.code)};
+$('goGame').onclick=()=>{if(!room)return;const route=room.game==='lluvia-meteoros'?'/meteoros.html':room.game==='semaforo-traicionero'?'/semaforo.html':null;if(route)location.href=route+'?room='+encodeURIComponent(room.code)};
 function link(){return location.origin+'/salas.html?room='+encodeURIComponent(currentCode)}
 $('share').onclick=()=>{
  const content='¡Te invito a Modo Caos! Entrá a mi sala '+currentCode+': '+link();
