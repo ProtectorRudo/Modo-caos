@@ -73,7 +73,7 @@ const server=http.createServer((req,res)=>{
   const time=await page.locator('#time').innerText();await page.waitForTimeout(320);
   assert.equal(await page.locator('#time').innerText(),time,'pause freezes XR hazards');
   await page.locator('#resume').click();
-  await page.locator('#recalibrate').click();
+  await page.locator('#recalibrateLive').click();
   assert(await page.locator('#calBox').isVisible(),'position recalibration available');
   assert.equal(errors.length,0,'no XR runtime exceptions: '+errors.join(' / '));
   console.log('PASS: 6x6 simulated WebXR hit-test, scene placement, 1s calibration, phone motion, WebGL, pause and recalibration');
