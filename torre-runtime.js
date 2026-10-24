@@ -8,7 +8,7 @@ try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
 function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=p!=='placing';ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
-function updateHUD(){ui.hudHeight.textContent=G.score(top).toString();ui.hudPieces.textContent=states.length.toString();ui.hudRecord.textContent=Math.max(record,G.score(top)).toString()}
+function updateHUD(){ui.hudHeight.textContent=G.score(phase==='settling'?lastTop:top).toString();ui.hudPieces.textContent=states.length.toString();ui.hudRecord.textContent=Math.max(record,G.score(top)).toString()}
 function startPhysics(){
  if(world){world.free();world=null}
  world=new RAPIER.World({x:0,y:-9.81,z:0});world.timestep=1/60;world.integrationParameters.maxVelocityIterations=8;world.integrationParameters.maxPositionIterations=3;queue=new RAPIER.EventQueue(true);
@@ -72,7 +72,7 @@ function readStates(){
   max=Math.max(max,pieceTop);
   art.sync(s.id,p.x,p.y,angle);pieces.push({id:s.id,x:p.x,y:p.y,top:pieceTop,angle});
  }
- top=Math.max(0,max-.14);hi=Math.max(hi,top);
+ top=Math.max(0,max-.14);
  return pieces;
 }
 function saveRecord(){
@@ -91,7 +91,7 @@ function physicsStep(){
   if(settleTime>1.15&&G.collapsed(pieces,lastTop,latest.id)){fail();return}
   if(settleTime>1.2&&(stillTime>.5||settleTime>5.5)){
    if(G.collapsed(pieces,lastTop,latest.id)){fail();return}
-   saveRecord();updateHUD();
+   hi=Math.max(hi,top);saveRecord();updateHUD();
    if(G.score(top)>=100&&Math.floor(G.score(top)/100)>Math.floor(G.score(lastTop)/100)){soundFX(860,.25,.1);showText('¡'+G.score(top)+' CM! ALTURA IMPARABLE',1100)}
    makeActive();
   }
@@ -99,7 +99,7 @@ function physicsStep(){
  if(steps%6===0)updateHUD();
 }
 function fail(){
- saveRecord();phaseTo('replay');replayFrames=frames.slice(-90);replayTime=0;replaying=true;showText('¡SE VIENE ABAJO!',1800);soundFX(90,.32,.17,'sawtooth');vibe(45);
+ top=lastTop;saveRecord();phaseTo('replay');replayFrames=frames.slice(-90);replayTime=0;replaying=true;showText('¡SE VIENE ABAJO!',1800);soundFX(90,.32,.17,'sawtooth');vibe(45);
  if(!replayFrames.length){endReplay();return}
 }
 function endReplay(){replaying=false;phaseTo('finished');const pts=G.score(hi);$('finalHeight').textContent=pts+' cm';$('finalPieces').textContent=states.length;$('finalRecord').textContent=record+' cm';$('resultTitle').textContent=pts>=record&&pts>0?'¡NUEVO RÉCORD!':'TORRE DERRUMBADA';updateHUD()}
@@ -162,7 +162,7 @@ function gestureUp(e){
 }
 ui.gesture.addEventListener('pointerdown',gestureDown);ui.gesture.addEventListener('pointermove',gestureMove);ui.gesture.addEventListener('pointerup',gestureUp);ui.gesture.addEventListener('pointercancel',e=>{if(phase==='placing'){pointers.delete(e.pointerId);pinch=null}else drag=null});
 function updateScale(){$('sizeText').textContent=Math.round(scale*100)+'%'}
-function setARMode(ar){mode=ar?'ar':'demo';art.setAR(ar);ui.home.hidden=true;ui.overlay.hidden=false;if(!ar){session=null;art.group.visible=true;newGame();return}phaseTo('placing');art.group.visible=false;showText('APUNTÁ AL PISO Y AJUSTÁ TU PLATAFORMA',3600)}
+function setARMode(ar){mode=ar?'ar':'demo';art.setAR(ar);ui.home.hidden=true;ui.overlay.hidden=false;if(!ar){session=null;art.group.visible=true;$('recenter').hidden=true;newGame();return}$('recenter').hidden=false;phaseTo('placing');art.group.visible=false;showText('APUNTÁ AL PISO Y AJUSTÁ TU PLATAFORMA',3600)}
 function arReady(){return !!navigator.xr&&window.isSecureContext}
 async function startAR(){
  if(!art){showText('Motor todavía cargando');return}
@@ -183,11 +183,11 @@ async function startAR(){
  $('arBtn').disabled=false;
 }
 function xrFrame(time,frame){
- if(!ref)return;
+ if(!ref||!trackSource)return;
  const hit=frame.getHitTestResults(trackSource);
  if(phase==='placing'){
   if(hit.length){const p=hit[0].getPose(ref);if(p){latestHit=hit[0];hitSeen=time;rawPose={x:p.transform.position.x,y:p.transform.position.y,z:p.transform.position.z};if(!fixedPose){const view=frame.getViewerPose(ref)?.transform.position;if(view)yaw=Math.atan2(view.x-rawPose.x,view.z-rawPose.z);fixedPose={...rawPose};}
-   art.group.visible=true;art.setPreviewPose({x:rawPose.x+shift.x,y:rawPose.y,z:rawPose.z+shift.z},yaw);$('fix').disabled=false;showText('',100);
+   art.group.visible=true;art.setPreviewPose({x:rawPose.x+shift.x,y:rawPose.y,z:rawPose.z+shift.z},yaw);$('fix').disabled=false;
   }}
   if(time-hitSeen>950){$('fix').disabled=true;if(!latestHit)art.group.visible=false}
   art.aim.visible=true;
@@ -207,7 +207,7 @@ async function fix(){
 function pause(){if(phase!=='playing'&&phase!=='settling')return;paused=true;$('pauseMenu').hidden=false;showText('PAUSA')}
 function resume(){paused=false;$('pauseMenu').hidden=true}
 function retry(){resume();replaying=false;newGame()}
-function edit(){if(!session)return;pause();$('pauseMenu').hidden=true;paused=false;phaseTo('placing');shift={x:0,z:0};latestHit=null;hitSeen=0;rawPose=null;fixedPose=null;anchor?.delete?.();anchor=null;showText('REUBICÁ LA PLATAFORMA · LA TORRE SE CONSERVA');}
+function edit(){if(!session)return;pause();$('pauseMenu').hidden=true;paused=false;phaseTo('placing');shift={x:0,z:0};latestHit=null;hitSeen=0;rawPose=null;fixedPose=null;anchor?.delete?.();anchor=null;showText('REUBICÁ PARA EMPEZAR UNA PARTIDA NUEVA');}
 function miniToggle(){ui.mini.classList.toggle('expanded')}
 $('demoBtn').addEventListener('click',()=>{if(!art)return;setARMode(false)});
 $('arBtn').addEventListener('click',startAR);
