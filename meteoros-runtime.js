@@ -9,9 +9,17 @@ if(!G||!A){console.error('Meteoros: faltan dependencias');return}
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const params=new URLSearchParams(location.search),roomCode=(params.get('room')||'').toUpperCase(),hasRoom=/^[A-F0-9]{8}$/.test(roomCode);
 const K='mc-meteoros-record-v1';
+// Opt-in engine gesture settings: Color Rush and the other games keep their defaults.
+// Engine boardSize .45 means a physical 2.24m square; drag translates and twist rotates.
+const baseTileSize=.45;
+window.modoCaosGestureConfig=Object.freeze({
+ min:.32,max:.65,step:.025,
+ label:value=>(2*G.R*value/baseTileSize).toFixed(2).replace('.',',')+' m'
+});
+$('size').textContent=window.modoCaosGestureConfig.label(baseTileSize);
 let best=0;try{best=Math.max(0,Number(localStorage.getItem(K))||0)}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
-let demo=false,calibrated=false,sampling=false,origin=null,placement=null,arenaWorld=null,avg=null,calSamples=[],calStart=0;
+let demo=false,calibrated=false,sampling=false,origin=null,placement=null,previewCenter=null,arenaWorld=null,avg=null,calSamples=[],calStart=0;
 let game=G.make((Math.random()*4294967295)>>>0),running=false,finished=false,renderer=null,trackLast=0;
 let lastFrame=0,lastHud=0,trackingLast=null,arLoop=false,status='intro',mode='motion';
 let muted=false,audio=null,impactBuffer=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
@@ -169,6 +177,7 @@ function localPose(frame,W){
 }
 function multiply(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let k=0;k<4;k++)for(let r=0;r<4;r++)o[c*4+r]+=a[k*4+r]*b[c*4+k];return o}
 function translate(x,z){return new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,x,0,z,1])}
+function uniformScale(s){return new Float32Array([s,0,0,0,0,s,0,0,0,0,s,0,0,0,0,1])}
 function motion(t,pos){
  if(!pos)return false;
  if(!trackingLast){trackingLast={...pos};return false}
@@ -176,8 +185,9 @@ function motion(t,pos){
  // Protect against ARCore relocations/jumps; do not punish an implausible teleport.
  if(jump>.30){trackingLast={...pos};return false}
  const blend=.23;trackingLast={x:trackingLast.x+(pos.x-trackingLast.x)*blend,z:trackingLast.z+(pos.z-trackingLast.z)*blend};
- const dx=trackingLast.x-origin.x,dz=trackingLast.z-origin.z;
- if(Math.hypot(dx,dz)>G.R+.22){statusText('⚠️ LÍMITE DE ARENA · VOLVÉ A UN ÁREA DESPEJADA');return false}
+ const ratio=clamp(boardSize/baseTileSize,.70,1.47);
+ const dx=(trackingLast.x-origin.x)/ratio,dz=(trackingLast.z-origin.z)/ratio;
+ if(Math.max(Math.abs(dx),Math.abs(dz))>G.R+.22){statusText('⚠️ LÍMITE DE PISTA · VOLVÉ A UN ÁREA DESPEJADA');return false}
  G.setPosition(game,Math.abs(dx)<.018?0:dx,Math.abs(dz)<.018?0:dz);return true;
 }
 function inputTick(dt,t){
@@ -216,9 +226,11 @@ function arFrame(t,frame,W){
  try{
   if(!W)return;
   const pos=localPose(frame,W);
-  // Capture the local XR viewer's floor footprint once, at placement time.
-  // The selected floor plane supplies height/rotation; this defines the arena CENTER.
-  if(typeof stage!=='undefined'&&stage==='fixed'&&!placement&&pos)placement={...pos};
+  // A stable initial camera-footprint center, then the motor's ONE-FINGER drag works.
+  // Recomputing center from the phone on every preview frame cancels finger dragging!
+  if(stage==='preview'&&!previewCenter&&pos)previewCenter={...pos};
+  if(stage==='search'&&!placement)previewCenter=null;
+  if(stage==='fixed'&&!placement)placement={...(previewCenter||pos||{x:0,z:0})};
   if(sampling)sample(t,pos);
   if(running&&mode==='motion'&&calibrated){
    if(pos&&motion(t,pos)){trackLast=t;lostShown=false;game.paused=false}
@@ -227,13 +239,15 @@ function arFrame(t,frame,W){
   }
   if(running)tick(dt,t);
   if(renderer){
-   // Before locking, project the floor arena under the player to ease placement.
-   // After locking, placement never changes: the arena is WORLD-LOCKED.
-   const preview=typeof stage!=='undefined'&&stage==='preview';
-   const center=placement||(preview&&pos)||{x:0,z:0};
+   // W has the engine's dx/dz drag and yaw rotation. BoardSize comes from
+   // the SAME two-finger pinch as Color Rush, rendered as a scaled square.
+   // Freeze center before lock, then no new gesture/pose ever relocates the floor.
+   const center=placement||previewCenter||{x:0,z:0};
+   const ratio=clamp(boardSize/baseTileSize,.70,1.47);
+   const fixedWorld=multiply(multiply(W,translate(center.x,center.z)),uniformScale(ratio));
    game.showCalibrationMarker=!running&&calibrated&&!demo;
-   const fixedWorld=multiply(W,translate(center.x,center.z));
-   arenaWorld={x:fixedWorld[12],y:fixedWorld[13],z:fixedWorld[14]};
+   arenaWorld={x:fixedWorld[12],y:fixedWorld[13],z:fixedWorld[14],
+    edge:2*G.R*ratio,yaw,ratio};
    renderer.render(frame,fixedWorld,game);
   }
   if(!running&&t-lastHud>160){lastHud=t;hud()}
@@ -386,6 +400,8 @@ if((location.hostname==='localhost'||location.hostname==='127.0.0.1')&&params.ha
   Object.defineProperty(window,'__meteorTestSnapshot',{value:()=>({
     placement:placement?{...placement}:null,
     arenaWorld:arenaWorld?{...arenaWorld}:null,
+    gestures:{size:boardSize,yaw,dx,dz},
+    previewCenter:previewCenter?{...previewCenter}:null,
     origin:origin?{...origin}:null,
     avatar:{x:game.players[0].x,z:game.players[0].z},
     status,calibrated
