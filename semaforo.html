@@ -45,10 +45,10 @@ h1 span{display:block;color:var(--mint)}
 #scorebar{position:absolute;top:max(12px,env(safe-area-inset-top));left:63px;right:8px;z-index:12;display:none;align-items:center;justify-content:space-around;gap:3px;border-radius:14px;padding:8px 5px;background:#06152de8;border:1px solid #3d8099;box-shadow:0 8px 23px #0006;backdrop-filter:blur(6px)}
 #scorebar span{font-weight:850;color:#9fcbd8;font-size:9px;text-align:center;letter-spacing:.6px}
 #scorebar b{font-size:17px;font-weight:1000;display:block;color:#efffff;font-variant-numeric:tabular-nums}
-#signalBadge{position:absolute;left:50%;transform:translateX(-50%);top:16%;z-index:8;display:none;pointer-events:none;font-size:clamp(22px,6vw,32px);font-weight:1000;letter-spacing:1px;padding:9px 18px;border-radius:17px;background:#053d39db;border:2px solid var(--mint);color:var(--mint);text-shadow:0 0 10px currentColor}
+#signalBadge{position:absolute;left:auto;right:8px;transform:none;top:15%;z-index:8;display:none;pointer-events:none;font-size:clamp(14px,4vw,21px);font-weight:1000;letter-spacing:.2px;padding:7px 10px;border-radius:17px;background:#053d39db;border:2px solid var(--mint);color:var(--mint);text-shadow:0 0 10px currentColor}
 #signalBadge.red{background:#491527e8;border-color:var(--red);color:#ff98ae}
 #signalBadge.amber{background:#523313e8;border-color:var(--yellow);color:#ffdf73}
-#message{position:absolute;top:29%;left:8px;right:8px;text-align:center;font-weight:950;font-size:15px;text-shadow:0 4px 12px #000;z-index:7;pointer-events:none}
+#message{position:absolute;top:26%;left:8px;right:8px;text-align:center;font-weight:950;font-size:15px;text-shadow:0 4px 12px #000;z-index:7;pointer-events:none}
 #fx{position:absolute;top:39%;left:6%;right:6%;z-index:20;text-align:center;font-size:clamp(20px,6vw,34px);font-weight:1000;text-shadow:0 0 18px #45ffd0,0 4px 14px black;display:none;pointer-events:none}
 #fx.show{display:block;animation:pop .9s ease both}
 @keyframes pop{0%{opacity:0;transform:translateY(20px) scale(.8)}20%{opacity:1;transform:scale(1.13)}80%{opacity:1}100%{opacity:0;transform:translateY(-24px)}}
@@ -85,7 +85,7 @@ h1 span{display:block;color:var(--mint)}
 .sf-fixed #head,.sf-fixed #reticle,.sf-fixed #touchpad,.sf-fixed #diagbtn{display:none!important}
 .sf-running #mainbuttons,.sf-running #toolbar,.sf-running #calPanel{display:none!important}
 .sf-demo #head,.sf-demo #reticle,.sf-demo #tiles,.sf-demo #arenaSvg,.sf-demo #toolbar,.sf-demo #mainbuttons,.sf-demo #diagbtn{display:none!important}
-@media(max-height:650px){#scorebar{padding:5px 4px}#scorebar b{font-size:15px}#signalBadge{top:13%;font-size:20px;padding:5px 12px}#message{top:25%;font-size:12px}#movePad button{min-height:50px}}
+@media(max-height:650px){#scorebar{padding:5px 4px}#scorebar b{font-size:15px}#signalBadge{top:14%;font-size:15px;padding:5px 9px}#message{top:25%;font-size:12px}#movePad button{min-height:50px}}
 </style></head>
 <body>
 <div id="home">
