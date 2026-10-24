@@ -348,6 +348,10 @@ $('music').addEventListener('click',()=>{muted=!muted;$('music').textContent=mut
 $('overlay').addEventListener('beforexrselect',e=>e.preventDefault());
 $('calCenter').textContent='👣 ESTOY EN EL CENTRO (4-4)';
 if(new URLSearchParams(location.search).has('mc_test')){
+ window.__olaTestFinish=reason=>{
+  if(game.stage!=='playing'||!['victoria','eliminado'].includes(reason))return false;
+  G.finish(game,reason);consume();hud();return true;
+ };
  window.__olaTestSnapshot=()=>({
   status,mode,running,calibrated,sampling,picker,trackingFrozen,
   elapsed:game.elapsed,paused:!!game.paused,lives:game.lives,waves:game.waves,
