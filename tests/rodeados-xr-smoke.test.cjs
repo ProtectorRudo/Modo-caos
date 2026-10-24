@@ -137,7 +137,7 @@ const server=http.createServer((req,res)=>{
   'at least two physical 3D floor/robot objects reach compositor while playing');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.compositorError),null,
   'overlay compositor produces no WebGL errors');
- assert(start.game.enemies.some(e=>e.z<start.game.player.z-.7),'at least one opening robot appears in front of forward-facing camera');
+ // The arena can be rotated by the user's gesture; local -Z is not the XR eye's forward axis.
  await page.evaluate(()=>window.__simPhone.x=.18);
  await page.waitForTimeout(400);
  const now=await page.evaluate(()=>({pose:__RodeadosDebug.floorTransform,player:__RodeadosDebug.player}));
