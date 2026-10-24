@@ -69,11 +69,50 @@ const server=http.createServer((req,res)=>{
    }});
   });
   await page.goto('http://127.0.0.1:'+server.address().port+''+(process.env.METEORS_PAGE||'/meteoros.html')+'?mc_test=1',{waitUntil:'load'});
+  await page.evaluate(()=>window.__xrPos.x=.38); // nonzero floor offset catches rotation orbiting
   await page.locator('#enter').click();
   await page.waitForFunction(()=>{
    const b=document.getElementById('lock');return b&&!b.disabled&&getComputedStyle(b).display!=='none';
   },{timeout:7000});
+  await page.waitForFunction(()=>window.__meteorTestSnapshot?.()?.previewCenter,{timeout:7000});
   assert(await page.locator('#lock').isVisible(),'place-arena action visible');
+  assert(await page.locator('#touchpad').isVisible(),'drag and pinch surface is interactive');
+  assert(await page.locator('#toolbar').isVisible(),'size and rotate controls visible');
+  const initial=await page.evaluate(()=>window.__meteorTestSnapshot());
+  assert(initial.previewCenter,'pre-placement world anchor is captured');
+  const initSize=initial.gestures.size;
+  await page.locator('#plus').click();
+  const larger=await page.evaluate(()=>window.__meteorTestSnapshot());
+  assert(larger.gestures.size>initSize,'plus enlarges square playing field');
+  await page.locator('#minus').click();
+  const same=await page.evaluate(()=>window.__meteorTestSnapshot());
+  assert(Math.abs(same.gestures.size-initSize)<.001,'minus shrinks square playing field');
+  await page.locator('#rotate').click();
+  await page.waitForTimeout(100);
+  const turned=await page.evaluate(()=>window.__meteorTestSnapshot());
+  assert(turned.gestures.yaw>initial.gestures.yaw+.20,'rotate button changes actual XR yaw');
+  assert(Math.abs(turned.arenaWorld.x-same.arenaWorld.x)<.002 &&
+         Math.abs(turned.arenaWorld.z-same.arenaWorld.z)<.002,
+         'rotating the square preserves its center on the floor');
+  await page.mouse.move(155,385);
+  await page.mouse.down();
+  await page.mouse.move(203,408,{steps:5});
+  await page.mouse.up();
+  const dragged=await page.evaluate(()=>window.__meteorTestSnapshot());
+  assert(Math.hypot(dragged.gestures.dx-turned.gestures.dx,dragged.gestures.dz-turned.gestures.dz)>.05,
+    'single-finger drag moves placement before locking');
+  // Actual two-pointer touch gesture through Chromium's Input dispatcher.
+  const cdp=await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:130,y:375,id:1},{x:252,y:375,id:2}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:117,y:360,id:1},{x:270,y:395,id:2}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:105,y:347,id:1},{x:286,y:410,id:2}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  const pinched=await page.evaluate(()=>window.__meteorTestSnapshot());
+  assert(pinched.gestures.size>dragged.gestures.size+.01,'two-finger pinch enlarges actual physical arena');
+  assert(Math.abs(pinched.gestures.yaw-dragged.gestures.yaw)>.12,'two-finger twist rotates actual arena');
+  assert(/m/.test(await page.locator('#size').innerText()),'size label uses full square width in meters');
+  const side=2*1.12*(pinched.gestures.size/.45);
+  assert(side>=1.59&&side<=3.25,'playable physical square is bounded to safe size range');
   await page.locator('#lock').click();
   await page.waitForFunction(()=>{
    const b=document.getElementById('begin');return b&&!b.disabled&&getComputedStyle(b).display!=='none';
@@ -89,11 +128,14 @@ const server=http.createServer((req,res)=>{
   const after=await page.evaluate(()=>window.__xrDrawCalls);
   assert(remaining<72,'simulated XR clock advances: '+remaining);
   assert(after>before+100,'XR 3D geometry keeps drawing after scene lock ('+before+' -> '+after+')');
-  await page.evaluate(()=>window.__xrPos.x=.19);
+  await page.evaluate(()=>window.__xrPos.x=.57);
   await page.waitForTimeout(450);
   const moved=await page.evaluate(()=>window.__meteorTestSnapshot());
   assert(Math.abs(moved.avatar.x-fixed.avatar.x)>.07,'avatar VOS follows simulated phone displacement');
   assert.deepEqual(moved.placement,fixed.placement,'world-locked arena never moved after phone displacement');
+  assert(Math.abs(fixed.arenaWorld.edge-side)<.035,'rendered square width equals size chosen with fingers');
+  assert(!await page.locator('#touchpad').isVisible(),'gestures stop moving the floor after placement');
+  assert(!await page.locator('#toolbar').isVisible(),'adjustment controls disappear after placement');
   assert(fixed.arenaWorld&&moved.arenaWorld,'renderer exposes ground-locked matrix');
   for(const axis of ['x','y','z'])assert(Math.abs(moved.arenaWorld[axis]-fixed.arenaWorld[axis])<.0005,'world XR center '+axis+' remains fixed');
   const fatal=pageErrors.filter(e=>!e.includes('No runtimes supported the requested configuration'));

@@ -69,12 +69,17 @@ function create3D(gl){
    const viewport=xrLayer.getViewport(view);gl.bindFramebuffer(gl.FRAMEBUFFER,xrLayer.framebuffer);
    gl.viewport(viewport.x,viewport.y,viewport.width,viewport.height);
    vp=multiply(view.projectionMatrix,view.transform.inverse.matrix);
-   // 3D rim, striped landing pad, runway seams.
-   draw('disc',0,.011,0,ARENA,.005,ARENA,[.018,.046,.086,.29]);
-   draw('ring',0,.025,0,ARENA,.006,ARENA,colors.blue,.30);
-   draw('ring',0,.028,0,ARENA*.93,.004,ARENA*.93,[.1,.36,.43,.33],.4);
-   for(let i=-4;i<=4;i++){draw('box',i*ARENA*.2,.026,0,.003,.002,ARENA*.94,[.06,.39,.49,.30]);
-    draw('box',0,.027,i*ARENA*.2,ARENA*.94,.002,.003,[.06,.39,.49,.30]);}
+   // SQUARE playing surface: all four edges match the collision box exactly.
+   // The transparent dark floor keeps the real room visible in AR.
+   draw('box',0,.010,0,ARENA,.007,ARENA,[.018,.046,.086,.23]);
+   for(const s of [-1,1]){
+    draw('box',s*ARENA,.034,0,.014,.012,ARENA,colors.mint,.56);
+    draw('box',0,.034,s*ARENA,ARENA,.012,.014,colors.mint,.56);
+   }
+   for(let i=-4;i<=4;i++){
+    draw('box',i*ARENA*.2,.023,0,.002,.001,ARENA,[.06,.39,.49,.28]);
+    draw('box',0,.024,i*ARENA*.2,ARENA,.001,.002,[.06,.39,.49,.28]);
+   }
    if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
     const s=g.safeHint,pulse=.5+.5*Math.sin(now*6);
     draw('disc',s.x,.039,s.z,.080,.001,.080,[.10,1,.55,.10],.12);
@@ -145,11 +150,15 @@ function draw2D(ctx,width,height,g,ms){
  const P=(x,z,y=0)=>[cx+x*scale,cy+z*scale*.68-y*scale*.85];
  const circle=(x,y,r,col,blur=0)=>{ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=blur;ctx.fill();ctx.shadowBlur=0};
  ctx.save();ctx.translate(cx,cy);ctx.scale(1,.68);
- const grad=ctx.createRadialGradient(0,0,4,0,0,scale*ARENA);grad.addColorStop(0,'#16263e');grad.addColorStop(1,'#061221');
- ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,scale*ARENA,0,TAU);ctx.fill();
- for(let rr of [ARENA*.32,ARENA*.64,ARENA]){ctx.strokeStyle=rr===ARENA?'#64ffe3':'#20648c';ctx.globalAlpha=rr===ARENA?1:.5;ctx.lineWidth=rr===ARENA?5:1;ctx.beginPath();ctx.arc(0,0,scale*rr,0,TAU);ctx.stroke()}
- ctx.globalAlpha=.35;ctx.strokeStyle='#48c1e4';ctx.lineWidth=1;
- for(let n=-4;n<=4;n++){const v=n*scale*ARENA*.2;ctx.beginPath();ctx.moveTo(v,-scale*ARENA*.91);ctx.lineTo(v,scale*ARENA*.91);ctx.moveTo(-scale*ARENA*.91,v);ctx.lineTo(scale*ARENA*.91,v);ctx.stroke()}
+ const grad=ctx.createLinearGradient(-scale*ARENA,-scale*ARENA,scale*ARENA,scale*ARENA);
+ grad.addColorStop(0,'#183750');grad.addColorStop(1,'#071624');
+ ctx.fillStyle=grad;ctx.fillRect(-scale*ARENA,-scale*ARENA,2*scale*ARENA,2*scale*ARENA);
+ ctx.strokeStyle='#64ffe3';ctx.lineWidth=5;ctx.shadowColor='#5bffdc';ctx.shadowBlur=14;
+ ctx.strokeRect(-scale*ARENA,-scale*ARENA,2*scale*ARENA,2*scale*ARENA);ctx.shadowBlur=0;
+ ctx.globalAlpha=.46;ctx.strokeStyle='#48c1e4';ctx.lineWidth=1;
+ for(let n=-4;n<=4;n++){const v=n*scale*ARENA*.2;
+  ctx.beginPath();ctx.moveTo(v,-scale*ARENA);ctx.lineTo(v,scale*ARENA);
+  ctx.moveTo(-scale*ARENA,v);ctx.lineTo(scale*ARENA,v);ctx.stroke()}
  ctx.restore();
  if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
   const [x,y]=P(g.safeHint.x,g.safeHint.z),pulse=.5+.5*Math.sin(t*8);
