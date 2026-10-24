@@ -583,7 +583,7 @@ function tickGame(dt,t){
   lastPing=t;
   const closest=game.enemies.filter(e=>e.portal<.05).sort((a,b)=>Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z))[0];
   if(closest&&Math.hypot(closest.x-game.player.x,closest.z-game.player.z)<1.25&&Math.abs(relativeAngle(closest))>2.2){audio('danger',closest);vib(15);}
-  renderThreats();
+  renderThreats();showBotDirection();
  }
 }
 function animate(t,frame){
