@@ -157,7 +157,7 @@ function end(g,reason='timeout'){
 }
 function react(g,quality='perfect'){
  const p=g.players[0];
- if(g.state!=='playing'||g.signal!=='green'||p.kind!=='human'||p.eliminated||p.finishedAt!==null)return 0;
+ if(g.state!=='playing'||!['green','amber'].includes(g.signal)||p.kind!=='human'||p.eliminated||p.finishedAt!==null)return 0;
  p.combo=Math.min(12,p.combo+1);p.bestCombo=Math.max(p.bestCombo,p.combo);
  const bonus=(quality==='perfect'?35:16)*Math.max(1,p.combo);
  p.score+=bonus;p.progress=clamp(p.progress+(quality==='perfect'?1.5:.7),0,GOAL);
