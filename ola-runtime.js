@@ -69,7 +69,9 @@ function consume(){
    const names={FRONTAL:'⬇ OLA DE FRENTE',TRASERA:'⬆ OLA DESDE ATRÁS',LATERAL:'↔ OLA LATERAL',
     DOBLE:'⚠ DOBLE AMENAZA',SERPIENTE:'〰 OLA SERPIENTE',CORREDOR:'◇ CORREDOR MÓVIL',
     FALSA:'🎭 NO CONFÍES EN EL AMARILLO',CAOS:'🔥 CAOS TOTAL',INVERSION:'↩ CAMBIO DE DIRECCIÓN'};
-   waveAnnounce=names[e.label]||'⚠ OLA EN CAMINO';waveAnnounceUntil=performance.now()+1450;
+   const [kind,direction]=e.label.split(' · ');
+   waveAnnounce=(names[kind]||'⚠ OLA EN CAMINO')+(direction?' · '+direction:'');
+   waveAnnounceUntil=performance.now()+2100;
    speak(485,.08,'triangle',.035);
   }
   if(e.type==='start'){toast('🔴 ESQUIVÁ LAS BALDOSAS ROJAS',1300);speak(820,.22)}
