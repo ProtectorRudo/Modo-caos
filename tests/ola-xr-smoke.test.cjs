@@ -78,6 +78,7 @@ const server=http.createServer((req,res)=>{
   await page.waitForTimeout(950);
   const duringLoss=await page.evaluate(()=>window.__olaTestSnapshot());
   assert(Math.abs(duringLoss.elapsed-beforeLoss.elapsed)<.12,'tracking loss freezes game clock');
+  assert.equal(duringLoss.paused,true,'watchdog marks game paused even without XR frames');
   assert.equal(duringLoss.lives,beforeLoss.lives,'tracking loss never deducts a life');
   await page.evaluate(()=>{window.__tracked=true});
   await page.waitForTimeout(180);
