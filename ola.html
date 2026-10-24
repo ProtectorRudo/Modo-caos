@@ -43,19 +43,33 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 .stat{background:#071a2ad9;border:1px solid #4d7184;border-radius:12px;padding:6px 10px;text-align:center;font-size:9px;min-width:75px;font-weight:900}
 .stat strong{display:block;font-size:21px;font-weight:1000;font-variant-numeric:tabular-nums;color:white}
 #lives{color:#ff6077}.redStat strong{color:#ff7c8f}
-#radar{position:absolute;top:168px;right:9px;width:124px;display:none;z-index:16;background:#071b31e0;border:1px solid #5a8599;border-radius:13px;padding:8px;pointer-events:none;box-shadow:0 6px 25px #0008}
-#radarTitle{display:block;text-align:center;color:#b6faf5;font-size:10px;font-weight:950;letter-spacing:1px;margin-bottom:4px}
-#radarCells{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
-#radarCells i{display:block;aspect-ratio:1;background:#134158;border:1px solid #397387;border-radius:3px}
-#radarCells i.future{background:#a9630e;border-color:#ffb84b;box-shadow:0 0 6px #ffa12b6b}
-#radarCells i.warning{background:#e4a22e;border-color:#ffea84}
-#radarCells i.danger{background:#fa3158;border-color:#ff8699;box-shadow:0 0 7px #ff3455aa}
-#radarCells i.player{outline:2px solid #c6fffc;outline-offset:-1px;position:relative}
-#radarCells i.player:after{content:'';position:absolute;inset:33%;background:white;border-radius:50%}
-#radarDirection{font-size:10px;font-weight:900;color:#ffe19a;text-align:center;margin-top:7px;line-height:1.24;min-height:22px}
-#radarTime{font-size:11px;color:#ffb3bd;text-align:center;font-weight:950}
-#banner{position:absolute;top:124px;left:5%;right:5%;font-size:11px;font-weight:1000;letter-spacing:1px;text-shadow:0 1px 7px #000;text-align:center;color:#ffeaa1;z-index:16;pointer-events:none}
-#toast{position:absolute;top:21%;left:8%;right:8%;font-size:clamp(20px,6vw,29px);font-weight:1000;text-align:center;color:#fff2ba;text-shadow:0 3px 16px #000;pointer-events:none;z-index:17}
+/* Radar fijo en pantalla: muestra TODO el 6×6 aunque la cámara mire otra dirección. */
+#radar{position:absolute;top:168px;right:8px;width:clamp(168px,47vw,198px);display:none;z-index:16;
+ background:#061625f2;border:2px solid #79d8ee;border-radius:16px;padding:10px;
+ pointer-events:none;box-shadow:0 8px 28px #000b,0 0 20px #51d8f433}
+#radarTitle{display:block;text-align:center;color:#c9fff4;font-size:11px;font-weight:950;letter-spacing:.8px;margin-bottom:7px}
+#radarCells{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+#radarCells i{display:flex;align-items:center;justify-content:center;aspect-ratio:1;
+ background:#173b50;border:1px solid #4a7284;border-radius:4px;
+ font-style:normal;font-size:11px;font-weight:950;color:#e6f9fd;line-height:1}
+#radarCells i.future{background:#56381a;border-color:#a96b34;color:#ffcc85}
+#radarCells i.warning{background:#c96b07;border-color:#ffd05c;color:#fff4d2;
+ box-shadow:0 0 8px #ffa02a99;animation:orangeBeat .85s ease-in-out infinite alternate}
+#radarCells i.danger{background:#e52c4b;border-color:#ffb1bd;color:#fff;
+ box-shadow:0 0 9px #ff3455aa}
+#radarCells i.player{outline:3px solid white;outline-offset:-1px;
+ box-shadow:0 0 11px #e9ffffee;z-index:1;color:white;text-shadow:0 0 5px #fff}
+#radarDirection{font-size:12px;font-weight:950;color:#ffdc95;text-align:center;
+ margin-top:9px;line-height:1.25;min-height:30px}
+#radarTime{font-size:17px;color:#ffdae0;text-align:center;font-weight:1000;margin-top:4px}
+#radarYou{margin-top:5px;text-align:center;border-radius:7px;padding:4px 2px;
+ background:#133b43;color:#b6fff2;font-size:10px;font-weight:900}
+#radarYou.urgent{background:#7a2134;color:#fff0ed;animation:orangeBeat .5s linear infinite alternate}
+#radarLegend{display:flex;justify-content:space-between;gap:3px;color:#c2d5df;
+ font-size:9px;font-weight:850;margin-top:8px}
+@keyframes orangeBeat{from{filter:brightness(.82)}to{filter:brightness(1.25)}}
+#banner{position:absolute;top:121px;left:3%;right:3%;font-size:13px;font-weight:1000;letter-spacing:1px;text-shadow:0 1px 7px #000;text-align:center;color:#ffeaa1;z-index:16;pointer-events:none}
+#toast{position:absolute;top:21%;left:4%;right:51%;font-size:clamp(20px,6vw,29px);font-weight:1000;text-align:center;color:#fff2ba;text-shadow:0 3px 16px #000;pointer-events:none;z-index:17}
 #statusPanel{position:absolute;bottom:max(12px,env(safe-area-inset-bottom));left:7px;right:7px;display:none;flex-direction:column;align-items:center;gap:8px;z-index:18;pointer-events:none}
 #calBox{display:none;background:#071d33f2;border:1px solid #67e7e7;border-radius:15px;padding:12px;width:min(94vw,400px);text-align:center;pointer-events:auto}
 #calTitle{font-weight:1000;font-size:12px}#calTrack{background:#203f55;height:5px;border-radius:9px;margin-top:9px;overflow:hidden}#calFill{background:#60f7e9;width:0;height:100%}
@@ -73,7 +87,7 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 #pauseDialog{position:absolute;inset:0;background:#050b1bdd;z-index:31;display:none;pointer-events:auto;align-items:center;justify-content:center}
 #pauseDialog>div{border:1px solid #4e96ac;background:#0e2437;border-radius:18px;text-align:center;padding:24px;max-width:310px}
 #pauseDialog button{width:100%;margin-top:8px}
-@media(max-height:700px){#radar{top:137px;width:109px}#toolbar{bottom:176px}#autoCenter{bottom:117px}
+@media(max-height:700px){#radar{top:140px;width:154px;padding:8px}#radarCells{gap:2px}#radarCells i{font-size:9px}#radarTime{font-size:15px}#toolbar{bottom:176px}#autoCenter{bottom:117px}
 #head{top:48px}#gameHud{top:45px}#banner{top:109px}#toast{top:18%}#statusPanel{bottom:5px}.stat strong{font-size:18px}}
 </style></head><body>
 <div id="home"><a id="back" href="./index.html">← MODO CAOS</a>
@@ -95,7 +109,7 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 <div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
 <button id="autoCenter" type="button">◎ CENTRAR PISTA DEBAJO DE MÍ</button><button id="lock" disabled>📍 FIJAR PISTA</button><button id="exit">← SALIR</button><button id="recalibrateLive" title="Recalibrar posición sin mover pista">⊕</button><button id="music">🔊</button><button id="pause">Ⅱ</button>
 <div id="gameHud"><div class="stat redStat">TIEMPO<strong id="time">90</strong></div><div class="stat">VIDAS<strong id="lives">♥♥♥</strong></div><div class="stat">PUNTOS<strong id="score">0</strong></div></div>
-<div id="banner"></div><div id="radar"><span id="radarTitle">VISTA DEL PISO · VOS ●</span><div id="radarCells"></div><div id="radarDirection">MIRÁ DE DÓNDE VIENE</div><div id="radarTime"></div></div><div id="toast" role="status" aria-live="polite"></div>
+<div id="banner"></div><div id="radar" aria-label="Mapa completo de peligros, fijo en la pantalla"><span id="radarTitle">MAPA COMPLETO · 6×6</span><div id="radarCells"></div><div id="radarDirection">BUSCANDO OLA…</div><div id="radarTime">PRÓXIMA OLA…</div><div id="radarYou">● VOS · SIN AMENAZA</div><div id="radarLegend"><span>● VOS</span><span>🟠 AVISO</span><span>🔴 ROJO</span></div></div><div id="toast" role="status" aria-live="polite"></div>
 <div id="statusPanel"><div id="calBox"><div id="calTitle">👣 TOCÁ LA CASILLA DONDE ESTÁS</div><div id="calTrack"><div id="calFill"></div></div><button id="calCenter">👣 ESTOY EN LA CASILLA CENTRAL</button></div>
 <div id="whereAmI">📍 VOS · SIN CALIBRAR</div><div id="safety">Detectando una superficie despejada…</div>
 <div id="gameActions"><button id="recalibrate" class="secondary">⊕ RECALIBRAR</button><button id="begin" disabled>🔴 ¡EMPEZAR!</button></div></div>
@@ -103,7 +117,7 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 <div id="pauseDialog"><div><h2>PARTIDA EN PAUSA</h2><p>Respirá, la ola te espera.</p><button id="resume">▶ CONTINUAR</button><button id="pauseCal" class="secondary">⊕ RECALIBRAR</button></div></div>
 </div>
 <script defer src="./engine.js?v=meteoros1"></script>
-<script defer src="./ola-core.js?v=2"></script>
-<script defer src="./ola-art.js?v=2"></script>
-<script defer src="./ola-runtime.js?v=2"></script>
+<script defer src="./ola-core.js?v=3"></script>
+<script defer src="./ola-art.js?v=3"></script>
+<script defer src="./ola-runtime.js?v=3"></script>
 </body></html>
