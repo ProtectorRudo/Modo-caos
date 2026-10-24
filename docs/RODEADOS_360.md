@@ -111,3 +111,14 @@ Cambios basados en captura física de Android: el robot invadía toda la pantall
 - Assets versionados `v=6` en el HTML para evitar caché de JS viejo.
 
 **Límites:** estas pruebas de software no pueden certificar el seguimiento ARCore ni que la estética satisfaga en un Android real. Modo cooperativo sigue beta; no se tocan datos de Viralio/Te Hice Esto.
+
+## V9 — Disparo con peso y Bomba Caos (24/10/2026)
+
+- Disparo: ruido filtrado de corto ataque + graves de caída, chispa y confirmación de impacto diferenciados, retroceso físico del rifle con amortiguación, flash más expresivo, haz energético espacial breve calculado a partir del rayo XR auténtico y destellos metálicos al impactar. Sonido y vibración son opcionales.
+- **Bomba Caos:** 1 carga inicial y máxima; lanzamiento a 3,35 m por delante de la orientación real del celular, con arco visual de 480 ms. Explota en un círculo de 2,5 m en el suelo: daño 3 (robots normales), daño 2 (tanques/jefes), aturdimiento 2,6 s a los supervivientes, puntos y bajas acreditados. Sin daño al usuario.
+- Recarga: 32 s de tiempo de juego **o** 10 bajas posteriores a la explosión; nunca se regenera instantáneamente por sus propias bajas.
+- Efectos: proyectil brillante, dos anillos de onda expansiva anclados al piso, esfera luminosa, chispas limitadas, golpe de graves y vibración. No se alteran proporciones ni distancia de los robots.
+- **EMP y bomba son distintos:** EMP frena robots y deja sus puntos de vida por encima de cero; la bomba puede destruir varios. Ambos conservan recargas propias.
+- Co-op beta: el anfitrión recibe las solicitudes de bomba y comparte carga, explosión y proyectil mediante snapshots. No se afirma alineación espacial real entre dispositivos.
+- Pruebas: `tests/rodeados-bomb.test.cjs` verifica explosión, daño/aturdimiento, 32 s, 10 bajas, rematch, pausa y ausencia de daño propio. Pruebas Chromium/WebGL y WebXR simulado exigen tocar el botón, consumir una sola carga y causar daño a robots visibles.
+- Publicar con assets versionados para invalidar caché de Chrome Android. Última prueba pendiente: imagen/sonido físicos en ARCore.
