@@ -31,3 +31,14 @@ Manual WebXR OBLIGATORIO antes de afirmar compatibilidad: Chrome Android + ARCor
 Regresión: rutas y partida inicial de Color Rush, Ball Rush, Territorio X, Muro Rush y Semáforo. No publicar sobre color-rush-ar-demo: es otro proyecto.
 
 Licencias: gráficos generados por código local WebGL/Canvas; no se descargaron assets de terceros. Audio por WebAudio. No contiene modelos GLB ni texturas PBR externas.
+
+## Auditoría técnica adicional — 24/10/2026
+
+- Se descubrió y corrigió el botón `#lock` oculto y los cuatro nodos DOM ausentes que `engine.js` requiere (`size`, `minus`, `plus`, `rotate`).
+- El XR ahora inserta render del minijuego con el callback opcional postlimpieza `window.modoCaosXRFrame` del motor compartido: evita borrar meteoritos al limpiar el framebuffer. Los otros juegos no tienen que usarlo.
+- Corrección del diseño de oleadas: una persona inmóvil antes sobrevivía sin daño; ahora las alertas se centran con alta probabilidad cerca de la ubicación física del teléfono en modo solo. Cada oleada solo se confirma si queda una ruta de escape teórica a menos de ~0,33 m, con avisos de al menos 1,68 s.
+- Arena fijada al suelo antes de calibrar; una recalibración no vuelve a ubicar el mundo. Zona verde orientativa en oleadas intensas, cráteres y daño único por impacto con breve período de gracia.
+- Audio procedimental: avisos y estruendo de explosiones generado por WebAudio sin archivos externos.
+- Pruebas desde Actions: `node tests/meteoros.test.cjs` (núcleo y otros juegos), Chromium en pantalla móvil `node tests/meteoros-browser.test.cjs` (Canvas real, iniciar, botones, puntuación, pantalla de sala) y Chromium + Hit Test WebXR **SIMULADO** `node tests/meteoros-xr-smoke.test.cjs` (suelo, ancla, calibración, inicio y llamadas 3D GPU). Estas pruebas sintéticas NO comprueban ARCore físico.
+- Se desactivaron CI duplicadas por push en rama de trabajo: PR ejecuta pruebas y `main` conserva controles de push. Preview Git se despliega automáticamente por Vercel, que puede exigir SSO.
+- Estado online: no autoritativo, no certificado, no se cambió Supabase.
