@@ -42,8 +42,11 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.bombsUsed),1,'click throws exactly one area bomb');
  assert(await page.locator('#bomb').isDisabled(),'area bombs cannot be spammed while cooldown runs');
  await page.waitForTimeout(700);
- assert((await page.evaluate(()=>__RodeadosDebug.game.bombHits))>=1,
-  'bomb blast actually affects robots in its world-space radius');
+ const blastDebug=await page.evaluate(()=>({bomb:__RodeadosDebug.game.bombs,bombHits:__RodeadosDebug.game.bombHits,
+  enemies:__RodeadosDebug.game.enemies,elapsed:__RodeadosDebug.game.elapsed,stage:__RodeadosDebug.stage,
+  charges:__RodeadosDebug.game.bombCharges,phase:__RodeadosDebug.game.phase,fx:__RodeadosDebug.game.fx}));
+ assert(blastDebug.bombHits>=1,
+  'bomb blast actually affects robots in its world-space radius '+JSON.stringify(blastDebug));
  await page.locator('#pause').click();
  assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.paused),true,'pauses');
  await page.locator('#resume').click();
