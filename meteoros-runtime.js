@@ -20,12 +20,12 @@ window.modoCaosGestureConfig=Object.freeze({
 $('size').textContent=window.modoCaosGestureConfig.label(baseTileSize);
 let best=0;try{best=Math.max(0,Number(localStorage.getItem(K))||0)}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
-let demo=false,calibrated=false,sampling=false,origin=null,placement=null,previewCenter=null,arenaWorld=null,avg=null,calSamples=[],calStart=0;
+let demo=false,calibrated=false,sampling=false,pickerActive=false,selectedCell=null,origin=null,placement=null,previewCenter=null,arenaWorld=null,avg=null,calSamples=[],calStart=0;
 let game=G.make((Math.random()*4294967295)>>>0),running=false,finished=false,renderer=null,trackLast=0;
 let lastFrame=0,lastHud=0,trackingLast=null,arLoop=false,status='intro',mode='motion';
 let muted=false,audio=null,impactBuffer=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
 let eventKeys=new Set(),online=null,onlineConnecting=false,onlineBusy=false,onlineTimer=null,lastPeer=0;
-let lostShown=false,toastAt=0,lastAlert=0;
+let lostShown=false,toastAt=0,lastAlert=0;game.calibrationCell=-1;game.calibrated=false;
 function beep(f=500,d=.12,wave='sine',volume=.07){
  if(muted)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();
  audio.resume?.();const osc=audio.createOscillator(),gain=audio.createGain(),t=audio.currentTime;
@@ -102,7 +102,7 @@ function ranking(){
   const number=document.createElement('span');number.textContent=p.lives+' ♥ · '+Math.round(p.score)+' pts';
   div.append(name,number);out.appendChild(div);
  });
- $('result').style.display='flex';$('pad').style.display='none';
+ $('result').style.display='flex';$('pad').style.display='none';hideCalibrationGrid();
  $('actions').style.display='none';$('statusPanel').style.display='none';
  beep(place===1?850:325,.65,'triangle',.08);if(place===1)vibrate([75,75,75,75,140]);
  if(online?.host)online.mc.finishRoom(online.room.id).catch(()=>{});
@@ -113,7 +113,7 @@ function reset(nextSeed){
  if(online?.room)onlineRoster();
  finished=false;running=false;eventKeys=new Set();lastFrame=0;lastHud=0;
  $('result').style.display='none';$('statusPanel').style.display='flex';$('actions').style.display='flex';
- $('begin').style.display='block';$('begin').disabled=!calibrated||!!online;
+ $('begin').style.display='block';$('begin').disabled=!calibrated||!!online;game.calibrated=calibrated;game.calibrationCell=-1;
  $('pad').style.display='none';$('gameHud').style.display='flex';$('phase').style.display='block';
  status='fixed';hud();statusText(online?'Esperando al anfitrión de tu sala':'¡LISTO! Esquivá las zonas rojas sin correr.');
 }
@@ -123,7 +123,7 @@ function begin(){
  if(online&&online.room?.startedAt){
   const initial=seedOnline(online.room);game=G.make(initial,{online:true});onlineRoster();
  }
- G.start(game);running=true;status='playing';lastFrame=0;eventKeys.clear();lostShown=false;
+ G.start(game);running=true;status='playing';lastFrame=0;eventKeys.clear();lostShown=false;hideCalibrationGrid();game.calibrated=true;game.calibrationCell=-1;
  $('begin').style.display='none';$('calBox').style.display='none';
  $('pad').style.display=(demo||mode==='buttons')?'flex':'none';
  statusText(demo?'TOCÁ LA PISTA O USÁ LAS FLECHAS · TU CÍRCULO VERDE INDICA LA POSICIÓN':'VOS SOS EL PROTAGONISTA · MOVETE SUAVEMENTE · EVITÁ LAS ZONAS ROJAS');
@@ -136,21 +136,102 @@ function uiFixed(){
  $('statusPanel').style.display='flex';$('actions').style.display='flex';
  $('gameHud').style.display='flex';$('begin').disabled=true;
  $('phase').style.display='block';$('head').style.display='none';
- statusText('📍 PISO FIJADO · PARATE EN EL CENTRO · SOSTENÉ EL CELULAR CERCA DEL PECHO');
- startSampling();
+ statusText('👣 TOCÁ EN LA PISTA LA CELDA DONDE ESTÁS PARADO, COMO EN COLOR RUSH');
+ showCalibrationGrid();
 }
-function startSampling(){
+// Align the tracked camera with any of the 25 physical floor squares, like Color Rush.
+// This is NOT body/foot tracking: the player marks their actual standing cell explicitly.
+const calSvg=$('arenaSvg'),NS='http://www.w3.org/2000/svg',calPolys=[];
+for(let i=0;i<25;i++){
+ const p=document.createElementNS(NS,'polygon');p.id='calCell-'+i;
+ p.setAttribute('fill','rgba(53,220,192,.19)');
+ p.setAttribute('stroke','rgba(151,255,229,.94)');
+ p.setAttribute('stroke-width','2.5');
+ p.setAttribute('stroke-linejoin','round');
+ p.style.pointerEvents='all';p.style.cursor='pointer';
+ p.addEventListener('pointerdown',e=>{if(!pickerActive)return;e.preventDefault();e.stopPropagation();selectCalibrationCell(i)});
+ calSvg.appendChild(p);calPolys.push(p);
+}
+const calDot=document.createElementNS(NS,'circle');calDot.setAttribute('r','11');
+calDot.setAttribute('fill','#ecfff2');calDot.setAttribute('stroke','#04dcaa');
+calDot.setAttribute('stroke-width','4');calDot.style.pointerEvents='none';
+calSvg.appendChild(calDot);
+const calDotText=document.createElementNS(NS,'text');calDotText.textContent='YO';
+calDotText.setAttribute('fill','#ebfff4');calDotText.setAttribute('stroke','#063b3c');
+calDotText.setAttribute('stroke-width','3');calDotText.setAttribute('paint-order','stroke');
+calDotText.setAttribute('text-anchor','middle');calDotText.setAttribute('font-weight','900');
+calDotText.setAttribute('font-size','12');calDotText.style.pointerEvents='none';
+calSvg.appendChild(calDotText);
+function hideCalibrationGrid(){
+ pickerActive=false;calSvg.style.display='none';calSvg.style.pointerEvents='none';
+ $('calCenter').style.display='none';
+}
+function showCalibrationGrid(){
  if(demo)return;
  if(game.stage==='playing')game.paused=true;
+ sampling=false;calibrated=false;selectedCell=null;
+ game.calibrated=false;game.calibrationCell=-1;
+ pickerActive=true;origin=null;trackingLast=null;lostShown=false;
+ $('calBox').style.display='block';
+ $('calTitle').textContent='👣 MARCÁ LA BALDOSA DONDE ESTÁS PARADO';
+ $('calFill').style.width='0%';$('calCenter').style.display='block';
+ $('begin').disabled=true;
+ calSvg.style.display='block';calSvg.style.pointerEvents='auto';
+ $('statusPanel').style.display='flex';
+ statusText('MIRÁ EL PISO Y TOCÁ LA CELDA EXACTA DONDE ESTÁS · PUNTITO YO');
+ toast('👣 ELEGÍ TU CELDA EN EL PISO',2100);
+}
+function selectCalibrationCell(i){
+ if(!pickerActive||i<0||i>24)return;
+ selectedCell=i;pickerActive=false;game.calibrationCell=i;
+ hideCalibrationGrid();startSampling();
+ const r=Math.floor(i/5)+1,col=i%5+1;
+ $('calTitle').textContent='✓ FILA '+r+' · COLUMNA '+col+' · 1 SEGUNDO QUIETO';
+ statusText('✅ CELDA MARCADA '+r+'-'+col+' · NO CAMBIES DE POSICIÓN DURANTE 1 SEGUNDO');
+}
+$('calCenter').addEventListener('click',()=>selectCalibrationCell(12));
+function drawCalibrationGrid(frame,fixedWorld){
+ if(!sess||!ref||!fixedWorld||!calibrated&&!pickerActive)return;
+ const pose=frame.getViewerPose(ref),view=pose?.views?.[0];if(!view)return;
+ const w=innerWidth,h=innerHeight,ratio=G.R*2/5;
+ const mvp=multiply(view.projectionMatrix,multiply(view.transform.inverse.matrix,fixedWorld));
+ calSvg.setAttribute('viewBox','0 0 '+w+' '+h);
+ calSvg.style.display=pickerActive?'block':'none';
+ if(pickerActive){
+  for(let i=0;i<25;i++){
+   const x=(i%5-2)*ratio,z=(Math.floor(i/5)-2)*ratio,q=ratio*.475;
+   const pts=[[x-q,.062,z-q],[x+q,.062,z-q],[x+q,.062,z+q],[x-q,.062,z+q]]
+     .map(p=>projected(mvp,...p,w,h));
+   const cell=calPolys[i];
+   if(pts.some(p=>!p)||pts.every(p=>p[0]<-50||p[0]>w+50||p[1]<-50||p[1]>h+50)){
+    cell.style.display='none';continue;
+   }
+   cell.style.display='block';
+   cell.setAttribute('points',pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '));
+  }
+ }
+ const you=game.players[0];
+ if(calibrated&&you){
+  // The marker is projected into the WORLD, not attached to the screen.
+  const q=projected(mvp,you.x,.095,you.z,w,h);
+  if(q){calDot.style.display=calDotText.style.display='block';
+   calDot.setAttribute('cx',q[0]);calDot.setAttribute('cy',q[1]);
+   calDotText.setAttribute('x',q[0]);calDotText.setAttribute('y',q[1]-20);
+  }else calDot.style.display=calDotText.style.display='none';
+ }else calDot.style.display=calDotText.style.display='none';
+}
+function startSampling(){
+ if(demo||selectedCell===null)return;
+ if(game.stage==='playing')game.paused=true;
  sampling=true;calibrated=false;avg=null;calSamples=[];calStart=0;
- $('calBox').style.display='block';$('calTitle').textContent='📍 MANTENÉ EL TELÉFONO QUIETO · 1 SEGUNDO';
+ $('calBox').style.display='block';
  $('calFill').style.width='0%';$('begin').disabled=true;
- toast('📍 CALIBRACIÓN AUTOMÁTICA');
+ toast('📍 AFINANDO POSICIÓN · 1 SEGUNDO',1200);
 }
 function sample(t,pos){
  if(!sampling||!pos){calStart=0;calSamples=[];return}
  if(!calStart)calStart=t;
- calSamples.push(pos);if(calSamples.length>45)calSamples.shift();
+ calSamples.push(pos);if(calSamples.length>50)calSamples.shift();
  const xs=calSamples.map(a=>a.x),zs=calSamples.map(a=>a.z);
  if(Math.max(...xs)-Math.min(...xs)>.075||Math.max(...zs)-Math.min(...zs)>.075){
   calSamples=calSamples.slice(-3);calStart=t;return;
@@ -158,13 +239,20 @@ function sample(t,pos){
  $('calFill').style.width=Math.round(clamp((t-calStart)/1000,0,1)*100)+'%';
  if(t-calStart>=1050&&calSamples.length>=12){
   avg={x:calSamples.reduce((a,b)=>a+b.x,0)/calSamples.length,z:calSamples.reduce((a,b)=>a+b.z,0)/calSamples.length};
-  // Important: world origin is ONLY set on initial calibration. Recenter never teleports the arena.
-  if(!origin)origin={...avg};
+  const col=selectedCell%5,row=Math.floor(selectedCell/5);
+  const pitch=2*G.R/5,ratio=clamp(boardSize/baseTileSize,.70,1.47);
+  const cell={x:(col-2)*pitch,z:(row-2)*pitch};
+  // Recalibration updates ONLY the phone-to-world offset. The fixed floor stays untouched.
+  origin={x:avg.x-cell.x*ratio,z:avg.z-cell.z*ratio};
   trackingLast={...avg};trackLast=t;sampling=false;calibrated=true;game.paused=false;
-  $('calTitle').textContent='✅ LISTO · MOVETE SUAVEMENTE';
+  G.setPosition(game,cell.x,cell.z);
+  game.calibrated=true;game.calibrationCell=-1;
+  $('calTitle').textContent='✅ CELDA '+(row+1)+'-'+(col+1)+' · POSICIÓN ALINEADA';
   $('calFill').style.width='100%';$('begin').disabled=!!online;
-  statusText('✅ LISTO · VOS SOS EL JUGADOR · ESQUIVÁ EL IMPACTO REAL');
-  setTimeout(()=>{if(calibrated&&!sampling)$('calBox').style.display='none'},600);
+  $('whereAmI').style.display='block';
+  $('whereAmI').textContent='📍 YO · FILA '+(row+1)+' · COLUMNA '+(col+1);
+  statusText('✅ LISTO · EL PUNTO YO SIGUE EL TELÉFONO SOBRE LA PISTA');
+  setTimeout(()=>{if(calibrated&&!sampling)$('calBox').style.display='none'},1000);
   beep(1050,.21);vibrate(45);if(online)showOnline();
  }
 }
@@ -254,6 +342,11 @@ function arFrame(t,frame,W){
    arenaWorld={x:fixedWorld[12],y:fixedWorld[13],z:fixedWorld[14],
     edge:2*G.R*ratio,yaw,ratio};
    renderer.render(frame,fixedWorld,game);
+   if(pickerActive||calibrated)drawCalibrationGrid(frame,fixedWorld);
+   if(calibrated&&running&&t-lastHud>350){const you=game.players[0];
+    const pitch=2*G.R/5,col=clamp(Math.floor((you.x+G.R)/pitch),0,4)+1,row=clamp(Math.floor((you.z+G.R)/pitch),0,4)+1;
+    $('whereAmI').textContent='📍 YO · FILA '+row+' · COLUMNA '+col;
+   }
   }
   if(!running&&t-lastHud>160){lastHud=t;hud()}
  }catch(e){if(!arFrame.warned){console.error('Meteoros AR:',e);arFrame.warned=true;toast('⚠️ PROBLEMA CON EL RENDER AR')}}
@@ -277,7 +370,7 @@ function demoFrame(t){
  requestAnimationFrame(demoFrame);
 }
 function beginDemo(){
- demo=true;calibrated=true;status='fixed';$('home').style.display='none';$('overlay').style.display='block';
+ demo=true;calibrated=true;game.calibrated=true;status='fixed';$('home').style.display='none';$('overlay').style.display='block';
  $('canvas2D').style.display='block';$('head').style.display='none';$('lock').style.display='none';
  $('statusPanel').style.display='flex';$('actions').style.display='flex';
  $('gameHud').style.display='flex';$('phase').style.display='block';$('begin').disabled=false;
@@ -287,7 +380,7 @@ function beginDemo(){
 }
 $('demo').addEventListener('click',beginDemo);
 $('begin').addEventListener('click',begin);
-$('recenter').addEventListener('click',()=>{if(demo)return;startSampling()});
+$('recenter').addEventListener('click',()=>{if(demo)return;showCalibrationGrid()});
 $('toggle').addEventListener('click',()=>{
  mode=mode==='motion'?'buttons':'motion';buttons={up:false,down:false,left:false,right:false};
  $('toggle').textContent=mode==='motion'?'🎮 BOTONES':'🚶 MOVIMIENTO';
@@ -408,6 +501,8 @@ if((location.hostname==='localhost'||location.hostname==='127.0.0.1')&&params.ha
     gestures:{size:boardSize,yaw,dx,dz},
     previewCenter:previewCenter?{...previewCenter}:null,
     origin:origin?{...origin}:null,
+    pickerActive,selectedCell,
+    marker:{x:game.players[0].x,z:game.players[0].z},
     avatar:{x:game.players[0].x,z:game.players[0].z},
     status,calibrated
   })});
