@@ -27,7 +27,7 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 #demo{min-height:52px}
 .small{font-size:11px;line-height:1.5;color:#9ebdcb;max-width:400px;margin:17px 0}
 #overlay{position:fixed;inset:0;display:none;overflow:hidden;pointer-events:none;background:transparent;z-index:9}
-#tiles,#arenaSvg{position:absolute;width:100%;height:100%;inset:0;pointer-events:none}#tiles{opacity:0}
+#tiles,#arenaSvg{position:absolute;width:100%;height:100%;inset:0;pointer-events:none}#tiles{opacity:0}#arenaSvg{display:none;z-index:10}#arenaSvg polygon{touch-action:manipulation}
 #canvas2D{position:absolute;inset:0;width:100%;height:100%;display:none;touch-action:none;pointer-events:auto}
 #head{position:absolute;top:max(9px,env(safe-area-inset-top));left:8px;right:8px;text-align:center;text-shadow:0 2px 8px #000;pointer-events:none}
 #headline{font-size:clamp(21px,5.5vw,31px);font-weight:1000}#subtitle{font-size:11px;font-weight:850;color:#bbdce6}
@@ -48,9 +48,9 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 #gameHud .stat strong{font-size:19px;display:block;color:#d6fff7;font-variant-numeric:tabular-nums}
 #phase{display:none;position:absolute;top:125px;left:5%;right:5%;font-size:13px;font-weight:1000;letter-spacing:1px;color:#ffce6b;text-shadow:0 2px 10px #000;text-align:center}
 #toast{position:absolute;left:7%;right:7%;top:23%;font-size:clamp(20px,6vw,29px);font-weight:1000;text-align:center;color:#ffdda4;pointer-events:none;text-shadow:0 3px 12px #000,0 0 24px #ff7a5b}
-#statusPanel{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:8px;right:8px;display:none;align-items:center;flex-direction:column;gap:8px;pointer-events:none}
-#safety{background:#061528d9;border:1px solid #527387;border-radius:11px;text-align:center;padding:9px;font-size:11px;font-weight:850;max-width:440px}
-#calBox{display:none;width:min(92%,390px);background:#071f35e8;border-radius:14px;border:1px solid #72e3d4;padding:13px;text-align:center;font-size:11px;font-weight:1000}
+#statusPanel{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:8px;right:8px;display:none;align-items:center;flex-direction:column;gap:8px;pointer-events:none;z-index:14}
+#safety{background:#061528d9;border:1px solid #527387;border-radius:11px;text-align:center;padding:9px;font-size:11px;font-weight:850;max-width:440px}#whereAmI{display:none;color:#86ffdb;background:#041b30db;border:1px solid #52e5c8;padding:7px 12px;border-radius:8px;font-size:11px;font-weight:900;pointer-events:none}
+#calBox{display:none;width:min(92%,390px);background:#071f35ed;border-radius:14px;border:1px solid #72e3d4;padding:13px;text-align:center;font-size:11px;font-weight:1000;pointer-events:auto;z-index:18}#calCenter{display:none;margin:9px auto 0;padding:9px 13px;min-height:38px;background:#154458;color:#d8fff1;border:1px solid #72ffda}
 #calTrack{height:5px;margin-top:8px;border-radius:9px;background:#274359;overflow:hidden}
 #calFill{width:0;height:100%;background:#67ffd9}
 #actions{display:none;justify-content:center;gap:7px;pointer-events:auto;width:min(98%,500px)}
@@ -77,9 +77,9 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 <a id="back" href="/">← MODO CAOS</a>
 <div class="eyebrow">AR EN PRIMERA PERSONA · TU CASA ESTÁ BAJO ATAQUE</div>
 <h1>LLUVIA DE <span>METEOROS</span></h1>
-<p class="subtitle">El piso se convierte en una <strong>pista CUADRADA</strong> que podés ubicar, agrandar y girar con los dedos. <strong>¡Vos estás adentro!</strong> Esquivá los meteoritos moviéndote de verdad.</p>
+<p class="subtitle">El piso se convierte en una <strong>pista CUADRADA de 25 celdas bien visibles</strong>. Después de fijarla, tocá la baldosa donde estás parado para alinear tu posición. ¡Después esquivás vos los meteoritos!</p>
 <div class="hero"><div class="meteor"></div><div class="warning"></div><div class="bot">🤖</div></div>
-<div class="chips"><b>☄️ 72 SEGUNDOS</b><b>❤️ 3 VIDAS</b><b>👣 SIN AVATAR</b></div>
+<div class="chips"><b>☄️ 72 SEGUNDOS</b><b>👣 25 CELDAS CALIBRABLES</b><b>❤️ 3 VIDAS</b></div>
 <div class="actions">
 <button id="enter">📷 ENTRAR EN REALIDAD AUMENTADA</button>
 <button id="demo" class="secondary">🎮 JUGAR MODO 2D COMPLETO</button>
@@ -100,7 +100,7 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 <div id="debug"></div><div id="notice"></div>
 <button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
 <button id="goHome"></button>
-<button id="lock" disabled>📍 FIJAR PISO · YO ESTOY EN EL CENTRO</button>
+<button id="lock" disabled>📍 FIJAR PISO · DESPUÉS ELEGÍ TU CELDA</button>
 <button id="exit">← MENÚ</button><button id="music">🔊</button>
 <div id="gameHud">
 <div class="stat">TIEMPO<strong id="time">72</strong></div>
@@ -111,7 +111,8 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 <div id="phase"></div><div id="toast" role="status" aria-live="polite"></div>
 <div id="onlineBar"><span id="onlineStatus">ONLINE · CONECTANDO…</span><div><button id="readyOnline" class="secondary">✓ LISTO EN SALA</button><button id="startOnline" class="secondary">▶ INICIAR SALA</button></div></div>
 <div id="pad"><div class="cross"><button data-dir="up">▲</button><button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button></div></div>
-<div id="statusPanel"><div id="calBox"><div id="calTitle">📍 CALIBRANDO...</div><div id="calTrack"><div id="calFill"></div></div></div>
+<div id="statusPanel"><div id="calBox"><div id="calTitle">👣 TOCÁ TU CELDA EN EL PISO</div><div id="calTrack"><div id="calFill"></div></div><button id="calCenter" type="button">👣 ESTOY EN LA CELDA CENTRAL</button></div>
+<div id="whereAmI">📍 YO · POSICIÓN SIN CALIBRAR</div>
 <div id="safety">Escaneá el piso para colocar la arena</div>
 <div id="actions"><button id="recenter" class="secondary">⌖ RECENTRAR</button><button id="begin" disabled>☄️ ¡ESQUIVAR DE VERDAD!</button><button id="toggle" class="secondary">🎮 ALTERNATIVA</button></div>
 </div>
