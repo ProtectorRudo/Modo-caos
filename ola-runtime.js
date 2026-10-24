@@ -57,7 +57,7 @@ function record(){
 }
 function showResult(){
  if(finished)return;finished=true;running=false;record();
- $('result').style.display='flex';$('pause').style.display='none';$('statusPanel').style.display='none';
+ $('result').style.display='flex';$('pause').style.display='none';$('recalibrateLive').style.display='none';$('statusPanel').style.display='none';
  $('resultTitle').textContent=game.finishReason==='victoria'?'🏆 ¡SOBREVIVISTE!':'💥 ¡TE ATRAPÓ LA OLA!';
  $('resultsMeta').textContent='SOBREVIVISTE '+Math.floor(game.elapsed)+' SEGUNDOS · '+Math.round(game.score).toLocaleString('es-AR')+
  ' PUNTOS · '+game.dodges+' OLAS ESQUIVADAS · RÉCORD '+Math.round(best).toLocaleString('es-AR')+
@@ -70,7 +70,7 @@ function reset(nextMode=mode){
  $('result').style.display='none';$('pauseDialog').style.display='none';
  $('gameHud').style.display='flex';$('statusPanel').style.display='flex';
  $('gameActions').style.display='flex';$('begin').disabled=!calibrated;
- $('pause').style.display='none';picker=false;sampling=false;hidePicker();
+ $('pause').style.display='none';$('recalibrateLive').style.display='none';picker=false;sampling=false;hidePicker();
  if(calibrated&&selectedCell!==null)G.setPosition(game,selectedCell%6+.5,Math.floor(selectedCell/6)+.5);
  label(calibrated?'Pista fija · MOVETE DE VERDAD para esquivar.':'Tocá dónde estás sobre la pista para calibrar');
  hud();
@@ -80,7 +80,7 @@ function begin(){
  game.tileMeters=tileMeters;if(!G.start(game))return;
  running=true;status='playing';lastFrame=0;
  $('gameActions').style.display='none';$('calBox').style.display='none';
- $('pause').style.display='block';$('gameHud').style.display='flex';
+ $('pause').style.display='block';$('recalibrateLive').style.display=demo?'none':'block';$('gameHud').style.display='flex';
  $('head').style.display='none';$('banner').style.display='block';
  label('ESQUIVÁ LAS BALDOSAS ROJAS. ¡MOVETE DE VERDAD!');
  toast('🔴 ¡ESQUIVÁ LAS ROJAS!',1800);speak(830,.2);
@@ -288,6 +288,7 @@ function recalibrate(){
  $('begin').disabled=true;label('Pista fija · marcá tu nueva posición sin desplazarla');
 }
 $('recalibrate').addEventListener('click',recalibrate);
+$('recalibrateLive').addEventListener('click',recalibrate);
 $('again').addEventListener('click',()=>{reset(mode);if(demo){calibrated=true;$('begin').disabled=false}});
 $('infinite').addEventListener('click',()=>{reset('infinito');if(demo){calibrated=true;$('begin').disabled=false}});
 $('share').addEventListener('click',async()=>{
