@@ -14,7 +14,7 @@ window.modoCaosLockReady=()=>!!renderer;
 let game=G.make({tileMeters}),calibrated=false,selectedCell=null,sampling=false,
  sampleStart=0,samples=[],origin=null,smoothed=null,previous=null,lastGood=0,invalidSince=0,
  status='intro',running=false,finished=false,lastFrame=0,lastHUD=0,lastEvent=0,noticeUntil=0,
- picker=false,arBooted=false,muted=false,audio=null,best=0,target=null,keys=new Set(),trackingFrozen=false,recoverySince=0;
+ picker=false,arBooted=false,muted=false,audio=null,best=0,target=null,keys=new Set(),trackingFrozen=false,recoverySince=0,nextBeat=0,beatIndex=0,lastYellow=0,waveAnnounceUntil=0,waveAnnounce='';
 const KEY='modo-caos-ola-roja-records-v1';
 try{const r=JSON.parse(localStorage.getItem(KEY)||'{}');best=Number(r.clasico)||0}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
@@ -36,7 +36,8 @@ function hud(){
  $('lives').textContent='♥'.repeat(game.lives)+'♡'.repeat(3-game.lives);
  $('score').textContent=Math.round(game.score).toLocaleString('es-AR');
  $('banner').textContent=game.stage==='countdown'?'ARRANCAMOS EN '+Math.ceil(game.countdown):
-  (game.stage==='playing'?G.phases(game.elapsed)+(game.shield?' · 🛡 ESCUDO':''):'');
+  (game.stage==='playing'?(performance.now()<waveAnnounceUntil?waveAnnounce:G.phases(game.elapsed))+
+  (game.shield?' · 🛡 ESCUDO':''):'');
  if(demo&&game.stage==='playing')$('whereAmI').textContent='📍 VOS · FILA '+(game.cell.r+1)+' · COLUMNA '+(game.cell.c+1);
 }
 function consume(){
@@ -46,7 +47,13 @@ function consume(){
   if(e.type==='shield'){toast(e.label,1100);speak(1120,.29,'triangle');vibrate(65)}
   if(e.type==='bonus'||e.type==='warning'){toast(e.label,1050);speak(910,.20,'triangle')}
   if(e.type==='dodge'){if(game.combo%3===0){toast('⚡ '+game.combo+' OLAS ESQUIVADAS',750);speak(1100,.15)}}
-  if(e.type==='wave'){speak(485,.08,'triangle',.035)}
+  if(e.type==='wave'){
+   const names={FRONTAL:'⬇ OLA DE FRENTE',TRASERA:'⬆ OLA DESDE ATRÁS',LATERAL:'↔ OLA LATERAL',
+    DOBLE:'⚠ DOBLE AMENAZA',SERPIENTE:'〰 OLA SERPIENTE',CORREDOR:'◇ CORREDOR MÓVIL',
+    FALSA:'🎭 NO CONFÍES EN EL AMARILLO',CAOS:'🔥 CAOS TOTAL',INVERSION:'↩ CAMBIO DE DIRECCIÓN'};
+   waveAnnounce=names[e.label]||'⚠ OLA EN CAMINO';waveAnnounceUntil=performance.now()+1450;
+   speak(485,.08,'triangle',.035);
+  }
   if(e.type==='start'){toast('🔴 ESQUIVÁ LAS BALDOSAS ROJAS',1300);speak(820,.22)}
   if(e.type==='finish')showResult();
  }
@@ -66,7 +73,7 @@ function showResult(){
 }
 function reset(nextMode=mode){
  mode=nextMode;game=G.make({mode,tileMeters,seed:Math.floor(Math.random()*4294967295)});
- running=false;finished=false;lastFrame=0;lastEvent=0;trackingFrozen=false;recoverySince=0;target=null;status='fixed';
+ running=false;finished=false;lastFrame=0;lastEvent=0;trackingFrozen=false;recoverySince=0;nextBeat=0;beatIndex=0;lastYellow=0;target=null;status='fixed';
  $('result').style.display='none';$('pauseDialog').style.display='none';
  $('gameHud').style.display='flex';$('statusPanel').style.display='flex';
  $('gameActions').style.display='flex';$('begin').disabled=!calibrated;
@@ -202,6 +209,14 @@ function drawPick(frame,W){
  if(point){marker.setAttribute('cx',point[0]);marker.setAttribute('cy',point[1]);
   markerText.setAttribute('x',point[0]);markerText.setAttribute('y',point[1]-19)}
 }
+function soundtrack(t){
+ if(muted||game.paused||game.stage!=='playing'||t<nextBeat)return;
+ const bpm=clamp(96+game.elapsed*.65,96,154),step=60000/bpm/2;
+ nextBeat=t+step;beatIndex++;
+ // Percusión electrónica discreta: intensidad acompaña la dificultad.
+ if(beatIndex%2===0)speak(beatIndex%8===0?112:155,.085,'triangle',.020);
+ else if(beatIndex%4===1)speak(760,.035,'square',.009);
+}
 function gameTick(dt,t){
  if(!running)return;
  if(demo){
@@ -215,7 +230,11 @@ function gameTick(dt,t){
       z=Number(keys.has('ArrowDown')||keys.has('s'))-Number(keys.has('ArrowUp')||keys.has('w'));
   const len=Math.hypot(x,z);if(len>0)G.setPosition(game,game.pos.x+x/len*dt*1.6,game.pos.z+z/len*dt*1.6);
  }
- G.tick(game,dt);consume();
+ G.tick(game,dt);consume();soundtrack(t);
+ if(!game.paused&&game.stage==='playing'&&t-lastYellow>850){
+  const tile=G.cells(game)[game.cell.r*6+game.cell.c];
+  if(tile==='yellow'){lastYellow=t;speak(620,.14,'triangle',.044);vibrate(17)}
+ }
  if(t-lastHUD>80){hud();lastHUD=t}
 }
 function arFrame(t,frame,W){
