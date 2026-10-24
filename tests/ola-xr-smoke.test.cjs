@@ -50,6 +50,7 @@ const server=http.createServer((req,res)=>{
   assert(await page.locator('#touchpad').isVisible(),'surface can be moved before lock');
   const size0=await page.locator('#size').innerText();
   assert(size0.includes('2,40'),'compact 2.40m default instead of previous 2.70m: '+size0);
+  await page.locator('#autoCenter').waitFor({state:'visible',timeout:4000});
   assert(await page.locator('#autoCenter').isVisible(),'one-touch align-and-lock placement visible');
   await page.locator('#plus').click();
   assert.notEqual(await page.locator('#size').innerText(),size0,'arena size really changes');
