@@ -15,7 +15,7 @@ h1{font-size:clamp(37px,10vw,65px);letter-spacing:-2px;line-height:1.02;margin:7
 h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 .subtitle{color:#bed4e4;font-size:13px;line-height:1.6;max-width:405px;margin:9px 0 15px}
 .hero{width:min(350px,91vw);height:203px;position:relative;overflow:hidden;border:1px solid #7b5b5a;border-radius:22px;background:radial-gradient(circle at 48% 96%,#1f6276,#101b34 60%,#120d1c)}
-.hero:after{content:'';position:absolute;inset:61% -20% -40%;border:3px solid #56ddde;border-radius:50%;transform:rotateX(63deg);box-shadow:0 0 30px #55ffe466}
+.hero:after{content:'';position:absolute;inset:61% 5% -40%;border:3px solid #56ddde;border-radius:7px;transform:perspective(340px) rotateX(60deg);box-shadow:0 0 30px #55ffe466}
 .meteor{position:absolute;top:12%;left:42%;height:52px;width:52px;border-radius:45% 55% 54% 46%;transform:rotate(35deg);background:radial-gradient(circle at 30% 25%,#ffa86c,#5b3541 38%,#25192c 75%);box-shadow:-17px -22px 18px 3px #ff7b37a3,-29px -35px 27px #ff9f3666;animation:fall 2.6s ease-in-out infinite}
 .hero .warning{position:absolute;left:36%;bottom:16%;width:82px;height:32px;transform:rotateX(58deg);border:4px solid #ff605d;border-radius:50%;box-shadow:0 0 20px #ff704f;background:#ff4a433e;animation:warn 1s infinite}
 @keyframes fall{0%,100%{transform:translate(-45px,-28px) rotate(30deg)}65%{transform:translate(55px,67px) rotate(70deg)}}@keyframes warn{50%{opacity:.45;transform:rotateX(58deg) scale(1.17)}}
@@ -32,7 +32,13 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 #head{position:absolute;top:max(9px,env(safe-area-inset-top));left:8px;right:8px;text-align:center;text-shadow:0 2px 8px #000;pointer-events:none}
 #headline{font-size:clamp(21px,5.5vw,31px);font-weight:1000}#subtitle{font-size:11px;font-weight:850;color:#bbdce6}
 #reticle{display:none;position:absolute;top:50%;left:50%;height:32px;width:32px;border:3px solid #68ffe2;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 21px #49ffe8}
-#touchpad,#calibrate,#fallback,#toolbar,#play,#edit,#diagbtn,#debug{display:none!important}
+#play,#edit,#diagbtn,#debug{display:none!important}
+#touchpad{display:none;position:absolute;left:0;right:0;top:18%;bottom:31%;z-index:8;pointer-events:auto;touch-action:none}
+#calibrate{display:none;position:absolute;left:5%;right:5%;top:19%;padding:9px 12px;border-radius:10px;border:1px solid #67eeca;background:#081f35dd;color:#aaffdd;font-size:11px;font-weight:900;text-align:center;z-index:9;pointer-events:none}
+#fallback{display:none;position:absolute;left:8%;right:8%;top:44%;padding:12px;border-radius:10px;background:#092a3de8;color:white;text-align:center;font-size:12px;z-index:10;pointer-events:none}
+#toolbar{display:none;position:absolute;left:7%;right:7%;bottom:max(131px,env(safe-area-inset-bottom) + 121px);z-index:14;pointer-events:auto;justify-content:center;gap:7px;align-items:center}
+#toolbar button{padding:6px 9px;min-height:43px;flex:1;min-width:0;background:#13394cdd;color:#e9fff7;border:1px solid #67e2c9;font-size:14px}
+#toolbar #size{flex:1.7;background:#082336ec;color:#c8ffdf;font-variant-numeric:tabular-nums}
 #mock,#support,#notice{display:none}
 #lock{position:absolute;left:8%;bottom:max(64px,env(safe-area-inset-bottom) + 56px);width:84%;pointer-events:auto;display:block;background:linear-gradient(110deg,#72ffe2,#c7ffec);font-size:17px;z-index:11}
 #exit{position:absolute;left:9px;top:max(9px,env(safe-area-inset-top));z-index:13;background:#0b223cc9;color:white;border:1px solid #496279;min-height:34px;font-size:11px;pointer-events:auto}
@@ -71,7 +77,7 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 <a id="back" href="https://modo-caos-eta.vercel.app/">← MODO CAOS</a>
 <div class="eyebrow">AR EN PRIMERA PERSONA · TU CASA ESTÁ BAJO ATAQUE</div>
 <h1>LLUVIA DE <span>METEOROS</span></h1>
-<p class="subtitle">El piso se convierte en una arena de 2,24 metros. <strong>¡Vos estás adentro!</strong> No manejás un personaje: esquivás los meteoritos moviéndote con el teléfono.</p>
+<p class="subtitle">El piso se convierte en una <strong>pista CUADRADA</strong> que podés ubicar, agrandar y girar con los dedos. <strong>¡Vos estás adentro!</strong> Esquivá los meteoritos moviéndote de verdad.</p>
 <div class="hero"><div class="meteor"></div><div class="warning"></div><div class="bot">🤖</div></div>
 <div class="chips"><b>☄️ 72 SEGUNDOS</b><b>❤️ 3 VIDAS</b><b>👣 SIN AVATAR</b></div>
 <div class="actions">
@@ -80,7 +86,7 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 <a style="color:#9ffadd;font-size:12px;margin-top:5px" href="https://modo-caos-eta.vercel.app/salas.html?game=lluvia-meteoros">👥 Jugar con amigos · beta online</a>
 </div>
 <div id="record" class="small">RÉCORD PERSONAL: 0 PUNTOS</div>
-<p id="precheck" class="small">Elegí un espacio despejado de unos 2,5 metros y sin desniveles. No corras ni saltes. La cámara estima el movimiento del teléfono, no rastrea tus pies ni tu cuerpo. Jugá con el celular cerca del pecho.</p>
+<p id="precheck" class="small">Elegí un espacio despejado según el tamaño de la pista (1,6–3,2 m por lado). Antes de fijarla, arrastrá con un dedo, pellizcá o girá con dos. No corras ni saltes: la cámara sigue al teléfono, no a tus pies.</p>
 </div>
 <div id="overlay">
 <svg id="tiles" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -88,8 +94,10 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 <canvas id="canvas2D"></canvas>
 <div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Apuntá a un espacio despejado.</div></div>
 <div id="reticle"></div><div id="mock"></div><button id="support"></button>
-<div id="calibrate"></div><div id="fallback"></div><div id="touchpad"></div><div id="toolbar"></div><div id="debug"></div>
-<div style="display:none!important" aria-hidden="true"><button id="minus">−</button><button id="plus">+</button><button id="rotate">↻</button><button id="size">64 cm</button></div><div id="notice"></div>
+<div id="calibrate">☝ ARRASTRÁ PARA UBICAR · 🤏 PELLIZCÁ PARA CAMBIAR TAMAÑO · 🔄 GIRÁ CON DOS DEDOS</div>
+<div id="fallback"></div><div id="touchpad" aria-label="Arrastrar, pellizcar y girar la pista"></div>
+<div id="toolbar"><button id="minus" aria-label="Achicar pista">−</button><button id="size" disabled>2,24 m</button><button id="plus" aria-label="Agrandar pista">+</button><button id="rotate" aria-label="Girar pista">↻ GIRAR</button></div>
+<div id="debug"></div><div id="notice"></div>
 <button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
 <button id="goHome"></button>
 <button id="lock" disabled>📍 FIJAR PISO · YO ESTOY EN EL CENTRO</button>
@@ -149,7 +157,10 @@ function initGPU(){shader=program(gl);uMvp=gl.getUniformLocation(shader,'mvp');u
 function drawGL(view,W){if(!shader)return;gl.useProgram(shader);gl.bindBuffer(gl.ARRAY_BUFFER,glBuffer);let attr=gl.getAttribLocation(shader,'pos');gl.enableVertexAttribArray(attr);gl.vertexAttribPointer(attr,3,gl.FLOAT,false,0,0);const VP=mul(view.projectionMatrix,mul(view.transform.inverse.matrix,W));let count=0;for(let i=0;i<25;i++){const x=(i%5-2)*boardSize,z=(Math.floor(i/5)-2)*boardSize;let M=mul(VP,mul(trans(x,0,z),new Float32Array([boardSize,0,0,0,0,boardSize,0,0,0,0,boardSize,0,0,0,0,1])));gl.uniformMatrix4fv(uMvp,false,M);let c=rgb[tiles[i]];gl.uniform4f(uColor,c[0],c[1],c[2],stage==='preview'?.52:.76);gl.drawArrays(gl.TRIANGLES,0,6);count++}return count}
 function onFrame(time,frame){if(!sess)return;sess.requestAnimationFrame(onFrame);try{poses++;const viewerPose=frame.getViewerPose(ref);viewer=viewerPose;if(!viewerPose||!viewerPose.views.length){if(time-lastUI>400){diag('XR iniciado · esperando pose de cámara');lastUI=time}return}if(stage==='search'||stage==='preview'){const results=frame.getHitTestResults(hitSource);if(results.length){const p=results[0].getPose(ref);if(p){hitResult=results[0];hitMatrix=matrixFromPose(p);lastHit=time;tracking=true;stage='preview'}}else if(time-lastHit>750){hitResult=null;tracking=false;hitMatrix=null;stage='search'}}if(anchor){const p=frame.getPose(anchor.anchorSpace,ref);if(p){anchorMatrix=matrixFromPose(p);anchorState='anclaje activo'}else anchorState='anclaje sin pose, posición conservada'}const W=buildWorld();worldMatrix=W;let count=0;const xrLayer=sess.renderState.baseLayer;gl.bindFramebuffer(gl.FRAMEBUFFER,xrLayer.framebuffer);for(const view of viewerPose.views){const vp=xrLayer.getViewport(view);gl.viewport(vp.x,vp.y,vp.width,vp.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(W){if(shader)count+=drawGL(view,W);drawSvg(view,W)}else hideSvg()}drawCalls=count;if(typeof window.modoCaosXRFrame==='function'&&W){try{window.modoCaosXRFrame(time,frame,W)}catch(err){frameErr='Render del minijuego: '+err.message}}if(time-lastUI>350){updateUI();lastUI=time}}catch(e){frameErr=e.message;if(time-lastUI>400){diag('ERROR DE FOTOGRAMA: '+frameErr);lastUI=time}}}
 function updateUI(){const visible=stage!=='search'&&visibleSvg>0;const p=hitMatrix||anchorMatrix;const webgl=shader?'GPU: OK ('+drawCalls+' dibujadas)':'GPU: ERROR';diag('XR '+poses+' frames · '+webgl+' · BALDOSAS EN PANTALLA: '+visibleSvg+'/25\n'+(tracking?'SUPERFICIE ✓':'BUSCANDO SUPERFICIE')+' · '+anchorState+(frameErr?'\nError: '+frameErr:''));$('lock').disabled=!hitMatrix||!tracking||stage!=='preview';$('reticle').style.display=stage==='search'?'block':'none';$('touchpad').style.display=stage==='preview'?'block':'none';$('calibrate').style.display=stage==='preview'?'block':'none';$('fallback').style.display=stage==='preview'&&visibleSvg===0?'block':'none';if(stage==='preview'&&visibleSvg===0)$('fallback').textContent='Superficie detectada, pero la pista queda fuera de la vista. Apuntá al marcador y bajá un poco la cámara.';if(stage==='preview')msg(visible?'PISTA DETECTADA':'CALIBRANDO PISTA',visible?'Ajustá tamaño y posición. Las baldosas deben verse SOBRE el piso.':'Mové lentamente el teléfono hasta ver las baldosas de colores.');if(stage==='search')msg('BUSCÁ EL PISO','Mové lentamente el celular hasta detectar una superficie real.')}
-function setSize(d){boardSize=clamp(Math.round((boardSize+d)*100)/100,.20,.90);$('size').textContent=Math.round(boardSize*100)+' cm';}
+function setSize(d){const cfg=window.modoCaosGestureConfig;
+ const step=cfg?.step||Math.abs(d),lo=cfg?.min??.20,hi=cfg?.max??.90;
+ boardSize=clamp(Math.round((boardSize+Math.sign(d)*step)*1000)/1000,lo,hi);
+ $('size').textContent=cfg?.label?cfg.label(boardSize):Math.round(boardSize*100)+' cm';}
 function setStage(s){stage=s;const prep=s==='preview'||s==='search';$('lock').style.display=prep?'':'none';$('play').style.display=s==='fixed'||s==='finished'?'':'none';$('edit').style.display=s==='fixed'||s==='finished'||s==='playing'?'':'none';$('toolbar').style.display=prep?'flex':'none';$('touchpad').style.display=s==='preview'?'block':'none';$('calibrate').style.display=s==='preview'?'block':'none'}
 async function check(){const c=$('precheck');if(!window.isSecureContext){c.textContent='Se necesita HTTPS';return false}if(!navigator.xr){c.textContent='WebXR no está disponible en este navegador. Usá Chrome Android con ARCore.';return false}try{const ok=await navigator.xr.isSessionSupported('immersive-ar');c.textContent=ok?'✅ AR inmersiva detectada. Listo para abrir la cámara.':'Este dispositivo/navegador no anuncia soporte de AR inmersiva.';return ok}catch(e){c.textContent='No se pudo consultar compatibilidad: '+e.message;return false}}
 function start(){if(isStarting)return;isStarting=true;$('enter').disabled=true;$('enter').textContent='INICIANDO AR…';$('notice').style.display='none';$('overlay').style.display='block';let pending;try{if(!navigator.xr)throw Error('Este navegador no ofrece WebXR.');pending=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['anchors'],domOverlay:{root:$('overlay')}})}catch(e){startError(e);return}Promise.resolve(pending).then(async session=>{sess=session;const canvas=document.createElement('canvas');canvas.style.cssText='position:fixed;width:1px;height:1px;opacity:0;pointer-events:none';document.body.appendChild(canvas);gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false,xrCompatible:true});if(!gl)throw Error('No se pudo crear WebGL compatible con XR.');if(gl.makeXRCompatible)await gl.makeXRCompatible();layer=new XRWebGLLayer(session,gl,{alpha:true,antialias:true,depth:true});session.updateRenderState({baseLayer:layer,depthNear:.025,depthFar:45});try{initGPU()}catch(e){frameErr='GPU: '+e.message;shader=null}ref=await session.requestReferenceSpace('local');const viewerSpace=await session.requestReferenceSpace('viewer');hitSource=await session.requestHitTestSource({space:viewerSpace});sess.addEventListener('end',()=>{stopRound();location.reload()});$('home').style.display='none';setStage('search');anchorState='sin anclaje';sess.requestAnimationFrame(onFrame);isStarting=false}).catch(e=>{startError(e)})}
@@ -174,7 +185,7 @@ $('diagbtn').addEventListener('click',()=>{showDiag=!showDiag;$('debug').style.d
 $('overlay').addEventListener('beforexrselect',e=>e.preventDefault());
 const pad=$('touchpad');
 pad.addEventListener('pointerdown',e=>{if(stage!=='preview')return;e.preventDefault();pad.setPointerCapture(e.pointerId);gesture.set(e.pointerId,{x:e.clientX,y:e.clientY});gestureSnapshot=null});
-pad.addEventListener('pointermove',e=>{if(stage!=='preview'||!gesture.has(e.pointerId))return;e.preventDefault();let prev=gesture.get(e.pointerId),mx=e.clientX-prev.x,my=e.clientY-prev.y;gesture.set(e.pointerId,{x:e.clientX,y:e.clientY});if(gesture.size===1){dx=clamp(dx+mx*.004,-4,4);dz=clamp(dz+my*.004,-4,4)}else{const pts=[...gesture.values()];const distance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y),angle=Math.atan2(pts[1].y-pts[0].y,pts[1].x-pts[0].x);if(gestureSnapshot){boardSize=clamp(boardSize*(distance/Math.max(1,gestureSnapshot.distance)),.2,.9);yaw+=angle-gestureSnapshot.angle;$('size').textContent=Math.round(boardSize*100)+' cm'}gestureSnapshot={distance,angle}}});
+pad.addEventListener('pointermove',e=>{if(stage!=='preview'||!gesture.has(e.pointerId))return;e.preventDefault();let prev=gesture.get(e.pointerId),mx=e.clientX-prev.x,my=e.clientY-prev.y;gesture.set(e.pointerId,{x:e.clientX,y:e.clientY});if(gesture.size===1){dx=clamp(dx+mx*.004,-4,4);dz=clamp(dz+my*.004,-4,4)}else{const pts=[...gesture.values()];const distance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y),angle=Math.atan2(pts[1].y-pts[0].y,pts[1].x-pts[0].x);if(gestureSnapshot){const cfg=window.modoCaosGestureConfig;boardSize=clamp(boardSize*(distance/Math.max(1,gestureSnapshot.distance)),cfg?.min??.2,cfg?.max??.9);yaw+=angle-gestureSnapshot.angle;$('size').textContent=cfg?.label?cfg.label(boardSize):Math.round(boardSize*100)+' cm'}gestureSnapshot={distance,angle}}});
 function clearPointer(e){gesture.delete(e.pointerId);gestureSnapshot=null}
 pad.addEventListener('pointerup',clearPointer);pad.addEventListener('pointercancel',clearPointer);
 if(navigator.xr)check();
@@ -214,7 +225,7 @@ function setPosition(g,x,z){
  const p=g.players[0];if(!p.alive||!Number.isFinite(x)||!Number.isFinite(z))return;
  const safe=clampPoint({x,z});p.dist+=distance(p,safe);p.x=safe.x;p.z=safe.z;
 }
-function clampPoint(p){const d=Math.hypot(p.x,p.z);const k=d>R?R/d:1;return{x:p.x*k,z:p.z*k}}
+function clampPoint(p){return{x:clamp(p.x,-R,R),z:clamp(p.z,-R,R)}}
 function phase(g){return g.elapsed<14?'aprendizaje':g.elapsed<36?'lluvia':g.elapsed<57?'caos':'apocalipsis'}
 function affected(e,t){
  return t>=e.impact-.05&&t<=e.impact+.27+(e.crater?e.craterTime:0);
@@ -224,7 +235,7 @@ function threatens(e,pos,t,margin=.08){
  return distance(e,pos)<e.radius+margin;
 }
 function futureSafe(g,pos,t,extra=[]){
- if(Math.hypot(pos.x,pos.z)>R-.055)return false;
+ if(Math.abs(pos.x)>R-.055||Math.abs(pos.z)>R-.055)return false;
  for(const e of [...g.events,...extra]){
   if(e.cancelled)continue;
   if(Math.abs(e.impact-t)<.75||affected(e,t)){
@@ -265,7 +276,7 @@ function planWave(g){
  const other=[];
  for(const x of gx)for(const z of gx){
   const pt={x:x+rnd(g,-.055,.055),z:z+rnd(g,-.055,.055)};
-  if(Math.hypot(pt.x,pt.z)<R-.08)other.push(pt);
+  if(Math.max(Math.abs(pt.x),Math.abs(pt.z))<R-.08)other.push(pt);
  }
  for(let i=other.length-1;i>0;i--){const j=Math.floor(random(g)*(i+1));[other[i],other[j]]=[other[j],other[i]]}
  candidate.push(...other);
@@ -307,7 +318,7 @@ function moveTrick(g,e){
  ];
  const others=g.events.filter(v=>v!==e),reference={...g,events:others};
  for(const p of options){
-  if(Math.hypot(p.x,p.z)>R-.05||distance(p,e)<.12)continue;
+  if(Math.abs(p.x)>R-.05||Math.abs(p.z)>R-.05||distance(p,e)<.12)continue;
   const safe=sampleSafe(reference,e.impact,[{...e,x:p.x,z:p.z}],planner);
   if(!safe||distance(planner,safe)>Math.min(.31,(e.impact-g.elapsed)*.23))continue;
   if(!futureSafe(reference,safe,e.impact,[{...e,x:p.x,z:p.z}]))continue;
@@ -328,7 +339,7 @@ function botTick(g,p,dt){
    const soon=upcoming.reduce((a,b)=>a.impact<b.impact?a:b);
    p.goal=sampleSafe(g,soon.impact,[],p)||{x:0,z:0};
   }else if(!p.goal||distance(p,p.goal)<.08){
-   const a=rnd(g,0,TAU),r=rnd(g,.10,.87);p.goal=clampPoint({x:Math.cos(a)*r,z:Math.sin(a)*r});
+   p.goal=clampPoint({x:rnd(g,-R+.12,R-.12),z:rnd(g,-R+.12,R-.12)});
   }
  }
  if(!p.goal)return;
@@ -485,12 +496,17 @@ function create3D(gl){
    const viewport=xrLayer.getViewport(view);gl.bindFramebuffer(gl.FRAMEBUFFER,xrLayer.framebuffer);
    gl.viewport(viewport.x,viewport.y,viewport.width,viewport.height);
    vp=multiply(view.projectionMatrix,view.transform.inverse.matrix);
-   // 3D rim, striped landing pad, runway seams.
-   draw('disc',0,.011,0,ARENA,.005,ARENA,[.018,.046,.086,.29]);
-   draw('ring',0,.025,0,ARENA,.006,ARENA,colors.blue,.30);
-   draw('ring',0,.028,0,ARENA*.93,.004,ARENA*.93,[.1,.36,.43,.33],.4);
-   for(let i=-4;i<=4;i++){draw('box',i*ARENA*.2,.026,0,.003,.002,ARENA*.94,[.06,.39,.49,.30]);
-    draw('box',0,.027,i*ARENA*.2,ARENA*.94,.002,.003,[.06,.39,.49,.30]);}
+   // SQUARE playing surface: all four edges match the collision box exactly.
+   // The transparent dark floor keeps the real room visible in AR.
+   draw('box',0,.010,0,ARENA,.007,ARENA,[.018,.046,.086,.23]);
+   for(const s of [-1,1]){
+    draw('box',s*ARENA,.034,0,.014,.012,ARENA,colors.mint,.56);
+    draw('box',0,.034,s*ARENA,ARENA,.012,.014,colors.mint,.56);
+   }
+   for(let i=-4;i<=4;i++){
+    draw('box',i*ARENA*.2,.023,0,.002,.001,ARENA,[.06,.39,.49,.28]);
+    draw('box',0,.024,i*ARENA*.2,ARENA,.001,.002,[.06,.39,.49,.28]);
+   }
    if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
     const s=g.safeHint,pulse=.5+.5*Math.sin(now*6);
     draw('disc',s.x,.039,s.z,.080,.001,.080,[.10,1,.55,.10],.12);
@@ -561,11 +577,15 @@ function draw2D(ctx,width,height,g,ms){
  const P=(x,z,y=0)=>[cx+x*scale,cy+z*scale*.68-y*scale*.85];
  const circle=(x,y,r,col,blur=0)=>{ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=blur;ctx.fill();ctx.shadowBlur=0};
  ctx.save();ctx.translate(cx,cy);ctx.scale(1,.68);
- const grad=ctx.createRadialGradient(0,0,4,0,0,scale*ARENA);grad.addColorStop(0,'#16263e');grad.addColorStop(1,'#061221');
- ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,scale*ARENA,0,TAU);ctx.fill();
- for(let rr of [ARENA*.32,ARENA*.64,ARENA]){ctx.strokeStyle=rr===ARENA?'#64ffe3':'#20648c';ctx.globalAlpha=rr===ARENA?1:.5;ctx.lineWidth=rr===ARENA?5:1;ctx.beginPath();ctx.arc(0,0,scale*rr,0,TAU);ctx.stroke()}
- ctx.globalAlpha=.35;ctx.strokeStyle='#48c1e4';ctx.lineWidth=1;
- for(let n=-4;n<=4;n++){const v=n*scale*ARENA*.2;ctx.beginPath();ctx.moveTo(v,-scale*ARENA*.91);ctx.lineTo(v,scale*ARENA*.91);ctx.moveTo(-scale*ARENA*.91,v);ctx.lineTo(scale*ARENA*.91,v);ctx.stroke()}
+ const grad=ctx.createLinearGradient(-scale*ARENA,-scale*ARENA,scale*ARENA,scale*ARENA);
+ grad.addColorStop(0,'#183750');grad.addColorStop(1,'#071624');
+ ctx.fillStyle=grad;ctx.fillRect(-scale*ARENA,-scale*ARENA,2*scale*ARENA,2*scale*ARENA);
+ ctx.strokeStyle='#64ffe3';ctx.lineWidth=5;ctx.shadowColor='#5bffdc';ctx.shadowBlur=14;
+ ctx.strokeRect(-scale*ARENA,-scale*ARENA,2*scale*ARENA,2*scale*ARENA);ctx.shadowBlur=0;
+ ctx.globalAlpha=.46;ctx.strokeStyle='#48c1e4';ctx.lineWidth=1;
+ for(let n=-4;n<=4;n++){const v=n*scale*ARENA*.2;
+  ctx.beginPath();ctx.moveTo(v,-scale*ARENA);ctx.lineTo(v,scale*ARENA);
+  ctx.moveTo(-scale*ARENA,v);ctx.lineTo(scale*ARENA,v);ctx.stroke()}
  ctx.restore();
  if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
   const [x,y]=P(g.safeHint.x,g.safeHint.z),pulse=.5+.5*Math.sin(t*8);
@@ -772,9 +792,17 @@ if(!G||!A){console.error('Meteoros: faltan dependencias');return}
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const params=new URLSearchParams(location.search),roomCode=(params.get('room')||'').toUpperCase(),hasRoom=/^[A-F0-9]{8}$/.test(roomCode);
 const K='mc-meteoros-record-v1';
+// Opt-in engine gesture settings: Color Rush and the other games keep their defaults.
+// Engine boardSize .45 means a physical 2.24m square; drag translates and twist rotates.
+const baseTileSize=.45;
+window.modoCaosGestureConfig=Object.freeze({
+ min:.32,max:.65,step:.025,
+ label:value=>(2*G.R*value/baseTileSize).toFixed(2).replace('.',',')+' m'
+});
+$('size').textContent=window.modoCaosGestureConfig.label(baseTileSize);
 let best=0;try{best=Math.max(0,Number(localStorage.getItem(K))||0)}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
-let demo=false,calibrated=false,sampling=false,origin=null,placement=null,arenaWorld=null,avg=null,calSamples=[],calStart=0;
+let demo=false,calibrated=false,sampling=false,origin=null,placement=null,previewCenter=null,arenaWorld=null,avg=null,calSamples=[],calStart=0;
 let game=G.make((Math.random()*4294967295)>>>0),running=false,finished=false,renderer=null,trackLast=0;
 let lastFrame=0,lastHud=0,trackingLast=null,arLoop=false,status='intro',mode='motion';
 let muted=false,audio=null,impactBuffer=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
@@ -932,6 +960,7 @@ function localPose(frame,W){
 }
 function multiply(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let k=0;k<4;k++)for(let r=0;r<4;r++)o[c*4+r]+=a[k*4+r]*b[c*4+k];return o}
 function translate(x,z){return new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,x,0,z,1])}
+function uniformScale(s){return new Float32Array([s,0,0,0,0,s,0,0,0,0,s,0,0,0,0,1])}
 function motion(t,pos){
  if(!pos)return false;
  if(!trackingLast){trackingLast={...pos};return false}
@@ -939,8 +968,9 @@ function motion(t,pos){
  // Protect against ARCore relocations/jumps; do not punish an implausible teleport.
  if(jump>.30){trackingLast={...pos};return false}
  const blend=.23;trackingLast={x:trackingLast.x+(pos.x-trackingLast.x)*blend,z:trackingLast.z+(pos.z-trackingLast.z)*blend};
- const dx=trackingLast.x-origin.x,dz=trackingLast.z-origin.z;
- if(Math.hypot(dx,dz)>G.R+.22){statusText('⚠️ LÍMITE DE ARENA · VOLVÉ A UN ÁREA DESPEJADA');return false}
+ const ratio=clamp(boardSize/baseTileSize,.70,1.47);
+ const dx=(trackingLast.x-origin.x)/ratio,dz=(trackingLast.z-origin.z)/ratio;
+ if(Math.max(Math.abs(dx),Math.abs(dz))>G.R+.22){statusText('⚠️ LÍMITE DE PISTA · VOLVÉ A UN ÁREA DESPEJADA');return false}
  G.setPosition(game,Math.abs(dx)<.018?0:dx,Math.abs(dz)<.018?0:dz);return true;
 }
 function inputTick(dt,t){
@@ -979,9 +1009,11 @@ function arFrame(t,frame,W){
  try{
   if(!W)return;
   const pos=localPose(frame,W);
-  // Capture the local XR viewer's floor footprint once, at placement time.
-  // The selected floor plane supplies height/rotation; this defines the arena CENTER.
-  if(typeof stage!=='undefined'&&stage==='fixed'&&!placement&&pos)placement={...pos};
+  // A stable initial camera-footprint center, then the motor's ONE-FINGER drag works.
+  // Recomputing center from the phone on every preview frame cancels finger dragging!
+  if(stage==='preview'&&!previewCenter&&pos)previewCenter={...pos};
+  if(stage==='search'&&!placement)previewCenter=null;
+  if(stage==='fixed'&&!placement)placement={...(previewCenter||pos||{x:0,z:0})};
   if(sampling)sample(t,pos);
   if(running&&mode==='motion'&&calibrated){
    if(pos&&motion(t,pos)){trackLast=t;lostShown=false;game.paused=false}
@@ -990,13 +1022,19 @@ function arFrame(t,frame,W){
   }
   if(running)tick(dt,t);
   if(renderer){
-   // Before locking, project the floor arena under the player to ease placement.
-   // After locking, placement never changes: the arena is WORLD-LOCKED.
-   const preview=typeof stage!=='undefined'&&stage==='preview';
-   const center=placement||(preview&&pos)||{x:0,z:0};
+   // W has the engine's dx/dz drag and yaw rotation. BoardSize comes from
+   // the SAME two-finger pinch as Color Rush, rendered as a scaled square.
+   // Freeze center before lock, then no new gesture/pose ever relocates the floor.
+   const center=placement||previewCenter||{x:0,z:0};
+   const ratio=clamp(boardSize/baseTileSize,.70,1.47);
+   // Rotate around the SQUARE'S CENTER, not around the Hit Test origin.
+   // W already includes yaw; inverse-rotate the center to cancel orbiting.
+   const co=Math.cos(yaw),si=Math.sin(yaw);
+   const corrected={x:co*center.x-si*center.z,z:si*center.x+co*center.z};
+   const fixedWorld=multiply(multiply(W,translate(corrected.x,corrected.z)),uniformScale(ratio));
    game.showCalibrationMarker=!running&&calibrated&&!demo;
-   const fixedWorld=multiply(W,translate(center.x,center.z));
-   arenaWorld={x:fixedWorld[12],y:fixedWorld[13],z:fixedWorld[14]};
+   arenaWorld={x:fixedWorld[12],y:fixedWorld[13],z:fixedWorld[14],
+    edge:2*G.R*ratio,yaw,ratio};
    renderer.render(frame,fixedWorld,game);
   }
   if(!running&&t-lastHud>160){lastHud=t;hud()}
@@ -1149,6 +1187,8 @@ if((location.hostname==='localhost'||location.hostname==='127.0.0.1')&&params.ha
   Object.defineProperty(window,'__meteorTestSnapshot',{value:()=>({
     placement:placement?{...placement}:null,
     arenaWorld:arenaWorld?{...arenaWorld}:null,
+    gestures:{size:boardSize,yaw,dx,dz},
+    previewCenter:previewCenter?{...previewCenter}:null,
     origin:origin?{...origin}:null,
     avatar:{x:game.players[0].x,z:game.players[0].z},
     status,calibrated
