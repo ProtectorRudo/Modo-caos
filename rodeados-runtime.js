@@ -19,7 +19,7 @@ if(!UX)throw Error('RODEADOS: falta el radar 360');
 const art=createRodeadosArt(THREE,scene,camera);
 let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null,hitSource=null,hit=null,anchor=null,anchorOffset=null;
 let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
-let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
+let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
 let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
 let sounds=true,vibration=true,ctx=null,lastLaugh=0,fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
 let online=null,onlineBusy=false,onlineRoomCode=new URLSearchParams(location.search).get('room')?.toUpperCase()||'',roomTimer=0;
@@ -168,7 +168,9 @@ function setPhase(next){
  stage=next;
  visible('calControls',next==='edit');visible('touch',next==='edit','block');
  visible('cellControls',next==='cell'||next==='sample'||next==='ready');
- visible('cellsvg',next==='cell'||next==='sample','block');
+ visible('cellsvg',next==='edit'||next==='cell'||next==='sample','block');
+ visible('manualPlace',next==='search'&&performance.now()-searchSince>1800,'block');
+ visible('placementHelp',false);visible('healthTrack',['ready','countdown','playing','paused'].includes(next),'block');
  visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown','block');
  visible('radarWrap',next==='playing','block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
@@ -197,12 +199,16 @@ function getHit(frame){
 }
 function newPreview(pose){
  const p=pose.transform.position,q=pose.transform.orientation;
- basePos.set(p.x,p.y,p.z);baseQ.set(q.x,q.y,q.z,q.w);
- // Plane alignment can include yaw from ARCore. Stabilize floor normal but preserve
- // local orientation so multiple devices can manually agree on the north arrow.
+ basePos.set(p.x,p.y,p.z);
+ // The hit-test rotation may contain pitch/roll; force the square HORIZONTAL.
+ // Copy yaw only, never tilt the floor along with the camera/plane estimate.
+ const orientation=new THREE.Quaternion(q.x,q.y,q.z,q.w).normalize();
+ const facing=new THREE.Vector3(0,0,-1).applyQuaternion(orientation);facing.y=0;
+ const heading=facing.lengthSq()>.001?Math.atan2(-facing.x,-facing.z):0;
+ baseQ.setFromAxisAngle(THREEVec(0,1,0),heading);
  shift.set(0,0,0);yaw=0;stage='edit';
  $('size').textContent=floorSize.toFixed(2).replace('.',',')+' m';
- setPhase('edit');hint('ARRASTRÁ, PELLIZCÁ Y GIRÁ LA PISTA · DESPUÉS FIJALA');
+ setPhase('edit');worldForEditor();hint('MIRÁ LA CUADRÍCULA TURQUESA · ARRASTRÁ, PELLIZCÁ Y GIRÁ');
 }
 function worldForEditor(){
  art.root.position.copy(basePos).add(shift.clone().applyQuaternion(baseQ));
