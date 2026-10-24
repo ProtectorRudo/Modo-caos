@@ -88,3 +88,31 @@ for(let seed=1;seed<250;seed++){
  break;
 }
 console.log('OLA ROJA: 36 partidas simuladas, 3 escalas, rutas alcanzables, intensidad y falsas alarmas PASS');
+
+/* 2026-10-24 · Revisión de tamaño/anticipación.
+   El aviso aparece >=2.7s antes; radar muestra origen y siguientes posiciones
+   reales sin confundirlas con peligro presente. */
+for (const tile of [.3,.4,.55]) for(let seed=41;seed<51;seed++){
+ const g=G.make({tileMeters:tile,seed});G.start(g);
+ for(let i=0;i<60;i++)G.tick(g,.06);
+ while(g.waves===0)G.tick(g,.04);
+ const w=g.active[0];
+ assert(w.start-g.elapsed>2.5,'early warning must allow walking: '+tile);
+ const r=G.radar(g,3.9);
+ assert(r.seconds>2.5&&r.seconds<3.9,'first red countdown known in advance');
+ assert(r.direction&&r.direction.length>4,'each wave has visible incoming direction');
+ assert(r.forecast.some(Boolean),'radar projects upcoming hazardous cells');
+ assert(!r.state.includes('red'),'orange forecast is not red danger now');
+ const highlighted=r.forecast.findIndex(Boolean);
+ const yellowAt=G.cells(g,w.start-2.05);
+ assert(yellowAt.some(v=>v==='yellow'),'physical floor warns >2 s before wave');
+ assert(highlighted>=0);
+
+ const index=r.forecast.findIndex(Boolean);
+ assert.equal(typeof index,'number');
+ G.setPosition(g,index%6+.5,Math.floor(index/6)+.5);
+ g.elapsed=w.start+.03;
+ const after=G.radar(g,3.9);
+ assert(after.state.includes('red'),'red tiles still become dangerous on schedule');
+}
+console.log('OLA ROJA: 30 seeds, three tile sizes, advance warning, radar and side directions PASS');

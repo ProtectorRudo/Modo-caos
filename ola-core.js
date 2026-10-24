@@ -16,7 +16,7 @@ function make(opts={}){
   duration:opts.mode==='infinito'?Infinity:DURATION,elapsed:0,countdown:3,paused:false,
   lives:3,shield:0,invuln:0,score:0,combo:0,dodges:0,waves:0,hitCount:0,
   pos:{x:3,z:3},cell:{r:3,c:3},tileMeters:clamp(opts.tileMeters||.45,.28,.7),
-  active:[],safeZone:null,nextAt:2.1,fx:[],fxId:0,finishReason:'',event:'',eventUntil:0,slowUntil:0,
+  active:[],safeZone:null,nextAt:1.8,fx:[],fxId:0,finishReason:'',event:'',eventUntil:0,slowUntil:0,
   waveKinds:['frontal','trasera','lateral','doble','serpiente','corredor','falsa','caos']};
 }
 function event(g,type,label){g.fx.push({id:++g.fxId,type,label,t:g.elapsed});if(g.fx.length>35)g.fx.shift()}
@@ -101,7 +101,7 @@ function spawn(g){
  const previousEnd=g.active.reduce((last,w)=>Math.max(last,w.end),0);
  const name=reverse?'inversion':kind(g);
  // El aviso no puede acelerar de golpe al cambiar de fase y superponer peligros.
- const lead=Math.max(g.elapsed<15?2.0:g.elapsed<55?1.85:1.65,previousEnd+.55-g.elapsed);
+ const lead=Math.max(g.elapsed<15?3.25:g.elapsed<55?3.05:2.80,previousEnd+.60-g.elapsed);
  const slot=speed(g)*(upcoming%7===0?1.38:1);
  let steps=null,chosen=name;
  for(let k=0;k<26;k++){const p=pattern(g,name);if(ensureRoute(g,p,lead,slot)){steps=p;break}}
@@ -115,13 +115,18 @@ function spawn(g){
   if(mask!==0n)return mask;
   const r=pick(g,N),c=pick(g,N);return bit(r,c)|bit(r,(c+1)%N);
  }):null;
- const w={id:++g.waves,name:chosen,steps,teases,start:g.elapsed+lead,step:slot,
+ const direction=chosen==='frontal'?'⬇ DESDE ARRIBA':chosen==='trasera'?'⬆ DESDE ABAJO':
+  chosen==='lateral'?(steps[0]&&Array.from({length:N},(_,r)=>has(steps[0],r,0)).some(Boolean)?'➡ DESDE IZQUIERDA':'⬅ DESDE DERECHA'):
+  chosen==='doble'?'↕ DESDE AMBOS EXTREMOS':chosen==='inversion'?'↩ CAMBIA DE DIRECCIÓN':
+  chosen==='falsa'?'⚠ PUEDE SER FALSA':chosen==='serpiente'?'〰 ONDA SERPIENTE':
+  chosen==='corredor'?'◇ EN FILAS':'⚡ VARIOS FRENTES';
+ const w={id:++g.waves,name:chosen,direction,steps,teases,start:g.elapsed+lead,step:slot,
   end:g.elapsed+lead+steps.length*slot,credited:false};
  g.active.push(w);
  // La señal amarilla de la siguiente ola comienza antes de terminar la roja:
  // su impacto nunca se solapa con el anterior (gracia entre .45 y .70 s).
  g.nextAt=w.end-lead+(g.elapsed<35?.70:.45);
- event(g,'wave',chosen.toUpperCase());
+ event(g,'wave',chosen.toUpperCase()+' · '+direction);
  if(reverse){g.event='INVERSIÓN';g.eventUntil=g.elapsed+lead+3*slot;event(g,'warning','↩ INVERSIÓN · ¡CAMBIA DE DIRECCIÓN!')}
  if(g.waves%5===0){g.safeZone={r:g.cell.r,c:g.cell.c,until:g.elapsed+lead+3*slot};event(g,'bonus','✦ ZONA SEGURA ACTIVA')}
  if(g.waves===4||g.waves%8===0){
@@ -136,7 +141,9 @@ function cells(g,t=g.elapsed){
   for(let j=0;j<w.steps.length;j++){
    const at=w.start+j*w.step;
    const danger=t>=at&&t<at+w.step*.70;
-   const warn=t<at&&t>=at-Math.min(1.35,w.step+(.45));
+   // Zona amarilla anuncia al menos 2,35 segundos antes del contacto,
+   // avanzando visiblemente por el piso antes de transformarse en roja.
+   const warn=t<at&&t>=at-Math.min(2.75,Math.max(2.35,w.step*2.65));
    if(!danger&&!warn)continue;
    // Las falsas alarmas muestran aviso AMARILLO incluso donde jamás habrá rojo.
    const mask=danger?w.steps[j]:(w.teases?.[j]??w.steps[j]);if(!mask)continue;
@@ -146,6 +153,26 @@ function cells(g,t=g.elapsed){
   }
  }
  return red.map((r,i)=>g.safeZone&&t<g.safeZone.until&&i===index(g.safeZone.r,g.safeZone.c)?'safe':r?'red':yellow[i]?'yellow':'safe');
+}
+function radar(g,horizon=3.6){
+ // Lectura aérea compacta: rojo AHORA, ámbar en el trayecto inminente.
+ // Nunca adelanta un peligro inexistente (falsas alarmas siguen en amarillo).
+ const state=cells(g),forecast=Array(N*N).fill(false);
+ let nearest=Infinity,selected=null,selectedStep=-1;
+ for(const w of g.active)for(let j=0;j<w.steps.length;j++){
+  const at=w.start+j*w.step,mask=w.steps[j];
+  if(!mask||at<g.elapsed-.001||at>g.elapsed+horizon)continue;
+  if(at<nearest){nearest=at;selected=w;selectedStep=j}
+ }
+ if(selected){
+  // Mostrar origen + siguiente avance, no toda la pista coloreada de golpe.
+  for(let j=selectedStep;j<Math.min(selectedStep+2,selected.steps.length);j++){
+   if(selected.start+j*selected.step>g.elapsed+horizon)break;
+   for(let i=0;i<N*N;i++)if(selected.steps[j]&(1n<<BigInt(i)))forecast[i]=true;
+  }
+ }
+ return {state,forecast,seconds:Number.isFinite(nearest)?Math.max(0,nearest-g.elapsed):null,
+  direction:selected?.direction||null,name:selected?.name||null};
 }
 function hit(g){
  const c=g.cell.r*N+g.cell.c;
@@ -178,7 +205,7 @@ function tick(g,dt){
  g.score+=dt*(6+Math.min(6,g.combo));
  if(g.duration!==Infinity&&g.elapsed>=g.duration)finish(g,'victoria');
 }
-const api=Object.freeze({N,DURATION,make,start,tick,cells,setPosition,finish,phases,ensureRoute,pattern,spawn,hit,has,bit,index});
+const api=Object.freeze({N,DURATION,make,start,tick,cells,radar,setPosition,finish,phases,ensureRoute,pattern,spawn,hit,has,bit,index});
 root.OlaRojaCore=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
