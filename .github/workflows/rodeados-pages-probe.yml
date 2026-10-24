@@ -30,6 +30,12 @@ jobs:
           echo "MIRROR_HTTP=$HTTP"
           test "$HTTP" = "200"
           grep -q 'RODEADOS 360' /tmp/rodeados-mirror.html
+          grep -q 'id="botGuide"' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-runtime.js?v=4' /tmp/rodeados-mirror.html
+          curl -fsSL -m 15 "https://protectorrudo.github.io/Modo-caos/rodeados-runtime.js" -o /tmp/rodeados-published-runtime.js
+          grep -q 'spawnOpeningEnemies' /tmp/rodeados-published-runtime.js
+          grep -q 'pausedByTracking' /tmp/rodeados-published-runtime.js
+          echo 'CONFIRMADO: robots 3D iniciales y seguimiento ARCore robusto publicados'
           for file in rodeados-core.js rodeados-art.js rodeados-ux.js rodeados-runtime.js rodeados-progression.js mc-config.js mc-rooms-client.js; do
             HTTP=$(curl -sSL -m 12 -o /tmp/rodeados-mirror-js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/$file")
             echo "$file: $HTTP"
