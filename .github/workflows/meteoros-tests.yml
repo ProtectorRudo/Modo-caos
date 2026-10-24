@@ -59,3 +59,6 @@ jobs:
         run: METEORS_PAGE=/meteoros-autonomo.html node tests/meteoros-browser.test.cjs
       - name: Test standalone HTML simulated WebXR lifecycle
         run: METEORS_PAGE=/meteoros-autonomo.html node tests/meteoros-xr-smoke.test.cjs
+      - name: Validate no-interstitial HTTPS game mirrors
+        continue-on-error: true
+        run: node tests/meteoros-public-host.test.cjs
