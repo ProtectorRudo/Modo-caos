@@ -43,6 +43,8 @@ const server=http.createServer((req,res)=>{
    Object.defineProperty(navigator,'xr',{configurable:true,value:{isSessionSupported:async()=>true,requestSession:async()=>session}});
   });
   await page.goto('http://127.0.0.1:'+server.address().port+'/simon.html');
+  await page.locator('#seed').fill('7184'); // primera secuencia: celda 5, luego celda 6
+  await page.locator('#seed').dispatchEvent('change');
   await page.locator('#enter').click();
   await page.waitForFunction(()=>{const b=document.getElementById('lock');return b&&!b.disabled&&getComputedStyle(b).display!=='none'},{timeout:10000});
   assert(await page.locator('#touchpad').isVisible(),'AR adjustment input is visible');
@@ -57,11 +59,24 @@ const server=http.createServer((req,res)=>{
   assert((await page.evaluate(()=>window.__xrDrawCalls))>0,'nine tiles are WebGL draw calls');
   assert(await page.locator('#startGame').isVisible(),'calibrated start button visible');
   await page.locator('#startGame').click();
-  await page.waitForFunction(()=>document.getElementById('phase').textContent.includes('AHORA VOS'),null,{timeout:12000});
+  assert(!await page.locator('#confirmRow').isVisible(),'no gameplay confirmation during Simon playback');
+  await page.waitForFunction(()=>document.getElementById('phase').textContent.includes('AHORA VOS'),null,{timeout:14000});
+  await page.waitForFunction(()=>!document.getElementById('confirmCell').disabled,null,{timeout:3000});
+  assert((await page.locator('#confirmCell').textContent()).includes('CELDA 5'),'center confirmed and button names current cell');
+  await page.waitForTimeout(1000);
+  assert.equal(await page.locator('#progress').textContent(),'0/2','waiting on a cell does NOT auto-confirm a step');
+  await page.locator('#confirmCell').click();
+  assert.equal(await page.locator('#progress').textContent(),'1/2','explicit tap registers first tile');
+  assert(await page.locator('#confirmCell').isDisabled(),'cannot confirm same tile twice');
   await page.evaluate(()=>{window.__xrPos.x=.55});
   await page.waitForFunction(()=>document.getElementById('position').textContent.includes('CELDA 6'),null,{timeout:4500});
+  await page.waitForFunction(()=>!document.getElementById('confirmCell').disabled,null,{timeout:3200});
+  assert((await page.locator('#confirmCell').textContent()).includes('CELDA 6'),'second tile ready for deliberate confirmation');
+  assert.equal(await page.locator('#progress').textContent(),'1/2','movement itself does not register next tile');
+  await page.locator('#confirmCell').click();
+  await page.waitForFunction(()=>document.getElementById('round').textContent==='2',null,{timeout:12000});
   assert.deepEqual(errors,[],'no uncaught page errors');
-  console.log('PASS simulated XR: floor lock, size, rotation, chosen cell, stable calibration, 3D draw, play and tracked phone move');
+  console.log('PASS simulated XR: anchor/calibration, no automatic scoring, stable explicit confirm 5 → 6, round 2');
  }finally{
   if(browser)await browser.close();server.close();
  }
