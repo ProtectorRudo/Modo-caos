@@ -9,19 +9,26 @@
  const $=id=>document.getElementById(id),G=window.SemaforoCore,A=window.SemaforoArt;
  if(!G||!A)throw Error('Faltan los módulos de Semáforo Traicionero');
  const art=A.create($('arenaSvg')),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const Motion=window.SemaforoMotion;
+ if(!Motion)throw Error('Falta el módulo de movimiento físico');
+ const motion=Motion.create();
  const params=new URLSearchParams(location.search),roomCode=(params.get('room')||'').toUpperCase();
  const hasRoom=/^[A-F0-9]{8}$/.test(roomCode);
  let seed=(Math.random()*0xffffffff)>>>0,game=G.make({seed}),status='home',demo=false;
  let calibrated=false,sampling=false,samples=[],sampleAt=0,reference=null,trackLast=null;
  let filtered=null,redAnchor=null,lockTime=0,lastTrack=0,lastFrame=0,lastHUD=0,lastFX=0;
  let running=false,buttons={forward:false,left:false,right:false},keys=new Set();
- let mode='hybrid',calForce=false,demoCtx=null,lastEvent=0,lastGreenMove=0,rewardedRound=-1;
+ let mode='motion',calForce=false,demoCtx=null,lastEvent=0,lastGreenMove=0,rewardedRound=-1;
  let audio=null,lastSfx=0,nextBeat=0,muted=false,best=0,arStarted=false,frameId=0;
  let online=null,onlineTimer=null,onlineConnecting=false,onlineActive=false,peerLast=0,lastRoomPoll=0,onlineRefreshing=false;
  try{best=Number(localStorage.getItem('mc-semaforo-best')||0)}catch(e){}
  $('introRecords').textContent=(best?'🏆 RÉCORD: '+best.toLocaleString('es-AR')+' PTS · ':'')+'4 COMPETIDORES · 3 VIDAS · 76 SEGUNDOS';
  if(hasRoom)$('onlineLink').textContent='SALA '+roomCode+' · VER ESTADO';
- function notify(message){$('status').textContent=message;$('message').textContent=message}
+ function notify(message){
+  $('status').textContent=message;
+  // Avoid duplicated giant messages over the actual scene.
+  if(status==='running')$('message').textContent=message;
+ }
  function fx(text,bad=false){
   const n=$('fx');n.textContent=text;n.style.color=bad?'#ff8daa':'#bdfff1';
   n.classList.remove('show');void n.offsetWidth;n.classList.add('show');
@@ -72,6 +79,13 @@
   const label=game.signal==='red'&&game.state==='playing'&&game.signalTime<game.warning?
     '¡FRENÁ! · TIEMPO DE REACCIÓN':game.comment;
   if(running)$('message').textContent=label;
+  const hint=$('gestureHint');
+  if(hint){
+   hint.hidden=!running||demo||mode!=='motion'||game.raceTime>13||motion.strides>=3;
+   if(!hint.hidden)hint.textContent=game.signal==='red'?
+      '🔴 ¡QUIETO! · NO MUEVAS EL CELULAR':
+      '↔ EN VERDE: ACERCÁ EL CELULAR 8 CM Y VOLVÉ (SIN CAMINAR)';
+  }
  }
  function renderEvents(){
   for(const ev of game.events){
@@ -161,6 +175,7 @@
   $('calPanel').style.display='block';$('calTitle').textContent='📍 MANTENÉ EL TELÉFONO QUIETO · 1 S';
   $('calFill').style.width='0%';
   $('startRace').disabled=true;
+  $('status').style.display='block';
  }
  function calibrate(t,pos){
   if(!sampling||demo)return;
@@ -176,9 +191,12 @@
    const x=samples.reduce((a,b)=>a+b.x,0)/samples.length,
      z=samples.reduce((a,b)=>a+b.z,0)/samples.length;
    reference={x,z};filtered={x,z};trackLast={x,z};sampling=false;calibrated=true;game.paused=false;
+   motion.reset(reference,t);
    $('calTitle').textContent='✅ ¡LISTO! · TU CENTRO ESTÁ FIJO';$('calFill').style.width='100%';
    $('startRace').disabled=!!(hasRoom&&online?.room?.status!=='playing');
-   notify('✅ LISTO · AVANZÁ CON ▲ O EMPUJES CORTOS DEL TELÉFONO');
+   notify('✓ LISTO · EN VERDE ACERCÁ Y ALEJÁ EL CELULAR UN POCO, EN ROJO CONGELATE');
+   setTimeout(()=>{if(calibrated&&!sampling)$('calPanel').style.display='none'},650);
+   if(online)onlineShow();
    sound(1000,.23);vibrate(50);
   }
  }
@@ -214,40 +232,29 @@
   if(!running||game.signal!=='amber'||game.signalTime>.66||rewardedRound===game.round||lastGreenMove<.25)return;
   rewardedRound=game.round;G.react(game,game.signalTime<.42?'perfect':'good');renderEvents();
  }
- function controls(dt,pos){
+ function controls(dt,pos,at=0){
   const p=game.players[0],fwd=buttons.forward||keys.has('ArrowUp')||keys.has('w')||keys.has(' ');
   let forward=fwd?1:0,lat=Number(buttons.right||keys.has('ArrowRight')||keys.has('d'))-
                           Number(buttons.left||keys.has('ArrowLeft')||keys.has('a'));
-  let motion=0;
-  if(!demo&&mode==='hybrid'&&calibrated&&pos&&reference){
-   if(trackLast){
-    const dx=pos.x-trackLast.x,dz=pos.z-trackLast.z;
-    if(Math.hypot(dx,dz)>.38){
-     // XR relocalization jump is NOT a player action.
-     reference.x+=dx;reference.z+=dz;redAnchor=null;
-    }else{
-     const lerp=1-Math.exp(-dt/.14);
-     if(!filtered)filtered={...pos};
-     filtered.x+=(pos.x-filtered.x)*lerp;
-     filtered.z+=(pos.z-filtered.z)*lerp;
-     const zDelta=filtered.z-(trackLast.filteredZ??filtered.z);
-     if(game.signal==='green')forward=Math.max(forward,clamp((zDelta-.001)/Math.max(.012,dt*.18),0,1));
-     // Lateral is deliberately small: safe within arm's reach, not walking.
-     lat=clamp(lat+(filtered.x-reference.x)*1.4,-1,1);
-     if(game.signal==='red'&&game.signalTime>game.warning){
-      if(!redAnchor)redAnchor={...filtered};
-      const redDistance=Math.hypot(filtered.x-redAnchor.x,filtered.z-redAnchor.z);
-      motion=redDistance>.085?.24:0; // >8.5cm after .74s grace
-     }
-    }
-   }
-   trackLast={...pos,filteredZ:filtered?.z??pos.z};
+  let motionRed=0;
+  if(!demo&&mode==='motion'&&calibrated){
+   const phase=game.state==='playing'?game.signal:'idle';
+   const m=motion.update(pos,at,phase,game.signalTime,game.warning||game.cfg.grace);
+   if(m.tracked){
+    forward=m.forward;
+    // World-locked phone X offsets steer the avatar, not foot tracking.
+    lat=clamp((m.lane-p.lane)*4,-1,1);
+    motionRed=m.motion;
+    if(m.stride){sound(460,.075);vibrate(16)}
+    if(phase==='amber'&&m.stable)award();
+   }else{forward=0;lat=0}
   }
   if(game.signal==='green'&&forward>.11)lastGreenMove+=dt*forward;
-  if(game.signal==='amber'&&!fwd)award();
-  G.input(game,{forward,lateral:lat,motion});
+  if((demo||mode==='buttons')&&game.signal==='amber'&&!fwd)award();
+  G.input(game,{forward,lateral:lat,motion:motionRed});
   return p;
  }
+
  function begin(){
   if(status!=='fixed'&&status!=='finished')return;
   if(!demo&&!calibrated){notify('📍 CALIBRACIÓN INCOMPLETA · MANTENÉ EL CELULAR QUIETO');return}
@@ -256,14 +263,16 @@
   }
   const preserved=reference;
   game=make();reference=preserved;G.start(game);lastEvent=0;
+  if(!demo)motion.start(trackLast||reference,performance.now());
   rewardedRound=-1;lastGreenMove=0;redAnchor=null;
   status='running';running=true;
   $('result').style.display='none';$('startRace').style.display='none';
   $('calPanel').style.display='none';$('overlay').classList.add('sf-running','sf-fixed');
-  $('movePad').style.display='flex';$('signalBadge').style.display='block';
+  $('movePad').style.display=demo||mode==='buttons'?'flex':'none';$('signalBadge').style.display='block';
   $('actionbar').style.display='flex';$('toggleControls').style.display=demo?'none':'block';
   $('status').style.display='none';if(online)$('onlinePanel').style.display='none';
-  notify('🎮 VERDE AVANZAR · AMARILLO SOLTAR · ROJO QUIETO');
+  $('toggleControls').textContent=demo?'🎮 DEMO':mode==='motion'?'🎮 BOTONES':'🚶 MOVIMIENTO';
+  if(!demo)notify('🟢 IMPULSOS SUAVES · 🟡 FRENÁ · 🔴 QUIETO');
   hud();sound(780,.35);renderEvents();
   nextBeat=0;if(online)onlineActive=true;
  }
@@ -302,7 +311,7 @@
   const c=$('demoCanvas'),dpr=Math.min(devicePixelRatio||1,2);
   const w=innerWidth,h=innerHeight;
   if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr)}
-  if(running){controls(dt,null);syncedTick(dt);renderEvents();musicTick(t);if(t-lastHUD>130){hud();lastHUD=t}}
+  if(running){controls(dt,null,t);syncedTick(dt);renderEvents();musicTick(t);if(t-lastHUD>130){hud();lastHUD=t}}
   try{A.drawDemo(demoCtx,w,h,game,t)}catch(e){console.warn('Arte demo:',e)}
   requestAnimationFrame(demoFrame);
  }
@@ -312,6 +321,7 @@
   try{
    const W=typeof buildWorld==='function'?buildWorld():null;if(!W)return;
    const pos=posePosition(frame,W);
+   if(pos)trackLast={...pos};
    if(sampling)calibrate(t,pos);
    if(running){
     if(pos)lastTrack=t;
@@ -319,7 +329,7 @@
      notify('📡 SEGUIMIENTO PERDIDO · SOSTENÉ QUIETO EL TELÉFONO');
      G.input(game,{}); // prevents a false red-light penalty
     }else{
-     controls(dt,pos);syncedTick(dt);renderEvents();musicTick(t);
+     controls(dt,pos,t);syncedTick(dt);renderEvents();musicTick(t);
     }
    }
    if(t-lastHUD>125){lastHUD=t;hud()}
@@ -348,9 +358,15 @@
  $('startRace').onclick=()=>{sound(820);begin()};
  $('recenter').onclick=()=>{if(!demo&&['fixed','running'].includes(status)){running&&fx('🎯 RECENTRANDO');startSampling()}};
  $('toggleControls').onclick=()=>{
-  mode=mode==='hybrid'?'buttons':'hybrid';
-  $('toggleControls').textContent=mode==='hybrid'?'📱 GESTOS + BOTONES':'🎮 SOLO BOTONES';
-  notify(mode==='hybrid'?'GESTOS DEL TELÉFONO + CONTROLES ACTIVOS':'SOLO CONTROLES TÁCTILES · SIN PENALIZAR EL TELÉFONO');
+  mode=mode==='motion'?'buttons':'motion';
+  buttons={forward:false,left:false,right:false};
+  G.input(game,{});
+  if(mode==='motion')motion.start(trackLast||reference,performance.now());
+  $('toggleControls').textContent=mode==='motion'?'🎮 BOTONES':'🚶 MOVIMIENTO';
+  $('movePad').style.display=running&&mode==='buttons'?'flex':'none';
+  if(!running)notify(mode==='motion'?'MODO MOVIMIENTO · SIN BOTONES':'MODO BOTONES · OPCIONAL');
+  hud();
+  sound(690,.1);
  };
  $('lock').addEventListener('click',()=>setTimeout(()=>{
   if(typeof stage!=='undefined'&&stage==='fixed'&&!demo)fixed();
@@ -366,6 +382,7 @@
   $('overlay').classList.remove('sf-running');
   $('actionbar').style.display='flex';$('status').style.display='block';
   if(demo){$('startRace').disabled=false;$('movePad').style.display='none'}
+  else $('movePad').style.display='none';
   notify('¡REVANCHA! · ¡ESTE SEMÁFORO NO PERDONA!');hud();
  };
  $('shareResult').onclick=async()=>{

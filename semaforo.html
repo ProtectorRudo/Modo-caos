@@ -70,7 +70,15 @@ h1 span{display:block;color:var(--mint)}
 #onlinePanel{display:none;background:#0c2b41d9;border:1px solid #408b9c;border-radius:12px;padding:9px;text-align:center;font-size:11px}
 #onlinePanel button{min-height:38px;font-size:10px}
 #debug{display:none;font-size:10px;white-space:pre-wrap;padding:10px;border-radius:12px;background:#061c32e8}
-#play{display:none!important}/* Shared engine's original game button never appears here. */
+#play{display:none!important}/* The inherited Color Rush controls aren't part of Semáforo. */
+.sf-fixed #mainbuttons,.sf-fixed #toolbar{display:none!important}
+.sf-running #actionbar{justify-content:flex-end;gap:5px}
+.sf-running #actionbar button{flex:0 0 auto;min-height:34px;padding:7px 10px;font-size:10px;border-radius:12px;background:#0b2f45dd;color:#e9fff9;border:1px solid #3f8491}
+#gestureHint{display:none;text-align:center;font-size:11px;font-weight:900;letter-spacing:.2px;padding:8px;border:1px solid #4ccab2;border-radius:11px;color:#cbfff2;background:#071e34c9;pointer-events:none}
+.sf-running #gestureHint{display:block}
+.sf-running #gestureHint[hidden]{display:none!important}
+#toggleControls{white-space:nowrap}
+
 #notice,#mock,#support{display:none}
 @keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}90%{opacity:1}100%{transform:translateY(115vh) rotate(var(--spin,480deg));opacity:0}}
 #confettiLayer{position:absolute;inset:0;z-index:37;pointer-events:none;overflow:hidden}
@@ -102,7 +110,7 @@ h1 span{display:block;color:var(--mint)}
   <button id="demo">🎮 JUGAR DEMO 2D</button>
   <a id="onlineLink" class="secondary" href="/salas.html?game=semaforo-traicionero">👥 SALAS 2–4 · PRUEBA ONLINE</a>
  </div>
- <p id="precheck">Jugá con espacio despejado, sin correr ni saltar. WebXR sigue al teléfono, no tus pies. También podés avanzar con los controles en pantalla.</p>
+ <p id="precheck">¡Ahora VOS sos el control! Sin caminar: acercá y alejá el celular unos centímetros para avanzar en verde. En rojo, quedate quieto. WebXR sigue el teléfono, no los pies. Botones disponibles como alternativa.</p>
 </div>
 <div id="overlay">
  <canvas id="demoCanvas"></canvas>
@@ -116,12 +124,12 @@ h1 span{display:block;color:var(--mint)}
  <div id="signalBadge">🟢 VERDE</div><div id="message"></div><div id="youArrow">◈ VOS POR ACÁ</div><div id="fx"></div>
  <div id="bottom">
   <div id="onlinePanel"><span id="onlineStatus">Conectando sala…</span> <button id="onlineReady" class="secondary">✓ LISTO</button> <button id="onlineStart">▶ INICIAR SALA</button></div>
-  <div id="status">FIJÁ LA PISTA PARA EMPEZAR</div>
+  <div id="status">FIJÁ LA PISTA PARA EMPEZAR</div><div id="gestureHint" hidden>↔ AVANZÁ ACERCANDO Y ALEJANDO EL CELULAR UNOS CENTÍMETROS</div>
   <div id="calPanel"><span id="calTitle">CALIBRANDO CELULAR…</span><div id="calBar"><div id="calFill"></div></div></div>
   <div id="debug"></div>
   <div id="toolbar"><button id="minus" class="secondary">−</button><button id="size" disabled>45 cm</button><button id="plus" class="secondary">+</button><button id="rotate" class="secondary">↻ GIRAR</button></div>
   <div id="mainbuttons"><button id="lock" disabled>📍 FIJAR PISTA</button><button id="play" style="display:none">EMPEZAR</button><button id="edit" style="display:none" class="secondary">REUBICAR</button></div>
-  <div id="actionbar"><button id="recenter" class="secondary">🎯 RECENTRAR</button><button id="startRace">▶ ¡A JUGAR!</button><button id="toggleControls" class="secondary">📱 GESTOS + BOTONES</button></div>
+  <div id="actionbar"><button id="recenter" class="secondary">🎯 RECENTRAR</button><button id="startRace">▶ ¡A JUGAR!</button><button id="toggleControls" class="secondary">🎮 BOTONES</button></div>
   <div id="progressTrack"><div id="progressFill"></div></div>
   <div id="movePad"><button id="left" aria-label="Mover a la izquierda">◀</button><button id="forward" aria-label="Avanzar">▲ AVANZAR</button><button id="right" aria-label="Mover a la derecha">▶</button></div>
  </div>
@@ -135,9 +143,10 @@ h1 span{display:block;color:var(--mint)}
 </div>
 <div id="notice"></div><div id="mock"></div><button id="support" hidden></button>
 <script defer src="/engine.js?v=sf1"></script>
-<script defer src="/semaforo-core.js?v=sf1"></script>
-<script defer src="/semaforo-art.js?v=sf1"></script>
+<script defer src="/semaforo-core.js?v=sf2"></script>
+<script defer src="/semaforo-motion.js?v=sf2"></script>
+<script defer src="/semaforo-art.js?v=sf2"></script>
 <script defer src="/mc-config.js?v=2"></script>
 <script defer src="/mc-rooms-client.js?v=2"></script>
-<script defer src="/semaforo-runtime.js?v=sf1"></script>
+<script defer src="/semaforo-runtime.js?v=sf2"></script>
 </body></html>
