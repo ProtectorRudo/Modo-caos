@@ -78,7 +78,7 @@ select{font-size:14px}
 <input id="nickname" placeholder="Tu apodo" maxlength="24" autocomplete="nickname">
 <div id="creator">
 <div class="field-row">
-<div><label for="gameChoice">Juego</label><select id="gameChoice"><option value="muro-rush">Muro Rush</option><option value="color-rush">Color Rush</option><option value="territorio-x">Territorio X</option><option value="ball-rush">Ball Rush</option></select></div>
+<div><label for="gameChoice">Juego</label><select id="gameChoice"><option value="semaforo-traicionero">Semáforo Traicionero (beta online)</option><option value="muro-rush">Muro Rush</option><option value="color-rush">Color Rush</option><option value="territorio-x">Territorio X</option><option value="ball-rush">Ball Rush</option></select></div>
 <div><label for="seats">Participantes</label><select id="seats"><option value="2">2 personas</option><option value="3">3 personas</option><option value="4">4 personas</option></select></div>
 </div>
 <button class="action-wide" id="create">CREAR MI SALA <span aria-hidden="true">→</span></button>
@@ -99,11 +99,11 @@ select{font-size:14px}
 <button id="readyButton" type="button">✓ ESTOY LISTO</button>
 <button id="startButton" type="button" class="hidden">▶ INICIAR TODOS JUNTOS</button>
 <button id="finishButton" type="button" class="outline hidden">FINALIZAR SALA</button>
-<button id="pulseButton" type="button" class="outline">⚡ PROBAR CONEXIÓN ENTRE CELULARES</button>
+<button id="goGame" type="button" class="outline hidden">🚦 ABRIR SEMÁFORO Y CALIBRAR</button>\n<button id="pulseButton" type="button" class="outline">⚡ PROBAR CONEXIÓN ENTRE CELULARES</button>
 <button id="leaveButton" type="button" class="subtle">Salir de la sala</button>
 </div>
 <div id="pulseSignal">La prueba de conexión mostrará aquí las señales recibidas del otro celular.</div>
-<p class="rule"><strong>Etapa de infraestructura:</strong> esta pantalla comprueba la sala, el estado de los jugadores y Realtime. El juego AR todavía no utiliza esta sala para sincronizar sus colisiones ni puntuaciones.</p>
+<p class="rule"><strong>Etapa de infraestructura:</strong> esta pantalla comprueba la sala, el estado de los jugadores y Realtime. Semáforo Traicionero cuenta con una conexión beta para presencia y posiciones entre participantes; los resultados no están validados por un servidor ni probados aún con dos celulares.</p>
 </section>
 <p class="note">Esta plataforma comparte la infraestructura de Supabase con Viralio, pero utiliza su propio espacio de datos. No ingreses información sensible en el apodo. Cada dispositivo calibra su AR por separado.</p>
 </main>
