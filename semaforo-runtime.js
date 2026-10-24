@@ -146,7 +146,7 @@
  }
  function startSampling(){
   if(demo||status==='home')return;
-  if(running){G.input(game,{});buttons.forward=false}
+  if(running){G.input(game,{});game.paused=true;buttons.forward=false}
   sampling=true;calibrated=false;samples=[];sampleAt=0;filtered=null;reference=null;
   $('calPanel').style.display='block';$('calTitle').textContent='📍 MANTENÉ EL TELÉFONO QUIETO · 1 S';
   $('calFill').style.width='0%';
@@ -165,7 +165,7 @@
   if(t-sampleAt>1050&&samples.length>=12){
    const x=samples.reduce((a,b)=>a+b.x,0)/samples.length,
      z=samples.reduce((a,b)=>a+b.z,0)/samples.length;
-   reference={x,z};filtered={x,z};trackLast={x,z};sampling=false;calibrated=true;
+   reference={x,z};filtered={x,z};trackLast={x,z};sampling=false;calibrated=true;game.paused=false;
    $('calTitle').textContent='✅ ¡LISTO! · TU CENTRO ESTÁ FIJO';$('calFill').style.width='100%';
    $('startRace').disabled=!!(hasRoom&&online?.room?.status!=='playing');
    notify('✅ LISTO · AVANZÁ CON ▲ O EMPUJES CORTOS DEL TELÉFONO');
