@@ -8,6 +8,7 @@ on:
       - 'index.html'
       - 'engine.js'
       - 'tests/ola.test.cjs'
+      - 'tests/ola-browser.test.cjs'
       - '.github/workflows/ola-tests.yml'
   workflow_dispatch:
 permissions:
@@ -34,3 +35,18 @@ jobs:
           node tests/meteoros.test.cjs
           node tests/rodeados.test.cjs
           node tests/rodeados-bomb.test.cjs
+
+  browser:
+    name: Ola Roja · Chromium Android 2D
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Instalar navegador de pruebas
+        run: |
+          npm install --ignore-scripts --no-save playwright@1.56.0
+          npx playwright install --with-deps chromium
+      - name: Ejercitar juego real en navegador
+        run: node tests/ola-browser.test.cjs
