@@ -26,9 +26,9 @@ test('all 8 sectors can spawn across games without appearing inside player',()=>
 });
 test('ray misses and hits only actual active robots',()=>{
  const g=G.create({seed:2});g.enemies=[mkEnemy()];
- assert.equal(G.rayHit(g,ray).id,1);
- assert.equal(G.rayHit(g,{origin:ray.origin,direction:{x:1,y:0,z:0}}),null);
- g.enemies[0].portal=.6;assert.equal(G.rayHit(g,ray),null);
+ assert.equal(G.rayHit(g,ray.origin,ray.direction).id,1);
+ assert.equal(G.rayHit(g,ray.origin,{x:1,y:0,z:0}),null);
+ g.enemies[0].portal=.6;assert.equal(G.rayHit(g,ray.origin,ray.direction),null);
 });
 test('headshot deals extra damage and awards combo, kill and points',()=>{
  const g=G.create({seed:2});G.begin(g);g.enemies=[mkEnemy()];
