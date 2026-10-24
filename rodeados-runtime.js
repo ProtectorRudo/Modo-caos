@@ -22,7 +22,7 @@ let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null
 let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
 let trackingLostSince=0,pausedByTracking=false,limitedTrackingSince=0,initialBotsSpawned=false,openingEyePosition=null;let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
-let sounds=true,vibration=true,ctx=null,lastLaugh=0,fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
+let sounds=true,vibration=true,ctx=null,lastLaugh=0,lastBlastSignal='',fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
 let online=null,onlineBusy=false,onlineRoomCode=new URLSearchParams(location.search).get('room')?.toUpperCase()||'',roomTimer=0;
 const pointer=new Map();let lastPinch=null;
 const THREEVec=(x,y,z)=>new THREE.Vector3(x,y,z);
@@ -44,12 +44,14 @@ function audio(type='shot',position=null){
   if(ctx.state==='suspended')ctx.resume();
   const time=ctx.currentTime,o=ctx.createOscillator(),env=ctx.createGain();
   let f=380,d=.12,vol=.09,wave='sawtooth',end=.34;
-  if(type==='shot'){f=225;d=.18;vol=.14;end=.18}
-  if(type==='hit'){f=760;d=.09;vol=.08;wave='square';end=.40}
+  if(type==='shot'){f=165;d=.16;vol=.18;end=.16}
+  if(type==='hit'){f=590;d=.11;vol=.13;wave='square';end=.22}
   if(type==='reload'){f=490;d=.27;vol=.055;wave='triangle';end=.70}
   if(type==='danger'){f=450;d=.24;vol=.11;wave='triangle';end=.60}
   if(type==='laugh'){f=270;d=.30;vol=.085;end=1.8;wave='triangle'}
   if(type==='finish'){f=660;d=.6;vol=.10;end=.36}
+  if(type==='blast'){f=105;d=.57;vol=.30;wave='sawtooth';end=.30}
+  if(type==='throw'){f=380;d=.17;vol=.09;wave='triangle';end=.55}
   o.type=wave;o.frequency.setValueAtTime(f,time);o.frequency.exponentialRampToValueAtTime(Math.max(50,f*end),time+d);
   env.gain.setValueAtTime(.001,time);env.gain.exponentialRampToValueAtTime(vol,time+.012);env.gain.exponentialRampToValueAtTime(.001,time+d+.02);
   o.connect(env);
@@ -58,6 +60,19 @@ function audio(type='shot',position=null){
    pan.pan.value=clamp(Math.sin(dir),-1,1);env.connect(pan);pan.connect(ctx.destination);
   }else env.connect(ctx.destination);
   o.start(time);o.stop(time+d+.03);
+  // A noise transient plus falling bass supplies weight missing from a
+  // bare toy-like sine wave. Offline buffer; no assets/network required.
+  if(type==='shot'||type==='hit'||type==='blast'){
+   const length=Math.max(256,Math.round(ctx.sampleRate*(type==='blast'?.33:.105)));
+   const buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
+   for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(1-i/length);
+   const noise=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();
+   noise.buffer=buffer;filter.type='lowpass';filter.frequency.value=type==='blast'?640:1800;
+   gain.gain.setValueAtTime(type==='blast'?.18:.12,time);
+   gain.gain.exponentialRampToValueAtTime(.001,time+length/ctx.sampleRate);
+   noise.connect(filter);filter.connect(gain);gain.connect(ctx.destination);
+   noise.start(time);noise.stop(time+length/ctx.sampleRate);
+  }
  }catch(e){/* Audio is optional, gameplay stays available. */}
 }
 function relativeAngle(p){
@@ -147,7 +162,7 @@ function setupGame(keepCalibration=false){
  const keepArena=floorSize;
  game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
- fxShown.clear();initialBotsSpawned=false;openingEyePosition=null;latestAim=null;lastAimStamp=0;lastShotStatus='';pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
+ fxShown.clear();lastBlastSignal='';initialBotsSpawned=false;openingEyePosition=null;latestAim=null;lastAimStamp=0;lastShotStatus='';pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
  updateHud(true);
 }
