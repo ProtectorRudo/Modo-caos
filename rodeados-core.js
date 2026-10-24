@@ -80,6 +80,20 @@
   const bound=g.arena/2-.08;
   g.player.x=clamp(p.x,-bound,bound);g.player.z=clamp(p.z,-bound,bound);return true;
  }
+ function markFloorDamage(g,x,z,radius,amount){
+  // Virtual cosmetic wear only: stays locked to the 5x5 AR board.
+  if(![x,z,radius,amount].every(Number.isFinite)||amount<=0)return 0;
+  const pitch=g.arena/5;let changed=0;
+  for(let i=0;i<25;i++){
+   const cx=(i%5-2)*pitch,cz=(Math.floor(i/5)-2)*pitch;
+   const dist=Math.hypot(cx-x,cz-z),reach=Math.max(.01,radius)+pitch*.35;
+   if(dist>reach)continue;
+   const old=g.floorDamage[i];
+   g.floorDamage[i]=Math.round(Math.min(1,old+Math.max(.12,1-dist/reach)*amount)*1000)/1000;
+   if(g.floorDamage[i]>old){g.floorHeat[i]=g.elapsed;changed++}
+  }
+  return changed;
+ }
  function advance(g,dt){
   if(g.phase!=='playing'||g.paused)return g;
   dt=clamp(Number(dt)||0,0,.07);if(dt<=0)return g;
@@ -213,7 +227,12 @@
   const damage=(h.part==='head'?2:1)+(weak&&h.part==='head'?1:0);
   e.hp=Math.max(0,e.hp-damage);e.stun=Math.max(e.stun,.20);
   e.lastHit=.30;g.hits++;g.combo++;g.bestCombo=Math.max(g.bestCombo,g.combo);
-  const gained=25+(h.part==='head'?70:25)+(e.hp===0?TYPES[e.type].value:0);
+  const head=h.part==='head',lethal=e.hp===0;
+  if(head){g.headshots++;g.headshotStreak++;g.bestHeadshotStreak=Math.max(g.bestHeadshotStreak,g.headshotStreak)}
+  else g.headshotStreak=0;
+  // Skill rewards: head >> torso > legs; lethal headshots and triples earn extra.
+  const precision=head?165:h.part==='legs'?35:55;
+  const gained=precision+(lethal?TYPES[e.type].value:0)+(head&&lethal?90:0)+(head&&g.headshotStreak%3===0?75:0);
   const pts=Math.round(gained*(1+Math.min(3,g.combo/9))*(g.mode==='reflex'?1.2:1));
   g.score+=pts;g.scores[String(shooter||'vos')]=(g.scores[String(shooter||'vos')]||0)+pts;
   g.fx.push({type:'hit',id:e.id,x:e.x,y:e.height*.75,z:e.z,t:g.elapsed,head:h.part==='head',points:pts,streak:g.headshotStreak});
