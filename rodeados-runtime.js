@@ -173,9 +173,7 @@ function updateHud(force=false){
  $('wave').textContent=game.wave||1;
  $('clock').textContent=Number.isFinite(game.duration)?Math.max(0,Math.ceil(game.duration-game.elapsed)):'∞';
  $('healthFill').style.width=Math.max(0,game.lives)+'%';
- const magazine=online&&!online.isHost?game.peerWeapons?.[online.id]:null;
- $('ammo').textContent=(magazine?.reload??game.reload)>0?'RECARGANDO...':(magazine?.ammo??game.ammo)+' / '+game.mag;
- $('reload').disabled=(magazine?.reload??game.reload)>0||(magazine?.ammo??game.ammo)===game.mag;
+ $('ammo').textContent='∞  MUNICIÓN';
  $('special').disabled=game.skillCooldown>0;
  $('special').textContent=game.skillCooldown>0?'EMP '+Math.ceil(game.skillCooldown)+'s':'⚡ EMP';
  $('bomb').disabled=game.bombCharges<=0;
@@ -506,8 +504,7 @@ function pause(){
 let lastXRFrame=null,lastShot=0,shotSeq=0;
 async function shoot(){
  if(stage!=='playing'||game.paused||performance.now()-lastShot<175)return;
- if((online&&!online.isHost?(game.peerWeapons[online.id]?.ammo??28):game.ammo)<=0){reload();return}
- const ray=activeRay();
+const ray=activeRay();
  if(!ray){
   lastShotStatus='SIN MIRA XR';
   notice('🎯 RECUPERANDO MIRA · MOVÉ LENTAMENTE EL CELULAR',1.6);
@@ -542,8 +539,7 @@ async function shoot(){
  }}
  if(online)sendSnapshot(true);
 }
-function reload(){if(stage!=='playing')return;if(online&&!online.isHost){online.conn?.sendGameEvent({kind:'reload',seq:++shotSeq}).catch(()=>{});return}
- if(G.reload(game)){audio('reload');notice('↻ RECARGANDO',1);if(online)sendSnapshot(true)}}
+function reload(){/* Sin cargadores: arma de energía infinita. */}
 function bombCaos(){
  if(stage!=='playing'||game.paused)return;
  if(game.bombCharges<=0){notice('💣 BOMBA CARGANDO · '+Math.ceil(game.bombCooldown)+'s',1.2);return}
@@ -571,7 +567,7 @@ function special(){if(stage!=='playing')return;
 function snapshot(){
  return {kind:'state',stamp:++online.seq,seed:game.seed,mode:game.mode,arena:game.arena,
   at:game.elapsed,hp:Math.round(game.lives*10)/10,wave:game.wave,score:game.score,
-  ammo:game.ammo,reload:+game.reload.toFixed(2),special:+game.skillCooldown.toFixed(1),
+  ammo:game.ammo,reload:0,infiniteAmmo:true,special:+game.skillCooldown.toFixed(1),
   bomb:[game.bombCharges,+game.bombCooldown.toFixed(2),game.bombKillsAt,game.bombsUsed,game.bombHits],
   pendingBombs:game.bombs.map(b=>[+b.x.toFixed(2),+b.z.toFixed(2),+b.fromX.toFixed(2),+b.fromZ.toFixed(2),+b.fuse.toFixed(2)]),
   bombBlast:game.fx.filter(f=>f.type==='bombBlast').slice(-1).map(f=>[f.x,f.z,f.radius,f.hits,f.kills,f.points,f.t]),
@@ -592,7 +588,7 @@ function applySnapshot(data){
  if(data.seed!==game.seed||data.mode!==game.mode)game=G.create({seed:data.seed,mode:data.mode,arena:data.arena,ownerId:online.room.hostUserId});
  game.elapsed=clamp(data.at,0,999999);game.lives=clamp(data.hp,0,100);game.wave=data.wave||1;
  game.score=Math.max(0,data.score||0);game.ammo=clamp(data.ammo||0,0,28);
- game.reload=data.reload||0;game.skillCooldown=data.special||0;game.kills=data.kills||0;
+ game.reload=0;game.ammo=game.mag;game.infiniteAmmo=true;game.skillCooldown=data.special||0;game.kills=data.kills||0;
  if(Array.isArray(data.bomb)&&data.bomb.length===5&&data.bomb.every(Number.isFinite)){
   game.bombCharges=clamp(data.bomb[0],0,1);game.bombCooldown=clamp(data.bomb[1],0,32);
   game.bombKillsAt=data.bomb[2];game.bombsUsed=data.bomb[3];game.bombHits=data.bomb[4];
@@ -612,7 +608,7 @@ function applySnapshot(data){
   game.peerWeapons=Object.create(null);
   for(const p of data.peers){
    if(!Array.isArray(p)||p.length!==3||typeof p[0]!=='string'||!(/^[0-9a-f-]{36}$/i.test(p[0]))||!Number.isFinite(p[1])||!Number.isFinite(p[2]))continue;
-   game.peerWeapons[p[0]]={ammo:clamp(p[1],0,game.mag),reload:clamp(p[2],0,2),lastFire:-100};
+   game.peerWeapons[p[0]]={ammo:game.mag,reload:0,lastFire:-100};
   }
  }
  game.enemies=data.e.filter(a=>Array.isArray(a)&&a.length>=12&&G.TYPES[a[1]]&&a.slice(2).every(validNumberOrString))
@@ -639,7 +635,7 @@ function onOnlineEvent(payload){
   const p=ray.origin;if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!Number.isFinite(p.z))return;
   if(Math.abs(p.x)>game.arena||Math.abs(p.z)>game.arena||p.y<.7||p.y>2.4)return;
   G.fire(game,ray,peer);sendSnapshot(true);
- }else if(payload.kind==='reload'){G.reload(game,peer);sendSnapshot(true)}
+ }
  else if(payload.kind==='pulse'){G.pulse(game);sendSnapshot(true)}
  else if(payload.kind==='bomb'){
   const target=payload.target;
@@ -861,7 +857,7 @@ $('resume').onclick=pause;
   ev.preventDefault();ev.stopPropagation();shoot();
  });
  $('fire').addEventListener('click',ev=>{ev.preventDefault();shoot()});
-$('reload').onclick=reload;
+
 $('special').onclick=special;
 $('bomb').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();bombCaos()});
 $('bomb').addEventListener('click',e=>{e.preventDefault();bombCaos()});
