@@ -74,6 +74,7 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>{
    const b=document.getElementById('lock');return b&&!b.disabled&&getComputedStyle(b).display!=='none';
   },{timeout:7000});
+  await page.waitForFunction(()=>window.__meteorTestSnapshot?.()?.previewCenter,{timeout:7000});
   assert(await page.locator('#lock').isVisible(),'place-arena action visible');
   assert(await page.locator('#touchpad').isVisible(),'drag and pinch surface is interactive');
   assert(await page.locator('#toolbar').isVisible(),'size and rotate controls visible');
