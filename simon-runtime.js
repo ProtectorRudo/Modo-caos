@@ -3,7 +3,8 @@
 (function(){
 const $=id=>document.getElementById(id),C=window.SimonCore,els={};
 let g=null,art=null,mode='ar',picked=-1,calibrated=false,offset={x:0,z:0},samples=[],sampleStart=0;
-let phone={x:0,z:0},player={x:0,z:0,tile:-1},zone=-1,zoneAt=0,lastCommitted=-1,exitNeeded=false;
+let phone={x:0,z:0},player={x:0,z:0,tile:-1};
+let candidateTile=-1,candidateAt=0,readyTile=-1,confirmedTile=-1;
 let phaseAt=0,lastFrame=0,lastTracked=0,timers=new Set(),token=0,audioCtx=null,quiet=false,voice=true,volume=.45;
 let trackingWarned=false,stageBeforeCal='idle',wasPlaying=false,frameState=null,offlineRoom=false;
 const safeText=t=>String(t).replace(/[<>]/g,'');
@@ -60,7 +61,7 @@ function cancel(){token++;for(const t of timers)clearTimeout(t);timers.clear();i
 function sleep(ms){return new Promise(resolve=>{const id=setTimeout(()=>{timers.delete(id);resolve()},ms);timers.add(id)})}
 function setMode(newMode){ui('modeTitle',{mortal:'MEMORIA MORTAL',clasica:'SIMÓN CLÁSICO',panico:'RONDA DEL PÁNICO'}[newMode]);$('mode').value=newMode}
 function newGame(resetSeed=true){
- cancel();
+ cancel();candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;
  const params=new URLSearchParams(location.search);
  const today=new Date().toISOString().slice(0,10),daily=params.has('diario');
  const chosen=Number($('seed').value);
@@ -77,7 +78,24 @@ function drawUI(){
  ui('score',Math.round(g.score).toLocaleString('es-AR'));ui('round',String(g.round));
  ui('progress',g.index+'/'+g.sequence.length);ui('time',g.phase==='act'?String(Math.ceil(g.timeLeft)):'–');
  ui('lives',g.lives>0?'♥'.repeat(g.lives):'0');
- ui('position',mode==='ar'?(calibrated?(player.tile>=0?'📍 VOS · CELDA '+(player.tile+1):'📍 FUERA DE LA PISTA'):'📍 VOS · SIN CALIBRAR'):'🎮 MODO 2D · TOCÁ LAS BALDOSAS');
+ const cell=player.tile,located=calibrated&&cell>=0;
+ const color=located?C.COLORS[g.colorMap[cell]].name:'';
+ ui('position',mode==='ar'?(calibrated?(located?'📍 VOS · CELDA '+(cell+1)+' · '+color:'📍 VOS · FUERA DEL CENTRO'):'📍 VOS · SIN CALIBRAR'):'🎮 MODO 2D · TOCÁ LAS BALDOSAS');
+ const isPlayingAR=mode==='ar'&&g.phase==='act'&&calibrated;
+ show('confirmRow',isPlayingAR);
+ if(isPlayingAR){
+  const fresh=performance.now()-lastTracked<800,locked=readyTile>=0&&readyTile===confirmedTile;
+  const canConfirm=!g.paused&&fresh&&readyTile>=0&&!locked;
+  const button=$('confirmCell');
+  button.disabled=!canConfirm;
+  $('confirmRow').classList.toggle('ready',canConfirm);
+  if(g.paused){ui('confirmCell','Ⅱ PARTIDA EN PAUSA');ui('confirmHelp','Reanudá antes de confirmar.')}
+  else if(!fresh){ui('confirmCell','📡 RECUPERANDO POSICIÓN');ui('confirmHelp','Enfocá de nuevo el piso.')}
+  else if(locked){ui('confirmCell','✓ CELDA '+(confirmedTile+1)+' REGISTRADA');ui('confirmHelp','Andá al centro de otra celda para seguir.')}
+  else if(canConfirm){ui('confirmCell','✓ CONFIRMAR CELDA '+(readyTile+1));ui('confirmHelp',C.COLORS[g.colorMap[readyTile]].name+' · tocá una vez para registrar este paso.')}
+  else if(candidateTile>=0){ui('confirmCell','◌ CENTRÁ CELDA '+(candidateTile+1));ui('confirmHelp','Quedate quieto un instante para habilitar el botón.')}
+  else{ui('confirmCell','📍 BUSCÁ EL CENTRO');ui('confirmHelp','Movete despacio a la baldosa elegida.')}
+ }
  show('pauseBtn',g.phase==='act'||g.paused);
  $('pauseBtn').textContent=g.paused?'▶ REANUDAR':'Ⅱ PAUSA';
  if(g.phase==='show')ui('phase','MIRÁ BIEN');else if(g.phase==='act')ui('phase','¡AHORA VOS!');else if(g.phase==='finished')ui('phase','FIN DEL DESAFÍO');else ui('phase','SIMÓN TRAICIONERO');
@@ -117,7 +135,7 @@ function startMatch(){
  C.begin(g);playSequence();drawUI();
 }
 async function playSequence(){
- cancel();const mine=token;
+ cancel();candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;const mine=token;
  sequenceGuide('watch',0,-1);
  hint('👀 MIRÁ LAS BALDOSAS QUE BRILLAN',g.round===1?'Se encenderán UNA POR VEZ. Recordá el orden.':g.rule);
  speak(g.round===1?'Mirá el orden':g.trap?'Atención a la trampa':'Mirá');
@@ -144,8 +162,9 @@ async function playSequence(){
  if(g.trap==='identidad'){hint('¡CAMBIARON DE LUGAR!','Seguí el COLOR, aunque esté en otra celda.');await sleep(1200)}
  if(mine!==token)return;
  C.arm(g);renderGrid();sequenceGuide('turn',1);
- hint('🎯 ¡TU TURNO!',g.trap==='inversa'?'ORDEN INVERSO · DEL ÚLTIMO AL PRIMERO':mode==='demo'?'Tocá las baldosas en el mismo orden.':'Andá al centro de cada baldosa en el mismo orden.');
- speak('Ahora vos');phaseAt=performance.now();zone=-1;zoneAt=0;lastCommitted=player.tile;exitNeeded=true;
+ hint('🎯 ¡TU TURNO!',g.trap==='inversa'?'ORDEN INVERSO · DEL ÚLTIMO AL PRIMERO':mode==='demo'?'Tocá las baldosas en el mismo orden.':'Andá al centro de cada baldosa y tocá CONFIRMAR CELDA.');
+ speak('Ahora vos');phaseAt=performance.now();
+ candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;
  drawUI();decorate();
 }
 function finish(){
@@ -161,7 +180,7 @@ function finish(){
  if(best>past){beep(660,.45);vib([60,50,90])}else beep(180,.3,'wrong');
 }
 function commit(i){
- if(!g||g.phase!=='act'||g.paused)return;
+ if(!g||g.phase!=='act'||g.paused)return null;
  const out=C.input(g,i,performance.now());if(out.type==='ignored')return;
  if(out.type==='electric'){beep(180,.10,'wrong');hint('⚡ ELECTRIFICADA','Esperá a que se apague y volvé a entrar.');return}
  if(out.type==='correct'||out.type==='round'||out.type==='victory'){
@@ -171,17 +190,29 @@ function commit(i){
  else if(g.phase==='won')sequenceGuide('done');
  else sequenceGuide('off');
  drawUI();decorate();
- if(g.phase==='finished'){finish();return}
+ if(g.phase==='finished'){finish();return out}
  if(g.phase==='won'){
   const mine=token;const id=setTimeout(()=>{timers.delete(id);if(mine!==token||g.phase!=='won')return;C.next(g);playSequence()},1600);timers.add(id);
  }else if(g.phase==='retry'){
   const mine=token;const id=setTimeout(()=>{timers.delete(id);if(mine!==token||g.phase!=='retry')return;C.retry(g);playSequence()},1800);timers.add(id);
  }
+ return out;
+}
+// En AR cada paso exige un toque deliberado; caminar no confirma ningún acierto.
+function confirmCurrentCell(){
+ if(mode!=='ar'||!calibrated||!g||g.phase!=='act'||g.paused)return false;
+ if(performance.now()-lastTracked>=800||readyTile<0||readyTile===confirmedTile||!frameState)return false;
+ const pitch=frameState.ctx.boardSize,chosen=readyTile;
+ if(player.tile!==chosen||!C.isCentered(player.x,player.z,chosen,pitch,.32))return false;
+ const result=commit(chosen);
+ if(!result||result.type==='ignored'||result.type==='electric')return false;
+ confirmedTile=chosen;readyTile=-1;candidateTile=chosen;candidateAt=performance.now();drawUI();
+ return true;
 }
 function pickCell(i){
  if(mode!=='ar'||stage!=='fixed'&&stage!=='playing')return;
  if(g.phase==='act'&&!g.paused){g.paused=true;wasPlaying=true}
- picked=i;calibrated=false;sampleStart=0;samples=[];zone=-1;zoneAt=0;lastCommitted=i;exitNeeded=true;
+ picked=i;calibrated=false;sampleStart=0;samples=[];candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;
  document.querySelectorAll('[data-pick]').forEach(b=>b.classList.toggle('selected',Number(b.dataset.pick)===i));
  hint('QUEDATE QUIETO UN SEGUNDO','Sostené el teléfono como lo llevarás durante la partida.');
  ui('calTitle','CALIBRANDO CELDA '+(i+1));show('calPanel',true);
@@ -201,6 +232,7 @@ function calibrate(time,frame,W,context){
  offset={x:(picked%3-1)*pitch-avg.x,z:(Math.floor(picked/3)-1)*pitch-avg.z};
  player={x:(picked%3-1)*pitch,z:(Math.floor(picked/3)-1)*pitch,tile:picked};
  phone={x:player.x,z:player.z};calibrated=true;lastTracked=time;trackingWarned=false;
+ candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;
  ui('calTitle','✓ LISTO · CELDA '+(picked+1));hint('¡LISTO!','Tu posición está calibrada. Caminá despacio para comprobarla.');
  show('calPanel',false);show('startGame',g.phase==='idle');show('recal',true);
  if(wasPlaying){g.paused=true;hint('CALIBRACIÓN RECUPERADA','Tocá REANUDAR para continuar.');show('pauseBtn',true)}
@@ -220,16 +252,14 @@ function track(time,frame,W,context){
  player={x:phone.x,z:phone.z,tile:C.positionFromPoint(phone.x,phone.z,pitch)};
  if(player.tile>=0&&!C.isCentered(phone.x,phone.z,player.tile,pitch,.43))player.tile=-1;
  lastTracked=time;
- if(g.phase!=='act'||g.paused)return;
- const next=player.tile>=0&&C.isCentered(player.x,player.z,player.tile,pitch,.28)?player.tile:-1;
- if(next!==zone){zone=next;zoneAt=time;if(next!==lastCommitted)exitNeeded=false;return}
- if(next<0){exitNeeded=false;return}
- if(next===lastCommitted&&exitNeeded)return;
- // Deliberate center dwell: suppress pass-through activations and camera tilts.
- if(time-zoneAt<630)return;
- if(Math.hypot(x-phone.x,z-phone.z)>pitch*.10)return;
- lastCommitted=next;exitNeeded=true;zoneAt=time+999999;
- commit(next);
+ if(g.phase!=='act'||g.paused){candidateTile=-1;readyTile=-1;return}
+ const next=player.tile>=0&&C.isCentered(phone.x,phone.z,player.tile,pitch,.32)?player.tile:-1;
+ if(next!==candidateTile){candidateTile=next;candidateAt=time;readyTile=-1;return}
+ if(next<0||next===confirmedTile){readyTile=-1;return}
+ if(time-candidateAt<340)return;
+ if(Math.hypot(x-phone.x,z-phone.z)>pitch*.15){readyTile=-1;candidateAt=time;return}
+ if(readyTile!==next){readyTile=next;vib(18)}
+
 }
 function onXR(time,frame,W,ctx){
  frameState={W,ctx};
@@ -255,9 +285,10 @@ function setup(){
  $('demo').addEventListener('click',()=>{beep(440,.06);mode='demo';newGame();show('home',false);show('overlay',true);show('grid',true,'grid');show('touchpad',false);show('toolbar',false);show('lock',false);show('edit',false);show('calibrate',false);show('startGame',true);show('position',true);show('how',true);hint('MODO 2D · SIN CAMINAR','Memorizá la secuencia y tocá las baldosas.');lastFrame=0;requestAnimationFrame(demoLoop)});
  $('enter').addEventListener('click',()=>{mode='ar';newGame();hint('BUSCÁ EL PISO','Apuntá a un espacio libre; luego ajustá y fijá la pista.')});
  $('lock').addEventListener('click',()=>{if(stage==='fixed'){show('calPanel',true);show('picker',true,'grid');hint('¿DÓNDE ESTÁS PARADO?','Elegí tu celda actual para calibrar.');ui('calTitle','TOCÁ LA CELDA EN LA QUE ESTÁS');}});
- $('edit').addEventListener('click',()=>{if(g.phase==='act')g.paused=true;calibrated=false;picked=-1;samples=[];show('calPanel',false);show('startGame',false);cancel();if(g.phase!=='idle')g.phase='idle'});
+ $('edit').addEventListener('click',()=>{if(g.phase==='act')g.paused=true;calibrated=false;picked=-1;samples=[];readyTile=-1;candidateTile=-1;show('calPanel',false);show('startGame',false);cancel();if(g.phase!=='idle')g.phase='idle'});
  $('startGame').addEventListener('click',startMatch);
- $('recal').addEventListener('click',()=>{if(mode!=='ar')return;wasPlaying=g.phase==='act';if(wasPlaying)g.paused=true;calibrated=false;picked=-1;sampleStart=0;show('calPanel',true);show('picker',true,'grid');ui('calTitle','MARCÁ TU CELDA ACTUAL');hint('RECALIBRAR','Marcá tu ubicación sin mover la pista ni perder puntos.');drawUI()});
+ $('confirmCell').addEventListener('click',confirmCurrentCell);
+ $('recal').addEventListener('click',()=>{if(mode!=='ar')return;wasPlaying=g.phase==='act';if(wasPlaying)g.paused=true;calibrated=false;picked=-1;sampleStart=0;readyTile=-1;candidateTile=-1;show('calPanel',true);show('picker',true,'grid');ui('calTitle','MARCÁ TU CELDA ACTUAL');hint('RECALIBRAR','Marcá tu ubicación sin mover la pista ni perder puntos.');drawUI()});
  $('pauseBtn').addEventListener('click',()=>{if(!calibrated&&mode==='ar')return;g.paused=!g.paused;hint(g.paused?'PAUSA':'¡SEGUIMOS!',g.paused?'Podés recuperar el aliento.':'¡Que no te engañe Simón!');drawUI()});
  $('retryBtn').addEventListener('click',()=>{const keep=mode;newGame();mode=keep;if(keep==='ar'){show('startGame',calibrated);show('calPanel',!calibrated);if(stage==='playing')setStage('fixed')}else{show('startGame',true);show('grid',true,'grid')}});
  $('shareBtn').addEventListener('click',async()=>{const st=C.stats(g),txt='🧠⚡ SIMÓN TRAICIONERO · '+st.score+' puntos · ronda '+st.round+' · '+st.accuracy+'% de precisión. ¿Me superás? '+location.origin+'/simon.html';if(navigator.share)try{await navigator.share({title:'Modo Caos',text:txt})}catch(e){}else if(navigator.clipboard)try{await navigator.clipboard.writeText(txt);hint('COPIADO','¡Mandale el reto a alguien!')}catch(e){}});
