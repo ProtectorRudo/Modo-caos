@@ -7,7 +7,7 @@
 (function(root){
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  const CONFIG=Object.freeze({
-  stroke:0.065,     // 6.5cm deliberate push towards the traffic light
+  stroke:0.060,     // 6cm deliberate push towards the traffic light
   return:0.046,     // retract 4.6cm before the next push
   redDeadzone:0.095,// 9.5cm jitter-safe stop zone
   sideDeadzone:0.028,
@@ -77,6 +77,7 @@
    if(phase==='green'){
     // Two-way arm motion allows running virtually without walking across the room.
     if(armed){
+     strokeBase=Math.min(strokeBase,smooth.z);
      if(smooth.z-strokeBase>=cfg.stroke&&at-lastStroke>=cfg.cooldown){
       lastStroke=at;peak=smooth.z;credit=cfg.strideSeconds;armed=false;
       o.stride=true;strikes++;
