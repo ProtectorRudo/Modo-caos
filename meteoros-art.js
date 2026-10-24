@@ -149,20 +149,31 @@ function create3D(gl){
    // First-person AR: no humanoid VOS — the person holding the camera IS the player.
    // Calibration marker is the picked 5x5 cell and then the tracked floor point.
    g.players.forEach((h,i)=>{
-    if(i===0||!h.alive)return;const walking=h.kind!=='human'&&h.dist>.03;
-    const bob=.012*Math.sin(now*12+i),sz=.095,x=h.x,z=h.z;
-    draw('disc',x,.044,z,.083,.002,.083,[0,.05,.09,.52]);
-    if(h.shield)draw('ring',x,.058,z,.137,.003,.137,colors.mint,.58);
-    const tint=i===0?colors.mint:i===1?colors.blue:i===2?colors.gold:colors.purple;
-    draw('box',x,.23+bob,z,.069,.094,.054,tint,.12);
-    draw('globe',x,.393+bob,z,.063,.067,.059,colors.white,.16);
-    draw('box',x,.39+bob,z+.056,.043,.013,.010,colors.dark,.45);
-    const limbShift=walking?Math.sin(now*12+i)*.025:Math.sin(now*6+i)*.014;
+    if(i===0||!h.alive)return;
+    // Lightweight differentiated meteor-hunter robots, with helmet visor, knee joints,
+    // shoulder shields and actual walking cycles; YO itself is NEVER a 3D avatar.
+    const x=h.x,z=h.z,walk=Math.sin(now*10+i*2.2),bob=Math.abs(walk)*.018;
+    const suit=[.035,.072,.14,1],panel=i===1?[.08,.49,.98,1]:i===2?[.95,.56,.07,1]:[.51,.23,.99,1];
+    draw('disc',x,.034,z,.120,.002,.091,[.015,.031,.05,.66]);
+    if(h.shield)draw('ring',x,.068,z,.145,.004,.145,[.20,1,.76,.87],.72);
+    draw('box',x,.223+bob,z,.080,.102,.061,suit,.06);
+    draw('box',x,.240+bob,z+.062,.070,.067,.008,panel,.43);
+    draw('box',x,.293+bob,z+.061,.058,.009,.012,[.85,1,1,.9],.72);
+    draw('globe',x,.391+bob,z,.066,.068,.066,[.048,.070,.119,1],.17);
+    draw('box',x,.398+bob,z+.056,.060,.024,.012,panel,.84);
+    for(const eye of [-1,1])draw('box',x+eye*.029,.402+bob,z+.073,.013,.010,.005,[.64,1,.97,1],.85);
+    draw('box',x,.341+bob,z-.056,.053,.026,.022,panel,.32);
     for(const s of [-1,1]){
-     draw('box',x+s*.046,.11,z+s*limbShift,.024,.065,.026,tint);
-     draw('box',x+s*.091,.23,z-s*limbShift,.018,.067,.018,tint);
+     const stride=walk*s*.029;
+     draw('box',x+s*.054,.124+bob,z+stride,.023,.057,.028,suit,.12);
+     draw('box',x+s*.054,.056+bob,z+stride+.017,.030,.020,.044,panel,.24);
+     draw('globe',x+s*.107,.280+bob,z,.024,.025,.026,panel,.40);
+     draw('box',x+s*.106,.224+bob,z-s*walk*.024,.020,.060,.022,suit,.18);
+     draw('globe',x+s*.108,.163+bob,z-s*walk*.036,.025,.024,.024,[.14,.20,.30,1],.26);
     }
-    if(i===0)draw('ring',x,.055,z,.110,.003,.110,colors.mint,.90);
+    if(i===1){draw('box',x,.483+bob,z,.012,.043,.012,panel,.55);
+     draw('globe',x,.526+bob,z,.014,.014,.014,[.5,1,.96,1],.8);}
+    if(i===3){for(const s of [-1,1])draw('flame',x+s*.035,.152+bob,z-.08,.020,.041,.020,[.94,.25,.06,.58],.48);}
    });
   }
   gl.disable(gl.DEPTH_TEST);return{draws};
