@@ -14,7 +14,7 @@ window.modoCaosLockReady=()=>!!renderer;
 let game=G.make({tileMeters}),calibrated=false,selectedCell=null,sampling=false,
  sampleStart=0,samples=[],origin=null,smoothed=null,previous=null,lastGood=0,invalidSince=0,
  status='intro',running=false,finished=false,lastFrame=0,lastHUD=0,lastEvent=0,noticeUntil=0,
- picker=false,arBooted=false,muted=false,audio=null,best=0,target=null,keys=new Set();
+ picker=false,arBooted=false,muted=false,audio=null,best=0,target=null,keys=new Set(),trackingFrozen=false,recoverySince=0,nextBeat=0,beatIndex=0,lastYellow=0,waveAnnounceUntil=0,waveAnnounce='';
 const KEY='modo-caos-ola-roja-records-v1';
 try{const r=JSON.parse(localStorage.getItem(KEY)||'{}');best=Number(r.clasico)||0}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
@@ -36,7 +36,8 @@ function hud(){
  $('lives').textContent='♥'.repeat(game.lives)+'♡'.repeat(3-game.lives);
  $('score').textContent=Math.round(game.score).toLocaleString('es-AR');
  $('banner').textContent=game.stage==='countdown'?'ARRANCAMOS EN '+Math.ceil(game.countdown):
-  (game.stage==='playing'?G.phases(game.elapsed)+(game.shield?' · 🛡 ESCUDO':''):'');
+  (game.stage==='playing'?(performance.now()<waveAnnounceUntil?waveAnnounce:G.phases(game.elapsed))+
+  (game.shield?' · 🛡 ESCUDO':''):'');
  if(demo&&game.stage==='playing')$('whereAmI').textContent='📍 VOS · FILA '+(game.cell.r+1)+' · COLUMNA '+(game.cell.c+1);
 }
 function consume(){
@@ -46,7 +47,13 @@ function consume(){
   if(e.type==='shield'){toast(e.label,1100);speak(1120,.29,'triangle');vibrate(65)}
   if(e.type==='bonus'||e.type==='warning'){toast(e.label,1050);speak(910,.20,'triangle')}
   if(e.type==='dodge'){if(game.combo%3===0){toast('⚡ '+game.combo+' OLAS ESQUIVADAS',750);speak(1100,.15)}}
-  if(e.type==='wave'){speak(485,.08,'triangle',.035)}
+  if(e.type==='wave'){
+   const names={FRONTAL:'⬇ OLA DE FRENTE',TRASERA:'⬆ OLA DESDE ATRÁS',LATERAL:'↔ OLA LATERAL',
+    DOBLE:'⚠ DOBLE AMENAZA',SERPIENTE:'〰 OLA SERPIENTE',CORREDOR:'◇ CORREDOR MÓVIL',
+    FALSA:'🎭 NO CONFÍES EN EL AMARILLO',CAOS:'🔥 CAOS TOTAL',INVERSION:'↩ CAMBIO DE DIRECCIÓN'};
+   waveAnnounce=names[e.label]||'⚠ OLA EN CAMINO';waveAnnounceUntil=performance.now()+1450;
+   speak(485,.08,'triangle',.035);
+  }
   if(e.type==='start'){toast('🔴 ESQUIVÁ LAS BALDOSAS ROJAS',1300);speak(820,.22)}
   if(e.type==='finish')showResult();
  }
@@ -66,7 +73,7 @@ function showResult(){
 }
 function reset(nextMode=mode){
  mode=nextMode;game=G.make({mode,tileMeters,seed:Math.floor(Math.random()*4294967295)});
- running=false;finished=false;lastFrame=0;lastEvent=0;target=null;status='fixed';
+ running=false;finished=false;lastFrame=0;lastEvent=0;trackingFrozen=false;recoverySince=0;nextBeat=0;beatIndex=0;lastYellow=0;target=null;status='fixed';
  $('result').style.display='none';$('pauseDialog').style.display='none';
  $('gameHud').style.display='flex';$('statusPanel').style.display='flex';
  $('gameActions').style.display='flex';$('begin').disabled=!calibrated;
@@ -78,7 +85,7 @@ function reset(nextMode=mode){
 function begin(){
  if(!calibrated||running||finished||sampling||picker)return;
  game.tileMeters=tileMeters;if(!G.start(game))return;
- running=true;status='playing';lastFrame=0;
+ running=true;status='playing';lastFrame=0;trackingFrozen=false;recoverySince=0;
  $('gameActions').style.display='none';$('calBox').style.display='none';
  $('pause').style.display='block';$('recalibrateLive').style.display=demo?'none':'block';$('gameHud').style.display='flex';
  $('head').style.display='none';$('banner').style.display='block';
@@ -89,7 +96,7 @@ function pauseGame(){
  if(!running)return;game.paused=true;$('pauseDialog').style.display='flex';
 }
 function resumeGame(){
- if(!running)return;game.paused=false;$('pauseDialog').style.display='none';lastFrame=0;
+ if(!running)return;game.paused=false;$('pauseDialog').style.display='none';lastFrame=performance.now();
 }
 function uiFixed(){
  if(demo||status==='fixed'||status==='playing'||status==='finished')return;
@@ -138,7 +145,8 @@ function sample(t,p){
   const c=selectedCell%6,r=Math.floor(selectedCell/6);
   origin={x:avg.x-(c+.5)*tileMeters,z:avg.z-(r+.5)*tileMeters};
   smoothed={...avg};previous={...avg};lastGood=t;invalidSince=0;
-  sampling=false;calibrated=true;game.paused=false;
+  sampling=false;calibrated=true;trackingFrozen=running;recoverySince=running?t:0;
+  if(!running)game.paused=false;
   G.setPosition(game,c+.5,r+.5);
   $('calTitle').textContent='✅ CASILLA '+(r+1)+'-'+(c+1)+' · LISTO';
   $('calFill').style.width='100%';$('begin').disabled=false;
@@ -201,6 +209,14 @@ function drawPick(frame,W){
  if(point){marker.setAttribute('cx',point[0]);marker.setAttribute('cy',point[1]);
   markerText.setAttribute('x',point[0]);markerText.setAttribute('y',point[1]-19)}
 }
+function soundtrack(t){
+ if(muted||game.paused||game.stage!=='playing'||t<nextBeat)return;
+ const bpm=clamp(96+game.elapsed*.65,96,154),step=60000/bpm/2;
+ nextBeat=t+step;beatIndex++;
+ // Percusión electrónica discreta: intensidad acompaña la dificultad.
+ if(beatIndex%2===0)speak(beatIndex%8===0?112:155,.085,'triangle',.020);
+ else if(beatIndex%4===1)speak(760,.035,'square',.009);
+}
 function gameTick(dt,t){
  if(!running)return;
  if(demo){
@@ -214,20 +230,38 @@ function gameTick(dt,t){
       z=Number(keys.has('ArrowDown')||keys.has('s'))-Number(keys.has('ArrowUp')||keys.has('w'));
   const len=Math.hypot(x,z);if(len>0)G.setPosition(game,game.pos.x+x/len*dt*1.6,game.pos.z+z/len*dt*1.6);
  }
- G.tick(game,dt);consume();
+ G.tick(game,dt);consume();soundtrack(t);
+ if(!game.paused&&game.stage==='playing'&&t-lastYellow>850){
+  const tile=G.cells(game)[game.cell.r*6+game.cell.c];
+  if(tile==='yellow'){lastYellow=t;speak(620,.14,'triangle',.044);vibrate(17)}
+ }
  if(t-lastHUD>80){hud();lastHUD=t}
 }
 function arFrame(t,frame,W){
- const dt=lastFrame?clamp((t-lastFrame)/1000,.001,.065):.016;lastFrame=t;
+ const gap=lastFrame?t-lastFrame:0;
+ const dt=lastFrame?clamp(gap/1000,.001,.065):.016;lastFrame=t;
+ // Se reanudó XR tras perder fotogramas: congelar antes de evaluar una colisión.
+ if(running&&gap>460){trackingFrozen=true;recoverySince=0;game.paused=true}
  try{
   if(!W)return;
   const pos=localPose(frame,W);
   if(sampling)sample(t,pos);
   if(calibrated){
-   if(pos&&motion(t,pos)){invalidSince=0;if(running&&game.paused&&!$('pauseDialog').offsetParent)game.paused=false}
-   else if(running){
-    if(!invalidSince)invalidSince=t;
-    if(t-invalidSince>750){game.paused=true;label('📡 SEGUIMIENTO PERDIDO · COLISIONES PAUSADAS')}
+   if(pos&&motion(t,pos)){
+    invalidSince=0;
+    if(trackingFrozen&&running){
+     if(!recoverySince)recoverySince=t;
+     if(t-recoverySince>=500){
+      trackingFrozen=false;recoverySince=0;
+      if(!$('pauseDialog').offsetParent)game.paused=false;
+      label('✅ SEGUIMIENTO RECUPERADO · ESQUIVÁ LAS ROJAS');
+     }
+    }
+   }else if(running){
+    // Incluso un solo fotograma perdido se congela: cero eliminaciones injustas.
+    const firstLost=!trackingFrozen;
+    trackingFrozen=true;recoverySince=0;game.paused=true;
+    if(firstLost)label('📡 SEGUIMIENTO PERDIDO · COLISIONES PAUSADAS');
    }
   }
   if(running)gameTick(dt,t);
@@ -247,6 +281,12 @@ function bootAR(){
 const arWatch=setInterval(()=>{
  if(demo)return;
  bootAR();
+ // WebXR puede omitir por completo el callback del juego cuando pierde la pose.
+ // Detectar también ese silencio mediante el reloj real (sin tocar engine.js).
+ if(running&&arBooted&&lastFrame&&performance.now()-lastFrame>320&&!trackingFrozen){
+  trackingFrozen=true;recoverySince=0;game.paused=true;
+  label('📡 SEGUIMIENTO INTERRUMPIDO · JUEGO EN PAUSA');
+ }
  if(typeof stage!=='undefined'&&stage==='fixed'&&status==='intro')uiFixed();
 },150);
 function demoStart(){
@@ -270,8 +310,14 @@ function demoFrame(t){
  requestAnimationFrame(demoFrame);
 }
 $('demo').addEventListener('click',demoStart);
-$('canvas2D').addEventListener('pointerdown',e=>{
+const demoCanvas=$('canvas2D');
+demoCanvas.addEventListener('pointerdown',e=>{
  if(!demo||!running)return;
+ demoCanvas.setPointerCapture?.(e.pointerId);
+ const p=canvas.point(e.clientX,e.clientY);if(p)target=p;
+});
+demoCanvas.addEventListener('pointermove',e=>{
+ if(!demo||!running||!(e.buttons&1))return;
  const p=canvas.point(e.clientX,e.clientY);if(p)target=p;
 });
 window.addEventListener('keydown',e=>{keys.add(e.key);if(demo&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault()});
@@ -282,7 +328,7 @@ $('resume').addEventListener('click',resumeGame);
 $('pauseCal').addEventListener('click',()=>{$('pauseDialog').style.display='none';recalibrate()});
 function recalibrate(){
  if(demo)return;
- game.paused=running;calibrated=false;sampling=false;picker=true;
+ trackingFrozen=true;recoverySince=0;game.paused=running;calibrated=false;sampling=false;picker=true;
  $('statusPanel').style.display='flex';$('gameActions').style.display='flex';
  $('calBox').style.display='block';$('calTitle').textContent='👣 VOLVÉ A TOCAR TU CASILLA';
  $('begin').disabled=true;label('Pista fija · marcá tu nueva posición sin desplazarla');
@@ -296,10 +342,23 @@ $('share').addEventListener('click',async()=>{
  if(navigator.share){try{await navigator.share({title:'OLA ROJA · MODO CAOS',text:s,url:location.origin+'/ola.html'})}catch(_){}}
  else{try{await navigator.clipboard.writeText(s);toast('RESULTADO COPIADO',1500)}catch(_){toast(s,3000)}}
 });
-$('leave').addEventListener('click',()=>location.assign('/'));
-$('exit').addEventListener('click',()=>{if(typeof sess!=='undefined'&&sess)sess.end().catch(()=>location.assign('/'));else location.assign('/')});
+$('leave').addEventListener('click',()=>location.assign('./index.html'));
+$('exit').addEventListener('click',()=>{if(typeof sess!=='undefined'&&sess)sess.end().catch(()=>location.assign('./index.html'));else location.assign('./index.html')});
 $('music').addEventListener('click',()=>{muted=!muted;$('music').textContent=muted?'🔇':'🔊';if(!muted)speak(700,.1)});
 $('overlay').addEventListener('beforexrselect',e=>e.preventDefault());
 $('calCenter').textContent='👣 ESTOY EN EL CENTRO (4-4)';
+if(new URLSearchParams(location.search).has('mc_test')){
+ window.__olaTestFinish=reason=>{
+  if(game.stage!=='playing'||!['victoria','eliminado'].includes(reason))return false;
+  G.finish(game,reason);consume();hud();return true;
+ };
+ window.__olaTestSnapshot=()=>({
+  status,mode,running,calibrated,sampling,picker,trackingFrozen,
+  elapsed:game.elapsed,paused:!!game.paused,lives:game.lives,waves:game.waves,
+  cell:{...game.cell},pos:{...game.pos},
+  world:typeof worldMatrix!=='undefined'&&worldMatrix?
+    {x:worldMatrix[12],y:worldMatrix[13],z:worldMatrix[14]}:null
+ });
+}
 if(navigator.xr){/* engine.js consulta compatibilidad cuando empieza */}
 })();

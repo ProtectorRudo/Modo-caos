@@ -73,10 +73,26 @@ const server=http.createServer((req,res)=>{
   const time=await page.locator('#time').innerText();await page.waitForTimeout(320);
   assert.equal(await page.locator('#time').innerText(),time,'pause freezes XR hazards');
   await page.locator('#resume').click();
+  const beforeLoss=await page.evaluate(()=>window.__olaTestSnapshot());
+  await page.evaluate(()=>{window.__tracked=false});
+  await page.waitForTimeout(950);
+  const duringLoss=await page.evaluate(()=>window.__olaTestSnapshot());
+  assert(Math.abs(duringLoss.elapsed-beforeLoss.elapsed)<.12,'tracking loss freezes game clock');
+  assert.equal(duringLoss.paused,true,'watchdog marks game paused even without XR frames');
+  assert.equal(duringLoss.lives,beforeLoss.lives,'tracking loss never deducts a life');
+  await page.evaluate(()=>{window.__tracked=true});
+  await page.waitForTimeout(180);
+  const recovery=await page.evaluate(()=>window.__olaTestSnapshot());
+  assert.equal(recovery.paused,true,'game remains paused after returning XR frames');
+  await page.waitForTimeout(620);
+  const stable=await page.evaluate(()=>window.__olaTestSnapshot());
+  assert.equal(stable.trackingFrozen,false,'stable tracking resumes after half a second');
+  assert(Math.hypot(stable.world.x-beforeLoss.world.x,stable.world.z-beforeLoss.world.z)<.01,
+    'phone movement and temporary tracking loss never shift the floor anchor');
   await page.locator('#recalibrateLive').click();
   assert(await page.locator('#calBox').isVisible(),'position recalibration available');
   assert.equal(errors.length,0,'no XR runtime exceptions: '+errors.join(' / '));
-  console.log('PASS: 6x6 simulated WebXR hit-test, scene placement, 1s calibration, phone motion, WebGL, pause and recalibration');
+  console.log('PASS: 6x6 simulated WebXR hit-test, scene placement, 1s calibration, phone motion, WebGL, pause, tracking recovery and recalibration');
  }catch(e){console.error(e.stack||e);process.exitCode=1}
  finally{await browser?.close();await new Promise(r=>server.close(r))}
 })();

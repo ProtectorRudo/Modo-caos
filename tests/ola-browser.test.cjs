@@ -19,7 +19,7 @@ const server=http.createServer((req,res)=>{
   browser=await chromium.launch({headless:true,args:['--no-sandbox']});
   const page=await browser.newPage({viewport:{width:393,height:852},deviceScaleFactor:2,isMobile:true,hasTouch:true});
   const errors=[];page.on('pageerror',e=>errors.push('JS '+e.message));page.on('console',m=>{if(m.type()==='error')errors.push('LOG '+m.text())});
-  await page.goto(base+'/ola.html',{waitUntil:'load'});
+  await page.goto(base+'/ola.html?mc_test=1',{waitUntil:'load'});
   assert(await page.locator('#enter').isVisible(),'AR entry visible');
   assert(await page.locator('#demo').isVisible(),'full 2D demo button visible');
   await page.locator('#demo').click();
@@ -49,6 +49,15 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#time').innerText(),paused,'pausing stops timer');
   await page.locator('#resume').click();
   assert(!await page.locator('#pauseDialog').isVisible(),'resumed correctly');
+  assert(await page.evaluate(()=>window.__olaTestFinish('victoria')),'finish game after 90s simulation');
+  assert(await page.locator('#result').isVisible(),'result screen visible');
+  assert((await page.locator('#resultTitle').innerText()).includes('SOBREVIVISTE'),'victory is celebrated');
+  await page.locator('#infinite').click();
+  assert(!await page.locator('#result').isVisible(),'infinite mode resets results');
+  assert.equal((await page.evaluate(()=>window.__olaTestSnapshot())).mode,'infinito','infinite mode initialized');
+  assert(await page.locator('#begin').isEnabled(),'infinite retry is playable');
+  await page.locator('#begin').click();
+  assert((await page.evaluate(()=>window.__olaTestSnapshot())).running,'infinite game restarts cleanly');
   assert.equal(errors.length,0,'no JavaScript errors: '+errors.join(' / '));
   await page.goto(base+'/index.html');
   assert.equal(await page.locator('a[href="/ola.html"]').count(),1,'OLA ROJA in central menu');

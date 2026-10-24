@@ -17,11 +17,11 @@ Nuevo juego físico de Modo Caos: **el jugador es la persona real**. La cuadríc
 - /tests/ola-xr-smoke.test.cjs: navegador y WebGL reales **con frames y poses WebXR simulados**.
 - /.github/workflows/ola-tests.yml: pruebas y regresión automatizadas.
 
-La pista no se mueve después de FIJAR. La posición se proyecta sobre las coordenadas locales del world matrix de /engine.js. La casilla elegida al calibrar determina la traslación de referencia, sin desplazar el tablero. El desplazamiento se obtiene de la traslación del teléfono, no de giros de cámara. Se usa histéresis del 8% de baldosa e invulnerabilidad de 1,55 s tras recibir daño. Un salto instantáneo mayor que 34 cm pausa y exige recalibración.
+La pista no se mueve después de FIJAR. La posición se proyecta sobre las coordenadas locales del world matrix de /engine.js. La casilla elegida al calibrar determina la traslación de referencia, sin desplazar el tablero. El desplazamiento se obtiene de la traslación del teléfono, no de giros de cámara. Se usa histéresis del 8% de baldosa e invulnerabilidad de 1,55 s tras recibir daño. Un salto instantáneo mayor que 34 cm pausa y exige recalibración. Un fotograma XR inválido congela el core de inmediato y se requiere al menos 500 ms de seguimiento continuo para reanudar; un corte del render XR también deja de avanzar el tiempo, protegiendo de daños por falta de pose.
 
 ## Patrones y eventos
 
-Frontal, trasera, lateral, doble, serpiente, corredor móvil, falsa alarma, caos. Generador con xorshift32 y validación temporal de ruta alcanzable a ~0,7 m/s mediante BFS de casillas. Primero aparecen advertencias amarillas; los rojos se desplazan por pasos visibles. Eventos de escudo, tiempo lento, zona segura, inversión y tormenta.
+Frontal, trasera, lateral, doble, serpiente, corredor móvil, falsa alarma, caos. Generador con xorshift32 y validación temporal de ruta alcanzable a ~0,7 m/s mediante BFS de casillas. Primero aparecen advertencias amarillas, inclusive amenazas que NO se vuelven rojas (falsas alarmas). Los rojos se desplazan por pasos visibles, con energía animada. El planificador mantiene un intervalo mínimo de 0,55 segundos de separación de los impactos entre oleadas consecutivas incluso al cambiar de fase; si no encuentra un patrón alcanzable, usa una alternativa conservadora. Verificar velocidades en dispositivos reales. Eventos de escudo, tiempo lento, zona segura, inversión y tormenta.
 
 Modos: Clásico 90 segundos, Infinito con puntuación, récord local y compartir desde el celular. Demo 2D separada que permite control por toque/teclado explícitamente sin afirmar que simula seguimiento corporal.
 
@@ -43,4 +43,5 @@ Pruebas automatizadas de core, regresión de minijuegos, Chromium 2D y WebXR sin
 
 ## Publicación
 
-Vercel project: **modo-caos**, no el antiguo color-rush-ar-demo. Si Vercel no publica por cuota temporal, conservar commit y rama versionada, NO afirmar enlace público. GitHub Pages requiere habilitación inicial por titular del repositorio; no disponible automáticamente con permisos de Github Actions. Los demás juegos y el engine.js no se alteraron.
+Vercel project: **modo-caos**, no el antiguo color-rush-ar-demo. Si Vercel no publica por cuota temporal, conservar commit y rama versionada, NO afirmar enlace público. GitHub Pages requiere habilitación inicial por titular del repositorio; no disponible automáticamente con permisos de Github Actions.
+Como opción **solo de prueba**, se comprueba la alternativa pública HTTPS raw.githack.com basada en este mismo repositorio. Esta alternativa depende de un tercero, no tiene SLA y puede no ofrecer todas las políticas de permisos XR de Vercel. Nunca denominarla lanzamiento de producción. Usar solo después de validar HTTP, dependencias JS y juego en Chromium remoto. Los demás juegos y el engine.js no se alteraron.

@@ -1,7 +1,7 @@
 name: Ola Roja — core y regresión
 on:
   push:
-    branches: [main, feat/ola-roja-ar]
+    branches: [main, feat/ola-roja-ar, fix/ola-roja-premium-final]
     paths:
       - 'ola-*'
       - 'ola.html'
@@ -10,6 +10,7 @@ on:
       - 'tests/ola.test.cjs'
       - 'tests/ola-browser.test.cjs'
       - 'tests/ola-xr-smoke.test.cjs'
+      - 'tests/ola-public.test.cjs'
       - '.github/workflows/ola-tests.yml'
   workflow_dispatch:
 permissions:
@@ -53,3 +54,6 @@ jobs:
         run: |
           node tests/ola-browser.test.cjs
           node tests/ola-xr-smoke.test.cjs
+      - name: Confirmar vista pública alternativa HTTPS (no producción)
+        continue-on-error: true
+        run: node tests/ola-public.test.cjs

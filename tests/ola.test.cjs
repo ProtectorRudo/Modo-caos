@@ -50,3 +50,41 @@ end.lives=1;end.active=[{id:1,name:'frontal',start:end.elapsed-1,step:2,end:end.
 G.setPosition(end,3.5,3.5);G.tick(end,.01);
 assert.equal(end.stage,'finished');assert.equal(end.finishReason,'eliminado');
 console.log('OLA ROJA: pruebas de 8 patrones, warnings, vidas, tracking pausa, modos y final PASS');
+
+/* Fairness and replayability regression: dozens of deterministic runs, three room sizes.
+   Static player intentionally does not dodge; immortality is only test instrumentation. */
+for(const tileMeters of [.30,.45,.64])for(let seed=1;seed<=12;seed++){
+ const q=G.make({seed,tileMeters});G.setPosition(q,3.5,3.5);G.start(q);
+ q.lives=200;q.invuln=10000;
+ const seen=new Map();
+ for(let i=0;i<1500;i++){
+  const before=q.waves,origin={...q.cell};
+  G.tick(q,.07);
+  if(q.waves!==before){
+   const w=q.active.find(x=>x.id===q.waves);
+   assert(w,'a planned wave must exist');
+   assert(G.ensureRoute({...q,cell:origin},w.steps,w.start-(q.elapsed),w.step),
+     'every generated wave has a reachable safe route: seed '+seed+' '+tileMeters+' '+w.name);
+   assert(w.start-q.elapsed>=1.59,'warnings always precede red');
+   if(seen.has(w.id-1)){const old=seen.get(w.id-1);
+    assert(w.start>=old.end+.35,'red waves must never unfairly overlap');
+   }
+   seen.set(w.id,w);
+  }
+  if(q.stage==='finished')break;
+ }
+ assert.equal(q.stage,'finished','90 seconds must always end');
+ assert(q.waves>=9,'90-second game needs varied encounters: '+q.waves);
+}
+for(let seed=1;seed<250;seed++){
+ const q=G.make({seed});q.elapsed=23;G.spawn(q);
+ const w=q.active[0];if(w.name!=='falsa')continue;
+ const i=w.steps.findIndex((m,k)=>m===0n&&w.teases?.[k]);
+ assert(i>=0,'false alerts must have a warning-only step');
+ const mask=w.teases[i],cell=Array.from({length:36},(_,n)=>n).find(n=>mask&(1n<<BigInt(n)));
+ assert(Number.isInteger(cell));
+ assert.equal(G.cells(q,w.start+i*w.step-.55)[cell],'yellow','warning-only appears yellow');
+ assert.equal(G.cells(q,w.start+i*w.step+.04)[cell],'safe','fake alert never becomes red');
+ break;
+}
+console.log('OLA ROJA: 36 partidas simuladas, 3 escalas, rutas alcanzables, intensidad y falsas alarmas PASS');
