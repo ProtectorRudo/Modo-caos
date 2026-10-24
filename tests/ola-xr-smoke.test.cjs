@@ -65,8 +65,8 @@ const server=http.createServer((req,res)=>{
   assert(Number(await page.locator('#time').innerText())<90,'90 s AR clock advances');
   const before=await page.evaluate(()=>window.__draws);
   assert(before>preDraws+100,'real WebGL keeps painting after lock');
-  await page.evaluate(()=>window.__position.x+=.65);
-  await page.waitForTimeout(350);
+  for(let i=0;i<9;i++){await page.evaluate(()=>window.__position.x+=.07);await page.waitForTimeout(85)}
+  await page.waitForTimeout(280);
   assert((await page.locator('#whereAmI').innerText()).includes('COLUMNA 5'),
    'moving phone in world physically changes selected tile');
   await page.locator('#pause').click();
