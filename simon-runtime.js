@@ -10,6 +10,30 @@ const safeText=t=>String(t).replace(/[<>]/g,'');
 const ui=(id,text)=>{$(id).textContent=text};
 function show(id,yes,display='block'){$(id).style.display=yes?display:'none'}
 function hint(title,detail=''){ui('message',title);ui('detail',detail);show('floating',!!title)}
+// Una sola fuente de verdad para la guía: acompaña cada destello, pero NO revela los próximos pasos.
+function sequenceGuide(state,step=0,tile=-1){
+ const el=$('sequenceGuide');
+ if(!g||state==='off'){show('sequenceGuide',false);return}
+ const total=g.sequence.length;
+ el.className=state==='watch'?'watch':'turn';
+ const watching=state==='watch',finished=state==='done';
+ ui('seqTop',watching?'👀 MIRÁ · TODAVÍA NO TE MUEVAS':finished?'✅ ¡SECUENCIA COMPLETA!':'👣 TU TURNO · REPETÍ EN ORDEN');
+ let main;
+ if(watching){
+  if(tile>=0){const color=C.COLORS[g.colorMap[tile]];main='PASO '+step+'/'+total+' · '+color.name+' · BALDOSA '+(tile+1)}
+  else main=step?'GUARDÁ EL PASO '+step+' EN MEMORIA':'PREPARATE: '+total+' DESTELLOS';
+ }else if(finished)main='¡BIEN! PREPARATE PARA LA SIGUIENTE';
+ else main='PASO '+Math.min(step,total)+'/'+total+' · ELEGÍ LA SIGUIENTE';
+ ui('seqMain',main);
+ const dots=$('seqDots');dots.replaceChildren();
+ for(let n=1;n<=total;n++){
+  const dot=document.createElement('i');
+  if(finished||n<step)dot.classList.add('done');
+  else if(n===step&&(!watching||tile>=0))dot.classList.add('now');
+  dots.appendChild(dot);
+ }
+ show('sequenceGuide',true);
+}
 function vib(ms=35){if(navigator.vibrate)try{navigator.vibrate(ms)}catch(e){}}
 function recordKey(){return 'mc-simon-record-'+g.mode}
 function getRecord(){try{return Number(localStorage.getItem(recordKey()))||0}catch(e){return 0}}
@@ -45,7 +69,7 @@ function newGame(resetSeed=true){
  g=C.make({mode:selectedMode,seed});g.seedType=daily?'desafio-diario':'normal';
  ui('record',getRecord().toLocaleString('es-AR'));
  ui('score','0');ui('round','0');ui('progress','0/0');ui('time','–');ui('lives',String(g.lives));
- show('result',false);show('calPanel',false);show('pauseBtn',false);
+ show('result',false);show('calPanel',false);show('pauseBtn',false);sequenceGuide('off');
  setMode(g.mode);renderGrid();drawUI();
 }
 function drawUI(){
@@ -89,21 +113,29 @@ function stageReady(){
 function startMatch(){
  if(!stageReady())return;
  if(mode==='ar'&&typeof setStage==='function')setStage('playing');
- show('startGame',false);show('calPanel',false);
+ show('startGame',false);show('calPanel',false);show('how',false);
  C.begin(g);playSequence();drawUI();
 }
 async function playSequence(){
- cancel();const mine=token;const round=g.round;
- hint(g.round===1?'¡MIRÁ BIEN, QUE NO TE LO REPITO!':g.rule,'RONDA '+g.round+' · '+(g.trap?'TRAMPA DE SIMÓN':'RECORDÁ CADA COLOR'));
- speak(g.round===1?'Mirá bien, que no te lo repito':g.trap?'Atención, Simón trae una trampa':'A ver si tenés memoria');
- await sleep(g.trap?1500:1100);if(mine!==token)return;
- const stepTime=Math.max(340,790-g.round*32);
- for(const tile of g.sequence){
+ cancel();const mine=token;
+ sequenceGuide('watch',0,-1);
+ hint('👀 MIRÁ LAS BALDOSAS QUE BRILLAN',g.round===1?'Se encenderán UNA POR VEZ. Recordá el orden.':g.rule);
+ speak(g.round===1?'Mirá qué baldosa se ilumina primero y cuál después. Repetí el orden cuando diga tu turno':g.trap?'Atención a la trampa':'Mirá la secuencia');
+ await sleep(g.round===1?1550:g.trap?1300:950);if(mine!==token)return;
+ // Destellos largos al principio, con una pausa oscura inequívoca entre cada paso.
+ const stepTime=Math.max(650,1010-g.round*25);
+ for(let step=0;step<g.sequence.length;step++){
   if(mine!==token)return;
-  if(g.trap==='fantasmas'&&g.sequence.length>2&&(tile+g.round)%2===0){g.ghost=(tile+3)%9;beep(620,.08,'ghost');decorate();await sleep(150);g.ghost=-1}
-  g.highlight=tile;decorate();beep(C.COLORS[g.trap==='mentira'?(tile+1)%9:tile].hz,stepTime/1200);
+  const tile=g.sequence[step];
+  if(g.trap==='fantasmas'&&g.sequence.length>2&&(tile+g.round)%2===0){
+   g.ghost=(tile+3)%9;beep(620,.08,'ghost');decorate();await sleep(180);g.ghost=-1;
+  }
+  if(mine!==token)return;
+  g.highlight=tile;sequenceGuide('watch',step+1,tile);decorate();
+  beep(C.COLORS[g.trap==='mentira'?(tile+1)%9:tile].hz,Math.min(.35,stepTime/1500));
   await sleep(stepTime);if(mine!==token)return;
-  g.highlight=-1;decorate();await sleep(Math.max(170,stepTime*.29));if(mine!==token)return;
+  g.highlight=-1;sequenceGuide('watch',step+1,-1);decorate();
+  await sleep(Math.max(290,stepTime*.34));if(mine!==token)return;
  }
  if(g.trap==='eco'){beep(770,.13);hint('¡ESO FUE UN ECO!', 'No era parte de la secuencia.');await sleep(680)}
  if(mine!==token)return;
@@ -111,13 +143,14 @@ async function playSequence(){
  if(mine!==token)return;
  if(g.trap==='identidad'){hint('¡CAMBIARON DE LUGAR!','Seguí el COLOR, aunque esté en otra celda.');await sleep(1200)}
  if(mine!==token)return;
- C.arm(g);renderGrid();hint('¡AHORA VOS!',g.trap==='inversa'?'ORDEN INVERSO · DEL ÚLTIMO AL PRIMERO':'Caminá hasta el centro de cada baldosa y detenete brevemente.');
+ C.arm(g);renderGrid();sequenceGuide('turn',1);
+ hint('🎯 ¡TU TURNO!',g.trap==='inversa'?'ORDEN INVERSO · DEL ÚLTIMO AL PRIMERO':mode==='demo'?'Tocá las baldosas en el mismo orden.':'Andá al centro de cada baldosa en el mismo orden.');
  speak('Ahora vos');phaseAt=performance.now();zone=-1;zoneAt=0;lastCommitted=player.tile;exitNeeded=true;
  drawUI();decorate();
 }
 function finish(){
  if(!g||g.phase!=='finished')return;
- cancel();show('calPanel',false);show('pauseBtn',false);
+ cancel();sequenceGuide('off');show('calPanel',false);show('pauseBtn',false);
  const s=C.stats(g),past=getRecord(),best=Math.max(past,s.score);
  if(best>past)putRecord(best);
  const didWin=g.lives>0&&g.round>=g.maxRounds;
@@ -134,6 +167,9 @@ function commit(i){
  if(out.type==='correct'||out.type==='round'||out.type==='victory'){
   beep(C.COLORS[g.colorMap[i]].hz,.20);vib(30);hint(out.type==='correct'?'¡BIEN AHÍ!':out.type==='victory'?'¡CAMPEÓN!':'¡RONDA PERFECTA!',out.type==='correct'?(g.index+'/'+g.expected.length):'+'+out.points+' puntos');
  }else{beep(185,.34,'wrong');vib([85,70,120]);hint(out.type==='finished'?'SIMÓN GANÓ':'¡UPS! TE QUEDA OTRA OPORTUNIDAD','Era '+C.COLORS[g.expected[g.index]].name);}
+ if(g.phase==='act')sequenceGuide('turn',g.index+1);
+ else if(g.phase==='won')sequenceGuide('done');
+ else sequenceGuide('off');
  drawUI();decorate();
  if(g.phase==='finished'){finish();return}
  if(g.phase==='won'){
