@@ -141,7 +141,9 @@ function cells(g,t=g.elapsed){
   for(let j=0;j<w.steps.length;j++){
    const at=w.start+j*w.step;
    const danger=t>=at&&t<at+w.step*.70;
-   const warn=t<at&&t>=at-Math.min(1.35,w.step+(.45));
+   // Zona amarilla anuncia al menos 2,35 segundos antes del contacto,
+   // avanzando visiblemente por el piso antes de transformarse en roja.
+   const warn=t<at&&t>=at-Math.min(2.75,Math.max(2.35,w.step*2.65));
    if(!danger&&!warn)continue;
    // Las falsas alarmas muestran aviso AMARILLO incluso donde jamás habrá rojo.
    const mask=danger?w.steps[j]:(w.teases?.[j]??w.steps[j]);if(!mask)continue;
