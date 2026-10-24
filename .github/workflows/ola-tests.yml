@@ -1,7 +1,7 @@
 name: Ola Roja — core y regresión
 on:
   push:
-    branches: [main, feat/ola-roja-ar]
+    branches: [main, feat/ola-roja-ar, fix/ola-roja-premium-final]
     paths:
       - 'ola-*'
       - 'ola.html'
