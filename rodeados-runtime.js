@@ -115,7 +115,7 @@ function setPhase(next){
  stage=next;
  visible('calControls',next==='edit');visible('touch',next==='edit','block');
  visible('cellControls',next==='cell'||next==='sample'||next==='ready');
- visible('cellsvg',next==='cell'||next==='sample'?'yes':false,'block');
+ visible('cellsvg',next==='cell'||next==='sample','block');
  visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown','block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
  visible('actions',next==='paused');$('pause').textContent=next==='paused'?'▶ CONTINUAR':'Ⅱ PAUSA';
@@ -539,6 +539,7 @@ document.addEventListener('keydown',e=>{if(!demo)return;if(e.code==='Space'){e.p
 async function startXR(){
  if(!navigator.xr||!window.isSecureContext){$('support').textContent='Este navegador no ofrece WebXR. Usá Chrome Android con ARCore y HTTPS.';return}
  // requestSession must originate directly from the button event, before awaits.
+ $('overlay').style.display='block';
  const pending=navigator.xr.requestSession('immersive-ar',{
   requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['anchors','local-floor'],domOverlay:{root:$('overlay')}});
  try{
