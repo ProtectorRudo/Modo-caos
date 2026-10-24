@@ -1,26 +1,48 @@
-<!doctype html>
-<html lang="es"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#081a2c">
-<title>MODO CAOS · Central de juegos AR</title>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07182b">
+<title>COLOR RUSH ARCADE · Juegos de realidad aumentada</title>
 <style>
-*{box-sizing:border-box}body{min-height:100svh;margin:0;padding:26px 17px;color:#f3fff8;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(ellipse at 40% 0,#16556b 0,#091d33 54%,#061323 100%);display:grid;place-items:center}.wrap{max-width:600px;width:100%}
-small{font-size:11px;letter-spacing:3px;color:#7df9d3;font-weight:1000}
-h1{font-size:clamp(52px,12vw,92px);letter-spacing:-.075em;line-height:1.01;margin:12px 0}
-h1 span{color:#69f4b4}h2{font-size:20px;line-height:1.2;margin:16px 0 9px}
-p{font-size:15px;line-height:1.6;color:#bbd6dd}
-section{border:1px solid #448d98;border-radius:20px;background:#0d3041b9;padding:20px;box-shadow:0 15px 45px #0018279c;margin:20px 0 0}
-a.play{display:inline-flex;justify-content:center;align-items:center;min-height:52px;border-radius:13px;color:#03291e;background:#70ffc0;padding:13px 20px;font-weight:950;text-decoration:none;margin-top:14px}
-.caption{font-size:12px;color:#9dbcc8;margin:12px 0}.pill{display:inline-block;font-size:11px;background:#173e51;border:1px solid #4a9195;border-radius:15px;padding:6px 9px;margin:5px 5px 0 0;color:#d8fff3}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:radial-gradient(ellipse at 50% 0%,#1a5067,#07182b 63%);font:15px system-ui,-apple-system,Arial,sans-serif;color:#f2ffff;padding:18px 15px 34px}
+main{max-width:560px;margin:0 auto}
+.kicker{font-size:10px;font-weight:1000;letter-spacing:3px;color:#9affdf;padding-top:15px}
+h1{font-size:clamp(42px,11vw,72px);font-weight:1000;letter-spacing:-3px;line-height:1.02;margin:14px 0 9px}
+h1 b{color:#46f8bf}p{color:#bad7de;line-height:1.47}
+.sub{max-width:420px;font-size:13px;margin:6px 0 19px}
+.game{display:block;text-decoration:none;color:#f5fffe;background:#103347;border:1px solid #4a8c95;border-radius:19px;overflow:hidden;box-shadow:0 11px 26px #00132155;margin:13px 0}
+.game:active{transform:scale(.99)}
+.art{height:120px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.art b{position:relative;z-index:2;font-size:clamp(29px,8.5vw,43px);font-weight:1000;letter-spacing:-1.4px;text-shadow:0 4px 14px #041323}
+.color{background:linear-gradient(128deg,#1ece9c 0%,#4d9bfc 34%,#ffdf51 68%,#a663ff 100%)}
+.color:before{content:'';position:absolute;inset:-40%;transform:rotate(24deg);background:repeating-linear-gradient(90deg,#ffffff00 0 36px,#ffffff65 37px 39px,#ffffff00 40px 44px)}
+.ball{background:radial-gradient(ellipse at 55% 50%,#267cbe,#0a203c 80%)}
+.ball:before{content:'◉';font-size:134px;color:#58eaff;position:absolute;text-shadow:0 0 25px #47f5e1}
+.ball b{color:#c1fff0}
+.territory{background:linear-gradient(137deg,#0a2a4a,#164f6b)}
+.territory:before{content:'';position:absolute;width:110%;height:150%;transform:rotate(16deg);background:repeating-linear-gradient(90deg,#33ffd22d 0 30px,#244f7000 30px 34px),repeating-linear-gradient(0deg,#ab5dff46 0 24px,#10294400 24px 32px);opacity:.7}
+.territory b{color:#d8ffef}
+.wall{background:linear-gradient(145deg,#113b65,#052c43 48%,#0b1830)}
+.wall .pillars{position:absolute;inset:14px 13px 9px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;transform:perspective(410px) rotateX(9deg)}
+.wall .pillars i{background:linear-gradient(100deg,#315e8d,#0a2541);border:3px solid #54dff8;box-shadow:0 0 13px #54e9eaa1}
+.wall .pillars i:nth-child(3){background:#14635160;border:3px dashed #65ffd4;box-shadow:0 0 28px #35ffe0}
+.wall b{color:#cffff2;font-size:clamp(28px,8vw,41px)}
+.text{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:15px 16px}
+.text strong{font-size:18px;line-height:1.2}
+.text p{margin:4px 0 0;color:#bcdbe1;font-size:12px}
+.arrow{font-size:28px;color:#55f3ce}
+.badge{font-size:10px;padding:4px 7px;border-radius:8px;background:#3cf0b7;color:#052e23;font-weight:1000;vertical-align:middle;margin-left:5px}
+.footer{font-size:11px;color:#99bdc7;text-align:center;margin:23px 0 8px}
 </style></head>
-<body><main class="wrap"><small>UN SOLO MUNDO · INFINITOS DESAFÍOS</small>
-<h1>MODO <span>CAOS</span></h1>
-<p>El proyecto central de juegos y torneos en realidad aumentada. Convertimos tu piso en el escenario, con partidas cortas, desafíos inesperados y diversión con amigos.</p>
-<section><small>ESTADO · CONFIGURACIÓN INICIAL</small>
-<h2>¡Los juegos actuales siguen disponibles!</h2>
-<p>Este sitio es la base de desarrollo del nuevo proyecto. Todavía no incluye una copia del motor AR y de los minijuegos; el arcade original sigue funcionando en su dirección habitual.</p>
-<a class="play" href="https://color-rush-ar-demo.vercel.app/">🎮 ABRIR EL ARCADE ACTUAL</a>
-<p class="caption">La migración a Modo Caos se realizará cuando el código esté versionado y los juegos superen las pruebas de realidad aumentada.</p>
-</section>
-<div class="pill">Color Rush</div><div class="pill">Ball Rush</div><div class="pill">Territorio X</div><div class="pill">Muro Rush</div>
+<body><main>
+<div class="kicker">TU CASA ES EL ESCENARIO · JUEGOS AR</div>
+<h1>COLOR RUSH <b>ARCADE</b></h1>
+<p class="sub">Tu cuerpo es el protagonista. Elegí un juego, fijá la pista en el piso y competí por superar tu récord.</p>
+<a class="game" href="/muro.html"><div class="art wall"><span class="pillars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><b>MURO RUSH</b></div>
+<div class="text"><div><strong>Muro Rush <span class="badge">NUEVO</span></strong><p>Esquivá muros que vienen hacia vos. 15 oleadas, combos y reflejos.</p></div><span class="arrow">›</span></div></a>
+<a class="game" href="/color.html"><div class="art color"><b>COLOR RUSH</b></div>
+<div class="text"><div><strong>Color Rush</strong><p>Desafío de colores y duelo online con invitación.</p></div><span class="arrow">›</span></div></a>
+<a class="game" href="/ball.html"><div class="art ball"><b>BALL RUSH</b></div>
+<div class="text"><div><strong>Ball Rush Arena</strong><p>Defendé tu arco, lanzá pelotas y usá impulso.</p></div><span class="arrow">›</span></div></a>
+<a class="game" href="/territorio.html"><div class="art territory"><b>◆ TERRITORIO X</b></div>
+<div class="text"><div><strong>Territorio X</strong><p>Cerrá circuitos, conquistá terreno y cortá las estelas rivales.</p></div><span class="arrow">›</span></div></a>
+<p class="footer">Realidad aumentada en Chrome Android · ARCore · Espacios despejados</p>
 </main></body></html>

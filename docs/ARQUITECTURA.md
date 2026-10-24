@@ -6,7 +6,7 @@ Arcade social de 1–4 jugadores, videojuegos de 30–90 segundos, inicio intuit
 
 ## Estado del repositorio
 
-Aún NO contiene el código fuente completo del arcade publicado. En Vercel está el origen recuperable de los despliegues históricos; confirmar siempre versión y lista de archivos antes de copiar. El código definitivo en GitHub deberá conservar **todos** los assets, gráficos y herramientas auxiliares.
+Ya contiene la copia completa de los 23 archivos HTML y JavaScript del despliegue público del 24/10/2026. Todos se cotejaron por SHA1 con los hashes de Vercel. Los cambios futuros deben versionarse aquí, probarse en preview y no alterar el dominio antiguo sin validación.
 
 ## Stack
 
@@ -68,3 +68,11 @@ Aún NO contiene el código fuente completo del arcade publicado. En Vercel est�
 ## Documentación viva
 
 Actualizar este documento cuando cambien motor AR, paths, base, repo o despliegues. Guardar decisiones técnicas, pruebas reales por dispositivo y fuentes de assets/licencias.
+
+## Importación y vinculación verificada
+
+- Copia exacta del deployment `dpl_EZksuDm5Y3gtUoafnDZ2GyjXWc7n`, 23 archivos HTML/JS.
+- Código versionado en `ProtectorRudo/Modo-caos`, rama `main`.
+- Vercel Git project `modo-caos`, ID `prj_3irMVa8fdbifSh1mvWA67NcDGn1n`.
+- Producción original **separada**: `color-rush-ar-demo.vercel.app`.
+- Cliente Color Rush online aún enlazado a Supabase Viralio hasta migrar y configurar autenticación y Realtime en nuevo proyecto.

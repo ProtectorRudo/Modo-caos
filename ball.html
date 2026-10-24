@@ -1,0 +1,99 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#071829"><title>Ball Rush Arena V2.5</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;overflow:hidden;height:100%;color:#f4ffff;background:#071829;font:15px system-ui}
+button{min-height:44px;padding:12px;border:0;border-radius:12px;color:#052e22;background:#47f4c3;font:900 13px system-ui;touch-action:manipulation}
+button.secondary{background:#17394a;color:#eafffa;border:1px solid #589c9d}
+button:disabled{opacity:.46}
+#home{position:fixed;inset:0;z-index:40;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;text-align:center;background:radial-gradient(ellipse at 50% 20%,#1c546a,#071829 67%)}
+.eyebrow{color:#83ffda;letter-spacing:2.7px;font-size:10px;font-weight:900}
+h1{font-size:clamp(46px,12vw,67px);line-height:1.05;letter-spacing:-3px;margin:12px 0 5px;font-weight:1000}
+h1 b{color:#5affd3}
+#home p{max-width:430px;color:#c2dce3;font-size:13px;line-height:1.43;margin:8px 0 13px}
+#art{width:225px;height:127px;border:6px solid #72fadd;background:radial-gradient(ellipse,#287eb5,#0d2846);border-radius:18px;box-shadow:0 0 24px #4bffde5e;transform:perspective(420px) rotateX(25deg);position:relative;margin:6px 0 16px}
+#art:before,#art:after{content:'';position:absolute;border-radius:50%;border:6px solid #90ffff;background:#1d5268;width:35px;height:35px;box-shadow:0 0 18px #4dfdf1}
+#art:before{left:-19px;top:-19px}#art:after{right:-19px;bottom:-19px}
+#art i{position:absolute;top:39px;left:91px;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 25% 20%,white,#9cffff,#427bfa);box-shadow:0 0 25px #5ffcff}
+#art em{position:absolute;bottom:12px;left:20%;right:20%;height:6px;border-radius:10px;background:#a4ffe0;box-shadow:0 0 16px #62ffd1}
+#pick{display:flex;gap:8px;width:min(95vw,450px)}
+#pick button{flex:1;line-height:1.35;text-align:left;background:#17384c;border:1px solid #509a9a;color:#fff}
+#pick button.selected{background:#1b544d;border:2px solid #61ffde}
+#pick small{font-size:10px;font-weight:500;color:#bfdee4}
+#net{display:none;background:#123649;border:1px solid #4e9296;border-radius:13px;width:min(95vw,450px);padding:10px;margin-top:9px}
+#code{width:100%;border:1px solid #4fe7c2;border-radius:11px;background:#081d31;padding:11px;font-size:20px;letter-spacing:4px;font-weight:900;text-transform:uppercase;color:#fff;text-align:center}
+#netbuttons{display:flex;gap:7px;margin:9px 0}#netbuttons button{flex:1}
+#netinfo{color:#c9e2e6;line-height:1.35;font-size:12px}
+#invite{display:none;border:1px solid #4dd6b7;border-radius:11px;background:#0c2c3c;padding:9px;margin-top:8px}
+#inviteCode{color:#b2ffe2;font-size:26px;letter-spacing:4px}
+#invite button{margin-top:8px}
+#home .actions{display:grid;gap:8px;margin-top:11px;width:min(95vw,450px)}
+#enter{min-height:57px;font-size:16px}
+#precheck{color:#afcfda;line-height:1.4;font-size:11px;max-width:430px;margin-top:12px}
+#overlay{position:fixed;inset:0;z-index:30;display:none;pointer-events:none;overflow:hidden;background:transparent}
+#tiles,#shipsvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#touchpad{position:absolute;left:0;right:0;top:18%;bottom:24%;display:none;pointer-events:auto;touch-action:none}
+#head{position:absolute;top:max(12px,env(safe-area-inset-top));left:9px;right:9px;text-align:center;text-shadow:0 2px 7px #000;z-index:4}
+#headline{font-size:clamp(22px,6.5vw,35px);font-weight:1000;line-height:1.12}
+#subtitle{font-size:12px;font-weight:750;margin-top:5px}
+#calibrate{display:none;position:absolute;left:50%;top:112px;transform:translateX(-50%);font-size:11px;font-weight:900;white-space:nowrap;border:1px solid #56d6bb;border-radius:10px;background:#123949dd;padding:8px}
+#fallback{position:absolute;left:8px;right:8px;top:40%;display:none;border-radius:11px;background:#12364bdd;padding:11px}
+#reticle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;border:3px solid #49ffbd;box-shadow:0 0 18px #42ffc9}
+#diagbtn{position:absolute;top:25%;right:9px;pointer-events:auto;border:1px solid #50bda8;min-height:32px;font-size:10px;padding:8px;background:#123e4dca;color:#e7fffb}
+#goHome{position:absolute;top:15%;left:9px;z-index:8;pointer-events:auto;border:1px solid #54d7ba;min-height:33px;font-size:11px;padding:8px;background:#143849d3;color:#ceffe9}
+#bottom{position:absolute;bottom:max(9px,env(safe-area-inset-bottom));left:9px;right:9px;z-index:8;display:grid;gap:6px;pointer-events:auto}
+#hud{display:none;align-items:center;justify-content:space-between;gap:6px;font-weight:900;font-size:11px;text-align:center;padding:10px;border-radius:12px;border:1px solid #4de9bd;background:#092339e8}
+#hud b{display:block;font-size:21px;color:#b9ffe0}
+#ballstatus{display:none;border:1px solid #489f9b;border-radius:11px;padding:10px;text-align:center;font-size:12px;font-weight:900;background:#092138e6}
+#powers{display:none;gap:7px}#powers button{flex:1}
+#powers button.secondary{font-size:11px;padding:9px 7px}
+#boost{min-height:60px;font-size:15px;line-height:1.2;background:linear-gradient(110deg,#ffe48a,#ffad70);color:#4c2910}
+#toolbar,#mainbuttons{display:flex;gap:7px;justify-content:center}#toolbar button{min-width:46px}#mainbuttons button{flex:1}
+#debug{display:none;white-space:pre-wrap;font-size:10px;line-height:1.35;background:#0b2538e5;border:1px solid #50a5a3;border-radius:11px;padding:10px}
+#cockpit{display:none;position:absolute;inset:0;z-index:3;pointer-events:none}
+#cockpit:before,#cockpit:after{content:'';position:absolute;bottom:-4vh;width:28vw;height:46vh;border:2px solid #63ffe7;background:#123b52d2;box-shadow:inset 0 0 33px #58ffdf6a}
+#cockpit:before{left:-16vw;transform:skewY(20deg)}#cockpit:after{right:-16vw;transform:skewY(-20deg)}
+#cockpit span{position:absolute;left:27vw;right:27vw;bottom:17vh;height:7vh;border-radius:17px;background:#0d3b4bd7;border:2px solid #5effe6}
+#result{display:none;position:absolute;inset:0;z-index:17;align-items:center;justify-content:center;pointer-events:auto;background:#071829e6;padding:14px}
+#result .modal{border:1px solid #53e8c6;border-radius:20px;background:#123c4f;text-align:center;padding:23px;width:min(94vw,420px)}
+#result h2{font-size:29px;margin:0 0 8px}#result p{line-height:1.4;color:#b7dfe2}
+#notice{display:none;position:absolute;bottom:0;padding:10px;background:#793441}
+</style></head><body>
+<div id="home">
+<div id="mock" style="display:none"></div><button id="support" style="display:none"></button>
+<div class="eyebrow">COLOR RUSH ARCADE · BALL RUSH V2.5</div>
+<h1>BALL <b>RUSH</b><br>ARENA</h1>
+<p>Cuatro emisores circulares lanzan pelotas desde las esquinas. Tu arco es solo la zona entre los dos postes luminosos; las esquinas rebotan.</p>
+<div id="art"><i></i><em></em></div>
+<div id="pick"><button id="solo" class="selected">🤖 VS BOTS<br><small>3 rivales automáticos</small></button><button id="online">🌐 ONLINE<br><small>Amigo + 2 bots</small></button></div>
+<div id="net"><input id="code" placeholder="CÓDIGO DE SALA" maxlength="8" autocomplete="off" spellcheck="false">
+<div id="netbuttons"><button id="create">CREAR SALA</button><button id="join" class="secondary">UNIRME</button></div>
+<div id="netinfo">Creá una sala y compartí la invitación.</div>
+<div id="invite"><strong id="inviteCode">—</strong><div><button id="copy">COPIAR ENLACE</button></div></div></div>
+<div class="actions"><button id="enter">ENTRAR EN REALIDAD AUMENTADA</button><button id="back" class="secondary">← MENÚ PRINCIPAL</button></div>
+<div id="precheck">Jugá en Chrome Android con ARCore y espacio libre de obstáculos. Cada celular fija su propia arena.</div>
+</div>
+<div id="overlay">
+<svg id="tiles" xmlns="http://www.w3.org/2000/svg"></svg>
+<svg id="shipsvg" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="touchpad"></div><div id="cockpit"><span></span></div>
+<div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Detectá una superficie amplia para colocar la cancha.</div></div>
+<div id="calibrate">ARRASTRÁ · PELLIZCÁ · GIRÁ</div><div id="fallback"></div><div id="reticle"></div>
+<button id="diagbtn">DIAGNÓSTICO</button><button id="goHome">← MENÚ</button>
+<div id="bottom">
+<div id="hud"><span>VOS<b id="hpMe">♥♥♥♥♥♥</b></span><span>VELOCIDAD<b id="speed">1.0×</b></span><span>RIVAL<b id="hpEnemy">♥♥♥♥♥♥</b></span></div>
+<div id="ballstatus">FIJÁ LA ARENA PARA JUGAR</div>
+<div id="debug">Inicializando AR…</div>
+<div id="toolbar"><button id="minus" class="secondary">−</button><button id="size" disabled>45 cm</button><button id="plus" class="secondary">+</button><button id="rotate" class="secondary">↻ GIRAR</button></div>
+<div id="mainbuttons"><button id="lock" disabled>FIJAR ARENA</button><button id="play" style="display:none">INICIAR BATALLA</button><button id="edit" class="secondary" style="display:none">REUBICAR</button></div>
+<div id="powers"><button id="center" class="secondary">🎯 CENTRAR</button><button id="boost">⚡ IMPULSO</button><button id="view" class="secondary">👁 CABINA</button></div>
+</div>
+<div id="result"><div class="modal"><h2 id="endTitle">FIN DE LA PARTIDA</h2><p id="endSummary"></p><button id="again">JUGAR DE NUEVO</button><button id="dismiss" class="secondary">VER ARENA</button></div></div>
+</div><div id="notice"></div>
+<script src="/engine.js?v=251" defer></script>
+<script src="/ball-physics-v25.js?v=251" defer></script>
+<script src="/ball-art-v25.js?v=251" defer></script>
+<script src="/ball-runtime-v25.js?v=251" defer></script>
+<script src="/ball-end-fix-v25.js?v=251" defer></script>
+</body></html>

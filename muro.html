@@ -1,0 +1,127 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#06182b"><title>MURO RUSH · Color Rush Arcade</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;color:#f4ffff;background:#06182b;font:15px system-ui,-apple-system,Arial,sans-serif}
+button{border:0;border-radius:13px;min-height:44px;padding:11px 12px;background:#39ffc2;color:#082e21;touch-action:manipulation;font:900 13px system-ui;cursor:pointer}
+button.secondary{background:#113b4e;border:1px solid #529da1;color:#ddfff4}button:disabled{opacity:.47}
+#home{position:fixed;inset:0;z-index:45;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:auto;padding:16px 15px 32px;text-align:center;background:radial-gradient(ellipse at 50% 8%,#1b5270,#06172b 69%)}
+#backMenu{align-self:flex-start;background:none;min-height:30px;padding:5px 2px;color:#b6ffeb;font-size:12px}
+.kicker{font-size:10px;color:#a2ffdf;letter-spacing:3px;font-weight:1000;margin:14px 0 2px}
+h1{font-size:clamp(48px,12vw,73px);line-height:1.01;letter-spacing:-3.2px;font-weight:1000;margin:10px 0 6px;text-shadow:0 6px 16px #031525}
+h1 span{color:#42ffd0}
+#home p{max-width:435px;font-size:13px;line-height:1.46;margin:9px 0 14px;color:#c9dfe3}
+#hero{width:min(310px,80vw);height:163px;perspective:440px;position:relative;margin:4px 0 13px}
+#hero .floor{position:absolute;inset:20px 0 13px;border:4px solid #4cffe4;border-radius:14px;transform:rotateX(43deg);
+ background:repeating-linear-gradient(90deg,#0d2948 0 18%,#61c5eb 18.1% 19%,#102943 19.1% 20%);
+ box-shadow:0 9px 32px #3bfdda67}
+#hero .wall{position:absolute;inset:7px 6% 49px;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;transform:perspective(350px) rotateX(10deg)}
+#hero .wall i{position:relative;border:3px solid #69dcff;border-radius:5px;background:linear-gradient(127deg,#7590c1,#0c2244 75%);box-shadow:0 0 18px #2dcdfb79}
+#hero .wall i:not(:nth-child(3)):after{content:"";position:absolute;left:7%;right:7%;top:72%;height:5px;background:#4ffff1;box-shadow:0 0 11px #7affee}
+#hero .wall i:nth-child(3){background:#0effb121;border:4px dashed #79ffe8;box-shadow:0 0 22px #51ffe8a0}
+#hero .player{position:absolute;width:36px;height:36px;background:#34ffc8;border:5px solid white;border-radius:50%;left:50%;bottom:8px;transform:translateX(-50%);box-shadow:0 0 22px 7px #35ffcf8c}
+#introStats{font-size:11px;color:#a3ffdd;font-weight:1000;letter-spacing:1.4px;margin-bottom:9px}
+#bestIntro{font-size:11px;color:#c5e0e1;font-weight:800;margin-bottom:15px}
+#options{display:flex;align-items:center;gap:8px;justify-content:space-between;width:min(96vw,440px);padding:10px;background:#0a2a40;border:1px solid #49989e;border-radius:12px;margin-bottom:11px}
+#options label{font-size:12px;font-weight:900}
+#difficulty{min-height:43px;max-width:180px;flex:1;background:#07233a;color:#f5fff8;border:1px solid #56d6b9;border-radius:9px;padding:10px;font:850 12px system-ui}
+#home .actions{display:grid;gap:9px;width:min(96vw,440px)}
+#enter{min-height:59px;font-size:15px}
+#precheck{max-width:445px;color:#a9ccd7;font-size:11px;line-height:1.45;margin:15px auto}
+#overlay{position:fixed;inset:0;z-index:30;display:none;overflow:hidden;pointer-events:none;background:transparent}
+#tiles,#arenaSvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+#arenaSvg{z-index:3}
+#touchpad{position:absolute;left:0;right:0;top:18%;bottom:23%;display:none;pointer-events:auto;touch-action:none}
+#head{position:absolute;top:max(12px,env(safe-area-inset-top));left:8px;right:8px;text-align:center;text-shadow:0 2px 8px #000;z-index:5}
+#headline{font-size:clamp(22px,6vw,34px);font-weight:1000}
+#subtitle{font-size:12px;font-weight:900;margin-top:6px}
+#calibrate{display:none;position:absolute;left:50%;top:118px;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:900;padding:8px;border:1px solid #4bd0b5;border-radius:11px;background:#0c364add}
+#fallback{display:none;position:absolute;left:8px;right:8px;top:40%;background:#0b364adf;border-radius:11px;padding:11px}
+#reticle{position:absolute;top:50%;left:50%;width:30px;height:30px;transform:translate(-50%,-50%);border:3px solid #53ffca;border-radius:50%;box-shadow:0 0 15px #3cfbc9}
+#diagbtn{position:absolute;right:9px;top:26%;pointer-events:auto;background:#0c3b4bd2;color:#e7fff8;border:1px solid #55bdaa;min-height:32px;font-size:10px;padding:8px}
+#goHome{position:absolute;left:9px;top:17%;z-index:10;pointer-events:auto;background:#123849cb;color:#d6fff5;border:1px solid #43bca6;min-height:32px;font-size:11px;padding:8px}
+#wallHead{display:none;position:absolute;top:max(8px,env(safe-area-inset-top));left:8px;right:8px;z-index:6;pointer-events:none;grid-template-columns:1fr;justify-items:center;text-align:center;text-shadow:0 2px 9px #041728}
+#wallLogo{font-size:clamp(24px,7vw,37px);font-weight:1000;letter-spacing:.6px}
+#wallBanner{color:#e4ffef;font-size:11px;font-weight:900;margin-top:3px}
+#wallClock{font-size:23px;color:#baffdf;font-weight:1000;margin-top:6px}
+#wallFind{display:none;font-size:11px;font-weight:1000;background:#0b364bdb;color:#fff;border:1px solid #45eac0;border-radius:10px;padding:7px 11px;margin-top:5px}
+#wallFX{position:absolute;top:33%;left:8px;right:8px;z-index:14;display:none;text-align:center;font-size:clamp(25px,7vw,42px);font-weight:1000;text-shadow:0 3px 8px #000,0 0 19px #38ffd0;pointer-events:none}
+#wallFX.active{display:block;animation:fxpop .78s ease-out both}#wallFX.danger{color:#ffd3cc;text-shadow:0 3px 8px #000,0 0 24px #ff6077}
+@keyframes fxpop{0%{opacity:0;transform:translateY(25px) scale(.8)}19%{opacity:1;transform:scale(1.12)}74%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translateY(-22px)}}
+#bottom{position:absolute;bottom:max(9px,env(safe-area-inset-bottom));left:9px;right:9px;z-index:15;display:grid;gap:6px;pointer-events:auto}
+#wallHud{display:none;justify-content:space-around;align-items:center;gap:4px;border-radius:13px;border:1px solid #51f1c3;background:#061d32e7;text-align:center;padding:9px 5px;font-size:10px;font-weight:950;backdrop-filter:blur(6px)}
+#wallHud b{display:block;color:#b2ffe3;font-size:21px;font-variant-numeric:tabular-nums}
+#wallStatus{background:#08283bdb;border:1px solid #50a5a6;border-radius:11px;padding:9px;text-align:center;font-size:11px;font-weight:900}
+#wallGuide{display:none;flex-direction:column;gap:5px;align-items:center;padding:6px 9px;border:1px solid #3a7490;border-radius:10px;background:#081c30cb}
+#wallLaneText{font-size:10px;letter-spacing:.8px;font-weight:1000}
+#wallLaneStrip{display:flex;width:100%;gap:6px;justify-content:center;height:13px}
+#wallLaneStrip i{flex:1;border-radius:5px;background:#184562;border:1px solid #4d7891}
+#wallLaneStrip i.safe{background:#44ffd1;border-color:#d8fff4;box-shadow:0 0 10px #44ffd18b}
+#wallLaneStrip i.unsafe{background:#bc446b;border-color:#ed8ca1}
+#wallLaneStrip i.me{outline:3px solid white;outline-offset:0}
+#progressTrack{width:100%;height:5px;border-radius:8px;overflow:hidden;background:#144456}
+#progressBar{width:0;height:100%;background:linear-gradient(90deg,#48ffd4,#ffe36e,#ff5481)}
+#toolbar,#mainbuttons{display:flex;gap:7px;justify-content:center}
+#toolbar button{min-width:42px}#mainbuttons button{flex:1}
+#wallActions{display:none;gap:6px}
+#wallActions button{flex:1;min-width:0;min-height:46px;padding:9px 4px;font-size:11px}
+#wallStart{font-size:14px!important;min-height:53px!important;background:linear-gradient(120deg,#52ffd2,#a3ffe9)}
+#wallCalibrate{background:#123a50;border:1px solid #5fb7ac;color:#dffff7}
+#wallInputToggle{background:#163b51;border:1px solid #46889f;color:#dffffb}
+#wallPower{background:linear-gradient(110deg,#ffdd91,#ff9d6b);color:#442917}
+#movementPad{display:none;gap:8px}
+#movementPad button{flex:1;min-height:51px;touch-action:none;font-size:21px;background:#123c51;border:1px solid #4acaa8;color:#eafff5}
+#debug{display:none;font-size:10px;background:#0a293ac9;border:1px solid #3ea5a1;border-radius:9px;padding:9px;white-space:pre-wrap}
+#wallDebug,#notice{display:none}
+#wallResult{position:absolute;inset:0;z-index:25;display:none;align-items:center;justify-content:center;background:#061729e9;pointer-events:auto;padding:16px}
+#wallResult .modal{width:min(95vw,425px);border:1px solid #54efc6;border-radius:22px;background:#103b4e;padding:23px;text-align:center;box-shadow:0 14px 34px #0008}
+#wallResultTitle{font-size:30px;font-weight:1000;line-height:1.12}
+#wallResultStats{font-size:14px;line-height:1.46;color:#c9e5e7;margin:14px 0 20px}
+#wallResult .actions{display:grid;gap:7px}
+#wallResult .actions button{min-height:48px}
+#play{display:none!important}/* Color Rush's native rounds button must NEVER appear in Muro Rush. */
+.mw-fixed #head,.mw-fixed #reticle,.mw-fixed #touchpad,.mw-fixed #toolbar{display:none!important}
+.mw-running #head,.mw-running #reticle,.mw-running #touchpad,.mw-running #toolbar,.mw-running #mainbuttons{display:none!important}
+.mw-demo #head,.mw-demo #reticle,.mw-demo #touchpad,.mw-demo #toolbar,.mw-demo #mainbuttons,.mw-demo #diagbtn,.mw-demo #goHome{display:none!important}
+@media(max-height:700px){#wallHud b{font-size:18px}#wallActions button{font-size:10px}#wallHead{top:4px}}
+</style></head><body>
+<div id="home">
+<button id="backMenu">← VOLVER AL ARCADE</button>
+<div class="kicker">REALIDAD AUMENTADA · REACCIONÁ Y ESQUIVÁ</div>
+<h1>MURO <span>RUSH</span></h1>
+<p>¡Se te vienen paredes encima! Desplazate hacia el hueco luminoso antes de que te alcancen. Cada muro pasa más rápido.</p>
+<div id="hero" aria-hidden="true"><div class="floor"></div><div class="wall"><i></i><i></i><i></i><i></i><i></i></div><div class="player"></div></div>
+<div id="introStats">15 MUROS · 3 VIDAS · 1 CAMPEÓN</div>
+<div id="bestIntro">RÉCORD PERSONAL</div>
+<div id="mock" style="display:none"></div><button id="support" style="display:none"></button>
+<div id="options"><label for="difficulty">DIFICULTAD</label><select id="difficulty"><option value="tranquilo">😊 Tranquilo</option><option selected value="normal">⚡ Normal</option><option value="intenso">🔥 Intenso</option></select></div>
+<div class="actions"><button id="enter">📷 JUGAR EN REALIDAD AUMENTADA</button><button id="demo" class="secondary">🎮 PROBAR DEMO CON FLECHAS</button></div>
+<div id="precheck">Movete de costado con espacio libre, sin correr. El juego usa la posición del teléfono, no detecta tus pies ni tu cuerpo. No te acerques a muebles, escaleras ni obstáculos.</div>
+</div>
+<div id="overlay">
+<svg id="tiles" xmlns="http://www.w3.org/2000/svg"></svg>
+<svg id="arenaSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="touchpad"></div>
+<div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Detectá una superficie amplia para la pista.</div></div>
+<div id="wallHead"><div id="wallLogo">¡MURO RUSH!</div><div id="wallBanner">¡CORRÉ HACIA EL HUECO!</div><div id="wallClock">2.3 s</div><div id="wallFind">◈ VOS POR ACÁ</div></div>
+<div id="wallFX"></div>
+<div id="calibrate">ARRASTRÁ · PELLIZCÁ · GIRÁ</div><div id="fallback"></div><div id="reticle"></div>
+<button id="diagbtn">DIAGNÓSTICO</button><button id="goHome">← MENÚ</button>
+<div id="bottom">
+<div id="wallHud"><span>MURO<b id="wallWave">00/15</b></span><span>PUNTOS<b id="wallScore">0</b></span><span>VIDAS<b id="wallLives">♥♥♥</b></span><span>COMBO<b id="wallCombo">×1</b></span></div>
+<div id="wallStatus">FIJÁ LA PISTA EN EL PISO PARA EMPEZAR</div>
+<div id="wallGuide"><div id="wallLaneText">TU CARRIL 3/5</div><div id="wallLaneStrip"><i></i><i></i><i></i><i></i><i></i></div><div id="progressTrack"><div id="progressBar"></div></div></div>
+<div id="debug">Iniciando AR…</div><div id="wallDebug"></div>
+<div id="toolbar"><button id="minus" class="secondary">−</button><button id="size" disabled>45 cm</button><button id="plus" class="secondary">+</button><button id="rotate" class="secondary">↻ GIRAR</button></div>
+<div id="mainbuttons"><button id="lock" disabled>FIJAR PISTA</button><button id="play" style="display:none">EMPEZAR RONDAS</button><button id="edit" class="secondary" style="display:none">REUBICAR</button></div>
+<div id="wallActions"><button id="wallCalibrate">📍 SOY YO</button><button id="wallStart">¡EMPEZAR!</button><button id="wallInputToggle">🎮 BOTONES</button><button id="wallPower">🛡 ESCUDO</button></div>
+<div id="movementPad"><button id="leftBtn" aria-label="Izquierda">◀</button><button id="rightBtn" aria-label="Derecha">▶</button></div>
+</div>
+<div id="wallResult"><div class="modal"><div id="wallResultTitle">¡FIN DE LA PARTIDA!</div><p id="wallResultStats"></p><div class="actions"><button id="wallRestart">↻ REVANCHA</button><button id="wallShare" class="secondary">COMPARTIR RÉCORD</button><button id="wallExit" class="secondary">← MENÚ DE JUEGOS</button></div></div></div>
+</div><div id="notice"></div>
+<script defer src="/engine.js?v=muro1"></script>
+<script defer src="/muro-core.js?v=muro1"></script>
+<script defer src="/muro-art.js?v=muro1"></script>
+<script defer src="/muro-runtime.js?v=muro1"></script>
+</body></html>

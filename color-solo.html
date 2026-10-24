@@ -1,0 +1,101 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#071728"><title>COLOR RUSH XR · SURVIVOR V1.1</title><style>
+:root{--mint:#37f2b0;font-family:system-ui,-apple-system,Arial,sans-serif;color:#f5ffff;background:#071827}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden;background:#071827}
+button,.chrome-link{font:900 13px system-ui;background:var(--mint);color:#062b20;border:0;border-radius:13px;min-height:45px;padding:12px 14px;touch-action:manipulation}
+button.secondary,.chrome-link{background:#15394e;color:#eafff7;border:1px solid #5ab2a0}
+button:disabled{opacity:.48}
+#home{position:fixed;inset:0;z-index:45;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:14px 16px;overflow-y:auto;background:radial-gradient(ellipse at 50% 26%,#1a4a61,#061829 70%)}
+#brand-sub{font-size:10px;letter-spacing:2.7px;color:#86f5cf;font-weight:900}
+h1{font-size:clamp(43px,13vw,71px);letter-spacing:-3px;font-weight:1000;margin:10px 0 2px;line-height:1.1}
+h1 span{color:var(--mint)}
+#home p{color:#bfdbe5;font-size:13px;line-height:1.45;margin:7px 0 13px;max-width:400px}
+#mock{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;width:min(40vw,170px);aspect-ratio:1;transform:perspective(420px) rotateX(25deg);margin:0 0 15px}
+#mock div{border-radius:3px;border:1px solid #ffffff88}
+#modes{display:flex;gap:7px;width:min(92vw,410px);margin-bottom:9px}
+#modes button{flex:1;font-size:13px;text-align:left;background:#11324a;color:#c6dee7;border:1px solid #467a87;line-height:1.5}
+#modes button.selected{background:#154644;border:2px solid #39f1b2;color:white}
+#modes small{font-size:10px;font-weight:500;color:#bfdfe0}
+#home .actions{width:min(92vw,410px);display:grid;gap:7px}
+#enter{font-size:16px;min-height:56px}
+.chrome-link{display:flex;align-items:center;justify-content:center;text-decoration:none}
+#precheck,#help{font-size:11px;line-height:1.4;max-width:410px;color:#bad5dd;margin:8px 0 0}
+#overlay{display:none;position:fixed;inset:0;z-index:27;pointer-events:none;background:transparent;overflow:hidden}
+#tiles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#touchpad{position:absolute;left:0;right:0;top:18%;bottom:24%;pointer-events:auto;touch-action:none;display:none}
+#head{position:absolute;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));text-align:center;z-index:4;text-shadow:0 2px 7px #000}
+#headline{font-size:clamp(24px,7vw,39px);font-weight:1000;letter-spacing:-.5px;line-height:1.15}
+#subtitle{font-size:13px;font-weight:700;margin:5px auto;max-width:440px}
+#calibrate{position:absolute;top:115px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;white-space:nowrap;background:#0f3850df;border:1px solid #5ad5b0a0;border-radius:10px;padding:8px;display:none}
+#fallback{position:absolute;top:40%;left:15px;right:15px;padding:12px;border-radius:12px;background:#10374eea;display:none}
+#reticle{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;border:3px solid #32ffaf;box-shadow:0 0 15px #26ffa9}
+#diagbtn{position:absolute;right:10px;top:24%;pointer-events:auto;background:#193e4bd9;color:#e4fff6;border:1px solid #47d7a887;font-size:10px;padding:9px;min-height:34px}
+#top-chip{position:absolute;top:111px;left:50%;transform:translateX(-50%);padding:8px 15px;background:#0a263bd9;border:1px solid #ffffff55;border-radius:22px;font-size:13px;font-weight:900;white-space:nowrap;display:none}
+#timetrack{position:absolute;top:163px;left:10%;width:80%;height:8px;border-radius:10px;background:#081e30dd;border:1px solid #ffffff44;overflow:hidden;display:none}
+#timefill{background:#36efaf;height:100%;width:100%}
+#burst{position:absolute;top:35%;left:5px;right:5px;text-align:center;font-size:clamp(28px,8vw,46px);font-weight:1000;text-shadow:0 3px 12px #000;display:none}
+@keyframes pop{0%{transform:scale(.65);opacity:0}40%{transform:scale(1.14);opacity:1}100%{transform:scale(1);opacity:1}}
+#bottom{position:absolute;bottom:max(9px,env(safe-area-inset-bottom));left:9px;right:9px;z-index:4;display:grid;gap:6px;pointer-events:auto}
+#hud{background:#082135e9;border:1px solid #50d6a98a;padding:9px 11px;display:none;justify-content:space-between;align-items:center;border-radius:12px;font-size:12px;font-weight:900;gap:5px}
+#hud b{font-size:21px;color:#a8ffe0}
+#hearts{font-size:18px;color:#ff658b;letter-spacing:1px}
+#playerline{display:none;text-align:center;background:#091d36ef;border:1px solid #5cb99daa;border-radius:12px;font-size:12px;font-weight:850;padding:10px 7px}
+#health-warning{display:none;text-align:center;color:#ffda99;background:#163146d9;padding:6px;border-radius:9px;font-size:11px}
+#calibration-btn{display:none;color:#dcffee;background:#194658;border:1px solid #43e4ba;font-size:12px}
+#debug{display:none;background:#071a2be9;border:1px solid #4ba492a8;padding:10px;border-radius:9px;font-size:11px;line-height:1.4;white-space:pre-wrap;max-height:80px;overflow:hidden}
+#toolbar,#mainbuttons{display:flex;justify-content:center;gap:7px}
+#toolbar button{min-width:49px}
+#size{min-width:80px}
+#mainbuttons button{flex:1}
+#notice{position:absolute;left:0;right:0;bottom:0;background:#672633;color:white;padding:12px;display:none}
+#calpanel,#endpanel{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#061929ed;pointer-events:auto;z-index:10;padding:14px;text-align:center}
+.popup{max-width:440px;width:100%;padding:24px 18px;background:#143848;border:1px solid #4aded0;border-radius:20px;box-shadow:0 10px 40px #0009}
+.popup h2{font-size:25px;margin:0 0 11px}
+.popup p{font-size:13px;color:#c9e5e9;line-height:1.45}
+.popup button{margin:7px;max-width:100%}
+#best{color:#adffd7}
+#colorflash{display:none;position:absolute;inset:0;pointer-events:none}
+</style></head><body>
+<main id="home"><div id="brand-sub">PARTY ARCADE · CALIBRACIÓN MEJORADA V1.1</div>
+<h1>COLOR <span>RUSH</span></h1>
+<p>Sobreviví, ganá combos y corré hacia los colores. Ahora podés calibrar desde cualquier baldosa y el juego no te penaliza si pierde tu posición.</p>
+<div id="mock"></div>
+<div id="modes">
+<button id="mode-survivor" class="selected">🔥 SURVIVOR<br><small>3 vidas · combos · sorpresas</small></button>
+<button id="mode-classic">🎯 CLÁSICO<br><small>8 rondas · sin eliminación</small></button>
+</div>
+<div class="actions">
+<button id="enter">JUGAR EN REALIDAD AUMENTADA</button>
+<a class="chrome-link" href="intent://color-rush-ar-demo.vercel.app/?v=110#Intent;scheme=https;package=com.android.chrome;end">ABRIR EN CHROME ↗</a>
+<button id="support" class="secondary">COMPROBAR AR</button>
+</div>
+<div id="precheck">Chrome para Android con ARCore. Elegí un piso amplio, despejado y seguro.</div>
+<div id="help">El celular estima tu ubicación, no detecta los pies directamente. Calibrá desde la baldosa bajo tus pies y mantenelo cerca del pecho.</div>
+</main>
+<div id="overlay">
+<div id="colorflash"></div>
+<svg id="tiles" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="touchpad"></div>
+<div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Mové lentamente el teléfono hacia una superficie horizontal.</div></div>
+<div id="calibrate">☝ ARRASTRÁ · PELLIZCÁ · GIRÁ CON DOS DEDOS</div>
+<div id="fallback"></div><div id="reticle"></div>
+<button id="diagbtn">DIAGNÓSTICO</button>
+<div id="top-chip"></div>
+<div id="timetrack"><div id="timefill"></div></div>
+<div id="burst"></div>
+<div id="bottom">
+<div id="hud"><div>PUNTOS <b id="score-val">0</b></div><div id="hearts">♥ ♥ ♥</div><div>COMBO <b id="combo-val">×1</b></div><div>RONDA <b id="round-val">0</b></div></div>
+<div id="playerline">POSICIÓN ESTIMADA · —</div>
+<div id="health-warning"></div>
+<button id="calibration-btn">🎯 AJUSTAR MI POSICIÓN</button>
+<div id="debug">Esperando sistema AR…</div>
+<div id="toolbar"><button id="minus" class="secondary">−</button><button id="size" disabled>45 cm</button><button id="plus" class="secondary">+</button><button id="rotate" class="secondary">↻ GIRAR</button></div>
+<div id="mainbuttons"><button id="lock">FIJAR PISTA</button><button id="play">EMPEZAR SURVIVOR</button><button id="edit" class="secondary">REUBICAR</button></div>
+</div>
+<div id="calpanel"><div class="popup"><h2>👣 CALIBRAR TU POSICIÓN</h2><p>Parate en el centro de una baldosa con el teléfono cerca del pecho.</p><button id="calconfirm">ESTOY EN EL CENTRO</button><button id="calcancel" class="secondary">CANCELAR</button></div></div>
+<div id="endpanel"><div class="popup"><div id="endkicker">PARTIDA TERMINADA</div><h2 id="endtitle">RESULTADO</h2><p id="endstats"></p><p id="best"></p><button id="again">JUGAR DE NUEVO</button><button id="closeend" class="secondary">VER LA PISTA</button></div></div>
+</div>
+<div id="notice"></div>
+<script src="/engine.js?v=110" defer></script>
+<script src="/survivor.js?v=110" defer></script>
+</body></html>

@@ -1,0 +1,114 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#071b2b"><title>Color Rush · Duelo para dos</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#06192b;color:#f1ffff;font:15px system-ui,-apple-system,Arial,sans-serif}
+button{border:0;border-radius:12px;padding:12px;background:#45f1bc;color:#062e22;min-height:44px;font:900 13px system-ui;touch-action:manipulation}
+button.secondary{background:#153a4c;color:#eafffa;border:1px solid #4c9999}button:disabled{opacity:.46}
+#home{position:fixed;inset:0;z-index:45;overflow:auto;display:flex;flex-direction:column;align-items:center;text-align:center;padding:19px 14px 32px;background:radial-gradient(ellipse at 50% 8%,#1d5672,#061729 70%)}
+#back{align-self:flex-start;background:none;color:#adffe3;min-height:25px;padding:6px 0}
+.kicker{color:#98ffe1;font-size:11px;letter-spacing:2.7px;font-weight:950;margin-top:16px}
+h1{font-size:clamp(42px,11.2vw,65px);letter-spacing:-3px;line-height:1.04;margin:14px 0 7px}h1 b{color:#58ffd0}
+#home p{color:#c2dae2;font-size:12px;line-height:1.43;margin:9px 0 12px;max-width:440px}
+#mock{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:140px;height:135px;transform:perspective(420px) rotateX(24deg);margin:6px auto 18px}
+#mock>*{border-radius:4px;border:1px solid #ffffff70}
+#introChoices{display:grid;gap:9px;width:min(95vw,440px)}
+#hostCreate{font-size:16px;min-height:57px}
+#joinBox{display:flex;gap:6px;background:#102f42;border-radius:12px;border:1px solid #4e9793;padding:8px}
+#joinCode{flex:1;min-width:0;background:#092438;color:white;outline:0;border:0;border-radius:9px;text-align:center;text-transform:uppercase;letter-spacing:4px;font-size:19px;font-weight:900;padding:11px}
+#guestJoin{flex:1}
+#inviteSplash{display:none;background:#103b49;border:1px solid #4ae1bf;border-radius:12px;padding:10px;margin:9px 0}
+#netInfo{color:#c6e7e4;font-size:12px;line-height:1.35;margin:13px 0 9px;max-width:440px}
+#netInfo.bad{color:#ffb6a4}
+#roomPanel{display:none;background:#113747;border:1px solid #57d4bc;border-radius:16px;padding:15px;width:min(95vw,440px);box-shadow:0 9px 23px #0005}
+#roomRole{font-size:10px;letter-spacing:2px;font-weight:900;color:#b6eadd}
+#roomCode{font-size:30px;color:#baffde;letter-spacing:5px;display:block;padding:9px}
+#shareButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:7px 0}
+#whatsappInvite{background:#25d366;color:#072b1b}#copyInvite{font-size:11px}
+#enter{width:100%;min-height:58px;font-size:14px;margin:8px 0}
+#roomNote{font-size:11px!important;color:#bbdfe2!important}
+#soloGame{color:#b4dadd;background:none;text-decoration:underline;margin:13px 0}
+#precheck{color:#b7cfd7;font-size:11px;line-height:1.4;max-width:430px}
+#overlay{position:fixed;inset:0;display:none;pointer-events:none;background:transparent;overflow:hidden;z-index:30}
+#tiles,#duelMarker{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#duelMarker{display:none;z-index:6}
+#touchpad{position:absolute;left:0;right:0;top:19%;bottom:24%;display:none;touch-action:none;pointer-events:auto}
+#head{position:absolute;top:max(11px,env(safe-area-inset-top));left:8px;right:8px;text-shadow:0 2px 8px #000;text-align:center;z-index:6}
+#headline{font-size:clamp(22px,6vw,35px);font-weight:1000}
+#subtitle{font-size:12px;margin-top:5px;font-weight:850}
+#calibrate{position:absolute;left:50%;top:113px;transform:translateX(-50%);display:none;border:1px solid #4cdfbc;background:#0d364bd9;border-radius:11px;padding:8px;font-size:10px;font-weight:900;white-space:nowrap}
+#fallback{position:absolute;left:9px;right:9px;top:42%;display:none;padding:10px;background:#0e394ce6;border-radius:10px}
+#reticle{position:absolute;top:50%;left:50%;width:30px;height:30px;border-radius:50%;transform:translate(-50%,-50%);border:3px solid #5affce;box-shadow:0 0 12px #4efdc9}
+#diagbtn{position:absolute;top:24%;right:8px;pointer-events:auto;min-height:33px;font-size:10px;padding:8px;background:#103c4cdc;color:#f1ffff;border:1px solid #53c4ac}
+#goHome{display:none}
+#duelRoomBar{display:none;position:absolute;top:113px;left:9px;background:#071f34e6;border:1px solid #58d6b5;border-radius:10px;padding:8px;z-index:8;font-size:10px;font-weight:900}
+#duelHead{position:absolute;top:12px;left:8px;right:8px;text-align:center;text-shadow:0 2px 9px #001527;z-index:7;display:none;pointer-events:none}
+#duelTitle{font-size:clamp(27px,8vw,43px);font-weight:1000;line-height:1.07}
+#duelSubtitle{font-size:11px;margin-top:5px;font-weight:900}
+#duelTimer{font-size:24px;color:#adffe0;font-weight:1000;margin-top:6px}
+#duelHud{display:none;position:absolute;left:8px;right:8px;bottom:232px;padding:11px;align-items:center;justify-content:space-between;border-radius:13px;background:#071e33dd;border:1px solid #59d5ba;z-index:7;pointer-events:none;font-size:11px;font-weight:900}
+#duelHud b{font-size:23px;display:block;color:#b8ffe1}
+#duelHud .scores{display:flex;gap:18px}
+#markerHalo{fill:#46f9c93d;stroke:#fff;stroke-width:3}
+#markerCore{fill:#4affc1;stroke:#002a37;stroke-width:2}
+#markerText{font:bold 11px system-ui;fill:white;stroke:#003746;stroke-width:3;paint-order:stroke;text-anchor:middle}
+#bottom{position:absolute;bottom:max(9px,env(safe-area-inset-bottom));left:9px;right:9px;z-index:12;display:grid;gap:7px;pointer-events:auto}
+#duelStatus,#whereAmI{background:#081e33df;border:1px solid #4ba39c;border-radius:11px;padding:11px;text-align:center;font-weight:900;font-size:11px;line-height:1.3}
+#whereAmI{display:none;color:#baffdf}
+#toolbar,#mainbuttons,#duelControls{display:flex;gap:7px;justify-content:center}
+#toolbar button{min-width:43px}#mainbuttons button{flex:1}
+#duelActions{display:none;width:100%}
+#duelControls{width:100%;display:flex}
+#duelControls button{flex:1;font-size:12px}
+#duelStart{background:#69f5bb}
+#returnGames{background:#143749;color:#d8ffed;border:1px solid #5ba8a7;width:100%;min-height:34px;font-size:11px}
+#play{display:none!important}
+#debug{display:none;border:1px solid #49a3a3;border-radius:9px;padding:9px;background:#081f33e9;white-space:pre-wrap;font-size:10px}
+#notice{display:none;position:absolute;bottom:0;background:#74313d;padding:11px}
+#finalOverlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:24;background:#061827ee;pointer-events:auto;padding:18px}
+#finalOverlay .panel{width:min(95vw,430px);background:#123a4c;border:1px solid #4effc3;border-radius:19px;padding:24px;text-align:center}
+#endHeading{font-size:30px;margin:0 0 12px}
+#endCopy{font-size:15px;color:#cce4e9;line-height:1.4}
+#finalOverlay .actions{display:grid;gap:8px}
+.duel-fixed #head{display:none}.duel-fixed #duelHead{display:block}.duel-fixed #whereAmI{display:block}.duel-fixed #reticle{display:none}.duel-fixed #touchpad{display:none!important}
+@media(max-height:730px){#duelHud{bottom:205px}}
+</style></head><body>
+<div id="home"><button id="back" onclick="location.href='/color.html'">← COLOR RUSH</button>
+<div class="kicker">COLOR RUSH ARCADE · MULTIJUGADOR</div>
+<h1 id="homeHeadline">DUELO DE <b>COLORES</b></h1>
+<p>Jugá online desde dos celulares. Ambos reciben los mismos colores y compiten por el puntaje más alto.</p>
+<div id="mock" aria-hidden="true"></div><button id="support" style="display:none"></button>
+<div id="inviteSplash">💌 Recibiste una invitación. Conectando con la sala…</div>
+<div id="introChoices"><button id="hostCreate">💞 CREAR SALA PARA DOS</button>
+<div id="joinBox"><input id="joinCode" maxlength="8" placeholder="CÓDIGO" autocomplete="off" spellcheck="false"><button id="guestJoin" class="secondary">UNIRME A SALA</button></div></div>
+<div id="netInfo" role="status">Creá una sala para invitar por WhatsApp.</div>
+<div id="roomPanel"><div id="roomRole">SALA</div><strong id="roomCode">—</strong>
+<div id="shareButtons"><button id="whatsappInvite">🟢 WHATSAPP</button><button id="copyInvite" class="secondary">📋 COPIAR LINK</button></div>
+<button id="enter" disabled>📷 ENTRAR A REALIDAD AUMENTADA</button>
+<p id="roomNote">Cada jugador fija su propia pista y calibra parado en el centro. Cuando ambos estén listos, comienza el duelo.</p></div>
+<button id="soloGame">Prefiero jugar solo</button>
+<div id="precheck">Chrome Android con ARCore e Internet. Espacio libre de obstáculos. La posición usa el movimiento estimado del teléfono, no detecta tus pies.</div>
+</div>
+<div id="overlay"><svg id="tiles" xmlns="http://www.w3.org/2000/svg"></svg>
+<svg id="duelMarker" xmlns="http://www.w3.org/2000/svg"><circle id="markerHalo" cx="-40" cy="-40" r="18"/><circle id="markerCore" cx="-40" cy="-40" r="7"/><text id="markerText" x="-40" y="-68">VOS</text></svg>
+<div id="touchpad"></div>
+<div id="head"><div id="headline">BUSCÁ UNA SUPERFICIE</div><div id="subtitle">Buscá un piso despejado para fijar la pista.</div></div>
+<div id="duelHead"><div id="duelTitle">¡PISTA LISTA!</div><div id="duelSubtitle">PARATE EN EL CENTRO Y CALIBRÁ</div><div id="duelTimer">—</div></div>
+<div id="calibrate">ARRASTRÁ · PELLIZCÁ · GIRÁ</div><div id="fallback"></div><div id="reticle"></div>
+<button id="diagbtn">DIAGNÓSTICO</button><button id="goHome"></button>
+<div id="duelRoomBar">SALA · <span id="peerConnected">ESPERANDO…</span></div>
+<div id="duelHud"><div><span id="scoreLabel">VOS · RIVAL</span><span id="roundLabel" style="display:block;font-size:10px;color:#b5ddd9">RONDA 0 / 10</span></div>
+<div class="scores"><div>VOS<b id="myScore">0</b></div><div>RIVAL<b id="peerScore">0</b></div></div></div>
+<div id="bottom"><div id="duelStatus">CONECTÁ A LOS DOS JUGADORES</div><div id="whereAmI">CALIBRÁ EN EL CENTRO</div>
+<div id="debug">Iniciando AR…</div>
+<div id="toolbar"><button id="minus" class="secondary">−</button><button id="size" disabled>45 cm</button><button id="plus" class="secondary">+</button><button id="rotate" class="secondary">↻ GIRAR</button></div>
+<div id="mainbuttons"><button id="lock" disabled>FIJAR PISTA</button><button id="play" style="display:none">EMPEZAR RONDAS</button><button id="edit" class="secondary" style="display:none">REUBICAR</button></div>
+<div id="duelActions"><div id="duelControls"><button id="duelCalibrate" class="secondary">📍 SOY YO · CALIBRAR</button><button id="duelStart" disabled>EMPEZAR DUELO</button></div></div>
+<button id="returnGames">← SALIR AL MENÚ</button></div>
+<div id="finalOverlay"><div class="panel"><h2 id="endHeading">¡FIN DEL DUELO!</h2><p id="endCopy"></p><div class="actions"><button id="duelAgain">NUEVA SALA</button><button id="duelExit" class="secondary">MENÚ DE JUEGOS</button></div></div></div>
+</div>
+<div id="notice"></div>
+<script defer src="/engine.js?v=duo11"></script><script defer src="/color-duel.js?v=duo11"></script>
+<script defer src="/color-duel-hotfix.js?v=duo11"></script>
+</body></html>
