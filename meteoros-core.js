@@ -106,6 +106,8 @@ function planWave(g){
   made.push(event);
  }
  if(!made.length)return [];
+ const safeHint=sampleSafe(g,impact,made,planner);
+ if(safeHint)g.safeHint={x:safeHint.x,z:safeHint.z,until:impact+.15};
  if(g.elapsed>16&&random(g)<.075)made[Math.floor(random(g)*made.length)].fake=true;
  g.events.push(...made);g.wave++;g.maxActive=Math.max(g.maxActive,made.length);
  if(g.wave%5===0||f==='apocalipsis')g.fx.push({type:'siren',at:g.elapsed,text:f==='apocalipsis'?'☄️ TORMENTA APOCALÍPTICA':'⚠️ ¡LLUVIA MÚLTIPLE!'});
@@ -127,6 +129,7 @@ function moveTrick(g,e){
   if(!safe||distance(planner,safe)>Math.min(.31,(e.impact-g.elapsed)*.23))continue;
   if(!futureSafe(reference,safe,e.impact,[{...e,x:p.x,z:p.z}]))continue;
   e.x=p.x;e.z=p.z;
+  g.safeHint={x:safe.x,z:safe.z,until:e.impact+.15};
   g.fx.push({type:'trick',at:g.elapsed,text:'☄️ ¡CAMBIÓ DE RUMBO!'});return;
  }
  e.kind='normal';
