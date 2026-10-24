@@ -84,3 +84,12 @@ Actualizar este documento cuando cambien motor AR, paths, base, repo o despliegu
 - Esquema aislado `modo_caos` dentro del proyecto Supabase compartido Viralio; migration v2 agrega `mc_resume_room`, `mc_leave_room`, `mc_finish_room`, `mc_heartbeat` y políticas en `realtime.messages` restringidas por pertenencia.
 - No se cambian Auth ni Realtime globales, para no afectar otros sistemas. Anonymous Sign-Ins puede requerir activación manual; esta habilitación afecta todo el Supabase compartido.
 - **No declarar multijugador AR funcional** hasta vincular estados/colisiones/resultados a cada core y realizar prueba física con dos teléfonos.
+
+## Nuevo minijuego: Semáforo Traicionero (2026-10-24)
+
+- Archivos `/semaforo.html`, `/semaforo-core.js`, `/semaforo-art.js`, `/semaforo-runtime.js`, integrados en `/index.html`; contenido original de los cuatro juegos y `/engine.js` sin alterar.
+- Núcleo semillado y determinista: cuatro competidores, señales con reacción justa, engaños, combos, colisiones suaves, récord, resultados y revancha. Demo Canvas 2D y overlay AR proyectado sobre world matrix ya anclada.
+- No caminar para cruzar la pista virtual. Avance con botones o empujes cortos del teléfono; rojo filtra desplazamientos de ARCore y tolera 8,5 cm tras una gracia de ~0,74 segundos.
+- Recentrar pausa juego sin reiniciar mundo; la cámara se limita a seguimiento de teléfono.
+- `/salas.html` ofrece Semáforo para 2–4 participantes, entrada al juego desde el lobby y avisos de beta. RPCs, RLS y datos de otros productos sin modificaciones. La sincronización cliente a cliente carece aún de puntuación validada por servidor y pruebas físicas.
+- Ver los pasos, límites y tests en [SEMAFORO_TRAICIONERO.md](SEMAFORO_TRAICIONERO.md); ejecutar `node tests/semaforo.test.cjs`.
