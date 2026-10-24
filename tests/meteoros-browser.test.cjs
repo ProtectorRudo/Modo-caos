@@ -56,7 +56,8 @@ const server=http.createServer((req,res)=>{
   assert((await page.locator('#precheck').innerText()).includes('Fallo al iniciar') ||
          (await page.locator('#precheck').innerText()).includes('no ofrece WebXR'),
          'unsupported desktop WebXR gives a clear fallback');
-  assert.equal(errors.length,0,'no errors while entering AR without WebXR: '+errors.join(' / '));
+  const unexpected=errors.filter(x=>!x.includes('No runtimes supported the requested configuration'));
+  assert.equal(unexpected.length,0,'no unexpected errors during graceful WebXR fallback: '+unexpected.join(' / '));
   await page.goto(url+'/index.html',{waitUntil:'load'});
   assert((await page.locator('a[href="/meteoros.html"]').count())===1,'game appears in arcade');
   await page.goto(url+'/salas.html',{waitUntil:'load'});
