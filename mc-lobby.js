@@ -128,7 +128,6 @@ function render(){
  ui.begin.classList.toggle('hidden',!isHost||!inLobby);
  ui.begin.disabled=!(room.players?.length>=2&&room.players.every(p=>p.ready));
  ui.finish.classList.toggle('hidden',!isHost||room.status!=='playing');
- ui.pulseSignal=ui.pulse;
  ui.conn.textContent=conn?.connected?'● CONECTADO':'○ '+(conn?'RECONECTANDO':'SIN CONEXIÓN');
  updateClock();
 }
@@ -168,7 +167,7 @@ async function enterRoom(id,code){
   onRefresh:()=>refresh(),
   onPresence:()=>refresh(),
   onPulse:(payload)=>{
-   if(!payload?.userId)return;
+   if(!payload?.userId||payload.userId===me)return;
    pulseCount++;
    const n=room?.players?.find(p=>p.userId===payload.userId)?.name||'Otro jugador';
    ui.pulse.textContent='⚡ ¡SEÑAL RECIBIDA DE '+n.toUpperCase()+'! · '+pulseCount+' pulsos';

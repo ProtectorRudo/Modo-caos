@@ -84,7 +84,7 @@
         const channel=supabase.channel(topic,{config:{
           private:true,
           presence:{key:session.user.id},
-          broadcast:{self:true}
+          broadcast:{self:false}
         }});
         channel.on('broadcast',{event:'mc-refresh'},payload=>emitSafe(opts.onRefresh,payload?.payload))
           .on('broadcast',{event:'mc-pulse'},payload=>emitSafe(opts.onPulse,payload?.payload))
