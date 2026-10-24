@@ -56,3 +56,13 @@ Como opción **solo de prueba**, se comprueba la alternativa pública HTTPS raw.
 - Las pruebas del core verifican que aparecen pistas amarillas con >2 s de margen y que se muestra el patrón siguiente. Las pruebas de WebXR simulado deben confirmar que el móvil queda centrado en 4-4 y que tocar FIJAR no desplaza el piso posteriormente. La velocidad siempre debe probarse caminando en una habitación despejada; **no se requiere ni se recomienda correr**.
 
 Validación pendiente de **Chrome Android + ARCore físico** del usuario: los tests de navegador realizan poses simuladas y no sustituyen el dispositivo real.
+
+## Revisión V3 — visibilidad 360° sin girar y reacción justa (24/10/2026)
+
+Retroalimentación de prueba: mover la cámara para encontrar la próxima baldosa naranja hace que el aviso sea difícil de leer; además, algunas luces parecen ponerse rojas inmediatamente.
+
+- **Regla del motor:** `WARNING_SECONDS=3.0`. La baldosa que se pondrá roja pasa a naranja exactamente 3 segundos antes de *su propio instante de impacto*, independientemente del paso/velocidad de la ola. El inicio de la ola se anuncia con al menos 3,35 segundos de anticipación, incluso en la fase final. Las secuencias pueden continuar al ritmo de la ola, pero cada casilla tiene su reloj de aviso separado. Las falsas alarmas permanecen naranjas y no se convierten en peligros reales.
+- **HUD AR que no depende del campo de visión:** mapa completo 6×6 anclado a la pantalla, más grande (168–198 px), con VOS marcado en blanco. En naranja aparecen las casillas que se activarán y el número `3 → 2 → 1` en cada una; en rojo aparecen las activas. Texto de dirección, cuenta regresiva del siguiente peligro y aviso individual de la casilla del jugador.
+- **Mecánica física:** las casillas y obstáculos del mundo permanecen anclados al piso mediante engine.js; **solo el radar/HUD es fijo en pantalla**. No se integra joystick en AR ni se afirma seguimiento corporal. No correr, saltar ni hacer movimientos inseguros con el teléfono.
+- **Visual:** naranja más intenso y doble franja en las baldosas AR, con número regresivo también en la demo 2D.
+- **QA:** 90 escenarios de semillas y dimensiones testean estado seguro antes de 3s, naranja a 2,99/2,5/2,05/1,25/0,2/0,02s antes y rojo solamente en el instante programado. Prueba XR sintética: HUD visible, 36 casillas, cuenta 3-2-1, dirección y posición de radar fija cuando se mueve el teléfono. Las pruebas simuladas no sustituyen la validación física de ARCore.
