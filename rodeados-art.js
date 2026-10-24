@@ -18,8 +18,9 @@ export function createRodeadosArt(THREE,scene,camera){
   orange:material(0xff7733,.36,.3,1.2),green:material(0x7fffc5,.2,.3,.6)
  };
  const overlay=(color,opacity=.5)=>new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthWrite:false,side:THREE.DoubleSide});
- const tileMat=[overlay(0x0bc3c5,.65),overlay(0x067eab,.65)];
- const pickMat=overlay(0x8fffd3,.92),lowMat=overlay(0x167e87,.065);
+ const tileMat=[overlay(0x03c9d0,.9),overlay(0x08729f,.92)];
+ const pickMat=overlay(0x8fffd3,.96),lowMat=overlay(0x167e87,.18);
+ for(const mat of [...tileMat,pickMat,lowMat]){mat.depthWrite=false;mat.depthTest=false;mat.toneMapped=false;}
  const borderMat=new THREE.MeshBasicMaterial({color:0x65ffe6,depthTest:false,depthWrite:false,toneMapped:false});
  const box=(parent,mat,p,s,geometry=geo.box)=>{
   const v=new THREE.Mesh(geometry,mat);v.position.set(...p);v.scale.set(...s);parent.add(v);return v;
