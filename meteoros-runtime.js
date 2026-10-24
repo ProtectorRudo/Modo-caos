@@ -377,5 +377,13 @@ $('startOnline').addEventListener('click',async()=>{
  catch(e){toast('⚠️ '+e.message)}
 });
 window.addEventListener('pagehide',()=>{clearInterval(onlineTimer);online?.conn?.close().catch(()=>{})});
+if((location.hostname==='localhost'||location.hostname==='127.0.0.1')&&params.has('mc_test')){
+  Object.defineProperty(window,'__meteorTestSnapshot',{value:()=>({
+    placement:placement?{...placement}:null,
+    origin:origin?{...origin}:null,
+    avatar:{x:game.players[0].x,z:game.players[0].z},
+    status,calibrated
+  })});
+}
 if(hasRoom)connectOnline();
 })();
