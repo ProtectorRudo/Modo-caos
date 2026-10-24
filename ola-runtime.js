@@ -14,7 +14,7 @@ window.modoCaosLockReady=()=>!!renderer;
 let game=G.make({tileMeters}),calibrated=false,selectedCell=null,sampling=false,
  sampleStart=0,samples=[],origin=null,smoothed=null,previous=null,lastGood=0,invalidSince=0,
  status='intro',running=false,finished=false,lastFrame=0,lastHUD=0,lastEvent=0,noticeUntil=0,
- picker=false,arBooted=false,muted=false,audio=null,best=0,target=null,keys=new Set();
+ picker=false,arBooted=false,muted=false,audio=null,best=0,target=null,keys=new Set(),trackingFrozen=false,recoverySince=0;
 const KEY='modo-caos-ola-roja-records-v1';
 try{const r=JSON.parse(localStorage.getItem(KEY)||'{}');best=Number(r.clasico)||0}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
@@ -66,7 +66,7 @@ function showResult(){
 }
 function reset(nextMode=mode){
  mode=nextMode;game=G.make({mode,tileMeters,seed:Math.floor(Math.random()*4294967295)});
- running=false;finished=false;lastFrame=0;lastEvent=0;target=null;status='fixed';
+ running=false;finished=false;lastFrame=0;lastEvent=0;trackingFrozen=false;recoverySince=0;target=null;status='fixed';
  $('result').style.display='none';$('pauseDialog').style.display='none';
  $('gameHud').style.display='flex';$('statusPanel').style.display='flex';
  $('gameActions').style.display='flex';$('begin').disabled=!calibrated;
@@ -78,7 +78,7 @@ function reset(nextMode=mode){
 function begin(){
  if(!calibrated||running||finished||sampling||picker)return;
  game.tileMeters=tileMeters;if(!G.start(game))return;
- running=true;status='playing';lastFrame=0;
+ running=true;status='playing';lastFrame=0;trackingFrozen=false;recoverySince=0;
  $('gameActions').style.display='none';$('calBox').style.display='none';
  $('pause').style.display='block';$('recalibrateLive').style.display=demo?'none':'block';$('gameHud').style.display='flex';
  $('head').style.display='none';$('banner').style.display='block';
@@ -138,7 +138,8 @@ function sample(t,p){
   const c=selectedCell%6,r=Math.floor(selectedCell/6);
   origin={x:avg.x-(c+.5)*tileMeters,z:avg.z-(r+.5)*tileMeters};
   smoothed={...avg};previous={...avg};lastGood=t;invalidSince=0;
-  sampling=false;calibrated=true;game.paused=false;
+  sampling=false;calibrated=true;trackingFrozen=running;recoverySince=running?t:0;
+  if(!running)game.paused=false;
   G.setPosition(game,c+.5,r+.5);
   $('calTitle').textContent='✅ CASILLA '+(r+1)+'-'+(c+1)+' · LISTO';
   $('calFill').style.width='100%';$('begin').disabled=false;
@@ -218,16 +219,30 @@ function gameTick(dt,t){
  if(t-lastHUD>80){hud();lastHUD=t}
 }
 function arFrame(t,frame,W){
- const dt=lastFrame?clamp((t-lastFrame)/1000,.001,.065):.016;lastFrame=t;
+ const gap=lastFrame?t-lastFrame:0;
+ const dt=lastFrame?clamp(gap/1000,.001,.065):.016;lastFrame=t;
+ // Se reanudó XR tras perder fotogramas: congelar antes de evaluar una colisión.
+ if(running&&gap>460){trackingFrozen=true;recoverySince=0;game.paused=true}
  try{
   if(!W)return;
   const pos=localPose(frame,W);
   if(sampling)sample(t,pos);
   if(calibrated){
-   if(pos&&motion(t,pos)){invalidSince=0;if(running&&game.paused&&!$('pauseDialog').offsetParent)game.paused=false}
-   else if(running){
-    if(!invalidSince)invalidSince=t;
-    if(t-invalidSince>750){game.paused=true;label('📡 SEGUIMIENTO PERDIDO · COLISIONES PAUSADAS')}
+   if(pos&&motion(t,pos)){
+    invalidSince=0;
+    if(trackingFrozen&&running){
+     if(!recoverySince)recoverySince=t;
+     if(t-recoverySince>=500){
+      trackingFrozen=false;recoverySince=0;
+      if(!$('pauseDialog').offsetParent)game.paused=false;
+      label('✅ SEGUIMIENTO RECUPERADO · ESQUIVÁ LAS ROJAS');
+     }
+    }
+   }else if(running){
+    // Incluso un solo fotograma perdido se congela: cero eliminaciones injustas.
+    const firstLost=!trackingFrozen;
+    trackingFrozen=true;recoverySince=0;game.paused=true;
+    if(firstLost)label('📡 SEGUIMIENTO PERDIDO · COLISIONES PAUSADAS');
    }
   }
   if(running)gameTick(dt,t);
@@ -282,7 +297,7 @@ $('resume').addEventListener('click',resumeGame);
 $('pauseCal').addEventListener('click',()=>{$('pauseDialog').style.display='none';recalibrate()});
 function recalibrate(){
  if(demo)return;
- game.paused=running;calibrated=false;sampling=false;picker=true;
+ trackingFrozen=true;recoverySince=0;game.paused=running;calibrated=false;sampling=false;picker=true;
  $('statusPanel').style.display='flex';$('gameActions').style.display='flex';
  $('calBox').style.display='block';$('calTitle').textContent='👣 VOLVÉ A TOCAR TU CASILLA';
  $('begin').disabled=true;label('Pista fija · marcá tu nueva posición sin desplazarla');
