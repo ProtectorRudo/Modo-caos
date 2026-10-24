@@ -23,6 +23,14 @@ Plataforma de minijuegos y torneos en realidad aumentada.
 
 > **Verificado:** las rutas de los juegos también están ahora en la raíz de GitHub. Importadas desde Vercel deployment `dpl_EZksuDm5Y3gtUoafnDZ2GyjXWc7n`, con cada SHA1 coincidente.
 
+## Salas y Realtime (infraestructura)
+
+- Sala de pruebas: [/salas.html](https://modo-caos-eta.vercel.app/salas.html) (crear, unirse, enviar pulso, ver jugadores, Listo e inicio sincronizado).
+- Frontend: `mc-config.js` (clave **publicable**, no secreta), `mc-rooms-client.js` (RPC y canal privado), `mc-lobby.js` (interfaz).
+- Backend: esquema `modo_caos`; migraciones [v1](supabase/migrations/20261024_arcade_initial.sql) y [v2](supabase/migrations/20261024_realtime_lifecycle_v2.sql).
+- **Aún pendiente**: confirmar/habilitar Anonymous Sign-Ins en Supabase Auth, efectuar prueba física con dos móviles, integrar motor AR y resultados oficiales. Las salas NO convierten automáticamente los juegos existentes en multijugador.
+- **Importante**: NO deshabilitar el acceso Realtime público de todo el proyecto compartido hasta migrar los consumidores heredados (Color Rush). Para Modo Caos usar exclusivamente temas `mc-room:<uuid>` con `private:true` y políticas de membresía.
+
 ## Próximos juegos
 
 1. Semáforo Traicionero

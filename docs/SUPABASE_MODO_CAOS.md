@@ -37,11 +37,25 @@ const info = await mc.getRoom(created.room_id);
 
 **Atención:** el ejemplo `joinRoom` necesita otra sesión, no la misma del anfitrión. No implica que ya esté conectado un juego.
 
+## Realtime y ciclo de sala (v2 aplicado)
+
+Migración aplicada: `modo_caos_realtime_lifecycle_v2` (2026-10-24), fuente [SQL v2](../supabase/migrations/20261024_realtime_lifecycle_v2.sql).
+
+- `mc_resume_room(p_code)`: retomar tu sala con la **misma sesión** incluso si está jugando.
+- `mc_leave_room(p_room_id)`: salir; el anfitrión no puede abandonar una partida activa sin finalizarla.
+- `mc_finish_room(p_room_id)`: el anfitrión termina la partida.
+- `mc_heartbeat(p_room_id)`: presencia persistida y timestamp servidor.
+- `mc_get_room(p_room_id)`: entrega al miembro el roster con `userId`, `hostUserId`, `serverTime` y `startedAt`.
+- Dos políticas `mc_only_members_*_v2` sobre `realtime.messages`, SELECT e INSERT para extensiones Broadcast/Presence. Sólo para canales privados con tema `mc-room:<uuid>`, comprobando membresía por JWT.
+- El proyecto compartido puede permitir **canales públicos antiguos**; no se cambió esa configuración global para proteger Color Rush. Antes de afirmar aislamiento completo de canales hay que probar contra intento de suscripción pública con el mismo tema.
+
+Frontend: `/salas.html`, `/mc-config.js`, `/mc-rooms-client.js`, `/mc-lobby.js`. La URL y la clave **publishable** del cliente son públicas por diseño, nunca se usa clave secret o service_role.
+
 ## Pendiente ANTES de prometer online 1–4
 
 1. Verificar y eventualmente habilitar `signInAnonymously()` en Supabase Auth. Afecta a TODO el proyecto, por eso auditar previamente las RLS de Viralio (los invitados anónimos tienen rol SQL `authenticated`). Recomendable proteger altas con CAPTCHA y límites de abuso.
-2. Configurar canales Realtime PRIVADOS con reglas de membresía basadas en UUID de sala. Los canales antiguos de Color Rush no hacen eso; no declarar el nuevo sistema seguro en Realtime hasta probarlo.
-3. Conectar interfaz de crear/unirse/esperar/jugar, reconexión, sincronización del reloj y mensajes.
+2. [IMPLEMENTADO EN SQL] Políticas para Broadcast/Presence en temas `mc-room:<uuid>` y canales frontend `private:true`. Pendiente prueba real de suscripción autorizada/no autorizada y revisar el ajuste global de acceso público sin romper Color Rush.
+3. [IMPLEMENTADA LA SALA] Pantalla crear/unirse/esperar, pulso y lista de participantes, inicio y retomar sesión con polling si Realtime falla. Pendiente conectar partidas AR y resultados de juegos.
 4. Diseñar validación oficial de resultados en un servidor confiable; `round_results` no permite que el navegador escriba puntuaciones a voluntad.
 5. Probar host + invitados en dos a cuatro teléfonos Android reales y revisar consumo de cuotas en la base compartida.
 6. Documentar pruebas, aislamientos y errores antes de habilitar torneos.

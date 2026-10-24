@@ -1,0 +1,113 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07182b"><title>SALAS · MODO CAOS</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{min-height:100svh;margin:0;background:radial-gradient(ellipse at 35% 5%,#1b5167,#081b30 60%,#050e1e);color:#f2fff9;padding:18px 16px 44px}
+button,input,select{font:inherit}
+button{border:0;background:#49ffd0;color:#062b26;font-weight:900;border-radius:13px;padding:13px 17px;min-height:48px;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.outline{background:#12364c;color:#e8fff8;border:1px solid #498c9b}
+button.subtle{background:transparent;color:#a4fce4;border:1px solid #285d70}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a8ffe7;outline-offset:2px}
+main{max-width:570px;margin:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+header a{color:#b0eadb;text-decoration:none;font-size:12px;font-weight:800}
+.logo{font-size:13px;font-weight:1000;letter-spacing:2px}.logo span{color:#62ffc7}
+.eyebrow{color:#72f8d3;font-size:11px;font-weight:900;letter-spacing:2.2px;margin:32px 0 5px}
+h1{font-size:clamp(39px,10vw,62px);line-height:1.04;margin:8px 0;letter-spacing:-2px}
+h1 span{color:#63ffd0}
+.subtitle{color:#bddbe1;font-size:14px;line-height:1.45;margin:8px 0 20px}
+.panel{border:1px solid #3b7788;background:#0d2b41df;border-radius:20px;padding:18px;margin:14px 0;box-shadow:0 12px 32px #020a1d55}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{border:1px solid #4a93a1;background:#0e3845;border-radius:9px;padding:6px 9px;color:#acffdf;font-weight:850;font-size:10px}
+.segment{display:flex;gap:7px;margin:15px 0}
+.segment button{flex:1;color:#d1f4e9;background:#12394a;border:1px solid #356578;min-height:45px}
+.segment button.selected{background:#4affe0;color:#052a2a;border:0}
+label{display:block;color:#d4f5f0;font-size:12px;font-weight:900;margin:12px 0 7px}
+input,select{width:100%;min-height:48px;border:1px solid #3d8092;border-radius:12px;background:#071d31;color:#f5fff9;padding:13px 12px;font-size:15px}
+input::placeholder{color:#89b4bf}
+select{font-size:14px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.action-wide{width:100%;margin-top:17px;font-size:15px;min-height:53px}
+#notice{display:none;margin:13px 0;border-radius:13px;padding:13px 14px;background:#102b40;border:1px solid #4d849e;color:#ccefed;font-size:13px;line-height:1.5}
+#notice.active{display:block}
+#notice.error{border-color:#fa819c;background:#421d35;color:#ffe3e6}
+#notice a{color:#acffd5;font-weight:900}
+#roomPanel{display:none}
+.room-title{display:flex;justify-content:space-between;align-items:center;gap:7px}
+.room-title h2{margin:0;font-size:18px}
+.status{font-size:10px;color:#ffdc96;font-weight:950;letter-spacing:.5px}
+.code{font-size:clamp(34px,10vw,51px);letter-spacing:8px;font-weight:1000;color:#6cffda;text-align:center;margin:15px 0 4px;font-variant-numeric:tabular-nums}
+.muted{text-align:center;font-size:12px;color:#9dbec6}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.two button{padding:11px 8px;font-size:12px}
+#players{display:grid;gap:8px;margin:18px 0}
+.player{display:flex;align-items:center;gap:12px;background:#09283c;border-radius:12px;padding:11px;border:1px solid #245d71}
+.avatar{width:38px;height:38px;display:grid;place-items:center;background:#124f59;color:#bbfff1;border-radius:50%;font-size:17px;font-weight:1000}
+.details{flex:1;min-width:0}
+.details strong{font-size:13px;overflow-wrap:anywhere}
+.details small{display:block;color:#9dcbd4;font-size:10px;margin-top:2px}
+.mark{font-size:11px;font-weight:900;color:#ffe5a1}
+.mark.ready{color:#7bffcb}
+#roomActions{display:grid;gap:8px}
+#roomActions button{width:100%}
+#pulseSignal{border:1px dashed #3d879c;text-align:center;border-radius:11px;padding:11px;color:#c4e6e8;font-size:12px;margin-top:14px;min-height:41px}
+#syncClock{text-align:center;font-weight:1000;font-size:clamp(32px,8vw,49px);margin:8px;color:#b4ffe6}
+#readyButton{background:#b7ffdb}
+#startButton{background:#ffdc8f}
+.rule{font-size:12px;color:#afcbd4;line-height:1.48;margin:12px 0 0}
+#resumeWrap{display:none;margin:12px 0}
+#resumeWrap button{width:100%}
+.note{padding:14px 2px;font-size:12px;line-height:1.48;color:#91b4be}
+.hidden{display:none!important}
+@media(max-width:370px){.field-row{grid-template-columns:1fr}.code{letter-spacing:5px}}
+</style></head><body>
+<main>
+<header><span class="logo">MODO <span>CAOS</span></span><a href="/">← VOLVER A LOS JUEGOS</a></header>
+<p class="eyebrow">MULTIJUGADOR · CONEXIÓN EN DIRECTO</p>
+<h1>JUGUEMOS <span>JUNTOS.</span></h1>
+<p class="subtitle">Creá una sala, compartí el código y preparate con tus amigos. Sin contraseñas ni registros manuales.</p>
+<div class="chips"><span>2–4 PERSONAS</span><span>CÓDIGO + WHATSAPP</span><span>INICIO SINCRONIZADO</span></div>
+<div id="notice" role="status" aria-live="polite"></div>
+<div id="resumeWrap"><button id="resume" class="outline">↻ RETOMAR MI ÚLTIMA SALA</button></div>
+<section class="panel" id="choices">
+<div class="segment"><button id="tabCreate" class="selected" type="button">+ CREAR SALA</button><button id="tabJoin" type="button">→ UNIRME</button></div>
+<label for="nickname">¿Cómo te llamamos?</label>
+<input id="nickname" placeholder="Tu apodo" maxlength="24" autocomplete="nickname">
+<div id="creator">
+<div class="field-row">
+<div><label for="gameChoice">Juego</label><select id="gameChoice"><option value="muro-rush">Muro Rush</option><option value="color-rush">Color Rush</option><option value="territorio-x">Territorio X</option><option value="ball-rush">Ball Rush</option></select></div>
+<div><label for="seats">Participantes</label><select id="seats"><option value="2">2 personas</option><option value="3">3 personas</option><option value="4">4 personas</option></select></div>
+</div>
+<button class="action-wide" id="create">CREAR MI SALA <span aria-hidden="true">→</span></button>
+</div>
+<div id="joiner" class="hidden"><label for="joinCode">Código que te enviaron</label>
+<input id="joinCode" maxlength="8" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="ABCD1234" spellcheck="false">
+<button class="action-wide" id="join">UNIRME A LA SALA <span aria-hidden="true">→</span></button></div>
+<p class="rule">Primer uso: el juego solicita una sesión de invitado a Supabase. Si esa opción aún no está habilitada, aparecerá una indicación clara sin crear salas falsas.</p>
+</section>
+<section class="panel" id="roomPanel" aria-live="polite">
+<div class="room-title"><h2>SALA CONECTADA</h2><span id="connection" class="status">CONECTANDO…</span></div>
+<div class="code" id="roomCode">────────</div>
+<div class="muted" id="roomMeta">Compartí el código con tus amigos</div>
+<div class="two"><button id="share" class="outline">WhatsApp <span aria-hidden="true">↗</span></button><button id="copy" class="outline">Copiar enlace</button></div>
+<div id="players" aria-label="Jugadores en la sala"></div>
+<div id="syncClock"></div>
+<div id="roomActions">
+<button id="readyButton" type="button">✓ ESTOY LISTO</button>
+<button id="startButton" type="button" class="hidden">▶ INICIAR TODOS JUNTOS</button>
+<button id="finishButton" type="button" class="outline hidden">FINALIZAR SALA</button>
+<button id="pulseButton" type="button" class="outline">⚡ PROBAR CONEXIÓN ENTRE CELULARES</button>
+<button id="leaveButton" type="button" class="subtle">Salir de la sala</button>
+</div>
+<div id="pulseSignal">La prueba de conexión mostrará aquí las señales recibidas del otro celular.</div>
+<p class="rule">**Etapa de infraestructura:** esta pantalla comprueba la sala, el estado de los jugadores y Realtime. El juego AR todavía no utiliza esta sala para sincronizar sus colisiones ni puntuaciones.</p>
+</section>
+<p class="note">Esta plataforma comparte la infraestructura de Supabase con Viralio, pero utiliza su propio espacio de datos. No ingreses información sensible en el apodo. Cada dispositivo calibra su AR por separado.</p>
+</main>
+<script defer src="/mc-config.js?v=2"></script>
+<script defer src="/mc-rooms-client.js?v=2"></script>
+<script type="module" src="/mc-lobby.js?v=2"></script>
+</body></html>

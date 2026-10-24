@@ -76,3 +76,11 @@ Actualizar este documento cuando cambien motor AR, paths, base, repo o despliegu
 - Vercel Git project `modo-caos`, ID `prj_3irMVa8fdbifSh1mvWA67NcDGn1n`.
 - Producción original **separada**: `color-rush-ar-demo.vercel.app`.
 - **Confirmado**: Modo Caos y Color Rush comparten el MISMO proyecto Supabase `viralio`, pero Modo Caos tiene esquema `modo_caos` privado y funciones RPC con prefijo `mc_`. El duelo existente sigue usando canales Realtime públicos heredados; nuevas salas requieren integración client-side y políticas Realtime privadas.
+
+## Salas online — infraestructura v2
+
+- `/salas.html` contiene pantalla de crear/unirse con enlace WhatsApp, jugadores, marcar listo, inicio sincronizado y pulso de conectividad.
+- `/mc-config.js`: URL y publishable key de Supabase (dato público, no secreto); `/mc-rooms-client.js`: RPC autenticadas y canales Realtime `private:true` con tema `mc-room:<uuid>`.
+- Esquema aislado `modo_caos` dentro del proyecto Supabase compartido Viralio; migration v2 agrega `mc_resume_room`, `mc_leave_room`, `mc_finish_room`, `mc_heartbeat` y políticas en `realtime.messages` restringidas por pertenencia.
+- No se cambian Auth ni Realtime globales, para no afectar otros sistemas. Anonymous Sign-Ins puede requerir activación manual; esta habilitación afecta todo el Supabase compartido.
+- **No declarar multijugador AR funcional** hasta vincular estados/colisiones/resultados a cada core y realizar prueba física con dos teléfonos.
