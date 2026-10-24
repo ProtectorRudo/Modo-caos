@@ -410,13 +410,15 @@ function spawnOpeningEnemies(){
  direction.normalize().applyQuaternion(art.root.quaternion.clone().invert());
  direction.y=0;direction.normalize();
  const sideways=THREEVec(-direction.z,0,direction.x);
- for(const lateral of [-.40,.40]){
+ // The first 1.75m humanoid is 3.15m ahead, not 1.65m inside the phone.
+ // The second starts diagonal 3.65m away; neither follows the screen.
+ for(const slot of [{distance:3.15,lateral:0},{distance:3.65,lateral:.86}]){
   const e=G.spawn(game,'basic');
   if(!e)continue;
-  e.x=game.player.x+direction.x*1.65+sideways.x*lateral;
-  e.z=game.player.z+direction.z*1.65+sideways.z*lateral;
+  e.x=game.player.x+direction.x*slot.distance+sideways.x*slot.lateral;
+  e.z=game.player.z+direction.z*slot.distance+sideways.z*slot.lateral;
   e.angle=Math.atan2(game.player.x-e.x,game.player.z-e.z);
-  e.portal=0;e.age=.72;e.stun=1.7;e.state='stunned';
+  e.portal=0;e.age=.72;e.stun=2;e.state='stunned';
  }
  art.drawEnemies(game);
 }
