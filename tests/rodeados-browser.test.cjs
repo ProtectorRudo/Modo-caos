@@ -33,9 +33,10 @@ const server=http.createServer((req,res)=>{
   return d[3]>0;
  }),'radar displays player orientation marker');
  await page.locator('#fire').click();
- assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.shots),1,'fire updates ammo and shot count');
- await page.locator('#reload').click();
- assert.ok((await page.evaluate(()=>globalThis.__RodeadosDebug.game.reload))>0,'reloading works');
+ assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.shots),1,'fire updates shot count');
+ assert.equal(await page.locator('#ammo').innerText(),'∞  BALAS','no finite bullets displayed');
+ assert.equal(await page.locator('#reload').count(),0,'reload button removed entirely');
+ assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.ammo),28,'shooting never reduces magazine');
  assert(await page.locator('#bomb').isVisible(),'Bomba Caos button appears during 3D battle');
  assert(await page.locator('#bomb').isEnabled(),'starts with one bomb charge');
  await page.locator('#bomb').click();
@@ -58,6 +59,6 @@ const server=http.createServer((req,res)=>{
  assert.equal(issues.length,0,'browser runtime exceptions: '+issues.join(' | '));
  await page.goto(base+'/index.html');assert.equal(await page.locator('a[href="/rodeados.html"]').count(),1);
  await page.goto(base+'/salas.html');assert.equal(await page.locator('option[value="rodeados-360"]').count(),1);
- console.log('PASS: WebGL browser, game loop, gun, reload, pause, menu and salas. Physical AR NOT tested.');
+ console.log('PASS: WebGL browser, game loop, gun, infinite ammo, pause, menu and salas. Physical AR NOT tested.');
  }catch(e){console.error(e.stack||e);process.exitCode=1}finally{await browser?.close();await new Promise(r=>server.close(r))}
 })();
