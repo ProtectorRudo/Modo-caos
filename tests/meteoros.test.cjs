@@ -57,10 +57,42 @@ for(const filename of ['meteoros.html','meteoros-core.js','meteoros-art.js','met
  assert(fs.statSync(path.join(__dirname,'..',filename)).size>1000,filename+' exists');
 }
 const html=fs.readFileSync(path.join(__dirname,'..','meteoros.html'),'utf8');
-for(const id of ['tiles','arenaSvg','mock','reticle','lock','enter','overlay','calibrate','touchpad','headline','subtitle','debug','goHome','notice']){
+for(const id of ['tiles','arenaSvg','mock','reticle','lock','enter','overlay','calibrate','touchpad','headline','subtitle','debug','goHome','notice','minus','plus','size','rotate']){
  assert(html.includes('id="'+id+'"'),'engine compatibility '+id)
 }
 const index=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 for(const href of ['/meteoros.html','/muro.html','/semaforo.html','/ball.html','/territorio.html','/color.html'])assert(index.includes(href),'arcade link '+href);
 for(const f of ['meteoros-core.js','meteoros-art.js','meteoros-runtime.js'])new Function(fs.readFileSync(path.join(__dirname,'..',f),'utf8'));
-console.log('OK: 96 seeds / finite scores / lives / collisions / shield / bonuses / phases / deterministic online waves / HTML links / syntax');
+// A meteor that never lands near the tracked phone is not a game.
+let stationaryWinners=0;
+for(let seed=1;seed<=30;seed++){
+ const match=run(seed);
+ if(match.players[0].alive)stationaryWinners++;
+}
+assert(stationaryWinners<8,'standing still cannot be the dominant winning strategy');
+// A safe target must be physically reachable by a slow phone movement, not a sprint.
+let physicallyFeasible=0;
+for(let seed=1;seed<=30;seed++){
+ const match=C.make(seed);C.start(match);let goal=null,frames=0;
+ while(match.stage!=='finished'&&frames++<2000){
+  if(match.stage==='playing'){
+   const me=match.players[0];
+   const upcoming=match.events.filter(e=>!e.cancelled&&!e.fake&&e.impact>=match.elapsed&&e.impact-match.elapsed<2.5).sort((a,b)=>a.impact-b.impact)[0];
+   if(upcoming)goal=C.sampleSafe(match,upcoming.impact,[],me);
+   if(goal){
+    const dx=goal.x-me.x,dz=goal.z-me.z,len=Math.hypot(dx,dz);
+    if(len>.005){const stride=Math.min(len,.23*.08);C.setPosition(match,me.x+dx/len*stride,me.z+dz/len*stride)}
+   }
+  }
+  C.tick(match,.08);
+ }
+ physicallyFeasible+=Number(match.players[0].alive);
+}
+assert(physicallyFeasible>=12,'a cautious mover at 0.23m/s should have a reasonable survival rate');
+const eng=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
+assert(eng.includes("window.modoCaosXRFrame(time,frame,W)"),'XR draws inside engine frame after clear');
+const runtime=fs.readFileSync(path.join(__dirname,'..','meteoros-runtime.js'),'utf8');
+assert(runtime.includes('window.modoCaosXRFrame=arFrame'),'game registers frame hook');
+assert(runtime.includes('const shift=placement||(preview&&pos)'), 'calibration must not teleport anchored arena');
+assert(/#lock\{[^}]*display:block/.test(html),'AR placement action remains visible');
+console.log('OK: 96 seeded matches / 30 standing vs active movers / safety / shield / online wave parity / XR UI contracts / syntax');
