@@ -523,7 +523,7 @@ const ray=activeRay();
  const r=G.fire(game,packet,online?.id||'vos');
  if(!r.ok){
   lastShotStatus='BLOQUEADO: '+(r.reason||'');
-  if(r.reason==='sin_municion')reload();
+  if(r.reason==='sin_municion')notice('MUNICIÓN ILIMITADA · REINTENTÁ',1);
   else notice('DISPARO BLOQUEADO · '+(r.reason||'REINTENTÁ'),1);
   return;
  }
@@ -573,7 +573,7 @@ function snapshot(){
   pendingBombs:game.bombs.map(b=>[+b.x.toFixed(2),+b.z.toFixed(2),+b.fromX.toFixed(2),+b.fromZ.toFixed(2),+b.fuse.toFixed(2)]),
   bombBlast:game.fx.filter(f=>f.type==='bombBlast').slice(-1).map(f=>[f.x,f.z,f.radius,f.hits,f.kills,f.points,f.t]),
   kills:game.kills,hits:game.hits,shots:game.shots,combo:game.combo,best:game.bestCombo,phase:game.phase,
-  scores:game.scores,peers:Object.entries(game.peerWeapons).map(([id,w])=>[id,w.ammo,+w.reload.toFixed(2)]),
+  scores:game.scores,peers:Object.entries(game.peerWeapons).map(([id,w])=>[id,game.mag,0]),
   e:game.enemies.map(e=>[e.id,e.type,+e.x.toFixed(2),+e.z.toFixed(2),e.hp,e.maxHp,+e.age.toFixed(1),e.state,+e.portal.toFixed(2),+e.angle.toFixed(2),+e.stun.toFixed(2),+e.lastHit.toFixed(1)])};
 }
 async function sendSnapshot(urgent=false){
