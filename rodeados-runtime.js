@@ -425,7 +425,7 @@ function startRound(){
  spawnOpeningEnemies();
  trackingLostSince=0;lastTracked=performance.now();
  setPhase('playing');hint('');
- notice('🤖 ¡DOS ROBOTS ADELANTE! · MIRÁ AL FRENTE Y DISPARÁ',3);audio('danger');vib(70);
+ notice('🤖 ROBOTS A 3 METROS · ¡APUNTÁ A LA CABEZA O AL PECHO!',3);audio('danger');vib(70);
 }
 function pause(){
  if(stage==='playing'){game.paused=true;setPhase('paused');hint('PAUSA · RECALIBRAR O CONTINUAR')}
@@ -729,7 +729,12 @@ $('begin').onclick=countdownBegin;
 $('recal').onclick=()=>{resetEditor(true)};
 $('pause').onclick=pause;
 $('resume').onclick=pause;
-$('fire').onclick=shoot;
+// Blackzone Android: XR DOM Overlay can dispatch pointerdown without a
+ // synthesized click. Fire from pointerdown, with click only as a fallback.
+ $('fire').addEventListener('pointerdown',ev=>{
+  ev.preventDefault();ev.stopPropagation();shoot();
+ });
+ $('fire').addEventListener('click',ev=>{ev.preventDefault();shoot()});
 $('reload').onclick=reload;
 $('special').onclick=special;
 $('sound').onclick=()=>{sounds=!sounds;$('sound').textContent=sounds?'🔊':'🔇'};
@@ -753,7 +758,7 @@ function beginDemo(){
  $('home').style.display='none';$('overlay').style.display='block';$('world').style.pointerEvents='auto';
  art.root.position.set(0,0,0);art.root.quaternion.identity();selected=12;
  calibrated=true;calOffset.set(0,0,0);G.movePlayer(game,{x:0,z:0});
- camera.position.set(0,1.59,0);aimYaw=0;aimPitch=0;G.begin(game);setPhase('playing');
+ camera.position.set(0,1.59,0);aimYaw=0;aimPitch=0;camera.updateMatrixWorld(true);G.begin(game);spawnOpeningEnemies();setPhase('playing');
  notice('ARRASTRÁ PARA GIRAR LA CÁMARA Y APUNTAR · DISPARÁ',4);
 }
 $('startDemo').onclick=beginDemo;
@@ -804,5 +809,5 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(game)},get floorSize(){return floorSize},
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
- get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},
+ get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get lastShotAt(){return lastShot},
  get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
