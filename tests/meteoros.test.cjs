@@ -103,7 +103,9 @@ assert(runtime.includes('modoCaosGestureConfig'), 'engine pinch/rotate/drag cont
 assert(/#lock\{[^}]*display:block/.test(html),'AR placement action remains visible');
 const art=fs.readFileSync(path.join(__dirname,'..','meteoros-art.js'),'utf8');
 assert.equal(C.R,1.12,'square arena default side 2.24m');
-assert(art.includes("draw('box',0,.010,0,ARENA"),'3D floor is square, not circular');
+assert(art.includes("draw('box',0,.011,0,ARENA"),'3D floor is solid square');
+assert(art.includes('for(let row=0;row<5;row++)for(let col=0;col<5;col++)'),'render all 25 opaque floor tiles');
+assert(art.includes('if(g.calibrated&&g.players[0].alive)'),'floor marker follows calibrated human pose');
 assert(art.includes('ctx.fillRect(-scale*ARENA'),'2D floor is square');
 assert(eng.includes('window.modoCaosGestureConfig'),'engine uses optional per-game gesture config');
 assert(eng.includes('window.modoCaosLockReady'),'engine prevents premature floor lock for games needing a preview');
@@ -112,5 +114,9 @@ assert(!/#touchpad[^\n]*display:none!important/.test(html),'touchpad must not be
 assert(html.includes('id="toolbar"')&&html.includes('id="plus"'),'visible +/- and rotation tools');
 assert(art.includes('if(i===0||!h.alive)return'),'no VOS humanoid in first-person AR');
 assert(art.includes("vos?'TU POSICIÓN':a.name"),'fallback explains positional cue');
-assert(html.includes('SIN AVATAR'),'first-person UX must be explicit');
+assert(html.includes('25 CELDAS CALIBRABLES'),'calibration-by-cell mode is explicit');
+assert(html.includes('id="calCenter"')&&html.includes('id="whereAmI"'),'physical position selection UI exists');
+assert(runtime.includes('selectCalibrationCell(i)'),'touching floor polygon chooses standing cell');
+assert(runtime.includes('origin={x:avg.x-cell.x*ratio,z:avg.z-cell.z*ratio}'),'selected cell shifts phone-to-board calibration origin');
+assert(runtime.includes('drawCalibrationGrid(frame,fixedWorld)'),'floor projection updates during AR frame');
 console.log('OK: 96 seeded matches / 30 standing vs movers / square playing area / native gesture support / first-person XR / regression');
