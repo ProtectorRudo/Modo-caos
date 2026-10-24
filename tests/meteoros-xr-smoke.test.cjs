@@ -129,6 +129,24 @@ const server=http.createServer((req,res)=>{
   assert(before>0,'XR WebGL made draw calls before gameplay');
   const fixed=await page.evaluate(()=>window.__meteorTestSnapshot());
   assert(fixed.placement&&fixed.origin&&fixed.calibrated,'placement and motion reference calibrated');
+  assert.equal(fixed.toast,'','stale calibration toast must disappear immediately at LISTO');
+  if(process.env.METEORS_AUTOSTART==='1'){
+   assert.equal(fixed.stage,'ready','the XR game is waiting only for solo automatic countdown');
+   // This motion occurs BEFORE the round begins; the YO marker must already respond.
+   await page.evaluate(()=>window.__xrPos.x=.48);
+   await page.waitForTimeout(300);
+   const pre=await page.evaluate(()=>window.__meteorTestSnapshot());
+   assert(Math.abs(pre.marker.x-fixed.marker.x)>.025,'YO floor marker responds to phone while still in ready state');
+   assert.equal(pre.toast,'','AFINANDO remains cleared while the floor marker moves');
+   await page.waitForFunction(()=>window.__meteorTestSnapshot?.()?.stage==='playing'&&window.__meteorTestSnapshot?.()?.elapsed>1.2,null,{timeout:9000});
+   const running=await page.evaluate(()=>window.__meteorTestSnapshot());
+   assert(running.running&&running.elapsed>1.2,'solo game starts and game clock advances without tapping after calibration');
+   assert(Number(await page.locator('#time').innerText())<72,'72-second match countdown advances automatically');
+   assert(!await page.locator('#begin').isVisible(),'begin action disappears after automatic kickoff');
+   assert.equal((await page.locator('#toast').innerText()).includes('AFINANDO'),false,'large frozen calibration banner never remains');
+   console.log('PASS: clear calibration banner, YO moves before START, automatic countdown and game begins on its own.');
+   return;
+  }
   assert.equal(fixed.selectedCell,6,'physical standing cell chosen from camera view');
   assert(Math.abs(fixed.marker.x+.448)<.015&&Math.abs(fixed.marker.z+.448)<.015,'human floor marker starts in the selected row and column');
   assert(await page.locator('#whereAmI').isVisible(),'live row and column tracking readout visible');

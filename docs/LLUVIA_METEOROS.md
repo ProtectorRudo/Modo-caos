@@ -68,3 +68,16 @@ Licencias: gráficos generados por código local WebGL/Canvas; no se descargaron
 - El botón RECENTRAR ahora **vuelve a abrir el selector de celda**, sin trasladar ni rotar la pista fijada; se pausa la partida mientras el jugador recalibra.
 - Pruebas WebXR sintéticas: seleccionar la celda 6 (no central), verificar posición x/z -0,448, mover 0,19 m el teléfono y ver el marcador cambiar, recalibrar en celda 12 y comprobar que la matriz XR mundial permanece idéntica. **Todavía hace falta comprobar esto con el teléfono real**.
 - No se trabajó en el aspecto de avatares rivales; queda como etapa posterior pedida expresamente.
+
+## 24/10/2026 — Reparación: pantalla de calibración aparentemente congelada
+
+Una captura real de Android mostró una pantalla con `LISTO`, `TIEMPO 72` y el mensaje gigante `AFINANDO POSICIÓN · 1 SEGUNDO` sin desaparecer. No era un bloqueo total del motor: el mensaje de ayuda sólo expiraba dentro de `tick()`, que antes retornaba inmediatamente si `running===false`. Al terminar la calibración, el banner se limpiaba tarde o nunca. Además, `motion()` sólo se ejecutaba cuando `running=true`, lo que hacía que el marcador del piso YO pareciese muerto antes de empezar.
+
+Se solucionó con:
+- `dismissToast()` **al completar** la calibración, y `clearToast()` cada fotograma XR/Canvas, aun sin partida iniciada.
+- Movimiento del punto YO desde el estado `LISTO`, no sólo durante la partida; representa la pose del teléfono, no pies.
+- En modo solo, arranque automático a los ~1 s de `LISTO`, seguido de 3 s de cuenta regresiva; desaparece la pantalla de 72 segundos inactiva. El botón de inicio manual sigue disponible hasta que se lanza automáticamente.
+- Recalibrar durante una partida retoma esa misma partida; online NO se lanza automáticamente.
+- Nueva prueba de navegador Chromium con WebXR simulado `METEORS_AUTOSTART=1`: banner no queda pegado, marcador físico responde antes de iniciar, tiempo se descuenta sin nuevo toque.
+
+**Pendiente:** confirmar en Chrome Android físico/ARCore sobre el dispositivo que envió la captura. Tests de poses sintéticas no reemplazan esta validación.
