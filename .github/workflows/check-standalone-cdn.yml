@@ -1,0 +1,28 @@
+name: Meteoros · comprobar alojamiento HTTPS externo
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'meteoros-autonomo.html'
+      - '.github/workflows/check-standalone-cdn.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-https:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check correct HTML MIME, content and HTTPS
+        env:
+          METEOR_URL: https://rawcdn.githack.com/ProtectorRudo/Modo-caos/7c91107743eb6088e8aed6e56cf74f057a0de681/meteoros-autonomo.html
+        run: |
+          node --input-type=module <<'NODE'
+          const u=process.env.METEOR_URL;
+          const resp=await fetch(u,{signal:AbortSignal.timeout(20000),headers:{'User-Agent':'Modo-Caos-deployment-verification'}});
+          const html=await resp.text();
+          console.log('URL:',u,'STATUS:',resp.status,'MIME:',resp.headers.get('content-type'),'BYTES:',html.length);
+          console.log('SECURITY:',resp.headers.get('content-security-policy'),'FRAME:',resp.headers.get('x-frame-options'));
+          if(!resp.ok||!resp.headers.get('content-type')?.includes('text/html')||!html.includes('LLUVIA DE METEOROS')||!html.includes('MeteorosArt')||html.length<50000)process.exit(1);
+          console.log('PASS: HTTPS static CDN served complete, executable HTML.');
+          NODE
