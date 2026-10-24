@@ -150,6 +150,17 @@ const server=http.createServer((req,res)=>{
   assert(!await page.locator('#toolbar').isVisible(),'adjustment controls disappear after placement');
   assert(fixed.arenaWorld&&moved.arenaWorld,'renderer exposes ground-locked matrix');
   for(const axis of ['x','y','z'])assert(Math.abs(moved.arenaWorld[axis]-fixed.arenaWorld[axis])<.0005,'world XR center '+axis+' remains fixed');
+  // Recenter must ask for a fresh physical cell, WITHOUT relocating the whole floor.
+  await page.locator('#recenter').click();
+  await page.waitForFunction(()=>window.__meteorTestSnapshot?.()?.pickerActive,{timeout:3000});
+  assert((await page.locator('#begin').isDisabled()),'recalibration pauses/blocks start until position is picked');
+  await page.locator('#calCenter').click();
+  await page.waitForFunction(()=>window.__meteorTestSnapshot?.()?.calibrated,{timeout:4500});
+  const recal=await page.evaluate(()=>window.__meteorTestSnapshot());
+  assert.equal(recal.selectedCell,12,'recenter chooses a new real floor cell');
+  assert(Math.hypot(recal.marker.x,recal.marker.z)<.01,'YO point is realigned to central tile');
+  for(const axis of ['x','y','z'])assert(Math.abs(recal.arenaWorld[axis]-fixed.arenaWorld[axis])<.0005,
+   'recalibration never teleports the actual XR floor: '+axis);
   const fatal=pageErrors.filter(e=>!e.includes('No runtimes supported the requested configuration'));
   assert.equal(fatal.length,0,'no XR JavaScript errors: '+fatal.join(' / '));
   assert(!((await page.locator('#toast').innerText()).includes('RENDER AR')),'no render failures');
