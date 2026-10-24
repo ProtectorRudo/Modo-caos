@@ -116,7 +116,7 @@ function spawn(g){
   const r=pick(g,N),c=pick(g,N);return bit(r,c)|bit(r,(c+1)%N);
  }):null;
  const direction=chosen==='frontal'?'⬇ DESDE ARRIBA':chosen==='trasera'?'⬆ DESDE ABAJO':
-  chosen==='lateral'?(steps[0]&&(steps[0]&bit(0,0))?'➡ DESDE IZQUIERDA':'⬅ DESDE DERECHA'):
+  chosen==='lateral'?(steps[0]&&Array.from({length:N},(_,r)=>has(steps[0],r,0)).some(Boolean)?'➡ DESDE IZQUIERDA':'⬅ DESDE DERECHA'):
   chosen==='doble'?'↕ DESDE AMBOS EXTREMOS':chosen==='inversion'?'↩ CAMBIA DE DIRECCIÓN':
   chosen==='falsa'?'⚠ PUEDE SER FALSA':chosen==='serpiente'?'〰 ONDA SERPIENTE':
   chosen==='corredor'?'◇ EN FILAS':'⚡ VARIOS FRENTES';
