@@ -147,7 +147,7 @@ function advance(g,dt){
  }
 }
 function tick(g,dt){
- if(!Number.isFinite(dt)||dt<=0||g.state==='finished'||g.state==='ready'||g.state==='paused')return;
+ if(!Number.isFinite(dt)||dt<=0||g.state==='finished'||g.state==='ready'||g.state==='paused'||g.paused)return;
  let left=Math.min(dt,.35);
  while(left>1e-8){let h=Math.min(left,MAX_DT);advance(g,h);left-=h;if(g.state==='finished')break}
 }
