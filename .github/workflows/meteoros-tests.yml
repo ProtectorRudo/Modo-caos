@@ -34,6 +34,8 @@ jobs:
         run: node tests/meteoros.test.cjs
       - name: Existing Semaforo gameplay tests
         run: node tests/semaforo.test.cjs
+      - name: Validate storm pacing and safe walking
+        run: node tests/meteoros-pacing.test.cjs
       - name: Existing Semaforo AR motion tests
         run: node tests/semaforo-motion.test.cjs
       - name: Verify alternate public static bundle
