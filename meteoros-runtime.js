@@ -176,6 +176,7 @@ function showCalibrationGrid(){
  $('calTitle').textContent='👣 MARCÁ LA BALDOSA DONDE ESTÁS PARADO';
  $('calFill').style.width='0%';$('calCenter').style.display='block';
  $('begin').disabled=true;
+ $('whereAmI').style.display='none';
  calSvg.style.display='block';calSvg.style.pointerEvents='auto';
  $('statusPanel').style.display='flex';
  statusText('MIRÁ EL PISO Y TOCÁ LA CELDA EXACTA DONDE ESTÁS · PUNTITO YO');
@@ -196,7 +197,9 @@ function drawCalibrationGrid(frame,fixedWorld){
  const w=innerWidth,h=innerHeight,ratio=G.R*2/5;
  const mvp=multiply(view.projectionMatrix,multiply(view.transform.inverse.matrix,fixedWorld));
  calSvg.setAttribute('viewBox','0 0 '+w+' '+h);
- calSvg.style.display=pickerActive?'block':'none';
+ calSvg.style.display=(pickerActive||calibrated)?'block':'none';
+ calSvg.style.pointerEvents=pickerActive?'auto':'none';
+ if(!pickerActive)calPolys.forEach(cell=>cell.style.display='none');
  if(pickerActive){
   for(let i=0;i<25;i++){
    const x=(i%5-2)*ratio,z=(Math.floor(i/5)-2)*ratio,q=ratio*.475;
