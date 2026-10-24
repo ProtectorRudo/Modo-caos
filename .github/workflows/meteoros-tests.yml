@@ -35,3 +35,18 @@ jobs:
         run: node tests/semaforo.test.cjs
       - name: Existing Semaforo AR motion tests
         run: node tests/semaforo-motion.test.cjs
+
+  chromium-smoke:
+    name: Mobile Chromium · 2D UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install pinned Playwright test runner
+        run: npm install --ignore-scripts --no-save playwright@1.56.0
+      - name: Install Chromium dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Exercise real browser gameplay
+        run: node tests/meteoros-browser.test.cjs
