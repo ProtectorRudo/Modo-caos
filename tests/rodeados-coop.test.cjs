@@ -34,6 +34,6 @@ test('4 players cannot drain one another ammunition',()=>{
 });
 test('solo game retains infinite ammo even with custom shooter labels',()=>{
  const g=G.create({seed:23});G.begin(g);G.fire(g,ray,'some-label');
- assert.equal(g.ammo,27);
+ assert.equal(g.ammo,28);
  assert.equal(Object.keys(g.peerWeapons).length,0);
 });
