@@ -44,6 +44,7 @@ function create(gl){
     cube(x,.038,z,pitch*.451,.011,pitch*.451,[colr[0]*.27*dim,colr[1]*.27*dim,colr[2]*.27*dim,.99],.12+flash*.4);
     cube(x,.049,z,pitch*.407,.003,pitch*.407,
      [Math.min(1,colr[0]*(.71+flash*.4))*dim,Math.min(1,colr[1]*(.71+flash*.4))*dim,Math.min(1,colr[2]*(.71+flash*.4))*dim,.96],.15+flash*.50);
+    if(g.ghost===i&&g.phase==='show')cube(x,.066,z,pitch*.48,.006,pitch*.48,[.78,1,1,.96],1.2);
     if(active||elec||picked){
      const color=elec?[1,.15,.09,.83]:picked?[.7,1,.88,.86]:[1,1,1,.93];
      cube(x,.056,z,pitch*.436,.003,pitch*.436,color,.38+flash*.28);
