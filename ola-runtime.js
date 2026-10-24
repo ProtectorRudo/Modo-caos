@@ -96,7 +96,7 @@ function pauseGame(){
  if(!running)return;game.paused=true;$('pauseDialog').style.display='flex';
 }
 function resumeGame(){
- if(!running)return;game.paused=false;$('pauseDialog').style.display='none';lastFrame=0;
+ if(!running)return;game.paused=false;$('pauseDialog').style.display='none';lastFrame=performance.now();
 }
 function uiFixed(){
  if(demo||status==='fixed'||status==='playing'||status==='finished')return;
