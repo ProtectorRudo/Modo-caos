@@ -2,7 +2,7 @@
 /* MODO CAOS · LLUVIA DE METEOROS — deterministic, render-independent game.
    Coordinates are meters in a world-locked arena; never infer body/feet tracking. */
 (function(root){
-const R=.64,PLAYER=.072,DURATION=72,TAU=Math.PI*2;
+const R=1.12,PLAYER=.072,DURATION=72,TAU=Math.PI*2;
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const profiles=[
@@ -73,7 +73,7 @@ function planWave(g){
   const safe=sampleSafe(g,impact,trial,planner);
   return safe&&distance(planner,safe)<=Math.min(.33,lead*.20);
  };
- const made=[],gx=[-.49,-.245,0,.245,.49],candidate=[];
+ const made=[],gx=[-.96,-.48,0,.48,.96],candidate=[];
  const targeted=random(g)<(f==='aprendizaje'?.98:f==='apocalipsis'?.96:.87);
  if(targeted){
   const direction=rnd(g,0,TAU),offset=big?.17:rnd(g,0,.045);
@@ -82,7 +82,7 @@ function planWave(g){
  const other=[];
  for(const x of gx)for(const z of gx){
   const pt={x:x+rnd(g,-.055,.055),z:z+rnd(g,-.055,.055)};
-  if(Math.hypot(pt.x,pt.z)<.60)other.push(pt);
+  if(Math.hypot(pt.x,pt.z)<R-.08)other.push(pt);
  }
  for(let i=other.length-1;i>0;i--){const j=Math.floor(random(g)*(i+1));[other[i],other[j]]=[other[j],other[i]]}
  candidate.push(...other);
@@ -145,7 +145,7 @@ function botTick(g,p,dt){
    const soon=upcoming.reduce((a,b)=>a.impact<b.impact?a:b);
    p.goal=sampleSafe(g,soon.impact,[],p)||{x:0,z:0};
   }else if(!p.goal||distance(p,p.goal)<.08){
-   const a=rnd(g,0,TAU),r=rnd(g,.10,.48);p.goal=clampPoint({x:Math.cos(a)*r,z:Math.sin(a)*r});
+   const a=rnd(g,0,TAU),r=rnd(g,.10,.87);p.goal=clampPoint({x:Math.cos(a)*r,z:Math.sin(a)*r});
   }
  }
  if(!p.goal)return;
