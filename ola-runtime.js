@@ -23,15 +23,29 @@ const radarCells=Array.from({length:36},()=>{
  const el=document.createElement('i');$('radarCells').appendChild(el);return el;
 });
 function paintRadar(t){
- if(t-lastRadar<90)return;lastRadar=t;
- const data=G.radar(game,3.9),pos=game.cell.r*6+game.cell.c;
+ if(t-lastRadar<95)return;lastRadar=t;
+ // No dependemos de la dirección física del teléfono: mapa completo siempre visible.
+ const data=G.radar(game,4.8),pos=game.cell.r*6+game.cell.c;
  for(let i=0;i<36;i++){
-  const c=data.state[i],el=radarCells[i];
-  el.className=(c==='red'?'danger':c==='yellow'?'warning':data.forecast[i]?'future':'')+
-   (i===pos?' player':'');
+  const c=data.state[i],eta=data.eta[i],el=radarCells[i];
+  el.className=(c==='red'?'danger':c==='yellow'||(eta!==null&&eta<=G.WARNING_SECONDS)?'warning':
+   eta!==null?'future':'')+(i===pos?' player':'');
+  // 3 → 2 → 1 es el tiempo que le falta a ESA baldosa para ponerse roja.
+  el.textContent=i===pos?'●':c==='red'?'!':eta!==null&&eta<=G.WARNING_SECONDS?
+   String(Math.max(1,Math.ceil(eta))):c==='yellow'?'?':'';
+  el.title=eta!==null?'Rojo en '+eta.toFixed(1)+' segundos':c==='red'?'Rojo ahora':'Libre';
  }
- $('radarDirection').textContent=data.direction||'MIRÁ EL TABLERO';
- $('radarTime').textContent=data.seconds!==null?'🔴 ROJO EN '+data.seconds.toFixed(1)+' s':'PRÓXIMA OLA…';
+ $('radarDirection').textContent=data.direction||'PRÓXIMA OLA EN CAMINO';
+ $('radarTime').textContent=data.seconds!==null?'🔴 EN '+data.seconds.toFixed(1)+' s':'ESPERANDO OLA…';
+ const you=$('radarYou');
+ const imminent=data.playerEta!==null&&data.playerEta<=3.3;
+ you.classList.toggle('urgent',imminent||data.state[pos]==='red');
+ you.textContent=data.state[pos]==='red'?'● VOS: ¡SALÍ DE LA ROJA!':
+  imminent?'● VOS: '+data.playerEta.toFixed(1)+' s PARA SALIR':'● VOS: CASILLA SIN ROJO PRÓXIMO';
+ // Instrucción fija y legible sobre el radar, no hay que girar buscando naranja.
+ if(data.direction&&data.seconds!==null)
+  $('banner').textContent='🟠 '+data.direction+' · '+data.seconds.toFixed(1)+' s';
+ else $('banner').textContent=G.phases(game.elapsed)+(game.shield?' · 🛡 ESCUDO':'');
 }
 try{const r=JSON.parse(localStorage.getItem(KEY)||'{}');best=Number(r.clasico)||0}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
@@ -52,10 +66,9 @@ function hud(){
  $('time').textContent=mode==='infinito'?Math.floor(game.elapsed)+'″':Math.max(0,Math.ceil(90-game.elapsed));
  $('lives').textContent='♥'.repeat(game.lives)+'♡'.repeat(3-game.lives);
  $('score').textContent=Math.round(game.score).toLocaleString('es-AR');
- $('banner').textContent=game.stage==='countdown'?'ARRANCAMOS EN '+Math.ceil(game.countdown):
-  (game.stage==='playing'?(performance.now()<waveAnnounceUntil?waveAnnounce:G.phases(game.elapsed))+
-  (game.shield?' · 🛡 ESCUDO':''):'');
  if(!demo&&calibrated&&game.stage==='playing')paintRadar(performance.now());
+ else $('banner').textContent=game.stage==='countdown'?'ARRANCAMOS EN '+Math.ceil(game.countdown):
+  game.stage==='playing'?(performance.now()<waveAnnounceUntil?waveAnnounce:G.phases(game.elapsed)):'';
  if(demo&&game.stage==='playing')$('whereAmI').textContent='📍 VOS · FILA '+(game.cell.r+1)+' · COLUMNA '+(game.cell.c+1);
 }
 function consume(){

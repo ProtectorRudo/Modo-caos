@@ -3,7 +3,7 @@
  * Todas las posiciones se expresan en unidades de baldosa (0 a 6).
  * AR proyecta posición física de teléfono, NO realiza seguimiento de pies. */
 (function(root){
-const N=6,DURATION=90;
+const N=6,DURATION=90,WARNING_SECONDS=3.0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const index=(r,c)=>r*N+c;
 function rand(g){let v=g.seed>>>0;v^=v<<13;v^=v>>>17;v^=v<<5;g.seed=v>>>0;return g.seed/4294967296}
@@ -101,7 +101,7 @@ function spawn(g){
  const previousEnd=g.active.reduce((last,w)=>Math.max(last,w.end),0);
  const name=reverse?'inversion':kind(g);
  // El aviso no puede acelerar de golpe al cambiar de fase y superponer peligros.
- const lead=Math.max(g.elapsed<15?3.25:g.elapsed<55?3.05:2.80,previousEnd+.60-g.elapsed);
+ const lead=Math.max(g.elapsed<15?3.7:g.elapsed<55?3.5:3.35,previousEnd+.60-g.elapsed);
  const slot=speed(g)*(upcoming%7===0?1.38:1);
  let steps=null,chosen=name;
  for(let k=0;k<26;k++){const p=pattern(g,name);if(ensureRoute(g,p,lead,slot)){steps=p;break}}
@@ -141,9 +141,9 @@ function cells(g,t=g.elapsed){
   for(let j=0;j<w.steps.length;j++){
    const at=w.start+j*w.step;
    const danger=t>=at&&t<at+w.step*.70;
-   // Zona amarilla anuncia al menos 2,35 segundos antes del contacto,
-   // avanzando visiblemente por el piso antes de transformarse en roja.
-   const warn=t<at&&t>=at-Math.min(2.75,Math.max(2.35,w.step*2.65));
+   // Cada casilla se enciende NARANJA tres segundos antes de su propio impacto.
+   // No usamos la velocidad de la ola para acortar el margen de reacción.
+   const warn=t<at&&t>=at-WARNING_SECONDS;
    if(!danger&&!warn)continue;
    // Las falsas alarmas muestran aviso AMARILLO incluso donde jamás habrá rojo.
    const mask=danger?w.steps[j]:(w.teases?.[j]??w.steps[j]);if(!mask)continue;
@@ -154,24 +154,23 @@ function cells(g,t=g.elapsed){
  }
  return red.map((r,i)=>g.safeZone&&t<g.safeZone.until&&i===index(g.safeZone.r,g.safeZone.c)?'safe':r?'red':yellow[i]?'yellow':'safe');
 }
-function radar(g,horizon=3.6){
- // Lectura aérea compacta: rojo AHORA, ámbar en el trayecto inminente.
- // Nunca adelanta un peligro inexistente (falsas alarmas siguen en amarillo).
- const state=cells(g),forecast=Array(N*N).fill(false);
- let nearest=Infinity,selected=null,selectedStep=-1;
+function radar(g,horizon=4.2){
+ // Radar táctico fijo en la pantalla, independiente de la dirección de la cámara.
+ // Cada casilla exhibe su propio ETA; no solo las primeras dos filas de la ola.
+ const state=cells(g),eta=Array(N*N).fill(null),forecast=Array(N*N).fill(false);
+ let nearest=Infinity,selected=null;
  for(const w of g.active)for(let j=0;j<w.steps.length;j++){
-  const at=w.start+j*w.step,mask=w.steps[j];
-  if(!mask||at<g.elapsed-.001||at>g.elapsed+horizon)continue;
-  if(at<nearest){nearest=at;selected=w;selectedStep=j}
- }
- if(selected){
-  // Mostrar origen + siguiente avance, no toda la pista coloreada de golpe.
-  for(let j=selectedStep;j<Math.min(selectedStep+2,selected.steps.length);j++){
-   if(selected.start+j*selected.step>g.elapsed+horizon)break;
-   for(let i=0;i<N*N;i++)if(selected.steps[j]&(1n<<BigInt(i)))forecast[i]=true;
+  const at=w.start+j*w.step,remaining=at-g.elapsed,mask=w.steps[j];
+  if(!mask||remaining < -.001 ||remaining>horizon)continue;
+  if(remaining<nearest){nearest=remaining;selected=w}
+  for(let i=0;i<N*N;i++)if(mask&(1n<<BigInt(i))){
+   if(eta[i]===null||remaining<eta[i])eta[i]=remaining;
+   forecast[i]=true;
   }
  }
- return {state,forecast,seconds:Number.isFinite(nearest)?Math.max(0,nearest-g.elapsed):null,
+ const player=index(g.cell.r,g.cell.c);
+ return {state,forecast,eta,playerEta:state[player]==='red'?0:eta[player],
+  seconds:Number.isFinite(nearest)?Math.max(0,nearest):null,
   direction:selected?.direction||null,name:selected?.name||null};
 }
 function hit(g){
@@ -205,7 +204,7 @@ function tick(g,dt){
  g.score+=dt*(6+Math.min(6,g.combo));
  if(g.duration!==Infinity&&g.elapsed>=g.duration)finish(g,'victoria');
 }
-const api=Object.freeze({N,DURATION,make,start,tick,cells,radar,setPosition,finish,phases,ensureRoute,pattern,spawn,hit,has,bit,index});
+const api=Object.freeze({N,DURATION,WARNING_SECONDS,make,start,tick,cells,radar,setPosition,finish,phases,ensureRoute,pattern,spawn,hit,has,bit,index});
 root.OlaRojaCore=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
