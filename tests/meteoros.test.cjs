@@ -93,6 +93,6 @@ const eng=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert(eng.includes("window.modoCaosXRFrame(time,frame,W)"),'XR draws inside engine frame after clear');
 const runtime=fs.readFileSync(path.join(__dirname,'..','meteoros-runtime.js'),'utf8');
 assert(runtime.includes('window.modoCaosXRFrame=arFrame'),'game registers frame hook');
-assert(runtime.includes('const shift=placement||(preview&&pos)'), 'calibration must not teleport anchored arena');
+assert(runtime.includes('renderer.render(frame,W,game)'), 'arena renders at ground Hit Test pose without screen/phone translation');
 assert(/#lock\{[^}]*display:block/.test(html),'AR placement action remains visible');
 console.log('OK: 96 seeded matches / 30 standing vs active movers / safety / shield / online wave parity / XR UI contracts / syntax');
