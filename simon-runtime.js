@@ -120,7 +120,7 @@ async function playSequence(){
  cancel();const mine=token;
  sequenceGuide('watch',0,-1);
  hint('👀 MIRÁ LAS BALDOSAS QUE BRILLAN',g.round===1?'Se encenderán UNA POR VEZ. Recordá el orden.':g.rule);
- speak(g.round===1?'Mirá qué baldosa se ilumina primero y cuál después. Repetí el orden cuando diga tu turno':g.trap?'Atención a la trampa':'Mirá la secuencia');
+ speak(g.round===1?'Mirá el orden':g.trap?'Atención a la trampa':'Mirá');
  await sleep(g.round===1?1550:g.trap?1300:950);if(mine!==token)return;
  // Destellos largos al principio, con una pausa oscura inequívoca entre cada paso.
  const stepTime=Math.max(650,1010-g.round*25);
