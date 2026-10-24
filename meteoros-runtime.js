@@ -16,7 +16,7 @@ let game=G.make((Math.random()*4294967295)>>>0),running=false,finished=false,ren
 let lastFrame=0,lastHud=0,trackingLast=null,arLoop=false,status='intro',mode='motion';
 let muted=false,audio=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
 let eventKeys=new Set(),online=null,onlineConnecting=false,onlineBusy=false,onlineTimer=null,lastPeer=0;
-let lostShown=false,toastAt=0,gameSkew=0;
+let lostShown=false,toastAt=0,lastAlert=0;
 function beep(f=500,d=.12,wave='sine',volume=.07){
  if(muted)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();
  audio.resume?.();const osc=audio.createOscillator(),gain=audio.createGain(),t=audio.currentTime;
@@ -42,7 +42,7 @@ function consumeFX(){
   const key=f.type+':'+f.at+':'+(f.who||'')+':'+(f.x||'');
   if(eventKeys.has(key))continue;eventKeys.add(key);
   if(eventKeys.size>300)eventKeys.clear();
-  if(['impact','hit','ko','siren','trick','bonus','near','shield','start'].includes(f.type)){
+  if(['impact','hit','ko','siren','trick','bonus','near','shield','start','fake'].includes(f.type)){
    const text=f.text||'';if(text&&(!f.who||f.who==='you'))toast(text,f.type==='siren'?2000:1250);
    if(f.type==='impact'){beep(f.giant?96:155,.29,'sawtooth',.11);vibrate(f.giant?[90,30,65]:55)}
    else if(f.type==='hit'){beep(190,.42,'square',.12);if(f.who==='you')vibrate([150,50,160])}
@@ -50,6 +50,7 @@ function consumeFX(){
    else if(f.type==='bonus'||f.type==='shield'){beep(1080,.2)}
    else if(f.type==='siren'){beep(460,.45,'sawtooth')}
    else if(f.type==='trick'){beep(760,.30,'sawtooth')}
+   else if(f.type==='fake'){beep(990,.16,'triangle')}
   }
  }
 }
@@ -177,6 +178,10 @@ function tick(dt,t){
    G.tick(game,Math.min(.065,targetTime-game.elapsed));
   }
  }else G.tick(game,dt);
+ if(game.stage==='playing'&&t-lastAlert>480){
+  const v=game.players[0],danger=game.events.some(e=>!e.cancelled&&e.impact>game.elapsed&&e.impact-game.elapsed<.82&&Math.hypot(v.x-e.x,v.z-e.z)<e.radius+.20);
+  if(danger){lastAlert=t;beep(620,.10,'triangle',.035);vibrate(14)}
+ }
  consumeFX();finishIfNeeded();
  if(t-lastHud>110){lastHud=t;hud()}
  if(toastAt&&t>toastAt){$('toast').textContent='';toastAt=0}
