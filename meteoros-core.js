@@ -31,7 +31,7 @@ function setPosition(g,x,z){
  const p=g.players[0];if(!p.alive||!Number.isFinite(x)||!Number.isFinite(z))return;
  const safe=clampPoint({x,z});p.dist+=distance(p,safe);p.x=safe.x;p.z=safe.z;
 }
-function clampPoint(p){const d=Math.hypot(p.x,p.z);const k=d>R?R/d:1;return{x:p.x*k,z:p.z*k}}
+function clampPoint(p){return{x:clamp(p.x,-R,R),z:clamp(p.z,-R,R)}}
 function phase(g){return g.elapsed<14?'aprendizaje':g.elapsed<36?'lluvia':g.elapsed<57?'caos':'apocalipsis'}
 function affected(e,t){
  return t>=e.impact-.05&&t<=e.impact+.27+(e.crater?e.craterTime:0);
@@ -41,7 +41,7 @@ function threatens(e,pos,t,margin=.08){
  return distance(e,pos)<e.radius+margin;
 }
 function futureSafe(g,pos,t,extra=[]){
- if(Math.hypot(pos.x,pos.z)>R-.055)return false;
+ if(Math.abs(pos.x)>R-.055||Math.abs(pos.z)>R-.055)return false;
  for(const e of [...g.events,...extra]){
   if(e.cancelled)continue;
   if(Math.abs(e.impact-t)<.75||affected(e,t)){
@@ -82,7 +82,7 @@ function planWave(g){
  const other=[];
  for(const x of gx)for(const z of gx){
   const pt={x:x+rnd(g,-.055,.055),z:z+rnd(g,-.055,.055)};
-  if(Math.hypot(pt.x,pt.z)<R-.08)other.push(pt);
+  if(Math.max(Math.abs(pt.x),Math.abs(pt.z))<R-.08)other.push(pt);
  }
  for(let i=other.length-1;i>0;i--){const j=Math.floor(random(g)*(i+1));[other[i],other[j]]=[other[j],other[i]]}
  candidate.push(...other);
@@ -124,7 +124,7 @@ function moveTrick(g,e){
  ];
  const others=g.events.filter(v=>v!==e),reference={...g,events:others};
  for(const p of options){
-  if(Math.hypot(p.x,p.z)>R-.05||distance(p,e)<.12)continue;
+  if(Math.abs(p.x)>R-.05||Math.abs(p.z)>R-.05||distance(p,e)<.12)continue;
   const safe=sampleSafe(reference,e.impact,[{...e,x:p.x,z:p.z}],planner);
   if(!safe||distance(planner,safe)>Math.min(.31,(e.impact-g.elapsed)*.23))continue;
   if(!futureSafe(reference,safe,e.impact,[{...e,x:p.x,z:p.z}]))continue;
@@ -145,7 +145,7 @@ function botTick(g,p,dt){
    const soon=upcoming.reduce((a,b)=>a.impact<b.impact?a:b);
    p.goal=sampleSafe(g,soon.impact,[],p)||{x:0,z:0};
   }else if(!p.goal||distance(p,p.goal)<.08){
-   const a=rnd(g,0,TAU),r=rnd(g,.10,.87);p.goal=clampPoint({x:Math.cos(a)*r,z:Math.sin(a)*r});
+   p.goal=clampPoint({x:rnd(g,-R+.12,R-.12),z:rnd(g,-R+.12,R-.12)});
   }
  }
  if(!p.goal)return;
