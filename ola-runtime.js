@@ -281,6 +281,12 @@ function bootAR(){
 const arWatch=setInterval(()=>{
  if(demo)return;
  bootAR();
+ // WebXR puede omitir por completo el callback del juego cuando pierde la pose.
+ // Detectar también ese silencio mediante el reloj real (sin tocar engine.js).
+ if(running&&arBooted&&lastFrame&&performance.now()-lastFrame>320&&!trackingFrozen){
+  trackingFrozen=true;recoverySince=0;game.paused=true;
+  label('📡 SEGUIMIENTO INTERRUMPIDO · JUEGO EN PAUSA');
+ }
  if(typeof stage!=='undefined'&&stage==='fixed'&&status==='intro')uiFixed();
 },150);
 function demoStart(){
