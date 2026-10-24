@@ -69,18 +69,18 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 </style></head><body>
 <div id="home">
 <a id="back" href="https://modo-caos-eta.vercel.app/">← MODO CAOS</a>
-<div class="eyebrow">TU CASA ESTÁ BAJO ATAQUE</div>
+<div class="eyebrow">AR EN PRIMERA PERSONA · TU CASA ESTÁ BAJO ATAQUE</div>
 <h1>LLUVIA DE <span>METEOROS</span></h1>
-<p class="subtitle">¡Se viene uno, se vienen diez! Esquivá los círculos del piso moviéndote suavemente con el teléfono. <strong>El jugador sos VOS.</strong></p>
+<p class="subtitle">El piso se convierte en una arena de 2,24 metros. <strong>¡Vos estás adentro!</strong> No manejás un personaje: esquivás los meteoritos moviéndote con el teléfono.</p>
 <div class="hero"><div class="meteor"></div><div class="warning"></div><div class="bot">🤖</div></div>
-<div class="chips"><b>☄️ 72 SEGUNDOS</b><b>❤️ 3 VIDAS</b><b>🏆 4 COMPETIDORES</b></div>
+<div class="chips"><b>☄️ 72 SEGUNDOS</b><b>❤️ 3 VIDAS</b><b>👣 SIN AVATAR</b></div>
 <div class="actions">
 <button id="enter">📷 ENTRAR EN REALIDAD AUMENTADA</button>
 <button id="demo" class="secondary">🎮 JUGAR MODO 2D COMPLETO</button>
 <a style="color:#9ffadd;font-size:12px;margin-top:5px" href="https://modo-caos-eta.vercel.app/salas.html?game=lluvia-meteoros">👥 Jugar con amigos · beta online</a>
 </div>
 <div id="record" class="small">RÉCORD PERSONAL: 0 PUNTOS</div>
-<p id="precheck" class="small">Jugá únicamente en un lugar despejado y sin desniveles. No corras ni saltes. WebXR sigue al teléfono, no a tus pies; activá botones si preferís no moverte.</p>
+<p id="precheck" class="small">Elegí un espacio despejado de unos 2,5 metros y sin desniveles. No corras ni saltes. La cámara estima el movimiento del teléfono, no rastrea tus pies ni tu cuerpo. Jugá con el celular cerca del pecho.</p>
 </div>
 <div id="overlay">
 <svg id="tiles" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -92,7 +92,7 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 <div style="display:none!important" aria-hidden="true"><button id="minus">−</button><button id="plus">+</button><button id="rotate">↻</button><button id="size">64 cm</button></div><div id="notice"></div>
 <button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
 <button id="goHome"></button>
-<button id="lock" disabled>📍 FIJAR ARENA EN EL PISO</button>
+<button id="lock" disabled>📍 FIJAR PISO · YO ESTOY EN EL CENTRO</button>
 <button id="exit">← MENÚ</button><button id="music">🔊</button>
 <div id="gameHud">
 <div class="stat">TIEMPO<strong id="time">72</strong></div>
@@ -105,7 +105,7 @@ h1 span{color:#ffb861;text-shadow:0 0 27px #ff6b395a}
 <div id="pad"><div class="cross"><button data-dir="up">▲</button><button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button></div></div>
 <div id="statusPanel"><div id="calBox"><div id="calTitle">📍 CALIBRANDO...</div><div id="calTrack"><div id="calFill"></div></div></div>
 <div id="safety">Escaneá el piso para colocar la arena</div>
-<div id="actions"><button id="recenter" class="secondary">⌖ RECENTRAR</button><button id="begin" disabled>☄️ ¡EMPEZAR!</button><button id="toggle" class="secondary">🎮 BOTONES</button></div>
+<div id="actions"><button id="recenter" class="secondary">⌖ RECENTRAR</button><button id="begin" disabled>☄️ ¡ESQUIVAR DE VERDAD!</button><button id="toggle" class="secondary">🎮 ALTERNATIVA</button></div>
 </div>
 <div id="result"><div class="resultCard"><div class="eyebrow">MODO CAOS · RESULTADOS</div><h2 id="resultTitle">¡FIN DE PARTIDA!</h2>
 <p id="resultsMeta"></p><div id="ranking"></div>
@@ -185,7 +185,7 @@ if(navigator.xr)check();
 /* MODO CAOS · LLUVIA DE METEOROS — deterministic, render-independent game.
    Coordinates are meters in a world-locked arena; never infer body/feet tracking. */
 (function(root){
-const R=.64,PLAYER=.072,DURATION=72,TAU=Math.PI*2;
+const R=1.12,PLAYER=.072,DURATION=72,TAU=Math.PI*2;
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const profiles=[
@@ -256,7 +256,7 @@ function planWave(g){
   const safe=sampleSafe(g,impact,trial,planner);
   return safe&&distance(planner,safe)<=Math.min(.33,lead*.20);
  };
- const made=[],gx=[-.49,-.245,0,.245,.49],candidate=[];
+ const made=[],gx=[-.96,-.48,0,.48,.96],candidate=[];
  const targeted=random(g)<(f==='aprendizaje'?.98:f==='apocalipsis'?.96:.87);
  if(targeted){
   const direction=rnd(g,0,TAU),offset=big?.17:rnd(g,0,.045);
@@ -265,7 +265,7 @@ function planWave(g){
  const other=[];
  for(const x of gx)for(const z of gx){
   const pt={x:x+rnd(g,-.055,.055),z:z+rnd(g,-.055,.055)};
-  if(Math.hypot(pt.x,pt.z)<.60)other.push(pt);
+  if(Math.hypot(pt.x,pt.z)<R-.08)other.push(pt);
  }
  for(let i=other.length-1;i>0;i--){const j=Math.floor(random(g)*(i+1));[other[i],other[j]]=[other[j],other[i]]}
  candidate.push(...other);
@@ -328,7 +328,7 @@ function botTick(g,p,dt){
    const soon=upcoming.reduce((a,b)=>a.impact<b.impact?a:b);
    p.goal=sampleSafe(g,soon.impact,[],p)||{x:0,z:0};
   }else if(!p.goal||distance(p,p.goal)<.08){
-   const a=rnd(g,0,TAU),r=rnd(g,.10,.48);p.goal=clampPoint({x:Math.cos(a)*r,z:Math.sin(a)*r});
+   const a=rnd(g,0,TAU),r=rnd(g,.10,.87);p.goal=clampPoint({x:Math.cos(a)*r,z:Math.sin(a)*r});
   }
  }
  if(!p.goal)return;
@@ -418,7 +418,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=returnValue;
 /* Lluvia de Meteoros — procedural 3D WebGL inside the native WebXR framebuffer
    and a fully playable high-DPI 2D Canvas renderer. No external assets required. */
 (function(root){
-const TAU=Math.PI*2,clamp=(a,l,h)=>Math.max(l,Math.min(h,a));
+const TAU=Math.PI*2,clamp=(a,l,h)=>Math.max(l,Math.min(h,a)),ARENA=1.12;
 const id=()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
 function multiply(a,b){const r=new Float32Array(16);for(let c=0;c<4;c++)for(let k=0;k<4;k++)for(let row=0;row<4;row++)r[4*c+row]+=a[4*k+row]*b[4*c+k];return r}
 function transform(x,y,z,sx=1,sy=1,sz=1){const a=id();a[0]=sx;a[5]=sy;a[10]=sz;a[12]=x;a[13]=y;a[14]=z;return a}
@@ -486,11 +486,11 @@ function create3D(gl){
    gl.viewport(viewport.x,viewport.y,viewport.width,viewport.height);
    vp=multiply(view.projectionMatrix,view.transform.inverse.matrix);
    // 3D rim, striped landing pad, runway seams.
-   draw('disc',0,.011,0,.64,.005,.64,colors.dark);
-   draw('ring',0,.025,0,.645,.006,.645,colors.blue,.30);
-   draw('ring',0,.028,0,.59,.004,.59,[.1,.36,.43,.33],.4);
-   for(let i=-2;i<=2;i++){draw('box',i*.205,.026,0,.003,.002,.57,[.06,.39,.49,.30]);
-    draw('box',0,.027,i*.205,.57,.002,.003,[.06,.39,.49,.30]);}
+   draw('disc',0,.011,0,ARENA,.005,ARENA,[.018,.046,.086,.29]);
+   draw('ring',0,.025,0,ARENA,.006,ARENA,colors.blue,.30);
+   draw('ring',0,.028,0,ARENA*.93,.004,ARENA*.93,[.1,.36,.43,.33],.4);
+   for(let i=-4;i<=4;i++){draw('box',i*ARENA*.2,.026,0,.003,.002,ARENA*.94,[.06,.39,.49,.30]);
+    draw('box',0,.027,i*ARENA*.2,ARENA*.94,.002,.003,[.06,.39,.49,.30]);}
    if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
     const s=g.safeHint,pulse=.5+.5*Math.sin(now*6);
     draw('disc',s.x,.039,s.z,.080,.001,.080,[.10,1,.55,.10],.12);
@@ -528,8 +528,10 @@ function create3D(gl){
      }
     }
    }
+   // First-person AR: no humanoid VOS — the person holding the camera IS the player.
+   if(g.showCalibrationMarker)draw('ring',0,.049,0,.12,.004,.12,colors.mint,.8);
    g.players.forEach((h,i)=>{
-    if(!h.alive)return;const walking=h.kind!=='human'&&h.dist>.03;
+    if(i===0||!h.alive)return;const walking=h.kind!=='human'&&h.dist>.03;
     const bob=.012*Math.sin(now*12+i),sz=.095,x=h.x,z=h.z;
     draw('disc',x,.044,z,.083,.002,.083,[0,.05,.09,.52]);
     if(h.shield)draw('ring',x,.058,z,.137,.003,.137,colors.mint,.58);
@@ -555,15 +557,15 @@ function draw2D(ctx,width,height,g,ms){
  let sky=ctx.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#040916');sky.addColorStop(.52,'#111e35');sky.addColorStop(1,'#020915');ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
  for(let i=0;i<65;i++){const x=(Math.sin(i*117.38)*.5+.5)*w,y=((i*34.14+t*(i%3+1)*.7)%100)/100*h;
  ctx.fillStyle='rgba(193,221,255,'+(.22+(i%4)*.13)+')';ctx.fillRect(x,y,1.5,1.5)}
- const scale=Math.min(w*.73/1.28,h*.49/1.28),cx=w*.50,cy=h*.52;
+ const scale=Math.min(w*.76/(2*ARENA),h*.52/(2*ARENA)),cx=w*.50,cy=h*.52;
  const P=(x,z,y=0)=>[cx+x*scale,cy+z*scale*.68-y*scale*.85];
  const circle=(x,y,r,col,blur=0)=>{ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=blur;ctx.fill();ctx.shadowBlur=0};
  ctx.save();ctx.translate(cx,cy);ctx.scale(1,.68);
- const grad=ctx.createRadialGradient(0,0,4,0,0,scale*.64);grad.addColorStop(0,'#16263e');grad.addColorStop(1,'#061221');
- ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,scale*.66,0,TAU);ctx.fill();
- for(let rr of [.18,.38,.63]){ctx.strokeStyle=rr===.63?'#64ffe3':'#20648c';ctx.globalAlpha=rr===.63?1:.5;ctx.lineWidth=rr===.63?5:1;ctx.beginPath();ctx.arc(0,0,scale*rr,0,TAU);ctx.stroke()}
+ const grad=ctx.createRadialGradient(0,0,4,0,0,scale*ARENA);grad.addColorStop(0,'#16263e');grad.addColorStop(1,'#061221');
+ ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,scale*ARENA,0,TAU);ctx.fill();
+ for(let rr of [ARENA*.32,ARENA*.64,ARENA]){ctx.strokeStyle=rr===ARENA?'#64ffe3':'#20648c';ctx.globalAlpha=rr===ARENA?1:.5;ctx.lineWidth=rr===ARENA?5:1;ctx.beginPath();ctx.arc(0,0,scale*rr,0,TAU);ctx.stroke()}
  ctx.globalAlpha=.35;ctx.strokeStyle='#48c1e4';ctx.lineWidth=1;
- for(let n=-3;n<=3;n++){const v=n*scale*.19;ctx.beginPath();ctx.moveTo(v,-scale*.58);ctx.lineTo(v,scale*.58);ctx.moveTo(-scale*.58,v);ctx.lineTo(scale*.58,v);ctx.stroke()}
+ for(let n=-4;n<=4;n++){const v=n*scale*ARENA*.2;ctx.beginPath();ctx.moveTo(v,-scale*ARENA*.91);ctx.lineTo(v,scale*ARENA*.91);ctx.moveTo(-scale*ARENA*.91,v);ctx.lineTo(scale*ARENA*.91,v);ctx.stroke()}
  ctx.restore();
  if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
   const [x,y]=P(g.safeHint.x,g.safeHint.z),pulse=.5+.5*Math.sin(t*8);
@@ -596,11 +598,17 @@ function draw2D(ctx,width,height,g,ms){
  }
  for(const a of [...g.players].sort((a,b)=>a.z-b.z)){
   if(!a.alive)continue;const [x,y]=P(a.x,a.z),vos=a.id==='you',c=a.color;
-  ctx.fillStyle='#000a';ctx.beginPath();ctx.ellipse(x,y+4,13,6,0,0,TAU);ctx.fill();
-  circle(x,y-16,vos?15:12,c,14);circle(x,y-34+(Math.sin(t*11+a.dist*3)*2),vos?13:11,'#f4faff');
-  ctx.fillStyle='#122338';ctx.fillRect(x-7,y-36,14,5);
+  if(vos){
+   // 2D touchscreen fallback needs a cue, not a puppet/humanoid avatar.
+   ctx.save();ctx.strokeStyle='#65ffbe';ctx.fillStyle='#59ffd526';ctx.shadowBlur=18;ctx.shadowColor='#63ffce';ctx.lineWidth=4;
+   ctx.beginPath();ctx.ellipse(x,y,Math.max(9,scale*.095),Math.max(6,scale*.064),0,0,TAU);ctx.fill();ctx.stroke();ctx.restore();
+  }else{
+   ctx.fillStyle='#000a';ctx.beginPath();ctx.ellipse(x,y+4,13,6,0,0,TAU);ctx.fill();
+   circle(x,y-16,12,c,14);circle(x,y-34+(Math.sin(t*11+a.dist*3)*2),11,'#f4faff');
+   ctx.fillStyle='#122338';ctx.fillRect(x-7,y-36,14,5);
+  }
   ctx.fillStyle='#fff';ctx.font=(vos?'1000 13px':'800 9px')+' system-ui';ctx.textAlign='center';
-  ctx.shadowBlur=5;ctx.shadowColor='#000';ctx.fillText(a.name,x,y-51);ctx.shadowBlur=0;
+  ctx.shadowBlur=5;ctx.shadowColor='#000';ctx.fillText(vos?'TU POSICIÓN':a.name,x,vos?y-23:y-51);ctx.shadowBlur=0;
   if(a.shield){ctx.strokeStyle='#6fffd9';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y-20,20,24,0,0,TAU);ctx.stroke()}
  }
  if(g.elapsed>57&&g.stage==='playing'){ctx.fillStyle='rgba(255,42,45,'+(.025+.04*Math.sin(t*7)**2)+')';ctx.fillRect(0,0,w,h)}
@@ -872,7 +880,7 @@ function begin(){
  G.start(game);running=true;status='playing';lastFrame=0;eventKeys.clear();lostShown=false;
  $('begin').style.display='none';$('calBox').style.display='none';
  $('pad').style.display=(demo||mode==='buttons')?'flex':'none';
- statusText(demo?'USÁ LAS FLECHAS O TOCÁ LA PISTA PARA MOVERTE':'MOVÉ EL TELÉFONO SUAVEMENTE · EVITÁ EL ROJO');
+ statusText(demo?'TOCÁ LA PISTA O USÁ LAS FLECHAS · TU CÍRCULO VERDE INDICA LA POSICIÓN':'VOS SOS EL PROTAGONISTA · MOVETE SUAVEMENTE · EVITÁ LAS ZONAS ROJAS');
  $('gameHud').style.display='flex';$('phase').style.display='block';
  beep(930,.22);hud();
 }
@@ -882,7 +890,7 @@ function uiFixed(){
  $('statusPanel').style.display='flex';$('actions').style.display='flex';
  $('gameHud').style.display='flex';$('begin').disabled=true;
  $('phase').style.display='block';$('head').style.display='none';
- statusText('📍 Arena fijada · calibrando posición del teléfono.');
+ statusText('📍 PISO FIJADO · PARATE EN EL CENTRO · SOSTENÉ EL CELULAR CERCA DEL PECHO');
  startSampling();
 }
 function startSampling(){
@@ -909,7 +917,7 @@ function sample(t,pos){
   trackingLast={...avg};trackLast=t;sampling=false;calibrated=true;game.paused=false;
   $('calTitle').textContent='✅ LISTO · MOVETE SUAVEMENTE';
   $('calFill').style.width='100%';$('begin').disabled=!!online;
-  statusText('✅ LISTO · LA ARENA PERMANECE EN EL PISO · ¡A JUGAR!');
+  statusText('✅ LISTO · VOS SOS EL JUGADOR · ESQUIVÁ EL IMPACTO REAL');
   setTimeout(()=>{if(calibrated&&!sampling)$('calBox').style.display='none'},600);
   beep(1050,.21);vibrate(45);if(online)showOnline();
  }
@@ -971,7 +979,9 @@ function arFrame(t,frame,W){
  try{
   if(!W)return;
   const pos=localPose(frame,W);
-  if(typeof stage!=='undefined'&&stage==='fixed'&&!placement)placement={x:0,z:0};
+  // Capture the local XR viewer's floor footprint once, at placement time.
+  // The selected floor plane supplies height/rotation; this defines the arena CENTER.
+  if(typeof stage!=='undefined'&&stage==='fixed'&&!placement&&pos)placement={...pos};
   if(sampling)sample(t,pos);
   if(running&&mode==='motion'&&calibrated){
    if(pos&&motion(t,pos)){trackLast=t;lostShown=false;game.paused=false}
@@ -980,9 +990,12 @@ function arFrame(t,frame,W){
   }
   if(running)tick(dt,t);
   if(renderer){
-   // The Hit Test floor point (W) is the arena origin, never the camera.
-   // Phone tracking controls VOS relative to initial calibration, without moving geometry.
-   renderer.render(frame,W,game);
+   // Before locking, project the floor arena under the player to ease placement.
+   // After locking, placement never changes: the arena is WORLD-LOCKED.
+   const preview=typeof stage!=='undefined'&&stage==='preview';
+   const center=placement||(preview&&pos)||{x:0,z:0};
+   game.showCalibrationMarker=!running&&calibrated&&!demo;
+   renderer.render(frame,multiply(W,translate(center.x,center.z)),game);
   }
   if(!running&&t-lastHud>160){lastHud=t;hud()}
  }catch(e){if(!arFrame.warned){console.error('Meteoros AR:',e);arFrame.warned=true;toast('⚠️ PROBLEMA CON EL RENDER AR')}}
@@ -1011,7 +1024,7 @@ function beginDemo(){
  $('statusPanel').style.display='flex';$('actions').style.display='flex';
  $('gameHud').style.display='flex';$('phase').style.display='block';$('begin').disabled=false;
  $('recenter').style.display='none';$('toggle').style.display='none';
- statusText('¡LISTO! Tocá la arena para moverte, o usá las flechas.');
+ statusText('MODO 2D · EL CÍRCULO VERDE ES TU POSICIÓN · TOCÁ LA ARENA PARA ESQUIVAR');
  requestAnimationFrame(demoFrame);hud();beep(900,.21);
 }
 $('demo').addEventListener('click',beginDemo);
@@ -1045,7 +1058,7 @@ window.addEventListener('keyup',e=>keys.delete(e.key));
 window.addEventListener('blur',()=>{keys.clear();buttons={up:false,down:false,left:false,right:false}});
 $('canvas2D').addEventListener('pointerdown',e=>{
  if(!demo||!running)return;
- const scale=Math.min(innerWidth*.73/1.28,innerHeight*.49/1.28);
+ const scale=Math.min(innerWidth*.76/(2*G.R),innerHeight*.52/(2*G.R));
  const x=(e.clientX-innerWidth*.5)/scale,z=(e.clientY-innerHeight*.52)/(scale*.68);
  target=G.clampPoint({x,z});
 });
