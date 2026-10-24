@@ -12,6 +12,7 @@ const K='mc-meteoros-record-v1';
 // Opt-in engine gesture settings: Color Rush and the other games keep their defaults.
 // Engine boardSize .45 means a physical 2.24m square; drag translates and twist rotates.
 const baseTileSize=.45;
+window.modoCaosLockReady=()=>!!previewCenter&&!!renderer;
 window.modoCaosGestureConfig=Object.freeze({
  min:.32,max:.65,step:.025,
  label:value=>(2*G.R*value/baseTileSize).toFixed(2).replace('.',',')+' m'
