@@ -216,7 +216,7 @@ function arFrame(t,frame,W){
  try{
   if(!W)return;
   const pos=localPose(frame,W);
-  if(typeof stage!=='undefined'&&stage==='fixed'&&!placement&&pos)placement={...pos};
+  if(typeof stage!=='undefined'&&stage==='fixed'&&!placement)placement={x:0,z:0};
   if(sampling)sample(t,pos);
   if(running&&mode==='motion'&&calibrated){
    if(pos&&motion(t,pos)){trackLast=t;lostShown=false;game.paused=false}
@@ -225,11 +225,9 @@ function arFrame(t,frame,W){
   }
   if(running)tick(dt,t);
   if(renderer){
-   // Preview follows the tracked phone footprint. FIXAR captures the footprint once.
-   // Calibration and RECENTRAR NEVER change this fixed world-space placement.
-   const preview=(typeof stage!=='undefined'&&stage==='preview');
-   const shift=placement||(preview&&pos)||{x:0,z:0};
-   renderer.render(frame,multiply(W,translate(shift.x,shift.z)),game);
+   // The Hit Test floor point (W) is the arena origin, never the camera.
+   // Phone tracking controls VOS relative to initial calibration, without moving geometry.
+   renderer.render(frame,W,game);
   }
   if(!running&&t-lastHud>160){lastHud=t;hud()}
  }catch(e){if(!arFrame.warned){console.error('Meteoros AR:',e);arFrame.warned=true;toast('⚠️ PROBLEMA CON EL RENDER AR')}}
