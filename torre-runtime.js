@@ -3,23 +3,29 @@ import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
 const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),mini:$('mini'),results:$('results'),status:$('status'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
-let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0;
+let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing';
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
 function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=p!=='placing';ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
 function updateHUD(){ui.hudHeight.textContent=G.score(phase==='settling'?lastTop:top).toString();ui.hudPieces.textContent=states.length.toString();ui.hudRecord.textContent=Math.max(record,G.score(top)).toString()}
 function startPhysics(){
- if(world){world.free();world=null}
+ if(world){world.free();world=null}if(queue){queue.free();queue=null}
  world=new RAPIER.World({x:0,y:-9.81,z:0});world.timestep=1/60;world.integrationParameters.maxVelocityIterations=8;world.integrationParameters.maxPositionIterations=3;queue=new RAPIER.EventQueue(true);
  const floor=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.039,0));
  world.createCollider(RAPIER.ColliderDesc.cuboid(1.25,.079,.36).setFriction(.98).setRestitution(.035),floor);
  states=[];nextId=1;random=G.rng((Date.now()>>>0)^0x524f334);settleTime=0;stillTime=0;lastTop=0;top=0;hi=0;steps=0;acc=0;frames=[];replaying=false;art.reset();updateHUD();
 }
+function updateLanding(){
+ if(!active||!world)return;
+ const ray=new RAPIER.Ray({x:active.x,y:Math.max(active.y+.35,top+1),z:0},{x:0,y:-1,z:0});
+ const hit=world.castRay(ray,50,true);
+ art.setGhostLanding(active.x,hit?ray.origin.y-hit.timeOfImpact:.14);
+}
 function makeActive(){
  if(states.length>=65){finish('¡TORRE LEGENDARIA!');return}
- const shape=G.select(states.length,random);active={shape,x:0,y:Math.max(1.05,top+.65),angle:0};
- art.setActive(shape);art.moveActive(active.x,active.y,active.angle);ui.blockName.textContent=shape.name.toUpperCase();phaseTo('playing');
+ const shape=G.select(states.length,random);active={shape,x:0,y:Math.max(.92,top+.52),angle:0};
+ art.setActive(shape);art.moveActive(active.x,active.y,active.angle);updateLanding();ui.blockName.textContent=shape.name.toUpperCase();phaseTo('playing');
  if(states.length===0)showText('TOCÁ PARA GIRAR · ARRASTRÁ Y SOLTÁ PARA SOLTAR',4500);
  updateHUD();
 }
@@ -110,7 +116,7 @@ function paintReplay(dt){
  if(i>=replayFrames.length-1||replayTime>3){endReplay()}
 }
 function newGame(){
- startPhysics();ui.results.hidden=true;makeActive();$('introRecord').textContent='RÉCORD: '+record+' CM';
+ editing=false;paused=false;startPhysics();ui.results.hidden=true;makeActive();$('introRecord').textContent='RÉCORD: '+record+' CM';
 }
 function tick(time,frame){
  const dt=Math.min(.05,Math.max(0,(time-lastTime)/1000||.016));lastTime=time;
@@ -123,11 +129,12 @@ function tick(time,frame){
 function drawMini(){
  if(!art||!(phase==='playing'||phase==='settling'||phase==='replay'||phase==='finished'))return;
  const ctx=ui.mini.getContext('2d');const w=ui.mini.width,h=ui.mini.height;ctx.clearRect(0,0,w,h);
+ const replaySnapshot=replaying?replayFrames[Math.min(replayFrames.length-1,Math.floor(replayTime*60))]:null;
  ctx.fillStyle='#0c2436dd';ctx.fillRect(0,0,w,h);
  const viewHeight=Math.max(2.6,top+.65,hi+.65);const px=Math.min(w/2.9,(h-20)/viewHeight);
  const X=x=>w/2+x*px, Y=y=>h-15-(y+.04)*px;
  ctx.strokeStyle='#84f7e8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(-1.25),Y(.14));ctx.lineTo(X(1.25),Y(.14));ctx.stroke();
- for(const s of states){const p=s.body.translation(),q=s.body.rotation(),a=2*Math.atan2(q.z,q.w);const c=['#34e1c1','#ffb952','#7da3ff','#ff769a','#b184ff','#ffa17a','#c3ea65'][s.shape.tone%7];
+ for(const s of states){const snap=replaySnapshot?.find(b=>b.id===s.id),p=snap||s.body.translation(),q=s.body.rotation(),a=snap?snap.angle:2*Math.atan2(q.z,q.w);const c=['#34e1c1','#ffb952','#7da3ff','#ff769a','#b184ff','#ffa17a','#c3ea65'][s.shape.tone%7];
  ctx.fillStyle=c;ctx.strokeStyle='#ffffffa0';ctx.lineWidth=.85;
  for(const poly of s.shape.parts){ctx.beginPath();G.rotated(poly,a).forEach(([xx,yy],i)=>{const xxw=X(p.x+xx*BLOCK),yyw=Y(p.y+yy*BLOCK);i?ctx.lineTo(xxw,yyw):ctx.moveTo(xxw,yyw)});ctx.closePath();ctx.fill();ctx.stroke()}
  }
@@ -144,25 +151,25 @@ const pointers=new Map();
 function gestureMove(e){
  if(phase==='placing'){
   if(!pointers.has(e.pointerId))return;e.preventDefault();const prev=pointers.get(e.pointerId),dx=e.clientX-prev.x,dy=e.clientY-prev.y;pointers.set(e.pointerId,{id:e.pointerId,x:e.clientX,y:e.clientY});
-  if(pointers.size===1){shift.x=clamp(shift.x+dx*.002,-1.7,1.7);shift.z=clamp(shift.z+dy*.002,-1.7,1.7)}
+  if(pointers.size===1){const c=Math.cos(yaw),sn=Math.sin(yaw);shift.x=clamp(shift.x+(dx*c+dy*sn)*.0016,-1.7,1.7);shift.z=clamp(shift.z+(-dx*sn+dy*c)*.0016,-1.7,1.7)}
   else{const a=[...pointers.values()],dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),ang=Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x);
-   if(pinch){scale=clamp(pinch.scale*(dist/Math.max(20,pinch.dist)),.7,1.65);yaw=pinch.yaw+ang-pinch.angle;art?.setScale(scale)}
+   if(pinch){scale=clamp(pinch.scale*(dist/Math.max(20,pinch.dist)),.30,1.15);yaw=pinch.yaw+ang-pinch.angle;art?.setScale(scale)}
   }updateScale();return;
  }
  if(!drag||!active||drag.id!==e.pointerId||phase!=='playing')return;e.preventDefault();
  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
  if(Math.hypot(dx,dy)>12)drag.moved=true;
- if(drag.moved){active.x=clamp(drag.startX+dx/(innerWidth||360)*2.8,-1.08,1.08);art.moveActive(active.x,active.y,active.angle)}
+ if(drag.moved){active.x=clamp(drag.startX+dx/(innerWidth||360)*2.8,-1.08,1.08);art.moveActive(active.x,active.y,active.angle);updateLanding()}
 }
 function gestureUp(e){
  if(phase==='placing'){pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;return}
  if(!drag||drag.id!==e.pointerId||phase!=='playing'||!active)return;
  const moved=drag.moved;drag=null;
- if(moved)drop();else{active.angle=(active.angle+PI/2)%(2*PI);art.moveActive(active.x,active.y,active.angle);soundFX(710,.05,.045);vibe(7)}
+ if(moved)drop();else{active.angle=(active.angle+PI/2)%(2*PI);art.moveActive(active.x,active.y,active.angle);updateLanding();soundFX(710,.05,.045);vibe(7)}
 }
 ui.gesture.addEventListener('pointerdown',gestureDown);ui.gesture.addEventListener('pointermove',gestureMove);ui.gesture.addEventListener('pointerup',gestureUp);ui.gesture.addEventListener('pointercancel',e=>{if(phase==='placing'){pointers.delete(e.pointerId);pinch=null}else drag=null});
 function updateScale(){$('sizeText').textContent=Math.round(scale*100)+'%'}
-function setARMode(ar){mode=ar?'ar':'demo';art.setAR(ar);ui.home.hidden=true;ui.overlay.hidden=false;if(!ar){session=null;art.group.visible=true;$('recenter').hidden=true;newGame();return}$('recenter').hidden=false;phaseTo('placing');art.group.visible=false;showText('APUNTÁ AL PISO Y AJUSTÁ TU PLATAFORMA',3600)}
+function setARMode(ar){mode=ar?'ar':'demo';art.setAR(ar);ui.home.hidden=true;ui.overlay.hidden=false;if(!ar){session=null;scale=1;art.setScale(1);art.group.visible=true;$('recenter').hidden=true;newGame();return}$('recenter').hidden=false;scale=.48;art.setScale(scale);updateScale();phaseTo('placing');art.group.visible=false;showText('APUNTÁ AL PISO Y AJUSTÁ TU PLATAFORMA',3600)}
 function arReady(){return !!navigator.xr&&window.isSecureContext}
 async function startAR(){
  if(!art){showText('Motor todavía cargando');return}
@@ -178,7 +185,7 @@ async function startAR(){
   ref=await s.requestReferenceSpace('local');
   const viewer=await s.requestReferenceSpace('viewer');
   trackSource=await s.requestHitTestSource({space:viewer});
-  yaw=0;scale=1;shift={x:0,z:0};fixedPose=null;art.setScale(1);setARMode(true);
+  yaw=0;scale=.48;shift={x:0,z:0};fixedPose=null;art.setScale(scale);setARMode(true);
  }catch(e){showText('No se pudo abrir AR: '+(e.message||e),6500);$('precheck').textContent='AR: '+e.message;try{await session?.end()}catch(_){} session=null;art.setAR(false)}
  $('arBtn').disabled=false;
 }
@@ -202,18 +209,20 @@ async function fix(){
  const cp={x:rawPose.x+shift.x,y:rawPose.y,z:rawPose.z+shift.z};
  art.setPreviewPose(cp,yaw);art.group.visible=true;fixedPose={...cp};
  try{if(latestHit?.createAnchor){anchor=await latestHit.createAnchor();}}catch(_){}
- art.aim.visible=false;ui.setup.hidden=true;newGame();showText('¡LISTO! TOCÁ, ARRASTRÁ Y SOLTÁ',3200);
+ art.aim.visible=false;ui.setup.hidden=true;
+ if(editing){editing=false;paused=false;phaseTo(resumePhase);showText('TORRE REUBICADA · ¡SEGUÍ CONSTRUYENDO!',3200)}
+ else{newGame();showText('¡LISTO! TOCÁ, ARRASTRÁ Y SOLTÁ',3200)}
 }
 function pause(){if(phase!=='playing'&&phase!=='settling')return;paused=true;$('pauseMenu').hidden=false;showText('PAUSA')}
 function resume(){paused=false;$('pauseMenu').hidden=true}
 function retry(){resume();replaying=false;newGame()}
-function edit(){if(!session)return;pause();$('pauseMenu').hidden=true;paused=false;phaseTo('placing');shift={x:0,z:0};latestHit=null;hitSeen=0;rawPose=null;fixedPose=null;anchor?.delete?.();anchor=null;showText('REUBICÁ PARA EMPEZAR UNA PARTIDA NUEVA');}
+function edit(){if(!session)return;resumePhase=phase;editing=true;paused=true;drag=null;$('pauseMenu').hidden=true;phaseTo('placing');shift={x:0,z:0};latestHit=null;hitSeen=0;rawPose=null;fixedPose=null;anchor?.delete?.();anchor=null;showText('REUBICÁ LA TORRE SIN PERDER TU CONSTRUCCIÓN');}
 function miniToggle(){ui.mini.classList.toggle('expanded')}
 $('demoBtn').addEventListener('click',()=>{if(!art)return;setARMode(false)});
 $('arBtn').addEventListener('click',startAR);
 $('fix').addEventListener('click',fix);
-$('minus').addEventListener('click',()=>{scale=clamp(scale-.1,.7,1.65);art.setScale(scale);updateScale()});
-$('plus').addEventListener('click',()=>{scale=clamp(scale+.1,.7,1.65);art.setScale(scale);updateScale()});
+$('minus').addEventListener('click',()=>{scale=clamp(scale-.07,.30,1.15);art.setScale(scale);updateScale()});
+$('plus').addEventListener('click',()=>{scale=clamp(scale+.07,.30,1.15);art.setScale(scale);updateScale()});
 $('turn').addEventListener('click',()=>{yaw+=PI/12;art.setPreviewPose({x:rawPose?.x+shift.x||0,y:rawPose?.y||0,z:rawPose?.z+shift.z||0},yaw)});
 $('pause').addEventListener('click',pause);
 $('resume').addEventListener('click',resume);
