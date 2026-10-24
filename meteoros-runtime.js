@@ -25,7 +25,7 @@ let game=G.make((Math.random()*4294967295)>>>0),running=false,finished=false,ren
 let lastFrame=0,lastHud=0,trackingLast=null,arLoop=false,status='intro',mode='motion';
 let muted=false,audio=null,impactBuffer=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
 let eventKeys=new Set(),online=null,onlineConnecting=false,onlineBusy=false,onlineTimer=null,lastPeer=0;
-let lostShown=false,toastAt=0,lastAlert=0;game.calibrationCell=-1;game.calibrated=false;
+let lostShown=false,toastAt=0,lastAlert=0,autoStartHandle=null;game.calibrationCell=-1;game.calibrated=false;
 function beep(f=500,d=.12,wave='sine',volume=.07){
  if(muted)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();
  audio.resume?.();const osc=audio.createOscillator(),gain=audio.createGain(),t=audio.currentTime;
@@ -58,6 +58,8 @@ function boom(big=false){
  }catch(e){console.warn('Audio de impactos no disponible:',e.message)}
 }
 function vibrate(pattern){if(!muted)try{navigator.vibrate?.(pattern)}catch(_){}}
+function clearToast(){if(toastAt&&performance.now()>=toastAt){$('toast').textContent='';toastAt=0}}
+function dismissToast(){$('toast').textContent='';toastAt=0}
 function toast(msg,ms=1600){$('toast').textContent=msg;toastAt=performance.now()+ms}
 function statusText(msg){$('safety').textContent=msg}
 function hud(){
@@ -67,7 +69,7 @@ function hud(){
  $('score').textContent=Math.round(you.score).toLocaleString('es-AR');
  $('combo').textContent='×'+you.combo+(you.shield?' 🛡':'');
  const phases={aprendizaje:'☄️ ¡ESQUIVÁ EL CÍRCULO!',lluvia:'⚠️ ¡LLUVIA MÚLTIPLE!',caos:'🔥 CUIDADO CON LOS GIGANTES',apocalipsis:'🌋 TORMENTA APOCALÍPTICA'};
- $('phase').textContent=game.stage==='countdown'?'EMPEZAMOS EN '+Math.ceil(game.countdown):phases[G.phase(game)]||'';
+ $('phase').textContent=game.stage==='ready'?'':game.stage==='countdown'?'EMPEZAMOS EN '+Math.ceil(game.countdown):phases[G.phase(game)]||'';
  if(game.stage==='countdown')toast('☄️ '+Math.ceil(game.countdown),160);
 }
 function consumeFX(){
@@ -109,6 +111,7 @@ function ranking(){
 }
 function finishIfNeeded(){if(game.stage==='finished'&&!finished){finished=true;running=false;ranking()}}
 function reset(nextSeed){
+ if(autoStartHandle){clearTimeout(autoStartHandle);autoStartHandle=null}
  game=G.make(nextSeed??((Math.random()*4294967295)>>>0));
  if(online?.room)onlineRoster();
  finished=false;running=false;eventKeys=new Set();lastFrame=0;lastHud=0;
@@ -119,6 +122,8 @@ function reset(nextSeed){
 }
 function begin(){
  if(!calibrated||running||finished||status!=='fixed')return;
+ if(autoStartHandle){clearTimeout(autoStartHandle);autoStartHandle=null}
+ dismissToast();
  if(online&&(!online.room||online.room.status!=='playing')){toast('👥 ESPERÁ AL ANFITRIÓN');return}
  if(online&&online.room?.startedAt){
   const initial=seedOnline(online.room);game=G.make(initial,{online:true});onlineRoster();
@@ -168,6 +173,7 @@ function hideCalibrationGrid(){
 }
 function showCalibrationGrid(){
  if(demo)return;
+ if(autoStartHandle){clearTimeout(autoStartHandle);autoStartHandle=null}
  if(game.stage==='playing')game.paused=true;
  sampling=false;calibrated=false;selectedCell=null;
  game.calibrated=false;game.calibrationCell=-1;
@@ -254,8 +260,18 @@ function sample(t,pos){
   $('calFill').style.width='100%';$('begin').disabled=!!online;
   $('whereAmI').style.display='block';
   $('whereAmI').textContent='📍 YO · FILA '+(row+1)+' · COLUMNA '+(col+1);
-  statusText('✅ LISTO · EL PUNTO YO SIGUE EL TELÉFONO SOBRE LA PISTA');
-  setTimeout(()=>{if(calibrated&&!sampling)$('calBox').style.display='none'},1000);
+  statusText(game.stage==='ready'
+   ?'✅ CELDA ALINEADA · CUENTA REGRESIVA AUTOMÁTICA · CAMINÁ DESPACIO'
+   :'✅ RECALIBRADO · CONTINUÁ ESQUIVANDO CON EL TELÉFONO');
+  dismissToast(); // Clear the stuck AFINANDO POSICIÓN banner immediately.
+  setTimeout(()=>{if(calibrated&&!sampling)$('calBox').style.display='none'},750);
+  if(!online&&!demo&&!running&&game.stage==='ready'&&status==='fixed'){
+   if(autoStartHandle)clearTimeout(autoStartHandle);
+   autoStartHandle=setTimeout(()=>{
+    autoStartHandle=null;
+    if(calibrated&&!sampling&&!pickerActive&&!running&&status==='fixed'&&game.stage==='ready')begin();
+   },1050);
+  }
   beep(1050,.21);vibrate(45);if(online)showOnline();
  }
 }
@@ -294,6 +310,7 @@ function inputTick(dt,t){
  if(m>0)G.setPosition(game,p.x+dt*.63*dir.x/m,p.z+dt*.63*dir.z/m);
 }
 function tick(dt,t){
+ clearToast();
  if(!running)return;
  if(demo||mode==='buttons')inputTick(dt,t);
  if(game.paused)return;
@@ -310,10 +327,11 @@ function tick(dt,t){
  }
  consumeFX();finishIfNeeded();
  if(t-lastHud>110){lastHud=t;hud()}
- if(toastAt&&t>toastAt){$('toast').textContent='';toastAt=0}
+ clearToast();
 }
 function arFrame(t,frame,W){
  if(!sess)return;
+ clearToast();
  const dt=lastFrame?clamp((t-lastFrame)/1000,.001,.07):.016;lastFrame=t;
  try{
   if(!W)return;
@@ -324,9 +342,10 @@ function arFrame(t,frame,W){
   if(stage==='search'&&!placement)previewCenter=null;
   if(stage==='fixed'&&!placement)placement={...(previewCenter||pos||{x:0,z:0})};
   if(sampling)sample(t,pos);
-  if(running&&mode==='motion'&&calibrated){
-   if(pos&&motion(t,pos)){trackLast=t;lostShown=false;game.paused=false}
-   else if(t-trackLast>1000){game.paused=true;
+  // Move the floor-locked YO marker immediately after alignment, even before START.
+  if(mode==='motion'&&calibrated&&!sampling&&(status==='fixed'||running)){
+   if(pos&&motion(t,pos)){trackLast=t;lostShown=false;if(running)game.paused=false}
+   else if(running&&t-trackLast>1000){game.paused=true;
     if(!lostShown){lostShown=true;toast('📡 SEGUIMIENTO PERDIDO · PAUSA');statusText('Volvé a enfocar la arena, sin correr.');}}
   }
   if(running)tick(dt,t);
@@ -367,6 +386,7 @@ setInterval(()=>{
 },145);
 function demoFrame(t){
  if(!demo)return;
+ clearToast();
  const dt=lastFrame?clamp((t-lastFrame)/1000,.001,.07):.016;lastFrame=t;
  if(running)tick(dt,t);
  const canvas=$('canvas2D');A.draw2D(canvas.getContext('2d'),innerWidth,innerHeight,game,t);
@@ -496,7 +516,7 @@ $('startOnline').addEventListener('click',async()=>{
  if(!online?.host)return;try{await online.mc.startRoom(online.room.id);await refreshRoom();await online.conn?.notify()}
  catch(e){toast('⚠️ '+e.message)}
 });
-window.addEventListener('pagehide',()=>{clearInterval(onlineTimer);online?.conn?.close().catch(()=>{})});
+window.addEventListener('pagehide',()=>{if(autoStartHandle)clearTimeout(autoStartHandle);clearInterval(onlineTimer);online?.conn?.close().catch(()=>{})});
 if((location.hostname==='localhost'||location.hostname==='127.0.0.1')&&params.has('mc_test')){
   Object.defineProperty(window,'__meteorTestSnapshot',{value:()=>({
     placement:placement?{...placement}:null,
@@ -507,7 +527,8 @@ if((location.hostname==='localhost'||location.hostname==='127.0.0.1')&&params.ha
     pickerActive,selectedCell,
     marker:{x:game.players[0].x,z:game.players[0].z},
     avatar:{x:game.players[0].x,z:game.players[0].z},
-    status,calibrated
+    status,calibrated,
+    running,stage:game.stage,elapsed:game.elapsed,toast:$('toast').textContent,autoStartPending:!!autoStartHandle
   })});
 }
 if(hasRoom)connectOnline();
