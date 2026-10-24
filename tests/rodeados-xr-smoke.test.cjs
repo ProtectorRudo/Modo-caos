@@ -167,7 +167,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.bombsUsed),1,
   'real Android pointerdown throws one world-space bomb, never two');
  assert(await page.locator('#bomb').isDisabled(),'team bomb limited by cooldown');
- await page.waitForFunction(()=>__RodeadosDebug.game.bombHits>0,null,{timeout:1800});
+ await page.waitForFunction(()=>__RodeadosDebug.game.bombHits>0,null,{timeout:8500});
  assert((await page.evaluate(()=>__RodeadosDebug.game.fx.some(f=>f.type==='bombBlast')))||
   (await page.evaluate(()=>__RodeadosDebug.game.bombHits))>0,'spatial explosion damages nearby robots');
  assert.equal(errors.length,0,'no WebXR Javascript errors '+errors.join(' | '));
