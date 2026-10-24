@@ -37,8 +37,8 @@ jobs:
           grep -o 'id="reload"' /tmp/rodeados-mirror.html || true
           grep -q 'RODEADOS 360' /tmp/rodeados-mirror.html
           grep -q 'id="botGuide"' /tmp/rodeados-mirror.html
-          grep -q 'rodeados-runtime.js?v=10' /tmp/rodeados-mirror.html
-          grep -q 'rodeados-core.js?v=10' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-runtime.js?v=11' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-core.js?v=11' /tmp/rodeados-mirror.html
           grep -q '∞  BALAS' /tmp/rodeados-mirror.html
           ! grep -q 'id="reload"' /tmp/rodeados-mirror.html
           grep -q 'id="bomb"' /tmp/rodeados-mirror.html
@@ -51,8 +51,10 @@ jobs:
           grep -q 'if(!latestAim||performance.now()-lastAimStamp>1200)return null;' /tmp/rodeados-published-runtime.js
           grep -q 'lastShotStatus=r.hit' /tmp/rodeados-published-runtime.js
           grep -q 'function bombCaos()' /tmp/rodeados-published-runtime.js
+          grep -q 'art.setFloorDamage(game,' /tmp/rodeados-published-runtime.js
+          grep -q 'HEADSHOT LETAL' /tmp/rodeados-published-runtime.js
           grep -q "drawShot(packet,preHit" /tmp/rodeados-published-runtime.js
-          grep -q "rodeados-art.js?v=10" /tmp/rodeados-published-runtime.js
+          grep -q "rodeados-art.js?v=11" /tmp/rodeados-published-runtime.js
           grep -q 'lastMenaceAt' /tmp/rodeados-published-runtime.js
           grep -q "MUNICIÓN ILIMITADA" /tmp/rodeados-published-runtime.js
           echo 'V10: DISPAROS INFINITOS SIN RECARGA Y TENSIÓN ROBÓTICA PUBLICADOS'
@@ -64,6 +66,9 @@ jobs:
           curl -fsSL -m 12 "https://protectorrudo.github.io/Modo-caos/rodeados-core.js" -o /tmp/rodeados-v6-core.js
           grep -q 'SAFE_DISTANCE=2.45' /tmp/rodeados-v6-core.js
           grep -q 'infiniteAmmo:true' /tmp/rodeados-v6-core.js
+          grep -q 'function markFloorDamage(g,x,z,radius,amount)' /tmp/rodeados-v6-core.js
+          grep -q 'headshotStreak' /tmp/rodeados-v6-core.js
+          grep -q 'const precision=head?165' /tmp/rodeados-v6-core.js
           grep -q "function throwBomb(g,target" /tmp/rodeados-v6-core.js
           grep -q 'BOMB_RADIUS=2.5' /tmp/rodeados-v6-core.js
           grep -q "function boxRay" /tmp/rodeados-v6-core.js
@@ -71,6 +76,9 @@ jobs:
           grep -q "Narrow athletic 1.75m humanoid silhouette" /tmp/rodeados-v6-art.js
           grep -q 'function blastWave(x,z' /tmp/rodeados-v6-art.js
           grep -q 'function drawShot(ray' /tmp/rodeados-v6-art.js
+          grep -q 'function setFloorDamage(game,editing=false)' /tmp/rodeados-v6-art.js
+          grep -q 'burnTexture=new THREE.CanvasTexture' /tmp/rodeados-v6-art.js
+          echo 'V11 PUBLICADO: PISO BÉLICO DETERIORABLE + HEADSHOTS DE PRECISIÓN'
           grep -q 'a.head.rotation.y=' /tmp/rodeados-v6-art.js
           grep -q 'a.visorMat.emissiveIntensity=' /tmp/rodeados-v6-art.js
           echo "V6 PUBLICADO: robots 3m, visual renovado y disparo Android"
