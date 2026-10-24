@@ -89,7 +89,7 @@ export function createRodeadosArt(THREE,scene,camera){
   for(let i=0;i<25;i++){const tile=tiles[i];
    tile.position.set((i%5-2)*pitch,.024,(Math.floor(i/5)-2)*pitch);
    tile.scale.set(pitch*.95,.012,pitch*.95);
-   tile.material=i===cell?pickMat:(editing?tileMat[(i%5+Math.floor(i/5))%2]:warMat[i]);
+   tile.material=editing&&i===cell?pickMat:(editing?tileMat[(i%5+Math.floor(i/5))%2]:warMat[i]);
     const deck=warMarks[i];deck.position.x=tile.position.x;deck.position.z=tile.position.z;
     deck.scale.set(pitch,1,pitch);deck.visible=!editing;
     warBurn[i].scale.set(.76,.76,.76);
