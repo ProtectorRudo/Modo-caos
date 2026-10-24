@@ -68,8 +68,11 @@ function hud(){
  $('lives').textContent=Array.from({length:3},(_,i)=>i<you.lives?'♥':'♡').join('');
  $('score').textContent=Math.round(you.score).toLocaleString('es-AR');
  $('combo').textContent='×'+you.combo+(you.shield?' 🛡':'');
- const phases={aprendizaje:'☄️ ¡ESQUIVÁ EL CÍRCULO!',lluvia:'⚠️ ¡LLUVIA MÚLTIPLE!',caos:'🔥 CUIDADO CON LOS GIGANTES',apocalipsis:'🌋 TORMENTA APOCALÍPTICA'};
+ const phases={aprendizaje:'☄️ 1/4 · PRIMEROS IMPACTOS',lluvia:'⚡ 2/4 · LLUVIA INTENSA',caos:'🔥 3/4 · CAOS CRECIENTE',apocalipsis:'🌋 4/4 · TORMENTA FINAL'};
  $('phase').textContent=game.stage==='ready'?'':game.stage==='countdown'?'EMPEZAMOS EN '+Math.ceil(game.countdown):phases[G.phase(game)]||'';
+ $('stormFill').style.width=(Math.round(clamp(game.elapsed/game.duration,0,1)*100))+'%';
+ $('stormProgress').style.display=game.stage==='playing'?'block':'none';
+ $('stormFill').style.background=game.elapsed<27?'linear-gradient(90deg,#66ffe1,#37b6ff)':game.elapsed<54?'linear-gradient(90deg,#ffdf56,#ff903c)':'linear-gradient(90deg,#ffa040,#ff3655)';
  if(game.stage==='countdown')toast('☄️ '+Math.ceil(game.countdown),160);
 }
 function consumeFX(){
@@ -77,8 +80,8 @@ function consumeFX(){
   const key=f.type+':'+f.at+':'+(f.who||'')+':'+(f.x||'');
   if(eventKeys.has(key))continue;eventKeys.add(key);
   if(eventKeys.size>300)eventKeys.clear();
-  if(['impact','hit','ko','siren','trick','bonus','near','shield','start','fake'].includes(f.type)){
-   const text=f.text||'';if(text&&(!f.who||f.who==='you'))toast(text,f.type==='siren'?2000:1250);
+  if(['impact','hit','ko','siren','trick','bonus','near','shield','start','fake','cue','streak'].includes(f.type)){
+   const text=f.text||'';if(text&&(!f.who||f.who==='you'))toast(text,f.type==='siren'?1650:f.type==='streak'?1300:f.type==='cue'?1100:1250);
    if(f.type==='impact'){boom(!!f.giant);beep(f.giant?96:155,.29,'sawtooth',.045);vibrate(f.giant?[90,30,65]:55)}
    else if(f.type==='hit'){beep(190,.42,'square',.12);if(f.who==='you')vibrate([150,50,160])}
    else if(f.type==='near'){beep(880,.15,'triangle');vibrate(28)}
@@ -86,6 +89,8 @@ function consumeFX(){
    else if(f.type==='siren'){beep(460,.45,'sawtooth')}
    else if(f.type==='trick'){beep(760,.30,'sawtooth')}
    else if(f.type==='fake'){beep(990,.16,'triangle')}
+   else if(f.type==='streak'){beep(1090,.12,'triangle',.08);vibrate([35,40,60])}
+   else if(f.type==='cue'){beep(710,.12,'triangle',.042)}
   }
  }
 }
