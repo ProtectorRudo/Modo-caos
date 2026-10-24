@@ -12,7 +12,7 @@ function mesh(kind){
  if(kind==='rock'||kind==='globe'){
   const lat=kind==='rock'?10:9,lon=kind==='rock'?15:12;
   function v(t,p){
-   let n=kind==='rock'?1+.10*Math.sin(p*5+t*8)+.065*Math.sin(p*11-t*6):1;
+   let n=kind==='rock'?1+.22*Math.sin(p*5+t*8)+.11*Math.sin(p*11-t*6)+.055*Math.sin(p*21+t*16):1;
    return [Math.sin(t)*Math.cos(p)*n,Math.cos(t)*n,Math.sin(t)*Math.sin(p)*n];
   }
   for(let a=0;a<lat;a++)for(let b=0;b<lon;b++){
@@ -40,30 +40,30 @@ function mesh(kind){
 }
 function create3D(gl){
  const compile=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s};
- const vs='attribute vec3 aPos;attribute vec3 aNormal;uniform mat4 uMvp;uniform mat4 uModel;varying vec3 vNorm;varying vec3 vPos;void main(){vec4 w=uModel*vec4(aPos,1.);vNorm=normalize(mat3(uModel)*aNormal);vPos=w.xyz;gl_Position=uMvp*vec4(aPos,1.);}';
- const fs='precision mediump float;varying vec3 vNorm;varying vec3 vPos;uniform vec4 uTint;uniform float uGlow;void main(){vec3 L=normalize(vec3(.3,.85,.6));float d=clamp(dot(normalize(vNorm),L),0.,1.);float rim=pow(1.-abs(dot(normalize(vNorm),normalize(vec3(0.,.65,1.)))),2.);vec3 rgb=uTint.rgb*(.24+.65*d)+uTint.rgb*uGlow+vec3(.16,.22,.26)*rim;gl_FragColor=vec4(rgb,uTint.a);}';
+ const vs='attribute vec3 aPos;attribute vec3 aNormal;uniform mat4 uMvp;uniform mat4 uModel;varying vec3 vNorm;varying vec3 vPos;varying vec3 vLocal;void main(){vec4 w=uModel*vec4(aPos,1.);vNorm=normalize(mat3(uModel)*aNormal);vPos=w.xyz;vLocal=aPos;gl_Position=uMvp*vec4(aPos,1.);}';
+ const fs='precision mediump float;varying vec3 vNorm;varying vec3 vPos;varying vec3 vLocal;uniform vec4 uTint;uniform float uGlow;uniform float uMode;uniform float uTime;void main(){vec3 L=normalize(vec3(.22,.82,.56));float d=clamp(dot(normalize(vNorm),L),0.,1.);float rim=pow(1.-abs(dot(normalize(vNorm),normalize(vec3(0.,.65,1.)))),2.);vec3 rgb=uTint.rgb*(.33+.66*d)+uTint.rgb*uGlow+vec3(.16,.22,.27)*rim;if(uMode>.5&&uMode<1.5){float bands=sin(vLocal.x*23.+vLocal.y*14.+sin(vLocal.z*11.)*3.);float hot=(1.-smoothstep(.66,.97,abs(bands)))*(.53+.47*sin(uTime*6.+vLocal.z*13.));float stone=.65+.35*sin(vLocal.x*16.+vLocal.z*12.);rgb=rgb*stone+vec3(1.32,.25,.018)*hot*.67;rgb+=vec3(.28,.045,.015)*pow(1.-abs(bands),5.);}else if(uMode>1.5){rgb=mix(rgb,vec3(1.0,.38,.045),.42+.25*sin(uTime*13.+vLocal.y*7.));}gl_FragColor=vec4(rgb,uTint.a);}';
  const p=gl.createProgram();gl.attachShader(p,compile(gl.VERTEX_SHADER,vs));gl.attachShader(p,compile(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);
  if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));
  const loc=(s)=>gl.getUniformLocation(p,s),aPos=gl.getAttribLocation(p,'aPos'),aNormal=gl.getAttribLocation(p,'aNormal');
- const mvp=loc('uMvp'),model=loc('uModel'),tint=loc('uTint'),glow=loc('uGlow');
+ const mvp=loc('uMvp'),model=loc('uModel'),tint=loc('uTint'),glow=loc('uGlow'),material=loc('uMode'),uTime=loc('uTime');
  const geom={};for(const k of ['rock','globe','disc','ring','flame','box']){
   const g=mesh(k);g.vbo=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,g.vbo);gl.bufferData(gl.ARRAY_BUFFER,g.v,gl.STATIC_DRAW);
   g.nbo=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,g.nbo);gl.bufferData(gl.ARRAY_BUFFER,g.n,gl.STATIC_DRAW);geom[k]=g;
  }
  const colors={mint:[.18,.98,.81,1],blue:[.20,.62,.97,1],gold:[1,.70,.26,1],orange:[1,.28,.08,1],
  red:[1,.10,.21,1],dark:[.018,.046,.086,.88],stone:[.30,.16,.16,1],ash:[.045,.058,.077,.95],white:[.83,1,1,1],purple:[.60,.34,1,1]};
- let vp=id(),world=id(),draws=0;
+ let vp=id(),world=id(),draws=0,frameTime=0;
  function draw(kind,x,y,z,sx,sy,sz,c,em=0){
   const g=geom[kind];if(!g)return;
   const local=transform(x,y,z,sx,sy,sz),w=multiply(world,local);
   gl.bindBuffer(gl.ARRAY_BUFFER,g.vbo);gl.enableVertexAttribArray(aPos);gl.vertexAttribPointer(aPos,3,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,g.nbo);gl.enableVertexAttribArray(aNormal);gl.vertexAttribPointer(aNormal,3,gl.FLOAT,false,0,0);
-  gl.uniformMatrix4fv(mvp,false,multiply(vp,w));gl.uniformMatrix4fv(model,false,w);gl.uniform4fv(tint,c);gl.uniform1f(glow,em);
+  gl.uniformMatrix4fv(mvp,false,multiply(vp,w));gl.uniformMatrix4fv(model,false,w);gl.uniform4fv(tint,c);gl.uniform1f(glow,em);gl.uniform1f(material,kind==='rock'?1:kind==='flame'?2:0);gl.uniform1f(uTime,frameTime);
   gl.drawArrays(gl.TRIANGLES,0,g.count);draws++;
  }
  function render(frame,W,g){
   if(!frame||!W||!g||!gl)return{draws:0};const pose=frame.getViewerPose(ref),xrLayer=sess.renderState.baseLayer;if(!pose)return{draws:0};
-  world=W;draws=0;const now=g.elapsed;
+  world=W;draws=0;const now=g.elapsed;frameTime=now;
   gl.useProgram(p);gl.enable(gl.DEPTH_TEST);gl.depthMask(true);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.disable(gl.CULL_FACE);
   for(const view of pose.views){
    const viewport=xrLayer.getViewport(view);gl.bindFramebuffer(gl.FRAMEBUFFER,xrLayer.framebuffer);
@@ -77,8 +77,11 @@ function create3D(gl){
     const x=(col-2)*pitch,z=(row-2)*pitch;
     const picked=g.calibrationCell===row*5+col;
     const shade=(row+col)%2;
-    const fill=picked?[.22,1,.63,.98]:shade?[.085,.66,.94,.95]:[.08,.86,.80,.94];
-    draw('box',x,.028,z,half,.005,half,fill,picked?.70:.48);
+    const alarm=g.events.some(e=>!e.cancelled&&!e.fake&&e.impact>now&&e.impact-now<1.1&&Math.hypot(e.x-x,e.z-z)<e.radius+pitch*.6);
+    const pulse=.52+.48*Math.sin(now*10);
+    const fill=picked?[.25,1,.60,.98]:alarm?[.96,.18+.11*pulse,.09,.93]:shade?[.07,.53,.78,.94]:[.04,.68,.63,.94];
+    draw('box',x,.028,z,half,.005,half,fill,picked?.70:alarm?.18+.16*pulse:.32);
+    if(alarm)draw('box',x,.040,z,half*.88,.001,half*.88,[1,.32,.10,.11+.12*pulse],.15);
     if(picked)draw('box',x,.038,z,pitch*.46,.003,pitch*.46,[.19,.95,.75,.26],.36);
    }
    for(const s of [-1,1]){
@@ -112,21 +115,34 @@ function create3D(gl){
      draw('ring',e.x,.051,e.z,radius+.015,.003,radius+.015,[...col.slice(0,3),.85],.45*pulse);
      draw('ring',e.x,.048,e.z,radius*(.52+.20*pulse),.003,radius*(.52+.20*pulse),col,.3);
      const progress=clamp(1-remain/e.lead,0,1),height=.13+2.25*(1-progress)*(1-progress),scale=e.kind==='giant'?.15:.10;
-     draw('rock',e.x,height,e.z,scale,scale,scale,colors.stone,.38);
-     for(let f=0;f<4;f++){
-      const y=height+.12+f*.095,sc=scale*(.78-f*.14)*(1+.10*Math.sin(now*13+f));
-      draw('flame',e.x,y,e.z,sc,sc*.75,sc, f%2?colors.orange:colors.gold,.55);
+     draw('rock',e.x,height,e.z,scale,scale,scale,[.17,.095,.083,1],.33);
+     const tail=scale*(e.kind==='giant'?2.0:1.7);
+     for(let f=0;f<5;f++){
+      const y=height+.11+f*.078,fade=(5-f)/5,wobble=Math.sin(now*12+f*1.3+e.x*7)*.012;
+      draw('flame',e.x+wobble,y,e.z+.01*f,tail*(.56+.38*fade),tail*.55*(.56+.42*fade),tail*(.56+.38*fade),
+       f%2?[1,.30,.035,.62*fade]:[1,.80,.10,.73*fade],.82);
+     }
+     // Small glowing embers detach from the tail; bounded fixed draw count for mobile FPS.
+     for(let f=0;f<3;f++){
+      const a=now*(1.1+f*.2)+f*2.094+e.z*7,dist=(.10+f*.035)*Math.sin(now*5+f);
+      draw('globe',e.x+Math.cos(a)*dist,height+.19+f*.10,e.z+Math.sin(a)*dist,
+       .012,.014,.012,[1,.43+.13*f,.09,.74],.84);
      }
     }else if(remain>-(e.crater?e.craterTime+.36:.38)){
      const effect=clamp(-remain/.40,0,1),spread=radius*(1+effect*2);
-     draw('disc',e.x,.033,e.z,radius*1.18,.003,radius*1.18,colors.ash,.05);
+     draw('disc',e.x,.033,e.z,radius*1.18,.003,radius*1.18,[.025,.012,.025,.94],.04);
+     for(let crack=0;crack<6;crack++){const a=TAU*crack/6+e.x;
+      const rr=radius*(.49+.14*Math.sin(now*7+crack));
+      draw('box',e.x+Math.cos(a)*rr,.043,e.z+Math.sin(a)*rr,.028,.001,.014,[1,.22,.04,.64],.62);
+     }
      draw('ring',e.x,.065,e.z,spread,.009,spread,[1,.38,.10,(1-effect)*.85],.56);
      if(remain>-.49){
       const size=radius*(1.25+effect*1.65);
       draw('globe',e.x,.17+effect*.12,e.z,size,size*.75,size, [1,.34,.08,(1-effect)*.60],.77);
-      for(let k=0;k<8;k++){const a=TAU*k/8+e.x*7;
-       draw('globe',e.x+Math.cos(a)*effect*spread,.12+Math.sin(a*3+now*6)*.08+effect*.22,e.z+Math.sin(a)*effect*spread,
-        .024,.030,.024,[1,.65,.12,Math.max(.05,1-effect)],.8)}
+      for(let k=0;k<10;k++){const a=TAU*k/10+e.x*7;
+       const vx=Math.cos(a)*effect*spread,vz=Math.sin(a)*effect*spread;
+       draw('rock',e.x+vx,.12+Math.abs(Math.sin(a*3+now*6))*.08+effect*.22,e.z+vz,
+        .023,.025,.022,[.64,.22,.10,Math.max(.08,1-effect)],.58)}
      }
     }
    }
