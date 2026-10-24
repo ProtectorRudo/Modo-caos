@@ -97,3 +97,17 @@ RODEADOS ahora aplica el mismo patrón:
 - WebXR Chromium simulado verifica ahora que la capa transparente DOM exista, reciba geometría mediante draw calls y renderice enemigos sin errores. Las pruebas NO equivalen a una validación física en Android.
 
 **Archivo original auditado:** `ProtectorRudo/ProtectorRudo.github.io/la-casa-alterada/ar-compositor.js` (Blackzone V25) y `main.js` (Blackzone V34, `nativeXRScene`, `arCompositor.render(...)`).
+
+## V6 · robots a escala, combate y disparo táctil (24/10/2026)
+
+Cambios basados en captura física de Android: el robot invadía toda la pantalla con una estética demasiado bloqueada y no registraba disparos.
+
+- **Dos espacios distintos:** la pista AR ajustable de 1,8–3,7 m sigue siendo la zona segura del jugador; robots de tamaño real ahora patrullan un anillo virtual de **2,95–4,15 m** fuera de la zona de pisadas. No solicitar movimientos hacia los robots.
+- Primer robot de 1,75 m de altura **a 3,15 m al frente**, segundo a 3,65 m y 0,86 m lateral; separación de seguridad radial mínima durante combate 2,45 m.
+- **Colisiones y tiros consistentes:** intersecciones de rayo con cajas analíticas orientadas por el yaw real del enemigo para cabeza/pecho/piernas en escala métrica; tolerancia de 6 cm por movimiento de mano. Un headshot mata al enemigo básico de 2 HP. El HUD sigue centrado en el eje del visor real, no atado al robot.
+- Botón **DISPARAR** escucha `pointerdown` directo como Blackzone, con `click` como respaldo y ventana antirrebote de 175 ms. En Android WebXR una pulsación puede no generar un `click` posterior; antes el cargador permanecía en 28/28.
+- Arte procedural renovado: silueta humanoide esbelta (cabeza compacta, torso ovalado, piernas articuladas, visor y juntas lumínicas, placas de armoraje), LEDs y animación por pivotes. Mantiene WebGL/Three.js y compositor AR heredado de Blackzone, sin dependencia de GLB externa ni cambios en el sitio de Blackzone.
+- Test `tests/rodeados-combat-v6.test.cjs`: distancias seguras, headshots, impactos de pecho y piernas, disparo lateral con bot rotado, consumo de munición. Test `tests/rodeados-xr-smoke.test.cjs`: tocar realmente el botón DISPARAR en Chromium móvil con WebXR simulado reduce 28 → 27 con un solo disparo y comprueba dos actores a distancia.
+- Assets versionados `v=6` en el HTML para evitar caché de JS viejo.
+
+**Límites:** estas pruebas de software no pueden certificar el seguimiento ARCore ni que la estética satisfaga en un Android real. Modo cooperativo sigue beta; no se tocan datos de Viralio/Te Hice Esto.
