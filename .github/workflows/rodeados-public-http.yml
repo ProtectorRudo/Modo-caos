@@ -1,0 +1,27 @@
+name: RODEADOS 360 — public HTTPS availability
+on:
+  pull_request:
+    paths:
+      - tests/rodeados-public-http.test.cjs
+      - .github/workflows/rodeados-public-http.yml
+      - tests/rodeados-live-browser.test.cjs
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify live Vercel 200 + actual game files + no auth wall
+        run: node --test tests/rodeados-public-http.test.cjs
+      - name: Install Chromium + Playwright
+        run: |
+          npm install --ignore-scripts --no-save playwright@1.56.0
+          npx playwright install --with-deps chromium
+      - name: Play REAL deployed 3D game and shoot a robot from mobile Chromium
+        run: node tests/rodeados-live-browser.test.cjs
