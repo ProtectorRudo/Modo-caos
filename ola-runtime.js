@@ -341,5 +341,14 @@ $('exit').addEventListener('click',()=>{if(typeof sess!=='undefined'&&sess)sess.
 $('music').addEventListener('click',()=>{muted=!muted;$('music').textContent=muted?'🔇':'🔊';if(!muted)speak(700,.1)});
 $('overlay').addEventListener('beforexrselect',e=>e.preventDefault());
 $('calCenter').textContent='👣 ESTOY EN EL CENTRO (4-4)';
+if(new URLSearchParams(location.search).has('mc_test')){
+ window.__olaTestSnapshot=()=>({
+  status,mode,running,calibrated,sampling,picker,trackingFrozen,
+  elapsed:game.elapsed,paused:!!game.paused,lives:game.lives,waves:game.waves,
+  cell:{...game.cell},pos:{...game.pos},
+  world:typeof worldMatrix!=='undefined'&&worldMatrix?
+    {x:worldMatrix[12],y:worldMatrix[13],z:worldMatrix[14]}:null
+ });
+}
 if(navigator.xr){/* engine.js consulta compatibilidad cuando empieza */}
 })();
