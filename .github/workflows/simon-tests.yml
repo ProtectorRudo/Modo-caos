@@ -20,6 +20,9 @@ jobs:
       - run: node --check simon-runtime.js
       - run: node --check engine.js
       - run: node --test tests/simon.test.cjs
+      - run: node --test tests/semaforo.test.cjs
+      - run: node --test tests/meteoros.test.cjs
+      - run: node --test tests/rodeados.test.cjs
   mobile-chromium:
     runs-on: ubuntu-latest
     timeout-minutes: 12
