@@ -11,8 +11,8 @@ Juego de memoria sobre nueve cerámicos reales, basado en el documento «DESARRO
 3. Arrastrar, pellizcar con dos dedos, girar y fijar. Paso de `boardSize` = distancia entre centros de celdas de 0,32–0,80 m.
 4. Elegir celda inicial 1–9. Se muestrea el `XRViewerPose` durante 1,05 s. Si las muestras varían más de 9,5 cm, se repite la muestra.
 5. Desplazamiento: posición local de **teléfono** calculada a partir de `W` (matriz fija del tablero), más el offset de calibración; no se infiere seguimiento real de pies.
-6. Identificar celda estimada, zona interior y **permanencia de 630 ms** cerca del centro; bloquear rebotes y activación duplicada hasta la salida de la celda. Recalibración disponible sin perder la puntuación.
-7. Una pérdida de pose mayor a 1 s pausa la acción. Reanudar sólo tras recuperar la posición.
+6. **Confirmación manual por paso:** después de calibrar, el teléfono indica celda/color actuales. Cada celda requiere aproximadamente 340 ms dentro del centro del tablero, estabilidad de pose y pulsar **✓ CONFIRMAR CELDA N**. Caminar sobre baldosas nunca ingresa una respuesta automáticamente; se bloquean dobles confirmaciones sin cambiar de celda. El botón se deshabilita en movimiento, pausa o pérdida de tracking. La baliza verde WebGL señala una celda lista. Recalibración disponible sin perder puntuación.
+7. Una pérdida de pose mayor a 1 s pausa la acción. Reanudar sólo tras recuperar la posición. El teléfono calcula su posición, **no los pies del jugador**.
 
 ## Modos y trampas
 - `clasica`: secuencias sin trampas, una vida; `mortal`: tres vidas, trampas y desafío escalonado; `panico`: tres rondas largas y rápidas.
@@ -23,7 +23,7 @@ Juego de memoria sobre nueve cerámicos reales, basado en el documento «DESARRO
 ## Reutilización y degradación
 - WebGL nativo, tablero de nueve baldosas, relieve, bordes neón, host robótico, colores intensos, destellos de acierto/error y marcador VOS.
 - El dibujo opt-in sólo reemplaza las baldosas predeterminadas cuando `modoCaosXRCustomBoard` está activo. Otros juegos conservan sus 25 celdas.
-- Modo 2D convencional, jugable mediante toques; **se anuncia claramente que no es AR**.
+- Modo 2D convencional, jugable mediante toques; **se anuncia claramente que no es AR**. En AR la confirmación es explícita mediante un botón grande, distinta de la calibración inicial.
 - Síntesis de voz optativa; señales y mensajes legibles sin voz. Control básico de volumen/silencio.
 
 ## Multijugador
@@ -33,7 +33,12 @@ Juego de memoria sobre nueve cerámicos reales, basado en el documento «DESARRO
 
 ## Validación y pendientes
 - Núcleo: tests determinísticos de los tres modos, vidas, timeout, reintentos, las ocho trampas y transiciones.
-- Revisión estática de sintaxis JS y de elementos DOM; Chromium móvil para iniciar juego 2D, reproducir secuencia, introducir aciertos y llegar a ronda 2. Ver `tests/simon.test.cjs`, `tests/simon-browser.test.cjs`, `.github/workflows/simon-tests.yml`.
+- Revisión estática de sintaxis JS y de elementos DOM; Chromium móvil para iniciar juego 2D, reproducir secuencia, introducir aciertos y llegar a ronda 2. Un smoke test XR simulado verifica que quedarse en una celda NO la confirma y que pulsar **CONFIRMAR** en celdas 5→6 completa la secuencia sin volver a calibrar. Ver `tests/simon.test.cjs`, `tests/simon-browser.test.cjs`, `.github/workflows/simon-tests.yml`.
 - **PENDIENTE:** prueba física Android/ARCore con 9 posiciones, distancias reales, giros, gesto de pinza, pose perdida, seguimiento y seguridad.
 - **PENDIENTE:** prueba online independiente 2–4 JWT/dispositivos y resultados validados por servidor.
 - **PUBLICACIÓN:** la cuota de la cuenta Vercel devolvió `api-deployments-free-per-day` (402; límite de despliegues diarios). GitHub Pages alternativo requiere habilitar GitHub Pages con permisos adecuados; el workflow existente falla en `actions/configure-pages` por `Resource not accessible by integration`. No declarar desplegada esta rama hasta que un endpoint HTTP de la versión final responda.
+
+## Mejoras de legibilidad e interacción
+- Reproducción de Simón: destellos más prolongados, celdas restantes atenuadas, identificación visible de cada paso y pausa entre destellos. El HUD cambia explícitamente entre **MIRÁ** y **TU TURNO**.
+- AR: indicación actual de celda y color, margen central, vibración corta al quedar estable, botón de confirmación con texto dinámico (fuera del centro / esperando estabilidad / listo / registrada), resultado sonoro y vibración de acierto/error.
+- Seguridad: evitar desplazamientos rápidos mirando la pantalla; utilizar un área despejada, sin suponer seguimiento corporal.
