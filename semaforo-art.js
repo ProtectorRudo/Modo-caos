@@ -15,6 +15,7 @@
   const dashes=Array.from({length:7},()=>node('polyline'));
   const lampHousing=node('polygon'),pole=node('polyline'),lamps=Array.from({length:3},()=>node('circle'));
   const lightGlow=node('circle'),title=node('text');
+  const decoys=Array.from({length:2},()=>({light:node('circle'),frame:node('polygon')}));
   const avatars=Array.from({length:4},()=>({
    shadow:node('ellipse'),glow:node('circle'),legs:[node('polyline'),node('polyline')],
    torso:node('polygon'),arms:[node('polyline'),node('polyline')],head:node('circle'),
@@ -65,6 +66,14 @@
    for(let i=0;i<3;i++)dot(lamps[i],0,.99-i*.2,zFar-.118,13,
       g.signal===lens[i]?colors[lens[i]]:'#233954',g.signal===lens[i]?'#faffff':'#48637f',2.3);
    const activeY=.99-lens.indexOf(g.signal)*.2;
+   for(let k=0;k<2;k++){
+    const dd=decoys[k],side=k===0?-1:1,xx=side*tile*1.85;
+    if(g.trap==='fake'&&g.state==='playing'){
+     const fake=g.signal==='red'?'green':g.signal==='green'?'red':'green';
+     poly(dd.frame,[[xx-.14,.31,zFar],[xx+.14,.31,zFar],[xx+.14,.59,zFar],[xx-.14,.59,zFar]],'#11233f','#ffb8dd',1.8,.87);
+     dot(dd.light,xx,.45,zFar,12,colors[fake],'#ffffff',2);
+    }else{dd.light.style.display='none';dd.frame.style.display='none'}
+   }
    dot(lightGlow,0,activeY,zFar-.115,22,hot+'42');
    let visible=0,player=null;
    for(let i=0;i<4;i++){
