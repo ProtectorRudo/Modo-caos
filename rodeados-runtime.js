@@ -178,6 +178,8 @@ function updateHud(force=false){
  $('reload').disabled=(magazine?.reload??game.reload)>0||(magazine?.ammo??game.ammo)===game.mag;
  $('special').disabled=game.skillCooldown>0;
  $('special').textContent=game.skillCooldown>0?'EMP '+Math.ceil(game.skillCooldown)+'s':'⚡ EMP';
+ $('bomb').disabled=game.bombCharges<=0;
+ $('bomb').textContent=game.bombCharges>0?'💣 BOMBA CAOS':'💣 '+Math.ceil(game.bombCooldown)+'s';
  if(online)$('online').textContent=online.status+' · '+(online.isHost?'ANFITRIÓN':'INVITADO')+' · '+online.mode;
 }
 function result(){
@@ -516,8 +518,10 @@ async function shoot(){
  // A guest sends a ray to the host; only the host's simulation mutates damage/score.
  if(online&&!online.isHost){if(!online.conn?.connected){notice('SIN CONEXIÓN · DISPARO NO CONFIRMADO',1);return}
   try{await online.conn.sendGameEvent({kind:'shot',ray:packet,seq:++shotSeq})}catch(e){notice('DISPARO NO SINCRONIZADO',1)}
-  fireFlash=.09;audio('shot');vib(20);return;
+  art.drawShot(packet,7,false);
+ fireFlash=.09;audio('shot');vib(20);return;
  }
+ const preHit=G.rayHit(game,packet.origin,packet.direction);
  const r=G.fire(game,packet,online?.id||'vos');
  if(!r.ok){
   lastShotStatus='BLOQUEADO: '+(r.reason||'');
@@ -526,6 +530,9 @@ async function shoot(){
   return;
  }
  lastShotStatus=r.hit?'IMPACTO':'DISPARO';
+ art.drawShot(packet,preHit?.distance??7,r.hit);
+ const shotPulse=$('shotPulse');
+ shotPulse.classList.remove('boom');void shotPulse.offsetWidth;shotPulse.classList.add('boom');
  updateHud();
  fireFlash=.09;crossUntil=r.hit?performance.now()+190:0;audio(r.hit?'hit':'shot');vib(r.hit?35:19);
  if(r.hit){missStreak=0;notice((r.part==='head'?'🎯 PUNTO DÉBIL · ':'⚡ IMPACTO · ')+'+'+r.points,0.55)}
@@ -537,6 +544,27 @@ async function shoot(){
 }
 function reload(){if(stage!=='playing')return;if(online&&!online.isHost){online.conn?.sendGameEvent({kind:'reload',seq:++shotSeq}).catch(()=>{});return}
  if(G.reload(game)){audio('reload');notice('↻ RECARGANDO',1);if(online)sendSnapshot(true)}}
+function bombCaos(){
+ if(stage!=='playing'||game.paused)return;
+ if(game.bombCharges<=0){notice('💣 BOMBA CARGANDO · '+Math.ceil(game.bombCooldown)+'s',1.2);return}
+ const ray=activeRay();
+ if(!ray){notice('🎯 APUNTÁ CON LA CÁMARA PARA LANZAR',1.4);return}
+ // Three meters forward in the plane of the CALIBRATED arena, not at the sky.
+ const flat=Math.hypot(ray.direction.x,ray.direction.z);
+ if(flat<.12){notice('🎯 APUNTÁ AL FRENTE PARA LANZAR',1);return}
+ const center={x:ray.origin.x+ray.direction.x/flat*3.35,
+  z:ray.origin.z+ray.direction.z/flat*3.35};
+ if(online&&!online.isHost){
+  if(!online.conn?.connected){notice('BOMBA SIN CONEXIÓN · INTENTÁ DE NUEVO',1.8);return}
+  online.conn.sendGameEvent({kind:'bomb',target:center,seq:++shotSeq}).catch(()=>notice('BOMBA NO SINCRONIZADA',1.5));
+  notice('💣 BOMBA PEDIDA AL ANFITRIÓN',1.2);return;
+ }
+ const out=G.throwBomb(game,center,online?.id||'vos');
+ if(!out.ok){notice('BOMBA: '+out.reason,1);return}
+ audio('throw');vib([35,25,35]);updateHud();
+ notice('💣 BOMBA CAOS · ¡CUBRÍ LA ZONA!',.9);
+ if(online)sendSnapshot(true);
+}
 function special(){if(stage!=='playing')return;
  if(online&&!online.isHost){online.conn?.sendGameEvent({kind:'pulse',seq:++shotSeq}).catch(()=>{});return}
  if(G.pulse(game)){audio('danger');vib(75);notice('⚡ PULSO ELECTROMAGNÉTICO',1);if(online)sendSnapshot(true)}}
@@ -562,6 +590,19 @@ function applySnapshot(data){
  game.elapsed=clamp(data.at,0,999999);game.lives=clamp(data.hp,0,100);game.wave=data.wave||1;
  game.score=Math.max(0,data.score||0);game.ammo=clamp(data.ammo||0,0,28);
  game.reload=data.reload||0;game.skillCooldown=data.special||0;game.kills=data.kills||0;
+ if(Array.isArray(data.bomb)&&data.bomb.length===5&&data.bomb.every(Number.isFinite)){
+  game.bombCharges=clamp(data.bomb[0],0,1);game.bombCooldown=clamp(data.bomb[1],0,32);
+  game.bombKillsAt=data.bomb[2];game.bombsUsed=data.bomb[3];game.bombHits=data.bomb[4];
+ }
+ game.bombs=Array.isArray(data.pendingBombs)?data.pendingBombs.slice(0,1).filter(a=>Array.isArray(a)&&a.length===5&&a.every(Number.isFinite))
+  .map(a=>({x:a[0],z:a[1],fromX:a[2],fromZ:a[3],fuse:a[4]})):[];
+ if(Array.isArray(data.bombBlast))for(const a of data.bombBlast){
+  if(Array.isArray(a)&&a.length===7&&a.every(Number.isFinite)&&Math.abs(a[0])<10&&Math.abs(a[1])<10
+   &&!game.fx.some(f=>f.type==='bombBlast'&&f.t===a[6])){
+   game.fx.push({type:'bombBlast',x:a[0],z:a[1],radius:a[2],hits:a[3],kills:a[4],points:a[5],t:a[6]});
+  }
+ }
+ game.fx=game.fx.filter(f=>game.elapsed-f.t<1.1);
  game.shots=data.shots||0;game.hits=data.hits||0;game.combo=data.combo||0;game.bestCombo=data.best||0;
  game.phase=data.phase||'ready';game.scores=data.scores&&typeof data.scores==='object'?data.scores:{};
  if(Array.isArray(data.peers)){
@@ -597,6 +638,11 @@ function onOnlineEvent(payload){
   G.fire(game,ray,peer);sendSnapshot(true);
  }else if(payload.kind==='reload'){G.reload(game,peer);sendSnapshot(true)}
  else if(payload.kind==='pulse'){G.pulse(game);sendSnapshot(true)}
+ else if(payload.kind==='bomb'){
+  const target=payload.target;
+  if(target&&Number.isFinite(target.x)&&Number.isFinite(target.z))G.throwBomb(game,target,peer);
+  sendSnapshot(true);
+ }
 }
 async function connectOnline(){
  if(onlineBusy||!(/^[A-F0-9]{8}$/.test(onlineRoomCode)))return;
@@ -647,7 +693,17 @@ function tickGame(dt,t){
  fireFlash=Math.max(0,fireFlash-dt);
  if(game.phase==='finished'){result();return}
  updateBattleFeedback(t);
- art.effect(game,fxShown);art.updateSparks(dt);
+ const blast=game.fx.findLast?.(f=>f.type==='bombBlast');
+ if(blast){
+  const key=blast.t+':'+blast.x+':'+blast.z;
+  if(key!==lastBlastSignal){
+   lastBlastSignal=key;audio('blast');vib([95,45,95]);
+   $('waveBanner').textContent='💥 BOMBA CAOS · '+blast.hits+' ALCANZADOS · '+blast.kills+' DESTRUIDOS';
+   waveUntil=performance.now()+1650;
+   updateHud();
+  }
+ }
+ art.effect(game,fxShown);art.drawBombs(game);art.updateSparks(dt);
  if(online?.isHost)sendSnapshot();
  if(game.lastDamage>0&&game.elapsed-game.lastDamage<.13){vib(38)}
  if(t-lastHud>110){lastHud=t;updateHud()}
@@ -804,6 +860,8 @@ $('resume').onclick=pause;
  $('fire').addEventListener('click',ev=>{ev.preventDefault();shoot()});
 $('reload').onclick=reload;
 $('special').onclick=special;
+$('bomb').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();bombCaos()});
+$('bomb').addEventListener('click',e=>{e.preventDefault();bombCaos()});
 $('sound').onclick=()=>{sounds=!sounds;$('sound').textContent=sounds?'🔊':'🔇'};
 $('close').onclick=()=>{xrSession?.end?.().catch(()=>{});location.href='/'};
 $('menu').onclick=()=>{xrSession?.end?.().catch(()=>{});location.href='/'};
