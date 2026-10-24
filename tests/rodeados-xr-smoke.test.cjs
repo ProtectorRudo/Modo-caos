@@ -21,7 +21,7 @@ const server=http.createServer((req,res)=>{
  await page.addInitScript(()=>{
   const matrix=(x=0,y=0,z=0)=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,x,y,z,1]);
   window.__simPhone={x:0,y:1.54,z:0};
-  window.__simDrawCalls=0;
+  window.__simDrawCalls=0;window.__simEmulated=false;
   const draw=WebGLRenderingContext.prototype.drawArrays;
   WebGLRenderingContext.prototype.drawArrays=function(...args){window.__simDrawCalls++;return draw.apply(this,args)};
   const draw2=WebGL2RenderingContext?.prototype.drawArrays;
@@ -35,7 +35,7 @@ const server=http.createServer((req,res)=>{
   const frame={
    getViewerPose:()=>{
     const p=window.__simPhone;
-    return {emulatedPosition:false,transform:{position:{...p},orientation:ori,matrix:matrix(p.x,p.y,p.z)},
+    return {emulatedPosition:!!window.__simEmulated,transform:{position:{...p},orientation:ori,matrix:matrix(p.x,p.y,p.z)},
      views:[{eye:'none',projectionMatrix:proj,transform:{position:{...p},orientation:ori,matrix:matrix(p.x,p.y,p.z),inverse:{matrix:matrix(-p.x,-p.y,-p.z)}}}]};
    },
    getHitTestResults:()=>[hit],
@@ -102,11 +102,24 @@ const server=http.createServer((req,res)=>{
  assert(!await page.locator('#radarWrap').isVisible(),'radar does not obstruct calibration');
  await page.locator('#begin').click();
  await page.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:5500});
+ await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:3500});
+ const start=await page.evaluate(()=>({game:__RodeadosDebug.game,meshes:__RodeadosDebug.renderedRobots}));
+ assert(start.game.enemies.length>=2,'two robots exist at start');
+ assert(start.meshes>=2,'both robots have live Three.js 3D meshes');
+ assert(start.game.enemies.some(e=>e.z<start.game.player.z-.7),'at least one opening robot appears in front of forward-facing camera');
  await page.evaluate(()=>window.__simPhone.x=.18);
  await page.waitForTimeout(400);
  const now=await page.evaluate(()=>({pose:__RodeadosDebug.floorTransform,player:__RodeadosDebug.player}));
  assert(Math.abs(now.player.x-fixed.player.x)>.05,'tracked phone movement changes YOU marker');
  assert.deepEqual(now.pose,fixed.pose,'floor stays stable while physical phone moves');
+ await page.evaluate(()=>window.__simEmulated=true);
+ await page.waitForTimeout(1600);
+ const degraded=await page.evaluate(()=>({stage:__RodeadosDebug.stage,tracking:__RodeadosDebug.tracking,meshes:__RodeadosDebug.renderedRobots}));
+ assert.equal(degraded.stage,'playing','ARCore orientation-only estimated position MUST NOT false-pause active combat');
+ assert(degraded.tracking.pose&&degraded.tracking.limited,'emulated position is reported as limited but the viewer pose stays usable');
+ assert(degraded.meshes>=2,'real 3D robot models persist with ARCore emulated positioning');
+ assert(await page.locator('#radarWrap').isVisible(),'360 radar still visible in limited positioning');
+ await page.evaluate(()=>window.__simEmulated=false);
  assert.equal(errors.length,0,'no WebXR Javascript errors '+errors.join(' | '));
  console.log('PASS: simulated WebXR placement, gestures, 25 cells, noncenter calibration, real-pose movement and floor lock.');
  }catch(e){console.error(e.stack||e);process.exitCode=1}
