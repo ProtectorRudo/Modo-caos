@@ -32,7 +32,7 @@ function speak(phrase){
  if(!voice||!('speechSynthesis' in window))return;
  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(phrase);u.lang='es-AR';u.rate=1.14;u.pitch=.76;u.volume=Math.min(.75,volume+.10);speechSynthesis.speak(u)}catch(e){}
 }
-function cancel(){token++;for(const t of timers)clearTimeout(t);timers.clear();if(g)g.highlight=-1}
+function cancel(){token++;for(const t of timers)clearTimeout(t);timers.clear();if(g){g.highlight=-1;g.ghost=-1}}
 function sleep(ms){return new Promise(resolve=>{const id=setTimeout(()=>{timers.delete(id);resolve()},ms);timers.add(id)})}
 function setMode(newMode){ui('modeTitle',{mortal:'MEMORIA MORTAL',clasica:'SIMÓN CLÁSICO',panico:'RONDA DEL PÁNICO'}[newMode]);$('mode').value=newMode}
 function newGame(resetSeed=true){
@@ -100,7 +100,7 @@ async function playSequence(){
  const stepTime=Math.max(340,790-g.round*32);
  for(const tile of g.sequence){
   if(mine!==token)return;
-  if(g.trap==='fantasmas'&&g.sequence.length>2&&Math.random()<.48){g.ghost=(tile+3)%9;beep(620,.08,'ghost');decorate();await sleep(150);g.ghost=-1}
+  if(g.trap==='fantasmas'&&g.sequence.length>2&&(tile+g.round)%2===0){g.ghost=(tile+3)%9;beep(620,.08,'ghost');decorate();await sleep(150);g.ghost=-1}
   g.highlight=tile;decorate();beep(C.COLORS[g.trap==='mentira'?(tile+1)%9:tile].hz,stepTime/1200);
   await sleep(stepTime);if(mine!==token)return;
   g.highlight=-1;decorate();await sleep(Math.max(170,stepTime*.29));if(mine!==token)return;
