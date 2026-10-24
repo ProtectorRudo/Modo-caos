@@ -66,49 +66,68 @@ function planWave(g){
  const count=f==='aprendizaje'?1:f==='lluvia'?2:f==='caos'?2+Math.floor(random(g)*2):3+Math.floor(random(g)*2);
  const lead=f==='aprendizaje'?2.45:f==='lluvia'?2.03:f==='caos'?1.86:1.68;
  const impact=g.elapsed+lead;
- // Safety invariant: reserve a reachable escape target before placing hazards.
- const planner=g.online?{x:Math.sin(g.wave*1.34)*.24,z:Math.cos(g.wave*1.34)*.24}:g.players[0];
- const safe=sampleSafe(g,impact,[],planner);if(!safe)return [];
- const made=[];
- const gx=[-.49,-.245,0,.245,.49],candidate=[];
+ // Solo: chase the tracked PHONE position; online: choose shared, deterministic targets.
+ // Independently moving phones can NOT be used to seed a common online wave.
+ const planner=g.online?(g.wave<3?{x:0,z:0}:{x:Math.sin(g.wave*1.34)*.21,z:Math.cos(g.wave*1.34)*.21}):g.players[0];
+ const reachable=trial=>{
+  const safe=sampleSafe(g,impact,trial,planner);
+  return safe&&distance(planner,safe)<=Math.min(.33,lead*.20);
+ };
+ const made=[],gx=[-.49,-.245,0,.245,.49],candidate=[];
+ const targeted=random(g)<(f==='aprendizaje'?.98:f==='apocalipsis'?.96:.87);
+ if(targeted){
+  const direction=rnd(g,0,TAU),offset=big?.17:rnd(g,0,.045);
+  candidate.push({x:planner.x+Math.cos(direction)*offset,z:planner.z+Math.sin(direction)*offset,priority:true});
+ }
+ const other=[];
  for(const x of gx)for(const z of gx){
-  let pt={x:x+rnd(g,-.055,.055),z:z+rnd(g,-.055,.055)};
-  if(Math.hypot(pt.x,pt.z)<.60)candidate.push(pt);
+  const pt={x:x+rnd(g,-.055,.055),z:z+rnd(g,-.055,.055)};
+  if(Math.hypot(pt.x,pt.z)<.60)other.push(pt);
  }
- for(let i=candidate.length-1;i>0;i--){const j=Math.floor(random(g)*(i+1));[candidate[i],candidate[j]]=[candidate[j],candidate[i]]}
- for(let i=0;i<candidate.length&&made.length<count;i++){
-  const p=candidate[i],giant=big&&made.length===0&&random(g)<(f==='apocalipsis'?.60:.29);
-  const radius=giant?.23:.135;
-  if(distance(p,safe)<radius+PLAYER+.10)continue;
-  if(made.some(e=>distance(e,p)<e.radius+radius+.035))continue;
+ for(let i=other.length-1;i>0;i--){const j=Math.floor(random(g)*(i+1));[other[i],other[j]]=[other[j],other[i]]}
+ candidate.push(...other);
+ for(const p of candidate){
+  if(made.length>=count)break;
+  let giant=big&&made.length===0&&random(g)<(f==='apocalipsis'?.59:.26);
+  let radius=giant?.23:.135,point=clampPoint(p);
+  if(made.some(e=>distance(e,point)<e.radius+radius+.035))continue;
   const isCrater=f!=='aprendizaje'&&random(g)<.20;
-  const tricky=f==='caos'&&random(g)<.22;
-  made.push({id:'m'+g.wave+'-'+made.length,kind:giant?'giant':tricky?'tricky':'normal',
-   x:p.x,z:p.z,originalX:p.x,originalZ:p.z,radius,spawn:g.elapsed,impact,lead,
+  const tricky=!giant&&(f==='caos'||f==='apocalipsis')&&random(g)<.19;
+  const event={id:'m'+g.wave+'-'+made.length,kind:giant?'giant':tricky?'tricky':'normal',
+   x:point.x,z:point.z,originalX:point.x,originalZ:point.z,radius,spawn:g.elapsed,impact,lead,
    crater:isCrater||giant,craterTime:giant?1.0:isCrater?1.35:0,
-   moved:false,cancelled:false,scored:false,hits:{},near:{},color:'#ffbf65'});
+   moved:false,cancelled:false,scored:false,hits:{},near:{},color:'#ffbf65'};
+  if(!reachable([...made,event])){
+   if(!p.priority||!giant)continue;
+   // A gigantic direct hit cannot force an unsafe dash: downgrade its footprint.
+   event.kind='normal';event.radius=.135;event.crater=isCrater;event.craterTime=isCrater?1.35:0;
+   if(!reachable([...made,event]))continue;
+  }
+  made.push(event);
  }
- // Drop targets from impossible waves instead of allowing unavoidable overlap.
- while(made.length&&!sampleSafe(g,impact,made,planner))made.pop();
  if(!made.length)return [];
- // Meteorites which move always announce a second telegraph >=0.95s before impact.
- const trick=made.find(e=>e.kind==='tricky');
- if(trick&&lead<1.9)trick.kind='normal';
  if(g.elapsed>16&&random(g)<.075)made[Math.floor(random(g)*made.length)].fake=true;
  g.events.push(...made);g.wave++;g.maxActive=Math.max(g.maxActive,made.length);
  if(g.wave%5===0||f==='apocalipsis')g.fx.push({type:'siren',at:g.elapsed,text:f==='apocalipsis'?'☄️ TORMENTA APOCALÍPTICA':'⚠️ ¡LLUVIA MÚLTIPLE!'});
  return made;
 }
 function moveTrick(g,e){
- if(e.moved||e.cancelled||e.kind!=='tricky'||g.elapsed<e.impact-1.08)return;
+ if(e.moved||e.cancelled||e.kind!=='tricky'||g.elapsed<e.impact-1.27)return;
  e.moved=true;
- const pos={x:e.x,z:e.z};
- const options=[{x:pos.x+.24,z:pos.z},{x:pos.x-.24,z:pos.z},{x:pos.x,z:pos.z+.24},{x:pos.x,z:pos.z-.24}];
- for(const p of options){if(Math.hypot(p.x,p.z)>R-.10)continue;
-  if(distance(p,g.players[0])<e.radius+.20)continue;
-  const others=g.events.filter(v=>v!==e);
-  if(!futureSafe({...g,events:others},sampleSafe({...g,events:others},e.impact,[{...e,...p}],g.players[0])||{x:99,z:99},e.impact,[{...e,...p}]))continue;
-  e.x=p.x;e.z=p.z;g.fx.push({type:'trick',at:g.elapsed,text:'¡CAMBIÓ DE RUMBO!'});return;
+ const planner=g.online?{x:Math.sin((g.wave-1)*1.34)*.21,z:Math.cos((g.wave-1)*1.34)*.21}:g.players[0];
+ const options=[
+  {x:planner.x,z:planner.z},
+  {x:e.x+.22,z:e.z},{x:e.x-.22,z:e.z},
+  {x:e.x,z:e.z+.22},{x:e.x,z:e.z-.22}
+ ];
+ const others=g.events.filter(v=>v!==e),reference={...g,events:others};
+ for(const p of options){
+  if(Math.hypot(p.x,p.z)>R-.05||distance(p,e)<.12)continue;
+  const safe=sampleSafe(reference,e.impact,[{...e,x:p.x,z:p.z}],planner);
+  if(!safe||distance(planner,safe)>Math.min(.31,(e.impact-g.elapsed)*.23))continue;
+  if(!futureSafe(reference,safe,e.impact,[{...e,x:p.x,z:p.z}]))continue;
+  e.x=p.x;e.z=p.z;
+  g.fx.push({type:'trick',at:g.elapsed,text:'☄️ ¡CAMBIÓ DE RUMBO!'});return;
  }
  e.kind='normal';
 }
@@ -145,7 +164,7 @@ function hit(g,p,e){
  if(e.hits[p.id]||!p.alive||p.kind==='remote'||g.elapsed<(p.graceUntil||0))return;
  e.hits[p.id]=true;p.combo=0;p.hits++;
  if(p.shield>0){p.shield--;g.fx.push({type:'shield',at:g.elapsed,x:p.x,z:p.z,who:p.id,text:p.name+' ACTIVÓ ESCUDO'});return}
- p.lives=Math.max(0,p.lives-1);g.fx.push({type:'hit',at:g.elapsed,x:p.x,z:p.z,who:p.id,text:p.id==='you'?'💥 ¡TE ALCANZÓ!':'💥 '+p.name+' FUE ALCANZADO'});
+ p.lives=Math.max(0,p.lives-1);p.graceUntil=g.elapsed+.72;g.fx.push({type:'hit',at:g.elapsed,x:p.x,z:p.z,who:p.id,text:p.id==='you'?'💥 ¡TE ALCANZÓ!':'💥 '+p.name+' FUE ALCANZADO'});
  if(p.lives===0){p.alive=false;g.fx.push({type:'ko',at:g.elapsed,who:p.id,text:p.name+' ELIMINADO'})}
 }
 function impactTick(g){
