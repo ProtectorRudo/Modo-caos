@@ -307,7 +307,11 @@ function updateMotion(t,pose){
  if(Math.hypot(next.x-game.player.x,next.z-game.player.z)>1.45&&stage==='playing'){
   game.paused=true;setPhase('paused');notice('CAMBIO BRUSCO DE POSICIÓN · RECALIBRÁ',3);return;
  }
- playerPos.lerp(next,.32);
+ if(stage==='playing'&&(Math.abs(next.x)>floorSize*.5+.35||Math.abs(next.z)>floorSize*.5+.35)){
+   game.paused=true;setPhase('paused');hint('VOLVÉ A LA ZONA DESPEJADA · SIN CORRER');
+   notice('⚠ FUERA DE LA ARENA SEGURA · RECALIBRÁ',3);return;
+  }
+  playerPos.lerp(next,.32);
  G.movePlayer(game,{x:playerPos.x,z:playerPos.z});lastTracked=t;
 }
 function countdownBegin(){
@@ -355,7 +359,7 @@ async function shoot(){
  }
  const r=G.fire(game,packet,online?.id||'vos');
  if(!r.ok){if(r.reason==='sin_municion')reload();return}
- fireFlash=.09;audio(r.hit?'hit':'shot');vib(r.hit?35:19);
+ fireFlash=.09;crossUntil=r.hit?performance.now()+190:0;audio(r.hit?'hit':'shot');vib(r.hit?35:19);
  if(r.hit){missStreak=0;notice((r.part==='head'?'🎯 PUNTO DÉBIL · ':'⚡ IMPACTO · ')+'+'+r.points,0.55)}
  else{missStreak++;if(missStreak>=3&&performance.now()-lastLaugh>2300){lastLaugh=performance.now();
   const joker=game.enemies.find(e=>e.type==='joker');
@@ -484,7 +488,26 @@ function animate(t,frame){
   lastXRFrame=frame;
   const pose=cameraXRView(frame);
   trackingValid=!!pose;
-  if(stage==='search'||stage==='edit'){
+  if(anchorPending){
+    anchorPending=false;
+    const position=fixedPos.clone(),rotation=fixedQ.clone();
+    let pending=null;
+    if(typeof frame.createAnchor==='function'&&typeof XRRigidTransform!=='undefined'){
+     try{pending=frame.createAnchor(new XRRigidTransform(
+      {x:position.x,y:position.y,z:position.z},
+      {x:rotation.x,y:rotation.y,z:rotation.z,w:rotation.w}
+     ),renderer.xr.getReferenceSpace())}catch(_){}
+    }
+    if(!pending){
+     const currentHit=getHit(frame)?.result;
+     if(typeof currentHit?.createAnchor==='function')pending=currentHit.createAnchor();
+    }
+    if(pending)Promise.resolve(pending).then(a=>{
+     if(!xrSession||stage==='home'||stage==='search'||stage==='edit'){a.delete?.();return}
+     anchor?.delete?.();anchor=a;anchorOffset=null;
+    }).catch(()=>{});
+   }
+   if(stage==='search'||stage==='edit'){
    if(stage==='search'){
     const h=getHit(frame);
     if(h){hit=h.result;newPreview(h.pose)}
@@ -520,7 +543,8 @@ function animate(t,frame){
  performanceFrames++;performanceTotal+=dt;
  if(performanceFrames>=150&&performanceTotal>0){
   const fps=performanceFrames/performanceTotal;
-  renderer.setPixelRatio(Math.min(devicePixelRatio||1,fps<35?1.0:fps<48?1.2:1.5));
+  // ARCore owns the immersive framebuffer; adapt resolution in demo only.
+   if(!xrSession)renderer.setPixelRatio(Math.min(devicePixelRatio||1,fps<35?1.0:fps<48?1.2:1.5));
   performanceFrames=0;performanceTotal=0;
  }
  if(toastDeadline&&performance.now()>toastDeadline){$('notice').textContent='';toastDeadline=0}
