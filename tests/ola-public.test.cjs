@@ -22,6 +22,11 @@ const URL=process.env.OLA_PUBLIC_URL||'https://raw.githack.com/ProtectorRudo/Mod
    body:(await page.locator('body').innerText().catch(()=>'' )).slice(0,1200),
    html:(await page.content()).slice(0,600)}));throw error}
   const title=await page.title();assert(title.includes('OLA ROJA'),'right public game');
+  // El HTML puede estar visible varios segundos ANTES de sus 4 scripts externos.
+  // Esperar que el motor AR/2D exista realmente; nunca simular un click exitoso.
+  await page.waitForFunction(()=>window.OlaRojaCore&&window.OlaRojaArt&&
+   document.querySelector('#demo')&&!document.querySelector('#demo').disabled,
+   null,{timeout:30000});
   await page.locator('#demo').click();
   if(!await page.locator('#canvas2D').isVisible()){
    console.error('PUBLIC DEMO DIAG',JSON.stringify({
