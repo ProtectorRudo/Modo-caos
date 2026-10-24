@@ -147,7 +147,7 @@ function setupGame(keepCalibration=false){
  const keepArena=floorSize;
  game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
- fxShown.clear();initialBotsSpawned=false;openingEyePosition=null;pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
+ fxShown.clear();initialBotsSpawned=false;openingEyePosition=null;latestAim=null;lastAimStamp=0;lastShotStatus='';pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
  updateHud(true);
 }
@@ -443,7 +443,34 @@ function pause(){
  if(stage==='playing'){game.paused=true;setPhase('paused');hint('PAUSA · RECALIBRAR O CONTINUAR')}
  else if(stage==='paused'){if(!calibrated)return;game.paused=false;setPhase('playing')}
 }
-function activeRay(){
+// XRFrame#getViewerPose() is legal ONLY during the native XR animation frame.
+ // Android ARCore invalidates XRFrame as soon as requestAnimationFrame returns.
+ // Pointer/click handlers MUST consume a cloned world-space aim ray instead.
+ let latestAim=null,lastAimStamp=0,aimFailures=0,lastShotStatus='';
+ function cacheLiveAim(frame,t){
+  if(!xrSession||!frame||!space)return;
+  try{
+   const pose=frame.getViewerPose(space);
+   if(!pose)return;
+   art.root.updateMatrixWorld(true);
+   const p=pose.transform.position,q=pose.transform.orientation;
+   const origin=THREEVec(p.x,p.y,p.z);
+   const dir=THREEVec(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));
+   const localOrigin=art.root.worldToLocal(origin);
+   const localDirection=dir.applyQuaternion(art.root.quaternion.clone().invert()).normalize();
+   if([localOrigin.x,localOrigin.y,localOrigin.z,localDirection.x,localDirection.y,localDirection.z].every(Number.isFinite)){
+    latestAim={
+     origin:{x:localOrigin.x,y:localOrigin.y,z:localOrigin.z},
+     direction:{x:localDirection.x,y:localDirection.y,z:localDirection.z}
+    };
+    lastAimStamp=performance.now();
+   }
+  }catch(err){
+   aimFailures++;
+   if(aimFailures%180===1)console.warn('RODEADOS: no se pudo muestrear mira XR en fotograma activo',err);
+  }
+ }
+ function activeRay(){
  if(stage!=='playing')return null;
  art.root.updateMatrixWorld(true);
  if(demo){
@@ -821,5 +848,5 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(game)},get floorSize(){return floorSize},
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
- get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get openingEyePosition(){return openingEyePosition},get lastShotAt(){return lastShot},
+ get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get openingEyePosition(){return openingEyePosition},get lastShotAt(){return lastShot},get shotStatus(){return lastShotStatus},get aimAge(){return latestAim?performance.now()-lastAimStamp:null},get aim(){return latestAim},get aimFailures(){return aimFailures},
  get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
