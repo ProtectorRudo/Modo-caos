@@ -89,6 +89,25 @@ select,input{width:100%;padding:11px;border-radius:12px}
 .tile2d.electric{animation:shock .22s infinite alternate}
 .tile2d.ghost{background:#faffff}
 @keyframes shock{to{box-shadow:0 0 38px #ff2a21,0 0 12px #fff}}
+/* HUD táctico: siempre muestra las 9 celdas aunque estén fuera del campo de visión AR. */
+#simonMap{display:none;position:absolute;top:calc(279px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:min(54vw,215px);z-index:31;background:#061526ed;border:2px solid #ffd777;border-radius:17px;padding:8px;box-shadow:0 5px 35px #000b;text-align:center}
+#simonMap.turn{left:auto;right:8px;transform:none;width:138px;border-color:#4beacc;background:#051a2bea}
+#simonMap .mapHeading{color:#ffe7a6;font-size:11px;letter-spacing:1.3px;padding:2px 0 6px}
+#simonMap.turn .mapHeading{color:#8fffe5;font-size:10px}
+#mapCells{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;aspect-ratio:1}
+.mapTile{position:relative;min-width:0;min-height:0;padding:0;border-radius:9px;border:2px solid #ffffff50;background:color-mix(in srgb,var(--tone),#00142f 60%);color:#fff;box-shadow:inset 0 0 6px #0007;text-shadow:0 1px 3px #001c32;font-size:clamp(13px,3vw,18px);font-weight:1000;pointer-events:none;transition:filter .12s,transform .12s}
+#simonMap.turn .mapTile{font-size:12px;border-radius:6px}
+.mapTile.on{color:#03182a;background:var(--tone);filter:brightness(1.36);border:3px solid #fff;box-shadow:0 0 0 2px #fff,0 0 19px var(--tone);transform:scale(1.12);z-index:2}
+.mapTile.on::after{content:'✦';position:absolute;top:-13px;right:-7px;color:#fff;font-size:20px;text-shadow:0 0 12px #fff}
+.mapTile.ghostMark{box-shadow:0 0 0 1px #fff9;filter:brightness(1.4)}
+.mapTile.here{outline:3px solid #74ffb6;outline-offset:-1px}
+.mapTile.here::before{content:'●';position:absolute;top:-6px;left:-3px;background:#031b22;border-radius:50%;border:2px solid #70ffae;color:#70ffae;width:17px;height:17px;line-height:12px;font-size:12px;z-index:4;text-shadow:none}
+.mapTile.chosen{outline:3px solid #ffd34b;outline-offset:-1px;box-shadow:0 0 11px #ffd34b}
+#simonMap.correcting .mapTile{pointer-events:auto;cursor:pointer;border-color:#ffe08b}
+#mapCaption{font-size:10px;color:#d2fff4;margin-top:6px;line-height:1.2;min-height:12px}
+#mapCorrection{display:none;width:100%;min-height:30px;padding:5px;background:#173c4b;color:#f1fff8;border:1px solid #72c7c9;border-radius:9px;font-size:10px;margin-top:5px}
+#simonMap.turn #mapCorrection{display:block}
+#simonMap.correcting #mapCorrection{background:#ffd86c;color:#092131}
 #how{display:none;position:absolute;bottom:21%;left:7%;right:7%;text-align:center;color:#caffee;font-size:12px}
 #roomInfo{display:none;position:absolute;top:45px;left:15px;right:15px;font-size:11px;color:#ffe5a0;text-align:center;z-index:27}
 #result{display:none;position:absolute;inset:0;background:#020914eb;z-index:60;padding:25px;overflow-y:auto}
@@ -96,7 +115,7 @@ select,input{width:100%;padding:11px;border-radius:12px}
 .result-card h2{font-size:30px;line-height:1.05;margin:7px 0 18px}
 .result-card p{line-height:1.8}
 .result-card button{display:block;width:100%;margin:9px 0}
-@media(max-height:685px){#hud{top:77px}.stat strong{font-size:15px}#phase{top:137px}#sequenceGuide{top:155px;padding:4px 8px;min-height:48px}#seqMain{font-size:13px}#floating{top:auto;bottom:126px}#grid{top:31%;width:min(70vw,48vh)}#position{bottom:116px}#confirmRow{bottom:49px;height:60px}#confirmCell{height:49px;font-size:13px}#floating{bottom:173px}#calPanel{bottom:52px;padding:6px}#picker{width:120px}#picker button{min-height:28px}#head{top:0}}
+@media(max-height:685px){#simonMap{top:207px;width:min(46vw,160px);padding:5px}#simonMap.turn{top:210px;width:115px;right:5px}#mapCells{gap:3px}#simonMap .mapHeading{font-size:9px}#hud{top:77px}.stat strong{font-size:15px}#phase{top:137px}#sequenceGuide{top:155px;padding:4px 8px;min-height:48px}#seqMain{font-size:13px}#floating{top:auto;bottom:126px}#grid{top:31%;width:min(70vw,48vh)}#position{bottom:116px}#confirmRow{bottom:49px;height:60px}#confirmCell{height:49px;font-size:13px}#floating{bottom:173px}#calPanel{bottom:52px;padding:6px}#picker{width:120px}#picker button{min-height:28px}#head{top:0}}
 </style></head><body>
 <div id="home">
 <a class="back" href="/">← VOLVER A MODO CAOS</a>
@@ -127,6 +146,7 @@ select,input{width:100%;padding:11px;border-radius:12px}
 <div id="hud"><div class="stat">RONDA<strong id="round">0</strong></div><div class="stat">PASOS<strong id="progress">0/0</strong></div><div class="stat">TIEMPO<strong id="time">–</strong></div><div class="stat">PUNTOS<strong id="score">0</strong></div><div class="stat">VIDAS<strong id="lives">♥♥♥</strong></div></div>
 <div id="phase">SIMÓN TRAICIONERO</div>
 <div id="sequenceGuide" role="status" aria-live="polite" aria-atomic="true"><div id="seqTop">👀 MIRÁ</div><div id="seqMain">Memorizá los destellos</div><div id="seqDots"></div></div>
+<div id="simonMap" aria-label="Vista completa de las nueve baldosas"><div class="mapHeading" id="mapHeading">TABLERO COMPLETO · MIRÁ ACÁ</div><div id="mapCells"></div><div id="mapCaption">Los destellos también aparecen acá</div><button id="mapCorrection" type="button">¿NO COINCIDE TU CELDA? CORREGIR</button></div>
 <div id="floating"><div id="message">BUSCÁ EL PISO</div><div id="detail">Después fijá el tablero.</div></div>
 <div id="grid" aria-label="Tablero para modo 2D"></div>
 <div id="how">VERSIÓN 2D · TOCÁ LOS COLORES EN ORDEN</div>
@@ -143,5 +163,5 @@ select,input{width:100%;padding:11px;border-radius:12px}
 <div id="result"><div class="result-card"><div class="eyebrow">MODO CAOS · RESULTADOS</div><h2 id="endTitle">RESULTADO</h2><p id="endData"></p><button id="retryBtn">↻ REVANCHA</button><button id="shareBtn" class="secondary">↗ COMPARTIR MARCA</button><button onclick="location.assign('/')" class="secondary">← MENÚ PRINCIPAL</button></div></div>
 </div>
 <script>window.modoCaosXRCustomBoard=true;window.modoCaosGestureConfig={min:.32,max:.8,step:.035,label:x=>(x*3).toFixed(2)+' m'};</script>
-<script defer src="/engine.js?v=simon1"></script><script defer src="/simon-core.js?v=1"></script><script defer src="/simon-art.js?v=3"></script><script defer src="/simon-runtime.js?v=3"></script>
+<script defer src="/engine.js?v=simon1"></script><script defer src="/simon-core.js?v=1"></script><script defer src="/simon-art.js?v=3"></script><script defer src="/simon-runtime.js?v=4"></script>
 </body></html>
