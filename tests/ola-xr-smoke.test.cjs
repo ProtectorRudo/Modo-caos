@@ -61,7 +61,7 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>document.querySelector('#begin')?.disabled===false,null,{timeout:6500});
   assert((await page.locator('#whereAmI').innerText()).includes('COLUMNA 4'),'initial cell aligned to 4-4');
   await page.locator('#begin').click();
-  await page.waitForTimeout(3750);
+  await page.waitForTimeout(4450);
   assert(Number(await page.locator('#time').innerText())<90,'90 s AR clock advances');
   const before=await page.evaluate(()=>window.__draws);
   assert(before>preDraws+100,'real WebGL keeps painting after lock');
