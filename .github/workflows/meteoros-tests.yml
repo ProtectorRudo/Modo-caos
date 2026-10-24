@@ -10,6 +10,8 @@ on:
       - 'index.html'
       - 'salas.html'
       - 'mc-lobby.js'
+      - 'scripts/build-pages.py'
+      - '.github/workflows/publish-pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -34,6 +36,8 @@ jobs:
         run: node tests/semaforo.test.cjs
       - name: Existing Semaforo AR motion tests
         run: node tests/semaforo-motion.test.cjs
+      - name: Verify alternate public static bundle
+        run: python3 scripts/build-pages.py
 
   chromium-smoke:
     name: Mobile Chromium · 2D UI
