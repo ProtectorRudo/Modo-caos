@@ -69,6 +69,7 @@ const server=http.createServer((req,res)=>{
    }});
   });
   await page.goto('http://127.0.0.1:'+server.address().port+''+(process.env.METEORS_PAGE||'/meteoros.html')+'?mc_test=1',{waitUntil:'load'});
+  await page.evaluate(()=>window.__xrPos.x=.38); // nonzero floor offset catches rotation orbiting
   await page.locator('#enter').click();
   await page.waitForFunction(()=>{
    const b=document.getElementById('lock');return b&&!b.disabled&&getComputedStyle(b).display!=='none';
@@ -86,8 +87,12 @@ const server=http.createServer((req,res)=>{
   const same=await page.evaluate(()=>window.__meteorTestSnapshot());
   assert(Math.abs(same.gestures.size-initSize)<.001,'minus shrinks square playing field');
   await page.locator('#rotate').click();
+  await page.waitForTimeout(100);
   const turned=await page.evaluate(()=>window.__meteorTestSnapshot());
   assert(turned.gestures.yaw>initial.gestures.yaw+.20,'rotate button changes actual XR yaw');
+  assert(Math.abs(turned.arenaWorld.x-same.arenaWorld.x)<.002 &&
+         Math.abs(turned.arenaWorld.z-same.arenaWorld.z)<.002,
+         'rotating the square preserves its center on the floor');
   await page.mouse.move(155,385);
   await page.mouse.down();
   await page.mouse.move(203,408,{steps:5});
@@ -122,7 +127,7 @@ const server=http.createServer((req,res)=>{
   const after=await page.evaluate(()=>window.__xrDrawCalls);
   assert(remaining<72,'simulated XR clock advances: '+remaining);
   assert(after>before+100,'XR 3D geometry keeps drawing after scene lock ('+before+' -> '+after+')');
-  await page.evaluate(()=>window.__xrPos.x=.19);
+  await page.evaluate(()=>window.__xrPos.x=.57);
   await page.waitForTimeout(450);
   const moved=await page.evaluate(()=>window.__meteorTestSnapshot());
   assert(Math.abs(moved.avatar.x-fixed.avatar.x)>.07,'avatar VOS follows simulated phone displacement');
