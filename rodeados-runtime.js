@@ -4,7 +4,7 @@ import {createRodeadosArt} from './rodeados-art.js';
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
    The selected 5x5 cell is a manual baseline; WebXR follows the phone, never feet.
    Shared AR origin is manual approximation, not real collaborative anchors. */
-const $=id=>document.getElementById(id),G=globalThis.RodeadosCore,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),TAU=Math.PI*2;
+const $=id=>document.getElementById(id),G=globalThis.RodeadosCore,UX=globalThis.RodeadosUX,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),TAU=Math.PI*2;
 if(!G)throw Error('RODEADOS: falta el núcleo de juego');
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(69,innerWidth/innerHeight,.03,35);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
@@ -15,9 +15,10 @@ $('world').appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xbbfcff,0x142c46,2));
 const key=new THREE.DirectionalLight(0xfff0ce,2.2);key.position.set(-2.5,5,1.8);scene.add(key);
 const cool=new THREE.PointLight(0x44fce0,1.7,7);cool.position.set(1,2,-1);scene.add(cool);
+if(!UX)throw Error('RODEADOS: falta el radar 360');
 const art=createRodeadosArt(THREE,scene,camera);
 let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null,hitSource=null,hit=null,anchor=null,anchorOffset=null;
-let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
+let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
 let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
 let sounds=true,vibration=true,ctx=null,lastLaugh=0,fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
@@ -60,6 +61,52 @@ function relativeAngle(p){
  const forward=new THREE.Vector3(0,0,-1).applyQuaternion(tempQ);forward.y=0;forward.normalize();
  return Math.atan2(forward.x*toward.z-forward.z*toward.x,forward.x*toward.x+forward.z*toward.z);
 }
+function drawRadar(t){
+ if(t-lastRadar<160||stage!=='playing')return;
+ lastRadar=t;
+ const canvas=$('radar'),ctx=canvas.getContext('2d');if(!ctx)return;
+ const c=108,R=82;
+ ctx.clearRect(0,0,216,216);
+ ctx.strokeStyle='rgba(126,253,223,.25)';ctx.lineWidth=1.5;
+ for(const r of [R*.5,R]){ctx.beginPath();ctx.arc(c,c,r,0,TAU);ctx.stroke()}
+ ctx.beginPath();ctx.moveTo(c,22);ctx.lineTo(c,194);ctx.moveTo(22,c);ctx.lineTo(194,c);ctx.stroke();
+ const view=demo?camera:renderer.xr.getCamera(camera);
+ view.getWorldDirection(centerRay);
+ const forward=centerRay.clone().applyQuaternion(art.root.quaternion.clone().invert());
+ const heading=Math.atan2(forward.x,-forward.z);
+ const targets=UX.radar(game.enemies,game.player,heading,Math.max(floorSize*1.4,3.5));
+ for(const e of targets){
+  const x=c+e.x*R,y=c+e.y*R,radius=e.type==='boss'?9:e.type==='tank'?7:5;
+  ctx.beginPath();ctx.arc(x,y,radius,0,TAU);
+  ctx.fillStyle=e.dangerous?'#ff536c':e.type==='boss'?'#ffca64':e.type==='joker'?'#ffc47f':'#71eddf';
+  ctx.shadowBlur=e.dangerous?15:5;ctx.shadowColor=ctx.fillStyle;ctx.fill();ctx.shadowBlur=0;
+ }
+ ctx.save();ctx.translate(c,c);ctx.rotate(0);
+ ctx.beginPath();ctx.moveTo(0,-12);ctx.lineTo(8,8);ctx.lineTo(0,4);ctx.lineTo(-8,8);ctx.closePath();
+ ctx.fillStyle='#f4fff6';ctx.fill();ctx.restore();
+}
+function updateBattleFeedback(t){
+ if(stage!=='playing')return;
+ if(feedbackWave&&game.wave>feedbackWave){
+  $('waveBanner').textContent='⚡ OLEADA '+game.wave+' · ¡TE ESTÁN RODEANDO!';
+  waveUntil=t+1600;audio('danger');vib(35);
+ }
+ feedbackWave=Math.max(feedbackWave,game.wave);
+ if(game.lives<feedbackLife){damageUntil=t+360;vib(80);if(!demo)audio('danger')}
+ feedbackLife=game.lives;
+ if(game.combo>feedbackCombo&&game.combo>0&&game.combo%5===0){
+  $('waveBanner').textContent='🔥 ¡COMBO X'+game.combo+'!';
+  waveUntil=t+1000;vib(30);
+ }
+ feedbackCombo=game.combo;
+ $('damageFlash').style.opacity=t<damageUntil?'1':'0';
+ $('waveBanner').style.opacity=t<waveUntil?'1':'0';
+ $('waveBanner').style.transform=t<waveUntil?'scale(1)':'scale(.9)';
+ $('hitCross').style.opacity=t<crossUntil?'1':'0';
+ $('combo').textContent=game.combo>=2?'×'+game.combo+' IMPACTOS CONSECUTIVOS':'';
+ $('combo').style.opacity=game.combo>=2?'1':'0';
+ drawRadar(t);
+}
 function renderThreats(){
  const war=$('warning');war.replaceChildren();
  if(stage!=='playing'||!game.enemies.length){war.style.display='none';return}
@@ -78,7 +125,7 @@ function setupGame(keepCalibration=false){
  const keepArena=floorSize;
  game=G.create({mode:$('mode').value,arena:keepArena,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
- fxShown.clear();fireFlash=0;missStreak=0;lastHud=0;
+ fxShown.clear();fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',true,'block');visible('topHud',true);
  updateHud(true);
 }
@@ -122,6 +169,7 @@ function setPhase(next){
  visible('cellControls',next==='cell'||next==='sample'||next==='ready');
  visible('cellsvg',next==='cell'||next==='sample','block');
  visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown','block');
+ visible('radarWrap',next==='playing','block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
  visible('actions',next==='paused');$('pause').textContent=next==='paused'?'▶ CONTINUAR':'Ⅱ PAUSA';
  $('topHud').style.display=['ready','countdown','playing','paused','finished'].includes(next)?'flex':'none';
@@ -418,6 +466,7 @@ function tickGame(dt,t){
  } // guests render only host snapshots (no locally simulated hits, score or spawns)
  fireFlash=Math.max(0,fireFlash-dt);
  if(game.phase==='finished'){result();return}
+ updateBattleFeedback(t);
  art.effect(game,fxShown);art.updateSparks(dt);
  if(online?.isHost)sendSnapshot();
  if(game.lastDamage>0&&game.elapsed-game.lastDamage<.13){vib(38)}
