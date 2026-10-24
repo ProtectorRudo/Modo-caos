@@ -35,16 +35,24 @@ function create(gl){
    for(let row=0;row<3;row++)for(let col=0;col<3;col++){
     const i=row*3+col,x=(col-1)*pitch,z=(row-1)*pitch;
     const key=g.colorMap?g.colorMap[i]:i,colr=C[key].rgb;
-    const active=g.highlight===key||g.highlight===i&&g.phase==='show';
+    const active=g.phase==='show'&&g.highlight===key;
     const flash=active?(Math.sin(time*.021)*.08+.92):0;
     const elec=g.trap==='electrica'&&g.phase==='act'&&g.electric===i&&root.SimonCore.electricalUnsafe(g,time);
-    const picked=selected===i||player?.tile===i;
-    const dim=blackout?.22:1;
+    const picked=(selected===i||player?.tile===i)&&g.phase!=='show';
+    const dim=(blackout?.22:1)*(g.phase==='show'&&!active?.27:1);
     cube(x,.021,z,pitch*.485,.013,pitch*.485,[.02,.06,.14,.96],.08);
     cube(x,.038,z,pitch*.451,.011,pitch*.451,[colr[0]*.27*dim,colr[1]*.27*dim,colr[2]*.27*dim,.99],.12+flash*.4);
     cube(x,.049,z,pitch*.407,.003,pitch*.407,
      [Math.min(1,colr[0]*(.71+flash*.4))*dim,Math.min(1,colr[1]*(.71+flash*.4))*dim,Math.min(1,colr[2]*(.71+flash*.4))*dim,.96],.15+flash*.50);
-    if(g.ghost===i&&g.phase==='show')cube(x,.066,z,pitch*.48,.006,pitch*.48,[.78,1,1,.96],1.2);
+    if(g.ghost===i&&g.phase==='show')cube(x,.066,z,pitch*.48,.006,pitch*.48,[.78,1,1,.40],.7);
+    // Cada destello de Simón tiene una baliza elevada y una placa luminosa
+    // para diferenciarse inequívocamente del tablero (y de los falsos fantasmas).
+    if(active){
+     const glow=.86+.14*Math.sin(time*.010);
+     cube(x,.071,z,pitch*.38,.008,pitch*.38,[1,1,1,.98],1.15*glow);
+     cube(x,.106,z,pitch*.34,.054,pitch*.34,[colr[0],colr[1],colr[2],.34],1.30*glow);
+     cube(x,.153,z,pitch*.19,.008,pitch*.19,[1,1,1,.88],1.20*glow);
+    }
     if(active||elec||picked){
      const color=elec?[1,.15,.09,.83]:picked?[.7,1,.88,.86]:[1,1,1,.93];
      cube(x,.056,z,pitch*.436,.003,pitch*.436,color,.38+flash*.28);
