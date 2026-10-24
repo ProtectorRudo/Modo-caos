@@ -106,6 +106,8 @@ assert.equal(C.R,1.12,'square arena default side 2.24m');
 assert(art.includes("draw('box',0,.010,0,ARENA"),'3D floor is square, not circular');
 assert(art.includes('ctx.fillRect(-scale*ARENA'),'2D floor is square');
 assert(eng.includes('window.modoCaosGestureConfig'),'engine uses optional per-game gesture config');
+assert(eng.includes('window.modoCaosLockReady'),'engine prevents premature floor lock for games needing a preview');
+assert(runtime.includes('window.modoCaosLockReady=()=>!!previewCenter&&!!renderer'),'Meteoros initializes renderer and floor center before lock');
 assert(!/#touchpad[^\n]*display:none!important/.test(html),'touchpad must not be hidden by CSS');
 assert(html.includes('id="toolbar"')&&html.includes('id="plus"'),'visible +/- and rotation tools');
 assert(art.includes('if(i===0||!h.alive)return'),'no VOS humanoid in first-person AR');
