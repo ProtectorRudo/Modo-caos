@@ -10,7 +10,7 @@
   if(length<1e-8||target<1e-8)return 0;
   const fx=forwardX/length,fz=forwardZ/length,tx=targetX/target,tz=targetZ;
   const cross=fx*tz-fz*tx;
-  return normalize(Math.atan2(-cross,fx*tx+fz*tz));
+  return normalize(Math.atan2(cross,fx*tx+fz*tz));
  }
  function radar(enemies,player,angle,range=4){
   const px=player?.x||0,pz=player?.z||0;
