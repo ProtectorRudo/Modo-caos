@@ -39,13 +39,13 @@ test('shooting through aligned reticle scores and removes enemy',()=>{
  const ray={origin:{x:0,y:1.62,z:0},direction:{x:0,y:0,z:-1}};
  const out=G.fire(g,ray);
  assert(out.ok);assert(out.hit);assert.equal(out.part,'head');
- assert.equal(g.ammo,27);assert.equal(g.hits,1);assert.equal(g.kills,1);
+ assert.equal(g.ammo,28);assert.equal(g.hits,1);assert.equal(g.kills,1);
  assert(g.score>0);assert.equal(g.enemies.length,0);
 });
-test('a missed reticle still consumes a round; blocked shots do not',()=>{
+test('a missed reticle records a shot without consuming ammo; paused shots do not',()=>{
  const g=G.create();G.begin(g);g.enemies=[bot()];
  const miss=G.fire(g,{origin:{x:0,y:1.62,z:0},direction:{x:1,y:0,z:0}});
- assert(miss.ok);assert(!miss.hit);assert.equal(g.ammo,27);
+ assert(miss.ok);assert(!miss.hit);assert.equal(g.ammo,28);assert.equal(g.shots,1);
  g.paused=true;const blocked=G.fire(g,{origin:{x:0,y:1.62,z:0},direction:{x:0,y:0,z:-1}});
- assert(!blocked.ok);assert.equal(g.ammo,27);
+ assert(!blocked.ok);assert.equal(g.ammo,28);
 });

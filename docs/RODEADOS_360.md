@@ -122,3 +122,12 @@ Cambios basados en captura física de Android: el robot invadía toda la pantall
 - Co-op beta: el anfitrión recibe las solicitudes de bomba y comparte carga, explosión y proyectil mediante snapshots. No se afirma alineación espacial real entre dispositivos.
 - Pruebas: `tests/rodeados-bomb.test.cjs` verifica explosión, daño/aturdimiento, 32 s, 10 bajas, rematch, pausa y ausencia de daño propio. Pruebas Chromium/WebGL y WebXR simulado exigen tocar el botón, consumir una sola carga y causar daño a robots visibles.
 - Publicar con assets versionados para invalidar caché de Chrome Android. Última prueba pendiente: imagen/sonido físicos en ARCore.
+
+## V10 — Munición infinita y robots cazadores (24/10/2026)
+
+- **Sin balas limitadas ni recarga:** disparo infinito en todos los modos AR y en el entrenamiento 3D. Sin barra de munición que se agote; el HUD indica **∞ BALAS** y desaparece RECARGAR. Se mantiene un intervalo mínimo de aproximadamente 175 ms entre pulsaciones táctiles locales y 160 ms de cadencia validada por el anfitrión para invitados (evita ráfagas abusivas, no limita munición).
+- La API de recarga histórica sigue disponible para clientes viejos pero ya no bloquea ninguna bala ni activa demoras. Los estados online mantienen un inventario virtual constante para compatibilidad, sin prometer multijugador plenamente validado en dos móviles.
+- **Robots menos infantiles:** placas metálicas desaturadas tipo grafito, silueta con hombros angulares/columna mecánica, visor carmesí pulsante, pequeños movimientos independientes de cabeza, caminata asimétrica, bamboleo suave al avanzar y carga de ataque con brazos y tronco. Sonido robótico grave y direccional (espaciado para evitar saturación) cuando un robot se acerca.
+- Mantiene alturas y distancias de aparición V9. Los desplazamientos cosméticos son pequeños y no cambian posiciones físicas de colisión ni precisión del tiro.
+- Se conservan calibración, compositor de Blackzone, Bomba Caos, EMP, radar y pausa.
+- Nuevas aserciones en tests de core/coop/Chromium/WebXR para demostrar ausencia de consumo de balas, eliminación del botón RECARGAR y continuidad del daño al disparar muchas veces. Falta la comprobación sensorial en Chrome Android real.
