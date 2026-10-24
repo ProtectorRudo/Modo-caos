@@ -87,7 +87,7 @@ function create3D(gl){
    }
    for(const e of g.events){
     if(e.cancelled)continue;
-    const remain=e.impact-now,warning=remain>0,pulse=.6+.4*Math.sin(now*15),radius=e.radius;
+    const remain=e.impact-now,warning=remain>0,pulse=.6+.4*Math.sin(now*15),radius=e.radius+.073;
     if(warning){
      const red=remain<Math.max(.62,e.lead*.40),col=red?colors.red:colors.gold;
      draw('disc',e.x,.037,e.z,radius,.002,radius,[col[0],col[1],col[2],red?.22:.13],.10);
@@ -157,7 +157,7 @@ function draw2D(ctx,width,height,g,ms){
  for(const b of g.bonuses){const [x,y]=P(b.x,b.z);
  circle(x,y,10,b.type==='shield'?'#63ffda':'#ac70ff',18);ctx.font='19px system-ui';ctx.textAlign='center';ctx.fillText(b.type==='shield'?'🛡':'💎',x,y-12+Math.sin(t*6)*3)}
  for(const e of g.events){
-  const remaining=e.impact-g.elapsed,p=P(e.x,e.z),r=e.radius*scale;
+  const remaining=e.impact-g.elapsed,p=P(e.x,e.z),r=(e.radius+.073)*scale;
   if(remaining>0){
    const red=remaining<Math.max(.62,e.lead*.4),color=red?'#ff4263':'#ffca60';
    ctx.save();ctx.translate(p[0],p[1]);ctx.scale(1,.68);ctx.fillStyle=red?'#ff3d4533':'#ffd1452e';
