@@ -34,7 +34,7 @@ const server=http.createServer((req,res)=>{
  }),'radar displays player orientation marker');
  await page.locator('#fire').click();
  assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.shots),1,'fire updates shot count');
- assert.equal(await page.locator('#ammo').innerText(),'∞  BALAS','no finite bullets displayed');
+ assert.equal((await page.locator('#ammo').innerText()).replace(/\s+/g,' ').trim(),'∞ BALAS','no finite bullets displayed');
  assert.equal(await page.locator('#reload').count(),0,'reload button removed entirely');
  assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.ammo),28,'shooting never reduces magazine');
  assert(await page.locator('#bomb').isVisible(),'Bomba Caos button appears during 3D battle');
