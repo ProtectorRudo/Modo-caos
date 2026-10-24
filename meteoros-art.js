@@ -2,7 +2,7 @@
 /* Lluvia de Meteoros — procedural 3D WebGL inside the native WebXR framebuffer
    and a fully playable high-DPI 2D Canvas renderer. No external assets required. */
 (function(root){
-const TAU=Math.PI*2,clamp=(a,l,h)=>Math.max(l,Math.min(h,a));
+const TAU=Math.PI*2,clamp=(a,l,h)=>Math.max(l,Math.min(h,a)),ARENA=1.12;
 const id=()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
 function multiply(a,b){const r=new Float32Array(16);for(let c=0;c<4;c++)for(let k=0;k<4;k++)for(let row=0;row<4;row++)r[4*c+row]+=a[4*k+row]*b[4*c+k];return r}
 function transform(x,y,z,sx=1,sy=1,sz=1){const a=id();a[0]=sx;a[5]=sy;a[10]=sz;a[12]=x;a[13]=y;a[14]=z;return a}
@@ -70,11 +70,11 @@ function create3D(gl){
    gl.viewport(viewport.x,viewport.y,viewport.width,viewport.height);
    vp=multiply(view.projectionMatrix,view.transform.inverse.matrix);
    // 3D rim, striped landing pad, runway seams.
-   draw('disc',0,.011,0,.64,.005,.64,colors.dark);
-   draw('ring',0,.025,0,.645,.006,.645,colors.blue,.30);
-   draw('ring',0,.028,0,.59,.004,.59,[.1,.36,.43,.33],.4);
-   for(let i=-2;i<=2;i++){draw('box',i*.205,.026,0,.003,.002,.57,[.06,.39,.49,.30]);
-    draw('box',0,.027,i*.205,.57,.002,.003,[.06,.39,.49,.30]);}
+   draw('disc',0,.011,0,ARENA,.005,ARENA,[.018,.046,.086,.29]);
+   draw('ring',0,.025,0,ARENA,.006,ARENA,colors.blue,.30);
+   draw('ring',0,.028,0,ARENA*.93,.004,ARENA*.93,[.1,.36,.43,.33],.4);
+   for(let i=-4;i<=4;i++){draw('box',i*ARENA*.2,.026,0,.003,.002,ARENA*.94,[.06,.39,.49,.30]);
+    draw('box',0,.027,i*ARENA*.2,ARENA*.94,.002,.003,[.06,.39,.49,.30]);}
    if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
     const s=g.safeHint,pulse=.5+.5*Math.sin(now*6);
     draw('disc',s.x,.039,s.z,.080,.001,.080,[.10,1,.55,.10],.12);
@@ -112,8 +112,10 @@ function create3D(gl){
      }
     }
    }
+   // First-person AR: no humanoid VOS — the person holding the camera IS the player.
+   if(g.showCalibrationMarker)draw('ring',0,.049,0,.12,.004,.12,colors.mint,.8);
    g.players.forEach((h,i)=>{
-    if(!h.alive)return;const walking=h.kind!=='human'&&h.dist>.03;
+    if(i===0||!h.alive)return;const walking=h.kind!=='human'&&h.dist>.03;
     const bob=.012*Math.sin(now*12+i),sz=.095,x=h.x,z=h.z;
     draw('disc',x,.044,z,.083,.002,.083,[0,.05,.09,.52]);
     if(h.shield)draw('ring',x,.058,z,.137,.003,.137,colors.mint,.58);
@@ -139,15 +141,15 @@ function draw2D(ctx,width,height,g,ms){
  let sky=ctx.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#040916');sky.addColorStop(.52,'#111e35');sky.addColorStop(1,'#020915');ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
  for(let i=0;i<65;i++){const x=(Math.sin(i*117.38)*.5+.5)*w,y=((i*34.14+t*(i%3+1)*.7)%100)/100*h;
  ctx.fillStyle='rgba(193,221,255,'+(.22+(i%4)*.13)+')';ctx.fillRect(x,y,1.5,1.5)}
- const scale=Math.min(w*.73/1.28,h*.49/1.28),cx=w*.50,cy=h*.52;
+ const scale=Math.min(w*.76/(2*ARENA),h*.52/(2*ARENA)),cx=w*.50,cy=h*.52;
  const P=(x,z,y=0)=>[cx+x*scale,cy+z*scale*.68-y*scale*.85];
  const circle=(x,y,r,col,blur=0)=>{ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=blur;ctx.fill();ctx.shadowBlur=0};
  ctx.save();ctx.translate(cx,cy);ctx.scale(1,.68);
- const grad=ctx.createRadialGradient(0,0,4,0,0,scale*.64);grad.addColorStop(0,'#16263e');grad.addColorStop(1,'#061221');
- ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,scale*.66,0,TAU);ctx.fill();
- for(let rr of [.18,.38,.63]){ctx.strokeStyle=rr===.63?'#64ffe3':'#20648c';ctx.globalAlpha=rr===.63?1:.5;ctx.lineWidth=rr===.63?5:1;ctx.beginPath();ctx.arc(0,0,scale*rr,0,TAU);ctx.stroke()}
+ const grad=ctx.createRadialGradient(0,0,4,0,0,scale*ARENA);grad.addColorStop(0,'#16263e');grad.addColorStop(1,'#061221');
+ ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,scale*ARENA,0,TAU);ctx.fill();
+ for(let rr of [ARENA*.32,ARENA*.64,ARENA]){ctx.strokeStyle=rr===ARENA?'#64ffe3':'#20648c';ctx.globalAlpha=rr===ARENA?1:.5;ctx.lineWidth=rr===ARENA?5:1;ctx.beginPath();ctx.arc(0,0,scale*rr,0,TAU);ctx.stroke()}
  ctx.globalAlpha=.35;ctx.strokeStyle='#48c1e4';ctx.lineWidth=1;
- for(let n=-3;n<=3;n++){const v=n*scale*.19;ctx.beginPath();ctx.moveTo(v,-scale*.58);ctx.lineTo(v,scale*.58);ctx.moveTo(-scale*.58,v);ctx.lineTo(scale*.58,v);ctx.stroke()}
+ for(let n=-4;n<=4;n++){const v=n*scale*ARENA*.2;ctx.beginPath();ctx.moveTo(v,-scale*ARENA*.91);ctx.lineTo(v,scale*ARENA*.91);ctx.moveTo(-scale*ARENA*.91,v);ctx.lineTo(scale*ARENA*.91,v);ctx.stroke()}
  ctx.restore();
  if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
   const [x,y]=P(g.safeHint.x,g.safeHint.z),pulse=.5+.5*Math.sin(t*8);
@@ -180,11 +182,17 @@ function draw2D(ctx,width,height,g,ms){
  }
  for(const a of [...g.players].sort((a,b)=>a.z-b.z)){
   if(!a.alive)continue;const [x,y]=P(a.x,a.z),vos=a.id==='you',c=a.color;
-  ctx.fillStyle='#000a';ctx.beginPath();ctx.ellipse(x,y+4,13,6,0,0,TAU);ctx.fill();
-  circle(x,y-16,vos?15:12,c,14);circle(x,y-34+(Math.sin(t*11+a.dist*3)*2),vos?13:11,'#f4faff');
-  ctx.fillStyle='#122338';ctx.fillRect(x-7,y-36,14,5);
+  if(vos){
+   // 2D touchscreen fallback needs a cue, not a puppet/humanoid avatar.
+   ctx.save();ctx.strokeStyle='#65ffbe';ctx.fillStyle='#59ffd526';ctx.shadowBlur=18;ctx.shadowColor='#63ffce';ctx.lineWidth=4;
+   ctx.beginPath();ctx.ellipse(x,y,Math.max(9,scale*.095),Math.max(6,scale*.064),0,0,TAU);ctx.fill();ctx.stroke();ctx.restore();
+  }else{
+   ctx.fillStyle='#000a';ctx.beginPath();ctx.ellipse(x,y+4,13,6,0,0,TAU);ctx.fill();
+   circle(x,y-16,12,c,14);circle(x,y-34+(Math.sin(t*11+a.dist*3)*2),11,'#f4faff');
+   ctx.fillStyle='#122338';ctx.fillRect(x-7,y-36,14,5);
+  }
   ctx.fillStyle='#fff';ctx.font=(vos?'1000 13px':'800 9px')+' system-ui';ctx.textAlign='center';
-  ctx.shadowBlur=5;ctx.shadowColor='#000';ctx.fillText(a.name,x,y-51);ctx.shadowBlur=0;
+  ctx.shadowBlur=5;ctx.shadowColor='#000';ctx.fillText(vos?'TU POSICIÓN':a.name,x,vos?y-23:y-51);ctx.shadowBlur=0;
   if(a.shield){ctx.strokeStyle='#6fffd9';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y-20,20,24,0,0,TAU);ctx.stroke()}
  }
  if(g.elapsed>57&&g.stage==='playing'){ctx.fillStyle='rgba(255,42,45,'+(.025+.04*Math.sin(t*7)**2)+')';ctx.fillRect(0,0,w,h)}

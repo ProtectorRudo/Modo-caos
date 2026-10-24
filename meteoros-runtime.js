@@ -11,7 +11,7 @@ const params=new URLSearchParams(location.search),roomCode=(params.get('room')||
 const K='mc-meteoros-record-v1';
 let best=0;try{best=Math.max(0,Number(localStorage.getItem(K))||0)}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
-let demo=false,calibrated=false,sampling=false,origin=null,placement=null,avg=null,calSamples=[],calStart=0;
+let demo=false,calibrated=false,sampling=false,origin=null,placement=null,arenaWorld=null,avg=null,calSamples=[],calStart=0;
 let game=G.make((Math.random()*4294967295)>>>0),running=false,finished=false,renderer=null,trackLast=0;
 let lastFrame=0,lastHud=0,trackingLast=null,arLoop=false,status='intro',mode='motion';
 let muted=false,audio=null,impactBuffer=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
@@ -117,7 +117,7 @@ function begin(){
  G.start(game);running=true;status='playing';lastFrame=0;eventKeys.clear();lostShown=false;
  $('begin').style.display='none';$('calBox').style.display='none';
  $('pad').style.display=(demo||mode==='buttons')?'flex':'none';
- statusText(demo?'USÁ LAS FLECHAS O TOCÁ LA PISTA PARA MOVERTE':'MOVÉ EL TELÉFONO SUAVEMENTE · EVITÁ EL ROJO');
+ statusText(demo?'TOCÁ LA PISTA O USÁ LAS FLECHAS · TU CÍRCULO VERDE INDICA LA POSICIÓN':'VOS SOS EL PROTAGONISTA · MOVETE SUAVEMENTE · EVITÁ LAS ZONAS ROJAS');
  $('gameHud').style.display='flex';$('phase').style.display='block';
  beep(930,.22);hud();
 }
@@ -127,7 +127,7 @@ function uiFixed(){
  $('statusPanel').style.display='flex';$('actions').style.display='flex';
  $('gameHud').style.display='flex';$('begin').disabled=true;
  $('phase').style.display='block';$('head').style.display='none';
- statusText('📍 Arena fijada · calibrando posición del teléfono.');
+ statusText('📍 PISO FIJADO · PARATE EN EL CENTRO · SOSTENÉ EL CELULAR CERCA DEL PECHO');
  startSampling();
 }
 function startSampling(){
@@ -154,7 +154,7 @@ function sample(t,pos){
   trackingLast={...avg};trackLast=t;sampling=false;calibrated=true;game.paused=false;
   $('calTitle').textContent='✅ LISTO · MOVETE SUAVEMENTE';
   $('calFill').style.width='100%';$('begin').disabled=!!online;
-  statusText('✅ LISTO · LA ARENA PERMANECE EN EL PISO · ¡A JUGAR!');
+  statusText('✅ LISTO · VOS SOS EL JUGADOR · ESQUIVÁ EL IMPACTO REAL');
   setTimeout(()=>{if(calibrated&&!sampling)$('calBox').style.display='none'},600);
   beep(1050,.21);vibrate(45);if(online)showOnline();
  }
@@ -216,7 +216,9 @@ function arFrame(t,frame,W){
  try{
   if(!W)return;
   const pos=localPose(frame,W);
-  if(typeof stage!=='undefined'&&stage==='fixed'&&!placement)placement={x:0,z:0};
+  // Capture the local XR viewer's floor footprint once, at placement time.
+  // The selected floor plane supplies height/rotation; this defines the arena CENTER.
+  if(typeof stage!=='undefined'&&stage==='fixed'&&!placement&&pos)placement={...pos};
   if(sampling)sample(t,pos);
   if(running&&mode==='motion'&&calibrated){
    if(pos&&motion(t,pos)){trackLast=t;lostShown=false;game.paused=false}
@@ -225,9 +227,14 @@ function arFrame(t,frame,W){
   }
   if(running)tick(dt,t);
   if(renderer){
-   // The Hit Test floor point (W) is the arena origin, never the camera.
-   // Phone tracking controls VOS relative to initial calibration, without moving geometry.
-   renderer.render(frame,W,game);
+   // Before locking, project the floor arena under the player to ease placement.
+   // After locking, placement never changes: the arena is WORLD-LOCKED.
+   const preview=typeof stage!=='undefined'&&stage==='preview';
+   const center=placement||(preview&&pos)||{x:0,z:0};
+   game.showCalibrationMarker=!running&&calibrated&&!demo;
+   const fixedWorld=multiply(W,translate(center.x,center.z));
+   arenaWorld={x:fixedWorld[12],y:fixedWorld[13],z:fixedWorld[14]};
+   renderer.render(frame,fixedWorld,game);
   }
   if(!running&&t-lastHud>160){lastHud=t;hud()}
  }catch(e){if(!arFrame.warned){console.error('Meteoros AR:',e);arFrame.warned=true;toast('⚠️ PROBLEMA CON EL RENDER AR')}}
@@ -256,7 +263,7 @@ function beginDemo(){
  $('statusPanel').style.display='flex';$('actions').style.display='flex';
  $('gameHud').style.display='flex';$('phase').style.display='block';$('begin').disabled=false;
  $('recenter').style.display='none';$('toggle').style.display='none';
- statusText('¡LISTO! Tocá la arena para moverte, o usá las flechas.');
+ statusText('MODO 2D · EL CÍRCULO VERDE ES TU POSICIÓN · TOCÁ LA ARENA PARA ESQUIVAR');
  requestAnimationFrame(demoFrame);hud();beep(900,.21);
 }
 $('demo').addEventListener('click',beginDemo);
@@ -290,7 +297,7 @@ window.addEventListener('keyup',e=>keys.delete(e.key));
 window.addEventListener('blur',()=>{keys.clear();buttons={up:false,down:false,left:false,right:false}});
 $('canvas2D').addEventListener('pointerdown',e=>{
  if(!demo||!running)return;
- const scale=Math.min(innerWidth*.73/1.28,innerHeight*.49/1.28);
+ const scale=Math.min(innerWidth*.76/(2*G.R),innerHeight*.52/(2*G.R));
  const x=(e.clientX-innerWidth*.5)/scale,z=(e.clientY-innerHeight*.52)/(scale*.68);
  target=G.clampPoint({x,z});
 });
@@ -378,6 +385,7 @@ window.addEventListener('pagehide',()=>{clearInterval(onlineTimer);online?.conn?
 if((location.hostname==='localhost'||location.hostname==='127.0.0.1')&&params.has('mc_test')){
   Object.defineProperty(window,'__meteorTestSnapshot',{value:()=>({
     placement:placement?{...placement}:null,
+    arenaWorld:arenaWorld?{...arenaWorld}:null,
     origin:origin?{...origin}:null,
     avatar:{x:game.players[0].x,z:game.players[0].z},
     status,calibrated
