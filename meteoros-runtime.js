@@ -244,7 +244,11 @@ function arFrame(t,frame,W){
    // Freeze center before lock, then no new gesture/pose ever relocates the floor.
    const center=placement||previewCenter||{x:0,z:0};
    const ratio=clamp(boardSize/baseTileSize,.70,1.47);
-   const fixedWorld=multiply(multiply(W,translate(center.x,center.z)),uniformScale(ratio));
+   // Rotate around the SQUARE'S CENTER, not around the Hit Test origin.
+   // W already includes yaw; inverse-rotate the center to cancel orbiting.
+   const co=Math.cos(yaw),si=Math.sin(yaw);
+   const corrected={x:co*center.x-si*center.z,z:si*center.x+co*center.z};
+   const fixedWorld=multiply(multiply(W,translate(corrected.x,corrected.z)),uniformScale(ratio));
    game.showCalibrationMarker=!running&&calibrated&&!demo;
    arenaWorld={x:fixedWorld[12],y:fixedWorld[13],z:fixedWorld[14],
     edge:2*G.R*ratio,yaw,ratio};
