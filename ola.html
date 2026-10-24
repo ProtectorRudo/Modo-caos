@@ -36,8 +36,8 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 #toolbar button{flex:1;min-width:0;background:#17364dee;color:#dffeff;border:1px solid #5ed9dc}
 #toolbar #size{flex:1.6;font-size:12px}
 #lock{position:absolute;bottom:max(64px,env(safe-area-inset-bottom) + 58px);left:7%;width:86%;z-index:18;pointer-events:auto;min-height:59px;font-size:15px;background:linear-gradient(105deg,#65f6f1,#b6ffec)}
-#exit,#music,#pause{position:absolute;top:max(9px,env(safe-area-inset-top));z-index:17;pointer-events:auto;background:#071a33e8;color:#e3faff;border:1px solid #55718a;min-height:37px;font-size:11px}
-#exit{left:9px}#music{right:9px}#pause{right:70px;display:none}
+#exit,#music,#pause,#recalibrateLive{position:absolute;top:max(9px,env(safe-area-inset-top));z-index:17;pointer-events:auto;background:#071a33e8;color:#e3faff;border:1px solid #55718a;min-height:37px;font-size:11px}
+#exit{left:9px}#recalibrateLive{left:84px;display:none}#music{right:9px}#pause{right:70px;display:none}
 #gameHud{position:absolute;left:7px;right:7px;top:58px;display:none;justify-content:space-between;gap:6px;z-index:16;pointer-events:none}
 .stat{background:#071a2ad9;border:1px solid #4d7184;border-radius:12px;padding:6px 10px;text-align:center;font-size:9px;min-width:75px;font-weight:900}
 .stat strong{display:block;font-size:21px;font-weight:1000;font-variant-numeric:tabular-nums;color:white}
@@ -80,7 +80,7 @@ h1 span{color:#ff3d5f}#home p{color:#cbd8e6;line-height:1.55;max-width:390px;fon
 <div id="reticle"></div><div id="mock"></div><button id="support"></button><div id="calibrate">ARRASTRÁ PARA UBICAR · PELLIZCÁ PARA ESCALAR · GIRÁ CON DOS DEDOS</div><div id="fallback"></div><div id="touchpad"></div>
 <div id="toolbar"><button id="minus">−</button><button id="size" disabled>2,70 m</button><button id="plus">+</button><button id="rotate">↻ GIRAR</button></div>
 <div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
-<button id="lock" disabled>📍 FIJAR PISTA</button><button id="exit">← SALIR</button><button id="music">🔊</button><button id="pause">Ⅱ</button>
+<button id="lock" disabled>📍 FIJAR PISTA</button><button id="exit">← SALIR</button><button id="recalibrateLive" title="Recalibrar posición sin mover pista">⊕</button><button id="music">🔊</button><button id="pause">Ⅱ</button>
 <div id="gameHud"><div class="stat redStat">TIEMPO<strong id="time">90</strong></div><div class="stat">VIDAS<strong id="lives">♥♥♥</strong></div><div class="stat">PUNTOS<strong id="score">0</strong></div></div>
 <div id="banner"></div><div id="toast" role="status" aria-live="polite"></div>
 <div id="statusPanel"><div id="calBox"><div id="calTitle">👣 TOCÁ LA CASILLA DONDE ESTÁS</div><div id="calTrack"><div id="calFill"></div></div><button id="calCenter">👣 ESTOY EN LA CASILLA CENTRAL</button></div>
