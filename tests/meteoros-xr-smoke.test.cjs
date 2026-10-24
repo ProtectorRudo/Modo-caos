@@ -138,9 +138,9 @@ const server=http.createServer((req,res)=>{
    const pre=await page.evaluate(()=>window.__meteorTestSnapshot());
    assert(Math.abs(pre.marker.x-fixed.marker.x)>.025,'YO floor marker responds to phone while still in ready state');
    assert.equal(pre.toast,'','AFINANDO remains cleared while the floor marker moves');
-   await page.waitForFunction(()=>window.__meteorTestSnapshot?.()?.stage==='playing'&&window.__meteorTestSnapshot?.()?.elapsed>.15,null,{timeout:9000});
+   await page.waitForFunction(()=>window.__meteorTestSnapshot?.()?.stage==='playing'&&window.__meteorTestSnapshot?.()?.elapsed>1.2,null,{timeout:9000});
    const running=await page.evaluate(()=>window.__meteorTestSnapshot());
-   assert(running.running&&running.elapsed>.15,'solo game starts without tapping anything after calibrating');
+   assert(running.running&&running.elapsed>1.2,'solo game starts and game clock advances without tapping after calibration');
    assert(Number(await page.locator('#time').innerText())<72,'72-second match countdown advances automatically');
    assert(!await page.locator('#begin').isVisible(),'begin action disappears after automatic kickoff');
    assert.equal((await page.locator('#toast').innerText()).includes('AFINANDO'),false,'large frozen calibration banner never remains');
