@@ -27,7 +27,7 @@ jobs:
           node-version: '22'
       - name: Sintaxis
         run: |
-          for f in ola-core.js ola-art.js ola-runtime.js; do node --check "$f"; done
+          for f in ola-core.js ola-art.js ola-runtime.js tests/ola*.test.cjs; do node --check "$f"; done
       - name: Ola Roja core
         run: node tests/ola.test.cjs
       - name: Regresión de núcleos existentes
