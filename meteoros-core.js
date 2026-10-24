@@ -20,7 +20,7 @@ function make(seed=0xCA052026,opts={}){
   return {id:'bot'+i,name:p.name,kind:p.kind,color:p.color,x:(i-1)*.24,z:-.31,lives:3,shield:0,score:0,combo:0,dodges:0,hits:0,near:0,alive:true,dist:0,decision:0,goal:null};
  });
  return {initialSeed:original,seed:original,stage:'ready',elapsed:0,countdown:3,
- duration:clamp(Number(opts.duration)||DURATION,45,90),online:!!opts.online,nextWave:2.3,wave:0,events:[],bonuses:[],fx:[],
+ duration:clamp(Number(opts.duration)||DURATION,45,90),online:!!opts.online,nextWave:1.75,wave:0,events:[],bonuses:[],fx:[],
  players:[{id:'you',name:'VOS',kind:'human',color:'#55ffcb',x:0,z:0,lives:3,shield:0,score:0,combo:0,dodges:0,hits:0,near:0,alive:true,dist:0,decision:0,goal:null},...bots],
  ranking:[],maxActive:0,lastPhase:'intro',finishReason:''};
 }
@@ -32,7 +32,7 @@ function setPosition(g,x,z){
  const safe=clampPoint({x,z});p.dist+=distance(p,safe);p.x=safe.x;p.z=safe.z;
 }
 function clampPoint(p){return{x:clamp(p.x,-R,R),z:clamp(p.z,-R,R)}}
-function phase(g){return g.elapsed<14?'aprendizaje':g.elapsed<36?'lluvia':g.elapsed<57?'caos':'apocalipsis'}
+function phase(g){return g.elapsed<8?'aprendizaje':g.elapsed<27?'lluvia':g.elapsed<54?'caos':'apocalipsis'}
 function affected(e,t){
  return t>=e.impact-.05&&t<=e.impact+.27+(e.crater?e.craterTime:0);
 }
@@ -63,8 +63,12 @@ function sampleSafe(g,t,extra=[],from=g.players[0]){
 }
 function planWave(g){
  const f=phase(g),big=f==='caos'||f==='apocalipsis';
- const count=f==='aprendizaje'?1:f==='lluvia'?2:f==='caos'?2+Math.floor(random(g)*2):3+Math.floor(random(g)*2);
- const lead=f==='aprendizaje'?2.45:f==='lluvia'?2.03:f==='caos'?1.86:1.68;
+ // Start demanding attention within a few seconds, then scale wave density gradually.
+ // A safety check below rejects combinations needing sudden sprints.
+ const count=f==='aprendizaje'?1+Number(g.wave%3===2):
+   f==='lluvia'?2+Number(g.wave%3===0):
+   f==='caos'?3+Number(g.wave%3===1):3+Number(g.wave%2===0)+Number(g.wave%5===0);
+ const lead=f==='aprendizaje'?2.30:f==='lluvia'?2.13:f==='caos'?1.98:1.82;
  const impact=g.elapsed+lead;
  // Solo: chase the tracked PHONE position; online: choose shared, deterministic targets.
  // Independently moving phones can NOT be used to seed a common online wave.
@@ -74,7 +78,7 @@ function planWave(g){
   return safe&&distance(planner,safe)<=Math.min(.33,lead*.20);
  };
  const made=[],gx=[-.96,-.48,0,.48,.96],candidate=[];
- const targeted=random(g)<(f==='aprendizaje'?.98:f==='apocalipsis'?.96:.87);
+ const targeted=random(g)<(f==='aprendizaje'?1:f==='lluvia'?.97:.93);
  if(targeted){
   const direction=rnd(g,0,TAU),offset=big?.17:rnd(g,0,.045);
   candidate.push({x:planner.x+Math.cos(direction)*offset,z:planner.z+Math.sin(direction)*offset,priority:true});
@@ -88,11 +92,11 @@ function planWave(g){
  candidate.push(...other);
  for(const p of candidate){
   if(made.length>=count)break;
-  let giant=big&&made.length===0&&random(g)<(f==='apocalipsis'?.59:.26);
+  let giant=big&&made.length===0&&random(g)<(f==='apocalipsis'?.43:.23);
   let radius=giant?.23:.135,point=clampPoint(p);
   if(made.some(e=>distance(e,point)<e.radius+radius+.035))continue;
   const isCrater=f!=='aprendizaje'&&random(g)<.20;
-  const tricky=!giant&&(f==='caos'||f==='apocalipsis')&&random(g)<.19;
+  const tricky=!giant&&(f==='lluvia'||f==='caos'||f==='apocalipsis')&&random(g)<(f==='lluvia'?.09:.20);
   const event={id:'m'+g.wave+'-'+made.length,kind:giant?'giant':tricky?'tricky':'normal',
    x:point.x,z:point.z,originalX:point.x,originalZ:point.z,radius,spawn:g.elapsed,impact,lead,
    crater:isCrater||giant,craterTime:giant?1.0:isCrater?1.35:0,
@@ -108,9 +112,15 @@ function planWave(g){
  if(!made.length)return [];
  const safeHint=sampleSafe(g,impact,made,planner);
  if(safeHint)g.safeHint={x:safeHint.x,z:safeHint.z,until:impact+.15};
- if(g.elapsed>16&&random(g)<.075)made[Math.floor(random(g)*made.length)].fake=true;
+ if(g.elapsed>11&&random(g)<.095)made[Math.floor(random(g)*made.length)].fake=true;
  g.events.push(...made);g.wave++;g.maxActive=Math.max(g.maxActive,made.length);
- if(g.wave%5===0||f==='apocalipsis')g.fx.push({type:'siren',at:g.elapsed,text:f==='apocalipsis'?'☄️ TORMENTA APOCALÍPTICA':'⚠️ ¡LLUVIA MÚLTIPLE!'});
+ // Distinct recognizable attack rhythms, without hiding the actual strike zones.
+ if(g.wave===1)g.fx.push({type:'cue',at:g.elapsed,text:'☄️ ¡PRIMER IMPACTO!'});
+ else if(g.wave===4)g.fx.push({type:'cue',at:g.elapsed,text:'🔥 ¡AHORA VIENE LA LLUVIA!'});
+ else if(g.wave===11)g.fx.push({type:'cue',at:g.elapsed,text:'⚡ ¡DOBLE PRESIÓN!'});
+ else if(g.wave===23)g.fx.push({type:'cue',at:g.elapsed,text:'🌋 ¡SE VIENE EL CAOS!'});
+ if(g.wave%7===0)g.fx.push({type:'siren',at:g.elapsed,text:'⚠️ ¡RÁFAGA DE METEORITOS!'});
+ if(f==='apocalipsis'&&g.wave%4===0)g.fx.push({type:'siren',at:g.elapsed,text:'☄️ ¡TORMENTA FINAL!'});
  return made;
 }
 function moveTrick(g,e){
@@ -194,6 +204,11 @@ function impactTick(g){
     if(near)p.near++;
     p.score+=Math.round(55+Math.min(12,p.combo)*9+(near?40:0)+(e.kind==='giant'?45:0));
     if(near&&p.id==='you')g.fx.push({type:'near',at:g.elapsed,text:'😱 ¡POR UN PELO! +40'});
+    if(p.id==='you'&&(p.combo===6||p.combo===12||p.combo===20)){
+     const bonus=p.combo===6?120:p.combo===12?260:500;
+     p.score+=bonus;
+     g.fx.push({type:'streak',at:g.elapsed,who:p.id,text:'🔥 RACHA x'+p.combo+' · +'+bonus});
+    }
    }
   }
  }
@@ -216,7 +231,10 @@ function tick(g,dt){
  if(g.stage!=='playing'||g.paused)return;
  const step=clamp(dt,0,.08);g.elapsed=Math.min(g.duration,g.elapsed+step);
  if(g.elapsed>=g.nextWave&&g.elapsed<g.duration-1.1){
-  const wave=planWave(g);g.nextWave+=Math.max(1.32,3.8-g.elapsed*.032)+(wave.length?0:.6);
+  const wave=planWave(g);// A controlled ramp: ~2.65s initially → 2.40s at 18s → 2s at 50s → 1.67s in finale.
+  // No abrupt difficulty cliff; each explosion has a >=1.82s warning.
+  const interval=g.elapsed<8?2.65:Math.max(1.65,2.54-Math.max(0,g.elapsed-8)*.014);
+  g.nextWave+=interval+(wave.length?0:.23);
  }
  for(const p of g.players.slice(1))botTick(g,p,step);
  for(const p of g.players)if(p.alive&&p.kind!=='remote')p.score+=step*3.5;
