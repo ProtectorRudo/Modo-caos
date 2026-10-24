@@ -34,7 +34,7 @@ function pickTrap(g){
  return TRAPS[Math.floor(rand(g)*max)];
 }
 function plan(g){
- g.round++;g.index=0;g.highlight=-1;g.colorMap=[0,1,2,3,4,5,6,7,8];
+ g.round++;g.index=0;g.highlight=-1;g.ghost=-1;g.colorMap=[0,1,2,3,4,5,6,7,8];
  g.trap=pickTrap(g);g.swap=null;g.electric=-1;g.last='';
  const size=g.mode==='panico'?clamp(6+g.round,7,9):clamp(2+Math.floor((g.round-1)/2),2,8);
  const seq=[];while(seq.length<size){let j=Math.floor(rand(g)*9);if(seq.length&&j===seq[seq.length-1])j=(j+1+Math.floor(rand(g)*8))%9;seq.push(j)}
