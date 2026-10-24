@@ -42,3 +42,11 @@ Licencias: gráficos generados por código local WebGL/Canvas; no se descargaron
 - Pruebas desde Actions: `node tests/meteoros.test.cjs` (núcleo y otros juegos), Chromium en pantalla móvil `node tests/meteoros-browser.test.cjs` (Canvas real, iniciar, botones, puntuación, pantalla de sala) y Chromium + Hit Test WebXR **SIMULADO** `node tests/meteoros-xr-smoke.test.cjs` (suelo, ancla, calibración, inicio y llamadas 3D GPU). Estas pruebas sintéticas NO comprueban ARCore físico.
 - Se desactivaron CI duplicadas por push en rama de trabajo: PR ejecuta pruebas y `main` conserva controles de push. Preview Git se despliega automáticamente por Vercel, que puede exigir SSO.
 - Estado online: no autoritativo, no certificado, no se cambió Supabase.
+
+## Cambio de jugabilidad: protagonista físico sin avatar (24/10/2026)
+
+- **AR en primera persona:** el humano NO se representa con un muñeco 3D. Solo se renderizan los meteoritos, sus zonas de peligro, recompensas y rivales controlados por computadora. Un aro verde orientativo aparece durante la calibración y desaparece al empezar, para que no parezca un avatar.
+- **Arena física más grande:** radio fijo 1,12 m (diámetro **2,24 m**), comparable al campo visible de Color Rush; advertencia de jugar sólo en un espacio físico despejado de al menos ~2,5 m. Ninguna necesidad de correr.
+- **Fijar → calibrar:** el Hit Test determina piso, altura y orientación; antes de fijar, la previsualización se centra en la proyección horizontal del teléfono. Al tocar FIJAR, se congela *una sola vez* esa posición mundial relativa. Un segundo quieto establece el origen de movimiento del teléfono. Después NO se recentra ni desplaza la escena automáticamente.
+- **La posición física estimada es el protagonista:** en los impactos se usa el movimiento del **teléfono**, suavizado respecto de la calibración inicial, NO tracking de pies/cuerpo. En el modo 2D existe sólo un aro verde que muestra posición táctil, sin muñeco.
+- **Pendiente**: ARCore real y comodidad en distintas casas (FOV, tamaño de suelo, ubicación inicial, iluminación, FPS); las pruebas automáticas de WebXR usan poses sintéticas, no cámara física.
