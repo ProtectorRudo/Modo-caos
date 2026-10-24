@@ -49,3 +49,5 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Exercise real browser gameplay
         run: node tests/meteoros-browser.test.cjs
+      - name: Exercise simulated WebXR lifecycle and GPU
+        run: node tests/meteoros-xr-smoke.test.cjs
