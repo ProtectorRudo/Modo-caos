@@ -42,3 +42,10 @@ Juego de memoria sobre nueve cerámicos reales, basado en el documento «DESARRO
 - Reproducción de Simón: destellos más prolongados, celdas restantes atenuadas, identificación visible de cada paso y pausa entre destellos. El HUD cambia explícitamente entre **MIRÁ** y **TU TURNO**.
 - AR: indicación actual de celda y color, margen central, vibración corta al quedar estable, botón de confirmación con texto dinámico (fuera del centro / esperando estabilidad / listo / registrada), resultado sonoro y vibración de acierto/error.
 - Seguridad: evitar desplazamientos rápidos mirando la pantalla; utilizar un área despejada, sin suponer seguimiento corporal.
+
+## Interacción AR legible sin girar la cámara (v4)
+- Mientras Simón enseña la secuencia aparece una **réplica cenital fija de las 9 celdas**, en el overlay DOM. La réplica reproduce en tiempo real cada destello, indicando el número de celda y paso. Así puede verse el orden completo desde un único campo de visión, incluso si las placas WebGL quedan a un costado.
+- Al pasar a **TU TURNO**, el mapa se hace pequeño y muestra un punto verde correspondiente a la posición **estimada del teléfono**, no a los pies. No revela las respuestas pendientes.
+- El jugador llega a la celda y pulsa el botón grande **CONFIRMAR CELDA N** después de la detección estable. El movimiento no introduce respuestas.
+- Si ARCore interpreta incorrectamente la celda, tocar **¿CELDA EQUIVOCADA? CORREGIR**, elegir la celda actual en el minimapa y después **CONFIRMAR**. La interfaz informa que es una **selección manual**, no una ubicación física verificada; sigue vigente el bloqueo de puntuación doble y se registra el paso sólo al pulsar CONFIRMAR. No se modifica el ancla ni se repite la calibración.
+- Tests del navegador XR simulado cubren minimapa visible con 9 celdas, reproducción, ausencia de pistas durante respuesta, confirmación explícita y corrección manual; **no sustituyen Android físico**.
