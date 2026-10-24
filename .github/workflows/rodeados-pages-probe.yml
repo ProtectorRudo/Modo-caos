@@ -1,0 +1,30 @@
+name: RODEADOS — GitHub Pages public diagnosis
+on:
+  pull_request:
+    paths:
+      - .github/workflows/rodeados-pages-probe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pages: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check public Pages URL and GitHub Pages status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          echo "CHECK PAGES BASE"
+          for url in https://protectorrudo.github.io/ https://protectorrudo.github.io/Modo-caos/ https://protectorrudo.github.io/Modo-caos/rodeados.html; do
+            echo "$url"
+            curl -sSL -m 12 -o /tmp/body -w "HTTP=%{http_code} TYPE=%{content_type} BYTES=%{size_download}\n" "$url" || true
+            head -c 90 /tmp/body | tr '\n' ' '; echo
+          done
+          echo "PAGES CONFIG (if enabled)"
+          gh api repos/ProtectorRudo/Modo-caos/pages --jq '{status:.status,html_url:.html_url,build_type:.build_type,source:.source}' || true
+          echo "LAST PAGES WORKFLOW"
+          gh api 'repos/ProtectorRudo/Modo-caos/actions/workflows/publish-pages.yml/runs?per_page=5' --jq '.workflow_runs[] | {id,status,conclusion,html_url,head_sha}' || true
