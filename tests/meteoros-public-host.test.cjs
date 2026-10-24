@@ -2,7 +2,7 @@
 /* Browser check for a direct-to-game HTTPS URL. External CDNs are not trusted for secrets. */
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
-const revision='2fc58d071f23b4bb9b1bbe9815e1014dbeb0f5a3';
+const revision='4f06a9d865ed199db15995376ac2e74da4f2ec47';
 const hosts=[
  'https://cdn.githubraw.com/ProtectorRudo/Modo-caos/'+revision+'/meteoros-autonomo.html',
  'https://cdn.statically.io/gh/ProtectorRudo/Modo-caos@'+revision+'/meteoros-autonomo.html'
