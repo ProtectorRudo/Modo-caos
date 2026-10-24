@@ -91,7 +91,7 @@ const server=http.createServer((req,res)=>{
   assert((await page.locator('#radarTime').innerText()).includes('EN '),'timer forecasts red impact');
   assert((await page.locator('#radarDirection').innerText()).includes('DESDE')||
     (await page.locator('#radarDirection').innerText()).length>5,'radar indicates incoming direction');
-  assert(await page.locator('#radarYou').isVisible(),'screen-fixed status of the player's cell');
+  assert(await page.locator('#radarYou').isVisible(),'screen-fixed status of the player cell');
   await page.waitForFunction(()=>document.querySelectorAll('#radarCells i.warning').length>0,
    null,{timeout:4000});
   assert(await page.locator('#radarCells i.warning').count()>0,'incoming orange light is visible even with camera pointing elsewhere');
