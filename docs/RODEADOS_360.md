@@ -131,3 +131,15 @@ Cambios basados en captura física de Android: el robot invadía toda la pantall
 - Mantiene alturas y distancias de aparición V9. Los desplazamientos cosméticos son pequeños y no cambian posiciones físicas de colisión ni precisión del tiro.
 - Se conservan calibración, compositor de Blackzone, Bomba Caos, EMP, radar y pausa.
 - Nuevas aserciones en tests de core/coop/Chromium/WebXR para demostrar ausencia de consumo de balas, eliminación del botón RECARGAR y continuidad del daño al disparar muchas veces. Falta la comprobación sensorial en Chrome Android real.
+
+## V11 — campo de batalla que se deteriora y headshots de precisión (24/10/2026)
+
+- Al calibrar, las 25 celdas turquesas de la pista siguen visibles y manipulables. En el combate, cambian por un **tablero táctico militar futurista de grafito**, con contornos reforzados, pequeñas marcas de identificación y paneles translúcidos. No bloquean la cámara real.
+- Cada golpe sufrido añade daño cosmético persistente a las baldosas próximas a VOS. El radio de la Bomba Caos deja una marca de quemadura y grietas, con un breve brillo naranja. Cada celda guarda `floorDamage[i]` de 0 a 1 y `floorHeat[i]` para desvanecer el brillo temporal. Rejilla, textura y grietas NO cambian el suelo físico, la colisión, el tracking ni el ritmo de partida. La revancha restaura la pista intacta.
+- Gráficos móviles: se reutiliza **una sola CanvasTexture** de quemadura entre 25 placas. La geometría táctica y fracturas se crea una vez por sesión; solo se cambia color y opacidad al modificar daño. El suelo se dibuja con Blackzone/WebGL DOM overlay con el mismo anclaje real que los robots.
+- Bonos de disparo por zona: **cabeza: 165 puntos base**, torso: 55, piernas: 35. Una baja conserva el bonus de robot; el headshot letal agrega **90** y cada tercer headshot consecutivo agrega **75** extra. Combos y modos especiales continúan aplicando su multiplicador habitual. Un fallo o daño sufrido reinicia la racha de precisión.
+- HUD: texto breve y visible «HEADSHOT», «HEADSHOT LETAL» y «RACHA x3», con el puntaje real obtenido y vibración diferenciada.
+- Estado online beta: `floorDamage[25]`, `floorHeat[25]` y rachas de precisión viajan en las instantáneas del anfitrión; no se crea ninguna tabla SQL. Alineación física AR entre celulares aún requiere validación.
+- Pruebas: `tests/rodeados-war-floor.test.cjs` cubre deterioro, topes, ataques, explosión, premio de cabeza, rachas y reinicio. Chromium 3D y WebXR simulado verifican que **25 placas reales** aparezcan en el motor WebGL en modo combate; Chromium verifica que la explosión produce manchas visibles, no solo valores en el core.
+
+**Pendiente:** verificar la estética y legibilidad del suelo con iluminación ARCore en Android real. No se modifican otros juegos.
