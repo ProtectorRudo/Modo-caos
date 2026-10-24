@@ -40,7 +40,7 @@ function finish(g,storage=root.localStorage,d=new Date()){
  if(hits>=8&&shots&&hits/shots>=.70)unlock('sharp');
  if((g.bestCombo||0)>=10)unlock('streak');
  if((g.elapsed||0)>=90&&(g.lives||0)>0)unlock('survivor');
- if(g.mode==='boss'&&(g.announcedBoss||kills>0)&&!g.enemies?.some(e=>e.type==='boss'))unlock('boss');
+ if(g.mode==='boss'&&g.announcedBoss&&!g.enemies?.some(e=>e.type==='boss'))unlock('boss');
  const dailyWon=progress.lastDaily===date.date||(g[date.prop]||0)>=date.min;
  if(dailyWon)progress.lastDaily=date.date;
  try{storage.setItem(prefix,JSON.stringify(progress))}catch(_){}
