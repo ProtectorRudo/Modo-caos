@@ -241,8 +241,9 @@ async function boot(){
   $('precheck').textContent='Cargando física 3D…';
   await RAPIER.init();
   art=new TorreArt($('arena'));art.renderer.setAnimationLoop(tick);phaseTo('home');
-  $('precheck').textContent=arReady()?'AR disponible en Chrome Android / ARCore · También podés jugar en 3D.':'Modo 3D disponible · La AR espacial necesita Chrome Android y ARCore.';
-  $('demoBtn').disabled=false;$('arBtn').disabled=!arReady();
+  const supportsAR=arReady()&&await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
+  $('precheck').textContent=supportsAR?'AR espacial compatible · También podés jugar en 3D.':'Modo 3D disponible · La AR espacial requiere Chrome Android y ARCore compatibles.';
+  $('demoBtn').disabled=false;$('arBtn').disabled=!supportsAR;
  }catch(e){$('precheck').textContent='Error cargando motor físico: '+(e.message||e);$('demoBtn').disabled=true;$('arBtn').disabled=true;console.error(e)}
 }
 ui.overlay.addEventListener('beforexrselect',e=>e.preventDefault());
