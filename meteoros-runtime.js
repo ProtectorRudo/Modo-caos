@@ -11,7 +11,7 @@ const params=new URLSearchParams(location.search),roomCode=(params.get('room')||
 const K='mc-meteoros-record-v1';
 let best=0;try{best=Math.max(0,Number(localStorage.getItem(K))||0)}catch(_){}
 $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleString('es-AR')+' PUNTOS';
-let demo=false,calibrated=false,sampling=false,origin=null,avg=null,calSamples=[],calStart=0;
+let demo=false,calibrated=false,sampling=false,origin=null,placement=null,avg=null,calSamples=[],calStart=0;
 let game=G.make((Math.random()*4294967295)>>>0),running=false,finished=false,renderer=null,trackLast=0;
 let lastFrame=0,lastHud=0,trackingLast=null,arLoop=false,status='intro',mode='motion';
 let muted=false,audio=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
@@ -192,6 +192,7 @@ function arFrame(t,frame,W){
  try{
   if(!W)return;
   const pos=localPose(frame,W);
+  if(typeof stage!=='undefined'&&stage==='fixed'&&!placement&&pos)placement={...pos};
   if(sampling)sample(t,pos);
   if(running&&mode==='motion'&&calibrated){
    if(pos&&motion(t,pos)){trackLast=t;lostShown=false;game.paused=false}
@@ -200,8 +201,10 @@ function arFrame(t,frame,W){
   }
   if(running)tick(dt,t);
   if(renderer){
-   // Arena placed under first calibrated device pose; world matrix stays unchanged after RECENTRAR.
-   const shift=origin||{x:0,z:0};
+   // Preview follows the tracked phone footprint. FIXAR captures the footprint once.
+   // Calibration and RECENTRAR NEVER change this fixed world-space placement.
+   const preview=(typeof stage!=='undefined'&&stage==='preview');
+   const shift=placement||(preview&&pos)||{x:0,z:0};
    renderer.render(frame,multiply(W,translate(shift.x,shift.z)),game);
   }
   if(!running&&t-lastHud>160){lastHud=t;hud()}
