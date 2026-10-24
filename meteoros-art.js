@@ -257,9 +257,10 @@ function draw2D(ctx,width,height,g,ms){
  if(g.elapsed>54&&g.stage==='playing'){
   ctx.fillStyle='rgba(255,42,45,'+(.035+.038*Math.sin(t*7)**2)+')';ctx.fillRect(0,0,w,h);
  }
- if(g.fx.some(f=>f.type==='streak'&&g.elapsed-f.at<1)){
-  const alpha=clamp(1-g.fx.filter(f=>f.type==='streak').slice(-1)[0]?.at+g.elapsed,0,1);
-  ctx.fillStyle='rgba(240,189,42,'+(.030*(1-alpha))+')';ctx.fillRect(0,0,w,h);
+ const recentStreak=g.fx.find(f=>f.type==='streak'&&g.elapsed-f.at<1);
+ if(recentStreak){
+  const alpha=clamp(1-(g.elapsed-recentStreak.at),0,1);
+  ctx.fillStyle='rgba(240,189,42,'+(.055*alpha)+')';ctx.fillRect(0,0,w,h);
  }
 }
 root.MeteorosArt=Object.freeze({create3D,draw2D});
