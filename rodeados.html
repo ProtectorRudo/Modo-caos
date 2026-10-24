@@ -47,9 +47,16 @@ h1 span{color:#7bffe1;display:block}
 #notice{position:absolute;left:10%;right:10%;top:34%;text-align:center;color:#ffc87d;font-weight:1000;text-shadow:0 2px 8px #000;pointer-events:none}
 #touch{position:absolute;left:0;right:0;top:20%;bottom:22%;touch-action:none;pointer-events:auto;display:none;z-index:10}
 #cellsvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none;z-index:15}
-#reticle{position:absolute;left:50%;top:48%;width:32px;height:32px;transform:translate(-50%,-50%);border:2px solid #b6ffeb;border-radius:50%;box-shadow:0 0 15px #55ffe899;pointer-events:none;display:none}
+#reticle{position:absolute;left:50%;top:50%;width:32px;height:32px;transform:translate(-50%,-50%);border:2px solid #b6ffeb;border-radius:50%;box-shadow:0 0 15px #55ffe899;pointer-events:none;display:none}
 #reticle:before,#reticle:after{content:'';position:absolute;left:50%;top:-10px;width:1px;height:48px;background:#b8fff1;transform:translateX(-50%) scaleY(.8)}
 #reticle:after{transform:translateX(-50%) rotate(90deg)}
+#radarWrap{position:absolute;left:12px;bottom:max(128px,env(safe-area-inset-bottom) + 110px);width:108px;height:108px;border-radius:50%;display:none;background:radial-gradient(circle,#0c253b9c 0%,#041523ad 80%);border:1px solid #77dfde92;box-shadow:0 0 13px #69e9d728;pointer-events:none}
+#radarWrap canvas{display:block;width:108px;height:108px}
+#radarWrap span{position:absolute;left:0;right:0;bottom:-16px;text-align:center;font-size:9px;letter-spacing:2px;color:#b2ebe5;text-shadow:0 2px 4px #000}
+#damageFlash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse,transparent 42%,#ff285169 96%);transition:opacity .18s;z-index:6}
+#waveBanner{position:absolute;top:26%;left:12px;right:12px;text-align:center;font-size:clamp(21px,6vw,35px);font-weight:1000;letter-spacing:2px;color:#ffe6ab;text-shadow:0 2px 14px #001729,0 0 22px #ffc35b;opacity:0;transform:scale(.9);transition:opacity .22s,transform .22s;pointer-events:none}
+#combo{position:absolute;top:91px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:950;letter-spacing:1.4px;color:#ffe3a2;opacity:0;transition:opacity .2s;pointer-events:none;text-shadow:0 2px 8px #000}
+#hitCross{position:absolute;left:50%;top:50%;font-size:33px;line-height:1;transform:translate(-50%,-50%);color:#fff3b9;text-shadow:0 0 13px #faffbd;opacity:0;pointer-events:none}
 #warning{position:absolute;inset:15% 0;pointer-events:none;display:none}
 #warning i{position:absolute;left:50%;top:50%;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:17px solid #ffbd62;transform-origin:50% 50%;filter:drop-shadow(0 0 8px #ff783c)}
 #calControls,#cellControls,#actions{position:absolute;left:8px;right:8px;bottom:max(14px,env(safe-area-inset-bottom));display:none;gap:7px;z-index:16;justify-content:center;align-items:center;pointer-events:auto}
@@ -104,7 +111,7 @@ h1 span{color:#7bffe1;display:block}
 <div id="hint">BUSCÁ EL PISO CON LA CÁMARA</div><div id="notice" role="status" aria-live="polite"></div>
 <div id="touch" aria-label="Mover, agrandar, achicar y girar pista"></div>
 <svg id="cellsvg" xmlns="http://www.w3.org/2000/svg" aria-label="Elegí tu celda"></svg>
-<div id="reticle"></div><div id="warning"></div><div id="online"></div>
+<div id="reticle"></div><div id="hitCross">✕</div><div id="damageFlash"></div><div id="waveBanner" role="status"></div><div id="combo"></div><div id="radarWrap"><canvas id="radar" width="216" height="216" aria-label="Radar de robots a 360 grados"></canvas><span>360° · VOS</span></div><div id="warning"></div><div id="online"></div>
 <div id="calControls"><button id="smaller" class="secondary">−</button><button id="size" class="secondary" disabled>2,60 m</button><button id="larger" class="secondary">+</button><button id="turn" class="secondary">↻ 15°</button><button id="lock" class="gold">📍 FIJAR PISTA</button></div>
 <div id="cellControls"><div id="calprogress"><i id="calfill"></i></div><button id="center" class="secondary">👣 ESTOY EN LA CELDA CENTRAL</button><button id="begin" class="gold" disabled>▶ ¡DEFENDERME!</button><button id="changeCell" class="secondary">📍 ELEGIR OTRA CELDA</button></div>
 <div id="actions"><button id="recal" class="secondary">🎯 RECALIBRAR</button><button id="resume" class="gold">▶ CONTINUAR</button></div>
@@ -114,7 +121,7 @@ h1 span{color:#7bffe1;display:block}
 <button id="rematch" class="gold">↻ REVANCHA RÁPIDA</button><button id="share" class="secondary">↗ COMPARTIR MARCA</button>
 <button id="reposition" class="secondary">📍 AJUSTAR PISTA</button><button id="menu" class="secondary">← SALIR AL MENÚ</button></div></div>
 </div>
-<script src="/rodeados-core.js?v=1"></script><script src="/rodeados-progression.js?v=1"></script>
+<script src="/rodeados-core.js?v=2"></script><script src="/rodeados-ux.js?v=2"></script><script src="/rodeados-progression.js?v=1"></script>
 <script src="/mc-config.js?v=2"></script><script src="/mc-rooms-client.js?v=2"></script>
-<script type="module" src="/rodeados-runtime.js?v=1"></script>
+<script type="module" src="/rodeados-runtime.js?v=2"></script>
 </body></html>
