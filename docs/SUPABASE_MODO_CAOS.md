@@ -53,7 +53,7 @@ Frontend: `/salas.html`, `/mc-config.js`, `/mc-rooms-client.js`, `/mc-lobby.js`.
 
 ## Pendiente ANTES de prometer online 1–4
 
-1. Verificar y eventualmente habilitar `signInAnonymously()` en Supabase Auth. Afecta a TODO el proyecto, por eso auditar previamente las RLS de Viralio (los invitados anónimos tienen rol SQL `authenticated`). Recomendable proteger altas con CAPTCHA y límites de abuso.
+1. **ACCIÓN EN EL PANEL DE SUPABASE:** abrir https://supabase.com/dashboard/project/bwsgxpttnrctklrcjmjs/auth/providers y comprobar/activar **Anonymous Sign-Ins**. La conexión actual no ofrece una herramienta para modificar proveedores Auth. Luego entrar a https://modo-caos-eta.vercel.app/salas.html y crear una sala desde un dispositivo real. Afecta a TODO el proyecto, por eso auditar previamente las RLS de Viralio (los invitados anónimos tienen rol SQL `authenticated`). Recomendable proteger altas con CAPTCHA y límites de abuso.
 2. [IMPLEMENTADO EN SQL] Políticas para Broadcast/Presence en temas `mc-room:<uuid>` y canales frontend `private:true`. Pendiente prueba real de suscripción autorizada/no autorizada y revisar el ajuste global de acceso público sin romper Color Rush.
 3. [IMPLEMENTADA LA SALA] Pantalla crear/unirse/esperar, pulso y lista de participantes, inicio y retomar sesión con polling si Realtime falla. Pendiente conectar partidas AR y resultados de juegos.
 4. Diseñar validación oficial de resultados en un servidor confiable; `round_results` no permite que el navegador escriba puntuaciones a voluntad.
@@ -69,3 +69,14 @@ Frontend: `/salas.html`, `/mc-config.js`, `/mc-rooms-client.js`, `/mc-lobby.js`.
 - Contadores de tablas de Viralio conservados tras la migración.
 
 No copiar claves `service_role` ni secretos al frontend o a GitHub.
+
+## Auditoría de entrega 24/10/2026
+
+- Proyecto compartido: 47 tablas públicas auditadas; todas tienen RLS habilitado. Otras funciones `SECURITY DEFINER` accesibles a usuarios autenticados fueron revisadas; utilizan controles `auth.uid()` y pertenencia/rol. Esto no equivale a una auditoría formal exhaustiva de otros productos.
+- Tablas `modo_caos` siguen sin acceso SQL directo ni para `anon` ni para `authenticated`.
+- Las políticas `realtime.messages` fueron verificadas para leer/escribir sólo `broadcast` y `presence` con tópico `mc-room:<uuid>` y membresía comprobada. El acceso Realtime público de los productos existentes no se modificó.
+- Las funciones `mc_*` se han verificado en la BD; invocación de no-miembros sin `auth.uid()` denegada, sin escrituras. No se probó aún el flujo real con dos JWT de usuarios invitados.
+- Interfaz `/salas.html` y cuatro juegos anteriores devuelven HTTP 200 en Vercel; GitHub despliega `main` con el código nuevo.
+- La prueba **PULSO ENTRE CELULARES** ignora señales del propio dispositivo, para evitar falsos positivos.
+- Las funciones `SECURITY DEFINER` visibles a usuarios autenticados disparan avisos del auditor de Supabase; su uso es intencional porque permiten operaciones controladas sobre un esquema privado. Revalidar los controles de membresía siempre que se amplíen las RPC.
+- **Bloqueos antes de declarar multiplayer completo:** Anonymous Sign-Ins si está deshabilitado; prueba de acceso privado con invitado autorizado y no autorizado; verificación con 2 Android; sincronización de juego y puntuaciones servidor; migración futura de canales públicos antiguos si se quiere desactivar globalmente el acceso público Realtime.
