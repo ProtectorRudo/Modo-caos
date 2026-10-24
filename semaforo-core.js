@@ -138,7 +138,7 @@ function advance(g,dt){
   const other=g.players.find(q=>q!==p&&q.kind!=='remote'&&!q.eliminated&&q.finishedAt===null&&
    Math.abs(q.progress-p.progress)<2.4&&Math.abs(q.lane-p.lane)<.11);
   if(other){
-   p.lastBump=g.raceTime;p.lane=clamp(p.lane+(p.lane>=other.lane?.16:-.16),-.83,.83);
+   p.lastBump=g.raceTime;p.lane=clamp(p.lane+(p.lane>=other.lane ? .16 : -.16),-.83,.83);
    p.progress=Math.max(0,p.progress-.75);emit(g,'bump',{id:p.id,other:other.id});
   }
  }
