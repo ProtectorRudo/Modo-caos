@@ -94,6 +94,8 @@ const server=http.createServer((req,res)=>{
   const moved=await page.evaluate(()=>window.__meteorTestSnapshot());
   assert(Math.abs(moved.avatar.x-fixed.avatar.x)>.07,'avatar VOS follows simulated phone displacement');
   assert.deepEqual(moved.placement,fixed.placement,'world-locked arena never moved after phone displacement');
+  assert(fixed.arenaWorld&&moved.arenaWorld,'renderer exposes ground-locked matrix');
+  for(const axis of ['x','y','z'])assert(Math.abs(moved.arenaWorld[axis]-fixed.arenaWorld[axis])<.0005,'world XR center '+axis+' remains fixed');
   const fatal=pageErrors.filter(e=>!e.includes('No runtimes supported the requested configuration'));
   assert.equal(fatal.length,0,'no XR JavaScript errors: '+fatal.join(' / '));
   assert(!((await page.locator('#toast').innerText()).includes('RENDER AR')),'no render failures');
