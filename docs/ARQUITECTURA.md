@@ -93,3 +93,12 @@ Actualizar este documento cuando cambien motor AR, paths, base, repo o despliegu
 - Recentrar pausa juego sin reiniciar mundo; la cámara se limita a seguimiento de teléfono.
 - `/salas.html` ofrece Semáforo para 2–4 participantes, entrada al juego desde el lobby y avisos de beta. RPCs, RLS y datos de otros productos sin modificaciones. La sincronización cliente a cliente carece aún de puntuación validada por servidor y pruebas físicas.
 - Ver los pasos, límites y tests en [SEMAFORO_TRAICIONERO.md](SEMAFORO_TRAICIONERO.md); ejecutar `node tests/semaforo.test.cjs`.
+
+## Nuevo minijuego: Lluvia de Meteoros (2026-10-24)
+
+- Archivos `/meteoros.html`, `/meteoros-core.js`, `/meteoros-art.js`, `/meteoros-runtime.js`, integrados en menú y lobby de salas. 72 segundos, tres vidas, tres bots (cuatro perfiles rotativos), combos, fragmentos, escudos, falsas alarmas, cráteres y tormenta final.
+- Reutiliza Hit Test, ancla y matriz del mundo `engine.js`. Se agregó un único punto de extensión opcional `window.modoCaosXRFrame(time,frame,W)`, invocado **después de limpiar y dibujar la base XR**, para evitar que el render del juego sea borrado; no cambia el flujo de juegos existentes si no hay callback.
+- La arena se fija una vez respecto del plano al pulsar FIJAR. La calibración de ~1 s y RECENTRAR nunca cambian la traslación de esa arena. Avatar controlado con la posición 2D del teléfono en referencia local, tolerancia y protección de saltos de tracking. No representa pies ni tracking corporal.
+- Hit-test simulado con Chromium y WebGL (no Android real) pasa el flujo fijar → calibrar → iniciar y renderiza fotogramas. Canvas 2D validado en Chromium. Las simulaciones verifican que quedarse quieto no gana y que desplazarse a ~0,23 m/s puede sobrevivir.
+- Salas online de Meteoros son **beta**: semilla/cronómetro compartidos, pero posiciones/resultados proceden del cliente y no hay validación antifraude; falta prueba física con dos teléfonos y reconexiones. `modo_caos` y tablas de Viralio sin cambios.
+- Guía completa y límites: [LLUVIA_METEOROS.md](LLUVIA_METEOROS.md). Mantener PR #3 aislada de `main` hasta verificaciones finales.
