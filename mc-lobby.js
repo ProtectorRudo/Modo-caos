@@ -63,6 +63,8 @@ function tab(what){
 }
 $('tabCreate').onclick=()=>tab('create');
 $('tabJoin').onclick=()=>tab('join');
+const chosen=(new URLSearchParams(location.search)).get('game');
+if(chosen&&[...$('gameChoice').options].some(o=>o.value===chosen))$('gameChoice').value=chosen;
 const deep=(new URLSearchParams(location.search)).get('room');
 if(deep&&/^[A-Fa-f0-9]{8}$/.test(deep)){tab('join');$('joinCode').value=deep.toUpperCase()}
 $('nickname').value=stored('mc-player-name')||'';
@@ -128,6 +130,7 @@ function render(){
  ui.begin.classList.toggle('hidden',!isHost||!inLobby);
  ui.begin.disabled=!(room.players?.length>=2&&room.players.every(p=>p.ready));
  ui.finish.classList.toggle('hidden',!isHost||room.status!=='playing');
+ $('goGame').classList.toggle('hidden',room.game!=='semaforo-traicionero');
  ui.conn.textContent=conn?.connected?'● CONECTADO':'○ '+(conn?'RECONECTANDO':'SIN CONEXIÓN');
  updateClock();
 }
@@ -206,6 +209,7 @@ $('pulseButton').onclick=()=>run(async()=>{
  await conn.pulse();
  label('⚡ Pulso enviado. Verificá que también aparezca en el otro celular.');
 });
+$('goGame').onclick=()=>{if(room?.game==='semaforo-traicionero')location.href='/semaforo.html?room='+encodeURIComponent(room.code)};
 function link(){return location.origin+'/salas.html?room='+encodeURIComponent(currentCode)}
 $('share').onclick=()=>{
  const content='¡Te invito a Modo Caos! Entrá a mi sala '+currentCode+': '+link();
