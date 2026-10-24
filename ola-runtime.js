@@ -304,8 +304,14 @@ function demoFrame(t){
  requestAnimationFrame(demoFrame);
 }
 $('demo').addEventListener('click',demoStart);
-$('canvas2D').addEventListener('pointerdown',e=>{
+const demoCanvas=$('canvas2D');
+demoCanvas.addEventListener('pointerdown',e=>{
  if(!demo||!running)return;
+ demoCanvas.setPointerCapture?.(e.pointerId);
+ const p=canvas.point(e.clientX,e.clientY);if(p)target=p;
+});
+demoCanvas.addEventListener('pointermove',e=>{
+ if(!demo||!running||!(e.buttons&1))return;
  const p=canvas.point(e.clientX,e.clientY);if(p)target=p;
 });
 window.addEventListener('keydown',e=>{keys.add(e.key);if(demo&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault()});
@@ -330,8 +336,8 @@ $('share').addEventListener('click',async()=>{
  if(navigator.share){try{await navigator.share({title:'OLA ROJA · MODO CAOS',text:s,url:location.origin+'/ola.html'})}catch(_){}}
  else{try{await navigator.clipboard.writeText(s);toast('RESULTADO COPIADO',1500)}catch(_){toast(s,3000)}}
 });
-$('leave').addEventListener('click',()=>location.assign('/'));
-$('exit').addEventListener('click',()=>{if(typeof sess!=='undefined'&&sess)sess.end().catch(()=>location.assign('/'));else location.assign('/')});
+$('leave').addEventListener('click',()=>location.assign('./index.html'));
+$('exit').addEventListener('click',()=>{if(typeof sess!=='undefined'&&sess)sess.end().catch(()=>location.assign('./index.html'));else location.assign('./index.html')});
 $('music').addEventListener('click',()=>{muted=!muted;$('music').textContent=muted?'🔇':'🔊';if(!muted)speak(700,.1)});
 $('overlay').addEventListener('beforexrselect',e=>e.preventDefault());
 $('calCenter').textContent='👣 ESTOY EN EL CENTRO (4-4)';
