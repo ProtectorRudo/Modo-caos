@@ -14,7 +14,7 @@ $('record').textContent='🏆 RÉCORD PERSONAL: '+Math.round(best).toLocaleStrin
 let demo=false,calibrated=false,sampling=false,origin=null,placement=null,avg=null,calSamples=[],calStart=0;
 let game=G.make((Math.random()*4294967295)>>>0),running=false,finished=false,renderer=null,trackLast=0;
 let lastFrame=0,lastHud=0,trackingLast=null,arLoop=false,status='intro',mode='motion';
-let muted=false,audio=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
+let muted=false,audio=null,impactBuffer=null,buttons={up:false,down:false,left:false,right:false},keys=new Set(),target=null;
 let eventKeys=new Set(),online=null,onlineConnecting=false,onlineBusy=false,onlineTimer=null,lastPeer=0;
 let lostShown=false,toastAt=0,lastAlert=0;
 function beep(f=500,d=.12,wave='sine',volume=.07){
@@ -24,6 +24,30 @@ function beep(f=500,d=.12,wave='sine',volume=.07){
  gain.gain.setValueAtTime(volume,t);gain.gain.exponentialRampToValueAtTime(.001,t+d);
  osc.connect(gain);gain.connect(audio.destination);osc.start(t);osc.stop(t+d+.01);
  }catch(_){}}
+function boom(big=false){
+ if(muted)return;
+ try{
+  audio=audio||new(window.AudioContext||window.webkitAudioContext)();audio.resume?.();
+  const rate=audio.sampleRate;
+  if(!impactBuffer){
+   impactBuffer=audio.createBuffer(1,Math.ceil(rate*.52),rate);
+   const data=impactBuffer.getChannelData(0);
+   for(let i=0;i<data.length;i++){
+    const env=Math.pow(1-i/data.length,2.3);
+    const rumble=(Math.random()*2-1)*.75+Math.sin(i*.021)*.16;
+    data[i]=rumble*env;
+   }
+  }
+  const t=audio.currentTime,source=audio.createBufferSource();
+  source.buffer=impactBuffer;source.playbackRate.value=big?.72:1.1;
+  const low=audio.createBiquadFilter();low.type='lowpass';low.frequency.setValueAtTime(big?650:1050,t);
+  low.frequency.exponentialRampToValueAtTime(big?145:260,t+.35);
+  const gain=audio.createGain();gain.gain.setValueAtTime(big?.18:.105,t);
+  gain.gain.exponentialRampToValueAtTime(.0001,t+.52);
+  source.connect(low);low.connect(gain);gain.connect(audio.destination);
+  source.start(t);
+ }catch(e){console.warn('Audio de impactos no disponible:',e.message)}
+}
 function vibrate(pattern){if(!muted)try{navigator.vibrate?.(pattern)}catch(_){}}
 function toast(msg,ms=1600){$('toast').textContent=msg;toastAt=performance.now()+ms}
 function statusText(msg){$('safety').textContent=msg}
@@ -44,7 +68,7 @@ function consumeFX(){
   if(eventKeys.size>300)eventKeys.clear();
   if(['impact','hit','ko','siren','trick','bonus','near','shield','start','fake'].includes(f.type)){
    const text=f.text||'';if(text&&(!f.who||f.who==='you'))toast(text,f.type==='siren'?2000:1250);
-   if(f.type==='impact'){beep(f.giant?96:155,.29,'sawtooth',.11);vibrate(f.giant?[90,30,65]:55)}
+   if(f.type==='impact'){boom(!!f.giant);beep(f.giant?96:155,.29,'sawtooth',.045);vibrate(f.giant?[90,30,65]:55)}
    else if(f.type==='hit'){beep(190,.42,'square',.12);if(f.who==='you')vibrate([150,50,160])}
    else if(f.type==='near'){beep(880,.15,'triangle');vibrate(28)}
    else if(f.type==='bonus'||f.type==='shield'){beep(1080,.2)}
