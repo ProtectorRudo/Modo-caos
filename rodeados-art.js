@@ -44,7 +44,10 @@ export function createRodeadosArt(THREE,scene,camera){
   for(let i=0;i<25;i++){const tile=tiles[i];
    tile.position.set((i%5-2)*pitch,.024,(Math.floor(i/5)-2)*pitch);
    tile.scale.set(pitch*.95,.012,pitch*.95);
-   tile.material=i===cell?pickMat:(editing?tileMat[(i%5+Math.floor(i/5))%2]:lowMat);
+   tile.material=i===cell?pickMat:(editing?tileMat[(i%5+Math.floor(i/5))%2]:warMat[i]);
+    const deck=warMarks[i];deck.position.x=tile.position.x;deck.position.z=tile.position.z;
+    deck.scale.set(pitch,1,pitch);deck.visible=!editing;
+    warBurn[i].scale.set(.76,.76,.76);
   }
   for(let i=0;i<4;i++){const e=edges[i];const xx=i===0?-half:i===1?half:0,zz=i===2?-half:i===3?half:0;
    e.position.set(xx,.045,zz);e.scale.set(i<2?.034:side,.027,i<2?side:.034);
@@ -313,5 +316,5 @@ export function createRodeadosArt(THREE,scene,camera){
   for(const a of actors.values()){root.remove(a.group);a.visorMat.dispose()}actors.clear();
   for(const s of sparks){root.remove(s.mesh);s.mesh.material.dispose()}sparks.length=0;
  }
- return {root,arena,rifle,tiles,setFloor,drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
+ return {root,arena,rifle,tiles,setFloor,setFloorDamage,drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
 }
