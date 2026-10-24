@@ -102,6 +102,11 @@ function result(){
  let record=0;try{record=Number(localStorage.getItem('mc-rodeados-record'))||0}catch(_){}
  const improved=game.score>record;
  if(improved)try{localStorage.setItem('mc-rodeados-record',String(game.score))}catch(_){}
+ const report=globalThis.RodeadosProgress?.finish(game);
+ if(report){
+  $('achievements').textContent=report.unlocked.length?'🏅 LOGROS DESBLOQUEADOS: '+report.unlocked.join(' · '):'🏅 LOGROS: '+report.progress.achievements.length+' / 6';
+  $('localRank').textContent='🏆 TOP PERSONAL: '+report.ranking.map((x,i)=>(i+1)+'º '+x.score+' pts').join(' · ')+(report.dailyWon?' · ✨ DESAFÍO DIARIO COMPLETADO':'');
+ }
  const title=game.lives<=0?'¡CAÍSTE EN COMBATE!':'¡INVASIÓN CONTENIDA!';
  $('outcome').textContent=title;
  $('summary').textContent=(improved?'🏆 ¡NUEVO RÉCORD! · ':'')+G.MODES[game.mode].label+' · '+Math.round(game.elapsed)+' s'+(online?' · SALA BETA':'');
@@ -568,6 +573,8 @@ if(navigator.xr&&window.isSecureContext){
 }
 const old=Number(localStorage.getItem('mc-rodeados-record'))||0;
 $('record').textContent='🏆 TU RÉCORD: '+old.toLocaleString('es-AR')+' PUNTOS';
+const daily=globalThis.RodeadosProgress?.daily();
+if(daily)$('daily').textContent='🎯 DESAFÍO DEL DÍA: '+daily.text;
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(game)},get floorSize(){return floorSize},
  get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
