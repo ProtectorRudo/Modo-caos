@@ -42,7 +42,7 @@
  }
  function begin(g){if(g.phase==='ready'){g.phase='playing';g.spawnClock=.5;}return g}
  function copy(g){
-  return {seed:g.seed,mode:g.mode,phase:g.phase,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,ammo:g.ammo,mag:g.mag,reload:g.reload,skill:g.skill,skillCooldown:g.skillCooldown,player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason};
+  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,ammo:g.ammo,mag:g.mag,reload:g.reload,skill:g.skill,skillCooldown:g.skillCooldown,player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason};
  }
  function pickKind(g){
   if(g.mode==='joker')return g.rand()<.68?'joker':g.rand()<.55?'fast':'flanker';
