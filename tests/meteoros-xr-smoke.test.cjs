@@ -41,7 +41,8 @@ const server=http.createServer((req,res)=>{
     window.__xrDrawCalls++;return orig.apply(this,args);
    };
    WebGLRenderingContext.prototype.makeXRCompatible=async function(){};
-   const view={projectionMatrix:identity(),transform:{inverse:{matrix:identity()}}};
+   const pitched=identity();pitched[9]=.65; // Camera looks down at floor: Z projects onto screen Y.
+   const view={projectionMatrix:pitched,transform:{inverse:{matrix:identity()}}};
    const hit={getPose:()=>({transform:{matrix:floor}}),createAnchor:async()=>({anchorSpace:{},delete(){}})};
    const frame={
     getViewerPose:()=>({views:[view],transform:{position:window.__xrPos},emulatedPosition:false}),
@@ -119,7 +120,7 @@ const server=http.createServer((req,res)=>{
   assert(await page.locator('#begin').isDisabled(),'game cannot start before explicit cell selection');
   assert.equal(await page.locator('#arenaSvg polygon').count(),25,'5x5 projected calibration squares');
   // Pick a NON-central cell to prove a specific real-world foot position maps to gameplay.
-  await page.locator('#calCell-13').click({timeout:5500});
+  await page.locator('#calCell-6').click({timeout:5500});
   await page.waitForFunction(()=>{
    const b=document.getElementById('begin');return b&&!b.disabled&&getComputedStyle(b).display!=='none';
   },{timeout:6500});
@@ -128,8 +129,8 @@ const server=http.createServer((req,res)=>{
   assert(before>0,'XR WebGL made draw calls before gameplay');
   const fixed=await page.evaluate(()=>window.__meteorTestSnapshot());
   assert(fixed.placement&&fixed.origin&&fixed.calibrated,'placement and motion reference calibrated');
-  assert.equal(fixed.selectedCell,13,'physical standing cell chosen from camera view');
-  assert(Math.abs(fixed.marker.x-.448)<.015,'human floor marker starts in the chosen column');
+  assert.equal(fixed.selectedCell,6,'physical standing cell chosen from camera view');
+  assert(Math.abs(fixed.marker.x+.448)<.015&&Math.abs(fixed.marker.z+.448)<.015,'human floor marker starts in the selected row and column');
   assert(await page.locator('#whereAmI').isVisible(),'live row and column tracking readout visible');
   await page.locator('#begin').click();
   await page.waitForTimeout(4200);
