@@ -75,6 +75,11 @@ function create3D(gl){
    draw('ring',0,.028,0,.59,.004,.59,[.1,.36,.43,.33],.4);
    for(let i=-2;i<=2;i++){draw('box',i*.205,.026,0,.003,.002,.57,[.06,.39,.49,.30]);
     draw('box',0,.027,i*.205,.57,.002,.003,[.06,.39,.49,.30]);}
+   if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
+    const s=g.safeHint,pulse=.5+.5*Math.sin(now*6);
+    draw('disc',s.x,.039,s.z,.080,.001,.080,[.10,1,.55,.10],.12);
+    draw('ring',s.x,.065,s.z,.10+pulse*.023,.003,.10+pulse*.023,[.24,1,.63,.85],.70);
+   }
    for(const b of g.bonuses){
     let c=b.type==='shield'?colors.mint:colors.purple;
     draw('ring',b.x,.05,b.z,.105,.004,.105,c,.45);
@@ -144,6 +149,11 @@ function draw2D(ctx,width,height,g,ms){
  ctx.globalAlpha=.35;ctx.strokeStyle='#48c1e4';ctx.lineWidth=1;
  for(let n=-3;n<=3;n++){const v=n*scale*.19;ctx.beginPath();ctx.moveTo(v,-scale*.58);ctx.lineTo(v,scale*.58);ctx.moveTo(-scale*.58,v);ctx.lineTo(scale*.58,v);ctx.stroke()}
  ctx.restore();
+ if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
+  const [x,y]=P(g.safeHint.x,g.safeHint.z),pulse=.5+.5*Math.sin(t*8);
+  ctx.save();ctx.translate(x,y);ctx.scale(1,.68);ctx.beginPath();ctx.arc(0,0,scale*(.10+.017*pulse),0,TAU);
+  ctx.fillStyle='#33ff7850';ctx.fill();ctx.strokeStyle='#7bffc2';ctx.lineWidth=3;ctx.shadowColor='#5cffa5';ctx.shadowBlur=12;ctx.stroke();ctx.restore();
+ }
  for(const b of g.bonuses){const [x,y]=P(b.x,b.z);
  circle(x,y,10,b.type==='shield'?'#63ffda':'#ac70ff',18);ctx.font='19px system-ui';ctx.textAlign='center';ctx.fillText(b.type==='shield'?'🛡':'💎',x,y-12+Math.sin(t*6)*3)}
  for(const e of g.events){
