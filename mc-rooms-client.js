@@ -25,10 +25,12 @@
       if(data?.session?.user?.id&&data.session.access_token)return data.session;
       if(loggingIn)return loggingIn;
       loggingIn=(async()=>{
-        const {data:auth,error:failure}=await supabase.auth.signInAnonymously();
+        const {data:auth,error:failure}=await supabase.auth.signInAnonymously({
+          options:{data:{app:'modo_caos',client_version:'rooms-v2'}}
+        });
         if(failure){
-          const e=new Error('El acceso de invitado todavía no está habilitado en Supabase Auth. Activá Anonymous Sign-Ins en el panel del proyecto compartido.');
-          e.code='ANONYMOUS_AUTH_UNAVAILABLE';e.cause=failure;
+          const e=new Error('No se pudo iniciar sesión como invitado: '+(failure.message||'error desconocido')+'. Comprobá Anonymous Sign-Ins y volvé a intentar.');
+          e.code='ANONYMOUS_AUTH_FAILED';e.cause=failure;
           throw e;
         }
         if(!auth?.session?.user?.id)throw new Error('Supabase no devolvió una sesión válida');

@@ -80,3 +80,15 @@ No copiar claves `service_role` ni secretos al frontend o a GitHub.
 - La prueba **PULSO ENTRE CELULARES** ignora señales del propio dispositivo, para evitar falsos positivos.
 - Las funciones `SECURITY DEFINER` visibles a usuarios autenticados disparan avisos del auditor de Supabase; su uso es intencional porque permiten operaciones controladas sobre un esquema privado. Revalidar los controles de membresía siempre que se amplíen las RPC.
 - **Bloqueos antes de declarar multiplayer completo:** Anonymous Sign-Ins si está deshabilitado; prueba de acceso privado con invitado autorizado y no autorizado; verificación con 2 Android; sincronización de juego y puntuaciones servidor; migración futura de canales públicos antiguos si se quiere desactivar globalmente el acceso público Realtime.
+
+## Riesgo descubierto en Auth compartido (antes de abrir a público)
+
+El proyecto `bwsgxpttnrctklrcjmjs` tiene un trigger existente llamado `on_maurilio_auth_user_created` sobre `auth.users`. Cada alta de Auth, incluyendo `signInAnonymously()`, ejecuta `public.maurilio_handle_new_auth_user()`, que crea un registro en `public.maurilio_accounts`.
+
+**Esto se verificó sin persistir usuarios de prueba (transacción con ROLLBACK).** Implicación: si Modo Caos crece, los usuarios invitados también podrían crear registros de otro producto dentro de la infraestructura compartida. NO se alteró el trigger ajeno ni se escribieron datos ajenos de forma permanente. Debe planificarse una exención para invitados identificados como Modo Caos, preservando totalmente el comportamiento de otros productos, o separar la identidad de los jugadores antes del lanzamiento público.
+
+Desde esta versión, las altas anónimas de Modo Caos agregan metadatos orientativos `app=modo_caos`, **no aptos para autorización** por ser controlados desde el navegador. Sirven únicamente para identificar registros y facilitar una futura exención consensuada del trigger existente.
+
+## Prueba de lógica transaccional con tres usuarios
+
+Probamos en PostgreSQL con `SET LOCAL ROLE authenticated`, JWT `request.jwt.claim.sub` diferentes y tres cuentas de prueba temporales. Pasaron crear sala, anfitrión, ingreso segundo usuario, bloqueo de inicio con alguien no listo, rechazo de tercero ajeno a sala, autorizaciones Realtime por pertenencia, marcado Listo, inicio futuro, consulta de estado, retomar sesión, heartbeat, finalizar, salir y revocación de membresía. El test utilizó `BEGIN ... ROLLBACK`: no quedaron cuentas, salas ni registros de los triggers. **No sustituye comprobar Auth real y Realtime por WebSocket entre dos teléfonos.**
