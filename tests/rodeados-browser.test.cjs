@@ -36,6 +36,19 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.shots),1,'fire updates ammo and shot count');
  await page.locator('#reload').click();
  assert.ok((await page.evaluate(()=>globalThis.__RodeadosDebug.game.reload))>0,'reloading works');
+ assert(await page.locator('#bomb').isVisible(),'Bomba Caos button appears during 3D battle');
+ assert(await page.locator('#bomb').isEnabled(),'starts with one bomb charge');
+ await page.locator('#bomb').click();
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.game.bombsUsed),1,'click throws exactly one area bomb');
+ assert(await page.locator('#bomb').isDisabled(),'area bombs cannot be spammed while cooldown runs');
+ // Simulated world clock advances at capped dt under software WebGL: wait for the
+ // actual 480ms fuse to resolve, never assume 700ms of wall-clock is enough.
+ await page.waitForFunction(()=>__RodeadosDebug.game.bombsUsed>0&&__RodeadosDebug.game.bombs.length===0,null,{timeout:8500});
+ const blastDebug=await page.evaluate(()=>({bomb:__RodeadosDebug.game.bombs,bombHits:__RodeadosDebug.game.bombHits,
+  enemies:__RodeadosDebug.game.enemies,elapsed:__RodeadosDebug.game.elapsed,stage:__RodeadosDebug.stage,
+  charges:__RodeadosDebug.game.bombCharges,phase:__RodeadosDebug.game.phase,fx:__RodeadosDebug.game.fx}));
+ assert(blastDebug.bombHits>=1,
+  'bomb blast actually affects robots in its world-space radius '+JSON.stringify(blastDebug));
  await page.locator('#pause').click();
  assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.paused),true,'pauses');
  await page.locator('#resume').click();
