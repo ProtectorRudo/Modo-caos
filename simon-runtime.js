@@ -4,7 +4,7 @@
 const $=id=>document.getElementById(id),C=window.SimonCore,els={};
 let g=null,art=null,mode='ar',picked=-1,calibrated=false,offset={x:0,z:0},samples=[],sampleStart=0;
 let phone={x:0,z:0},player={x:0,z:0,tile:-1};
-let candidateTile=-1,candidateAt=0,readyTile=-1,confirmedTile=-1;
+let candidateTile=-1,candidateAt=0,readyTile=-1,confirmedTile=-1,manualTile=-1,correctionMode=false;
 let phaseAt=0,lastFrame=0,lastTracked=0,timers=new Set(),token=0,audioCtx=null,quiet=false,voice=true,volume=.45;
 let trackingWarned=false,stageBeforeCal='idle',wasPlaying=false,frameState=null,offlineRoom=false;
 const safeText=t=>String(t).replace(/[<>]/g,'');
@@ -14,7 +14,7 @@ function hint(title,detail=''){ui('message',title);ui('detail',detail);show('flo
 // Una sola fuente de verdad para la guía: acompaña cada destello, pero NO revela los próximos pasos.
 function sequenceGuide(state,step=0,tile=-1){
  const el=$('sequenceGuide');
- if(!g||state==='off'){show('sequenceGuide',false);return}
+ if(!g||state==='off'){show('sequenceGuide',false);show('simonMap',false);return}
  const total=g.sequence.length;
  el.className=state==='watch'?'watch':'turn';
  const watching=state==='watch',finished=state==='done';
@@ -33,7 +33,52 @@ function sequenceGuide(state,step=0,tile=-1){
   else if(n===step&&(!watching||tile>=0))dot.classList.add('now');
   dots.appendChild(dot);
  }
- show('sequenceGuide',true);
+ show('sequenceGuide',true);mapDraw();
+}
+// Vista cenital fija en pantalla: la secuencia sigue siendo visible aunque
+// las baldosas físicas se encuentren fuera del campo de la cámara.
+function mapDraw(){
+ const panel=$('simonMap');if(!panel||!g)return;
+ const ar=mode==='ar',watch=g.phase==='show',act=g.phase==='act';
+ show('simonMap',ar&&(watch||act));
+ if(!ar||!(watch||act))return;
+ panel.className=watch?'watch':correctionMode?'turn correcting':'turn';
+ ui('mapHeading',watch?'👀 SECUENCIA COMPLETA':'📍 MAPA · LAS 9 CELDAS');
+ const tiles=$('mapCells');
+ if(tiles.children.length!==9){
+  tiles.replaceChildren();
+  for(let i=0;i<9;i++){
+   const btn=document.createElement('button');
+   btn.type='button';btn.className='mapTile';btn.dataset.mapCell=String(i);
+   btn.textContent=String(i+1);
+   btn.addEventListener('click',()=>chooseMapCell(i));
+   tiles.appendChild(btn);
+  }
+ }
+ for(const btn of tiles.children){
+  const i=Number(btn.dataset.mapCell),key=g.colorMap[i],color=C.COLORS[key];
+  btn.style.setProperty('--tone',color.hex);
+  btn.classList.toggle('on',watch&&g.highlight===key);
+  btn.classList.toggle('ghostMark',watch&&g.ghost===i);
+  btn.classList.toggle('here',act&&calibrated&&player.tile===i);
+  btn.classList.toggle('chosen',act&&manualTile===i);
+  btn.setAttribute('aria-label','Baldosa '+(i+1)+' '+color.name);
+  btn.disabled=!act||!correctionMode;
+ }
+ if(watch){
+  const highlighted=tiles.querySelector('.on');
+  ui('mapCaption',highlighted?'✨ MIRÁ LA CELDA '+(Number(highlighted.dataset.mapCell)+1):'Observá el orden de los destellos');
+ }else if(correctionMode)ui('mapCaption','Tocá en el mapa dónde estás realmente');
+ else if(manualTile>=0)ui('mapCaption','MANUAL · CELDA '+(manualTile+1)+' ELEGIDA');
+ else ui('mapCaption',player.tile>=0?'● VERDE = POSICIÓN DEL TELÉFONO':'● Si no coincide, corregí la celda');
+ ui('mapCorrection',correctionMode?'CANCELAR CORRECCIÓN':manualTile>=0?'CAMBIAR CELDA ELEGIDA':'¿CELDA EQUIVOCADA? CORREGIR');
+}
+function chooseMapCell(i){
+ if(mode!=='ar'||!g||g.phase!=='act'||g.paused||!calibrated||!correctionMode)return;
+ if(i===confirmedTile){hint('ESA CELDA YA SE REGISTRÓ','Elegí otra baldosa para continuar.');return}
+ manualTile=i;correctionMode=false;
+ hint('📍 CELDA '+(i+1)+' ELEGIDA MANUALMENTE','Ahora tocá CONFIRMAR CELDA para registrar tu paso.');
+ mapDraw();drawUI();
 }
 function vib(ms=35){if(navigator.vibrate)try{navigator.vibrate(ms)}catch(e){}}
 function recordKey(){return 'mc-simon-record-'+g.mode}
@@ -61,7 +106,7 @@ function cancel(){token++;for(const t of timers)clearTimeout(t);timers.clear();i
 function sleep(ms){return new Promise(resolve=>{const id=setTimeout(()=>{timers.delete(id);resolve()},ms);timers.add(id)})}
 function setMode(newMode){ui('modeTitle',{mortal:'MEMORIA MORTAL',clasica:'SIMÓN CLÁSICO',panico:'RONDA DEL PÁNICO'}[newMode]);$('mode').value=newMode}
 function newGame(resetSeed=true){
- cancel();candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;
+ cancel();candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;manualTile=-1;correctionMode=false;
  const params=new URLSearchParams(location.search);
  const today=new Date().toISOString().slice(0,10),daily=params.has('diario');
  const chosen=Number($('seed').value);
@@ -80,25 +125,27 @@ function drawUI(){
  ui('lives',g.lives>0?'♥'.repeat(g.lives):'0');
  const cell=player.tile,located=calibrated&&cell>=0;
  const color=located?C.COLORS[g.colorMap[cell]].name:'';
- ui('position',mode==='ar'?(calibrated?(located?'📍 VOS · CELDA '+(cell+1)+' · '+color:'📍 VOS · FUERA DEL CENTRO'):'📍 VOS · SIN CALIBRAR'):'🎮 MODO 2D · TOCÁ LAS BALDOSAS');
+ ui('position',mode==='ar'?(manualTile>=0?'📍 MODO MANUAL · CELDA '+(manualTile+1):calibrated?(located?'📍 VOS · CELDA '+(cell+1)+' · '+color:'📍 VOS · FUERA DEL CENTRO'):'📍 VOS · SIN CALIBRAR'):'🎮 MODO 2D · TOCÁ LAS BALDOSAS');
  const isPlayingAR=mode==='ar'&&g.phase==='act'&&calibrated;
  show('confirmRow',isPlayingAR);
  if(isPlayingAR){
-  const fresh=performance.now()-lastTracked<800,locked=candidateTile>=0&&candidateTile===confirmedTile;
-  const canConfirm=!g.paused&&fresh&&readyTile>=0&&!locked;
+  const fresh=performance.now()-lastTracked<900,chosen=manualTile>=0?manualTile:readyTile;
+  const locked=chosen>=0&&chosen===confirmedTile;
+  const canConfirm=!g.paused&&fresh&&chosen>=0&&!locked;
   const button=$('confirmCell');
   button.disabled=!canConfirm;
   $('confirmRow').classList.toggle('ready',canConfirm);
   if(g.paused){ui('confirmCell','Ⅱ PARTIDA EN PAUSA');ui('confirmHelp','Reanudá antes de confirmar.')}
   else if(!fresh){ui('confirmCell','📡 RECUPERANDO POSICIÓN');ui('confirmHelp','Enfocá de nuevo el piso.')}
   else if(locked){ui('confirmCell','✓ CELDA '+(confirmedTile+1)+' REGISTRADA');ui('confirmHelp','Andá al centro de otra celda para seguir.')}
-  else if(canConfirm){ui('confirmCell','✓ CONFIRMAR CELDA '+(readyTile+1));ui('confirmHelp',C.COLORS[g.colorMap[readyTile]].name+' · tocá una vez para registrar este paso.')}
+  else if(canConfirm){ui('confirmCell','✓ CONFIRMAR CELDA '+(chosen+1));ui('confirmHelp',(manualTile>=0?'CELDA ELEGIDA · ':'CELDA DETECTADA · ')+C.COLORS[g.colorMap[chosen]].name+'. Tocá para registrar.')}
   else if(candidateTile>=0){ui('confirmCell','◌ CENTRÁ CELDA '+(candidateTile+1));ui('confirmHelp','Quedate quieto un instante para habilitar el botón.')}
   else{ui('confirmCell','📍 BUSCÁ EL CENTRO');ui('confirmHelp','Movete despacio a la baldosa elegida.')}
  }
  show('pauseBtn',g.phase==='act'||g.paused);
  $('pauseBtn').textContent=g.paused?'▶ REANUDAR':'Ⅱ PAUSA';
  if(g.phase==='show')ui('phase','MIRÁ BIEN');else if(g.phase==='act')ui('phase','¡AHORA VOS!');else if(g.phase==='finished')ui('phase','FIN DEL DESAFÍO');else ui('phase','SIMÓN TRAICIONERO');
+ mapDraw();
 }
 function renderGrid(){
  const grid=$('grid');grid.replaceChildren();
@@ -120,6 +167,7 @@ function decorate(){
   btn.classList.toggle('electric',g.trap==='electrica'&&g.phase==='act'&&i===g.electric&&C.electricalUnsafe(g,performance.now()));
   btn.classList.toggle('ghost',g.ghost===i);
  });
+ mapDraw();
 }
 function stageReady(){
  if(mode==='ar'){
@@ -135,7 +183,7 @@ function startMatch(){
  C.begin(g);playSequence();drawUI();
 }
 async function playSequence(){
- cancel();candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;const mine=token;
+ cancel();candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;manualTile=-1;correctionMode=false;const mine=token;
  sequenceGuide('watch',0,-1);
  hint('👀 MIRÁ LAS BALDOSAS QUE BRILLAN',g.round===1?'Se encenderán UNA POR VEZ. Recordá el orden.':g.rule);
  speak(g.round===1?'Mirá el orden':g.trap?'Atención a la trampa':'Mirá');
@@ -164,7 +212,7 @@ async function playSequence(){
  C.arm(g);renderGrid();sequenceGuide('turn',1);
  hint('🎯 ¡TU TURNO!',g.trap==='inversa'?'ORDEN INVERSO · DEL ÚLTIMO AL PRIMERO':mode==='demo'?'Tocá las baldosas en el mismo orden.':'Andá al centro de cada baldosa y tocá CONFIRMAR CELDA.');
  speak('Ahora vos');phaseAt=performance.now();
- candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;
+ candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;manualTile=-1;correctionMode=false;
  drawUI();decorate();
 }
 function finish(){
@@ -201,18 +249,19 @@ function commit(i){
 // En AR cada paso exige un toque deliberado; caminar no confirma ningún acierto.
 function confirmCurrentCell(){
  if(mode!=='ar'||!calibrated||!g||g.phase!=='act'||g.paused)return false;
- if(performance.now()-lastTracked>=800||readyTile<0||readyTile===confirmedTile||!frameState)return false;
- const pitch=frameState.ctx.boardSize,chosen=readyTile;
- if(player.tile!==chosen||!C.isCentered(player.x,player.z,chosen,pitch,.32))return false;
+ if(performance.now()-lastTracked>=900||!frameState)return false;
+ const pitch=frameState.ctx.boardSize,chosen=manualTile>=0?manualTile:readyTile;
+ if(chosen<0||chosen===confirmedTile)return false;
+ if(manualTile<0&&(player.tile!==chosen||!C.isCentered(player.x,player.z,chosen,pitch,.32)))return false;
  const result=commit(chosen);
  if(!result||result.type==='ignored'||result.type==='electric')return false;
- confirmedTile=chosen;readyTile=-1;candidateTile=chosen;candidateAt=performance.now();drawUI();
+ confirmedTile=chosen;readyTile=-1;manualTile=-1;correctionMode=false;candidateTile=chosen;candidateAt=performance.now();drawUI();
  return true;
 }
 function pickCell(i){
  if(mode!=='ar'||stage!=='fixed'&&stage!=='playing')return;
  if(g.phase==='act'&&!g.paused){g.paused=true;wasPlaying=true}
- picked=i;calibrated=false;sampleStart=0;samples=[];candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;
+ picked=i;calibrated=false;sampleStart=0;samples=[];candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;manualTile=-1;correctionMode=false;
  document.querySelectorAll('[data-pick]').forEach(b=>b.classList.toggle('selected',Number(b.dataset.pick)===i));
  hint('QUEDATE QUIETO UN SEGUNDO','Sostené el teléfono como lo llevarás durante la partida.');
  ui('calTitle','CALIBRANDO CELDA '+(i+1));show('calPanel',true);
@@ -232,7 +281,7 @@ function calibrate(time,frame,W,context){
  offset={x:(picked%3-1)*pitch-avg.x,z:(Math.floor(picked/3)-1)*pitch-avg.z};
  player={x:(picked%3-1)*pitch,z:(Math.floor(picked/3)-1)*pitch,tile:picked};
  phone={x:player.x,z:player.z};calibrated=true;lastTracked=time;trackingWarned=false;
- candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;
+ candidateTile=-1;candidateAt=0;readyTile=-1;confirmedTile=-1;manualTile=-1;correctionMode=false;
  ui('calTitle','✓ LISTO · CELDA '+(picked+1));hint('¡LISTO!','Tu posición está calibrada. Caminá despacio para comprobarla.');
  show('calPanel',false);show('startGame',g.phase==='idle');show('recal',true);
  if(wasPlaying){g.paused=true;hint('CALIBRACIÓN RECUPERADA','Tocá REANUDAR para continuar.');show('pauseBtn',true)}
@@ -285,10 +334,11 @@ function setup(){
  $('demo').addEventListener('click',()=>{beep(440,.06);mode='demo';newGame();show('home',false);show('overlay',true);show('grid',true,'grid');show('touchpad',false);show('toolbar',false);show('lock',false);show('edit',false);show('calibrate',false);show('startGame',true);show('position',true);show('how',true);hint('MODO 2D · SIN CAMINAR','Memorizá la secuencia y tocá las baldosas.');lastFrame=0;requestAnimationFrame(demoLoop)});
  $('enter').addEventListener('click',()=>{mode='ar';newGame();hint('BUSCÁ EL PISO','Apuntá a un espacio libre; luego ajustá y fijá la pista.')});
  $('lock').addEventListener('click',()=>{if(stage==='fixed'){show('calPanel',true);show('picker',true,'grid');hint('¿DÓNDE ESTÁS PARADO?','Elegí tu celda actual para calibrar.');ui('calTitle','TOCÁ LA CELDA EN LA QUE ESTÁS');}});
- $('edit').addEventListener('click',()=>{if(g.phase==='act')g.paused=true;calibrated=false;picked=-1;samples=[];readyTile=-1;candidateTile=-1;show('calPanel',false);show('startGame',false);cancel();if(g.phase!=='idle')g.phase='idle'});
+ $('edit').addEventListener('click',()=>{if(g.phase==='act')g.paused=true;calibrated=false;picked=-1;samples=[];readyTile=-1;candidateTile=-1;manualTile=-1;correctionMode=false;show('calPanel',false);show('startGame',false);cancel();if(g.phase!=='idle')g.phase='idle'});
  $('startGame').addEventListener('click',startMatch);
  $('confirmCell').addEventListener('click',confirmCurrentCell);
- $('recal').addEventListener('click',()=>{if(mode!=='ar')return;wasPlaying=g.phase==='act';if(wasPlaying)g.paused=true;calibrated=false;picked=-1;sampleStart=0;readyTile=-1;candidateTile=-1;show('calPanel',true);show('picker',true,'grid');ui('calTitle','MARCÁ TU CELDA ACTUAL');hint('RECALIBRAR','Marcá tu ubicación sin mover la pista ni perder puntos.');drawUI()});
+ $('mapCorrection').addEventListener('click',()=>{if(mode!=='ar'||!g||g.phase!=='act'||g.paused)return;correctionMode=!correctionMode;if(correctionMode)manualTile=-1;mapDraw();drawUI();});
+ $('recal').addEventListener('click',()=>{if(mode!=='ar')return;wasPlaying=g.phase==='act';if(wasPlaying)g.paused=true;calibrated=false;picked=-1;sampleStart=0;readyTile=-1;candidateTile=-1;manualTile=-1;correctionMode=false;show('calPanel',true);show('picker',true,'grid');ui('calTitle','MARCÁ TU CELDA ACTUAL');hint('RECALIBRAR','Marcá tu ubicación sin mover la pista ni perder puntos.');drawUI()});
  $('pauseBtn').addEventListener('click',()=>{if(!calibrated&&mode==='ar')return;g.paused=!g.paused;hint(g.paused?'PAUSA':'¡SEGUIMOS!',g.paused?'Podés recuperar el aliento.':'¡Que no te engañe Simón!');drawUI()});
  $('retryBtn').addEventListener('click',()=>{const keep=mode;newGame();mode=keep;if(keep==='ar'){show('startGame',calibrated);show('calPanel',!calibrated);if(stage==='playing')setStage('fixed')}else{show('startGame',true);show('grid',true,'grid')}});
  $('shareBtn').addEventListener('click',async()=>{const st=C.stats(g),txt='🧠⚡ SIMÓN TRAICIONERO · '+st.score+' puntos · ronda '+st.round+' · '+st.accuracy+'% de precisión. ¿Me superás? '+location.origin+'/simon.html';if(navigator.share)try{await navigator.share({title:'Modo Caos',text:txt})}catch(e){}else if(navigator.clipboard)try{await navigator.clipboard.writeText(txt);hint('COPIADO','¡Mandale el reto a alguien!')}catch(e){}});
