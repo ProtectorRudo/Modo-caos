@@ -103,6 +103,11 @@ for (const tile of [.3,.4,.55]) for(let seed=41;seed<51;seed++){
  assert(r.direction&&r.direction.length>4,'each wave has visible incoming direction');
  assert(r.forecast.some(Boolean),'radar projects upcoming hazardous cells');
  assert(!r.state.includes('red'),'orange forecast is not red danger now');
+ const highlighted=r.forecast.findIndex(Boolean);
+ const yellowAt=G.cells(g,w.start-2.05);
+ assert(yellowAt.some(v=>v==='yellow'),'physical floor warns >2 s before wave');
+ assert(highlighted>=0);
+
  const index=r.forecast.findIndex(Boolean);
  assert.equal(typeof index,'number');
  G.setPosition(g,index%6+.5,Math.floor(index/6)+.5);
