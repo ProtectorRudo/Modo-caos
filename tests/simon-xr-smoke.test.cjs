@@ -66,7 +66,7 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>document.querySelector('#mapCells .mapTile.on')!==null,null,{timeout:4500});
   assert.equal(await page.locator('#mapCells .mapTile.on').count(),1,'exactly one tile highlighted on the overhead map');
   await page.waitForFunction(()=>document.getElementById('phase').textContent.includes('AHORA VOS'),null,{timeout:14000});
-  assert.equal(await page.locator('#mapCells .mapTile.on').count(),0,'map does not leak the remembered sequence during player's turn');
+  assert.equal(await page.locator('#mapCells .mapTile.on').count(),0,'map does not leak the remembered sequence during player turn');
   await page.waitForFunction(()=>!document.getElementById('confirmCell').disabled,null,{timeout:3000});
   assert((await page.locator('#confirmCell').textContent()).includes('CELDA 5'),'center confirmed and button names current cell');
   await page.waitForTimeout(1000);
