@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Check correct HTML MIME, content and HTTPS
         env:
-          METEOR_URL: https://rawcdn.githack.com/ProtectorRudo/Modo-caos/fb09394df34853677027b3c338d9ab0d16695b51/meteoros-autonomo.html
+          METEOR_URL: https://rawcdn.githack.com/ProtectorRudo/Modo-caos/3ab0538ac012ef1c354cb4ea3df14ddca9f11bbf/meteoros-autonomo.html
         run: |
           node --input-type=module <<'NODE'
           const u=process.env.METEOR_URL;
