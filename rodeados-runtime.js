@@ -123,7 +123,7 @@ function renderThreats(){
 }
 function setupGame(keepCalibration=false){
  const keepArena=floorSize;
- game=G.create({mode:$('mode').value,arena:keepArena,seed:online?.seed??Math.floor(Math.random()*2**32)});
+ game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
  fxShown.clear();fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',true,'block');visible('topHud',true);
@@ -136,8 +136,9 @@ function updateHud(force=false){
  $('wave').textContent=game.wave||1;
  $('clock').textContent=Number.isFinite(game.duration)?Math.max(0,Math.ceil(game.duration-game.elapsed)):'∞';
  $('healthFill').style.width=Math.max(0,game.lives)+'%';
- $('ammo').textContent=game.reload>0?'RECARGANDO...':game.ammo+' / '+game.mag;
- $('reload').disabled=game.reload>0||game.ammo===game.mag;
+ const magazine=online&&!online.isHost?game.peerWeapons?.[online.id]:null;
+ $('ammo').textContent=(magazine?.reload??game.reload)>0?'RECARGANDO...':(magazine?.ammo??game.ammo)+' / '+game.mag;
+ $('reload').disabled=(magazine?.reload??game.reload)>0||(magazine?.ammo??game.ammo)===game.mag;
  $('special').disabled=game.skillCooldown>0;
  $('special').textContent=game.skillCooldown>0?'EMP '+Math.ceil(game.skillCooldown)+'s':'⚡ EMP';
  if(online)$('online').textContent=online.status+' · '+(online.isHost?'ANFITRIÓN':'INVITADO')+' · '+online.mode;
@@ -344,7 +345,7 @@ function activeRay(){
 let lastXRFrame=null,lastShot=0,shotSeq=0;
 async function shoot(){
  if(stage!=='playing'||game.paused||performance.now()-lastShot<175)return;
- if(game.ammo<=0){reload();return}
+ if((online&&!online.isHost?(game.peerWeapons[online.id]?.ammo??28):game.ammo)<=0){reload();return}
  const ray=activeRay();if(!ray)return;
  lastShot=performance.now();
  const packet={origin:{x:ray.origin.x,y:ray.origin.y,z:ray.origin.z},direction:{x:ray.direction.x,y:ray.direction.y,z:ray.direction.z}};
@@ -373,7 +374,7 @@ function snapshot(){
   at:game.elapsed,hp:Math.round(game.lives*10)/10,wave:game.wave,score:game.score,
   ammo:game.ammo,reload:+game.reload.toFixed(2),special:+game.skillCooldown.toFixed(1),
   kills:game.kills,hits:game.hits,shots:game.shots,combo:game.combo,best:game.bestCombo,phase:game.phase,
-  scores:game.scores,
+  scores:game.scores,peers:Object.entries(game.peerWeapons).map(([id,w])=>[id,w.ammo,+w.reload.toFixed(2)]),
   e:game.enemies.map(e=>[e.id,e.type,+e.x.toFixed(2),+e.z.toFixed(2),e.hp,e.maxHp,+e.age.toFixed(1),e.state,+e.portal.toFixed(2),+e.angle.toFixed(2),+e.stun.toFixed(2),+e.lastHit.toFixed(1)])};
 }
 async function sendSnapshot(urgent=false){
@@ -386,12 +387,19 @@ function applySnapshot(data){
  online.seq=data.stamp;
  const validNumber=n=>typeof n==='number'&&Number.isFinite(n);
  if(![data.at,data.hp,data.score,data.arena].every(validNumber))return;
- if(data.seed!==game.seed||data.mode!==game.mode)game=G.create({seed:data.seed,mode:data.mode,arena:data.arena});
+ if(data.seed!==game.seed||data.mode!==game.mode)game=G.create({seed:data.seed,mode:data.mode,arena:data.arena,ownerId:online.room.hostUserId});
  game.elapsed=clamp(data.at,0,999999);game.lives=clamp(data.hp,0,100);game.wave=data.wave||1;
  game.score=Math.max(0,data.score||0);game.ammo=clamp(data.ammo||0,0,28);
  game.reload=data.reload||0;game.skillCooldown=data.special||0;game.kills=data.kills||0;
  game.shots=data.shots||0;game.hits=data.hits||0;game.combo=data.combo||0;game.bestCombo=data.best||0;
  game.phase=data.phase||'ready';game.scores=data.scores&&typeof data.scores==='object'?data.scores:{};
+ if(Array.isArray(data.peers)){
+  game.peerWeapons=Object.create(null);
+  for(const p of data.peers){
+   if(!Array.isArray(p)||p.length!==3||typeof p[0]!=='string'||!(/^[0-9a-f-]{36}$/i.test(p[0]))||!Number.isFinite(p[1])||!Number.isFinite(p[2]))continue;
+   game.peerWeapons[p[0]]={ammo:clamp(p[1],0,game.mag),reload:clamp(p[2],0,2),lastFire:-100};
+  }
+ }
  game.enemies=data.e.filter(a=>Array.isArray(a)&&a.length>=12&&G.TYPES[a[1]]&&a.slice(2).every(validNumberOrString))
   .map(a=>({id:a[0],type:a[1],x:a[2],z:a[3],hp:a[4],maxHp:a[5],age:a[6],state:a[7],
    portal:a[8],angle:a[9],stun:a[10],lastHit:a[11],radius:G.TYPES[a[1]].radius,height:G.TYPES[a[1]].height,taunt:0,phase:0}));
@@ -416,7 +424,7 @@ function onOnlineEvent(payload){
   const p=ray.origin;if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!Number.isFinite(p.z))return;
   if(Math.abs(p.x)>game.arena||Math.abs(p.z)>game.arena||p.y<.7||p.y>2.4)return;
   G.fire(game,ray,peer);sendSnapshot(true);
- }else if(payload.kind==='reload'){G.reload(game);sendSnapshot(true)}
+ }else if(payload.kind==='reload'){G.reload(game,peer);sendSnapshot(true)}
  else if(payload.kind==='pulse'){G.pulse(game);sendSnapshot(true)}
 }
 async function connectOnline(){
@@ -434,6 +442,7 @@ async function connectOnline(){
   const room=await mc.getRoom(resumed.room_id);
   if(room.game!=='rodeados-360')throw Error('La sala pertenece a otro juego');
   const id=await mc.userId(),isHost=id===room.hostUserId;
+  game.ownerId=room.hostUserId;
   online={mc,id,room,isHost,status:'CONECTANDO',mode:'COOP/PUNTOS',seq:0,lastPeerSeq:{},seed:game.seed,conn:null};
   online.conn=await mc.connectRoom(room.id,{onGameEvent:onOnlineEvent,
    onStatus:(s)=>{online.status=s==='SUBSCRIBED'?'CONECTADO':s},
