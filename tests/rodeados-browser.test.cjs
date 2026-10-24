@@ -36,6 +36,14 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.shots),1,'fire updates ammo and shot count');
  await page.locator('#reload').click();
  assert.ok((await page.evaluate(()=>globalThis.__RodeadosDebug.game.reload))>0,'reloading works');
+ assert(await page.locator('#bomb').isVisible(),'Bomba Caos button appears during 3D battle');
+ assert(await page.locator('#bomb').isEnabled(),'starts with one bomb charge');
+ await page.locator('#bomb').click();
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.game.bombsUsed),1,'click throws exactly one area bomb');
+ assert(await page.locator('#bomb').isDisabled(),'area bombs cannot be spammed while cooldown runs');
+ await page.waitForTimeout(700);
+ assert((await page.evaluate(()=>__RodeadosDebug.game.bombHits))>=1,
+  'bomb blast actually affects robots in its world-space radius');
  await page.locator('#pause').click();
  assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.paused),true,'pauses');
  await page.locator('#resume').click();
