@@ -98,6 +98,8 @@ export function createRodeadosArt(THREE,scene,camera){
    e.position.set(xx,.045,zz);e.scale.set(i<2?.034:side,.027,i<2?side:.034);
    e.material=borderMat;
   }
+  // Cyan outline in editing; restrained amber hazard boundary in live combat.
+  borderMat.color.set(editing?0x65ffe6:0xd8a55c);
   compass.position.set(0,.015,-half+.35);compass.visible=editing;
   center.visible=editing||!!player;
   if(player)center.position.set(player.x,.025,player.z);
