@@ -1,7 +1,7 @@
 name: Ola Roja — core y regresión
 on:
   push:
-    branches: [main, feat/ola-roja-ar, fix/ola-roja-premium-final, fix/ola-public-load-ready]
+    branches: [main, feat/ola-roja-ar, fix/ola-roja-premium-final, fix/ola-public-load-ready, feat/ola-pista-compacta-radar-v2]
     paths:
       - 'ola-*'
       - 'ola.html'
@@ -54,6 +54,7 @@ jobs:
         run: |
           node tests/ola-browser.test.cjs
           node tests/ola-xr-smoke.test.cjs
+          OLA_AUTOCENTER=1 node tests/ola-xr-smoke.test.cjs
       - name: Confirmar vista pública alternativa HTTPS (no producción)
         continue-on-error: true
         run: node tests/ola-public.test.cjs
