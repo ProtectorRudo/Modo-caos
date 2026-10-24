@@ -25,12 +25,22 @@
 1. Abrir en Chrome Android compatible con WebXR immersive-ar/ARCore.
 2. Buscar el piso con la cámara, ajustar pista y presionar FIJAR PISTA.
 3. Quieto con el teléfono cerca de un segundo para completar calibración (sin reset al empezar).
-4. Presionar A JUGAR; mantener AVANZAR en verde, soltar al amarillo y quedar quieto en rojo.
-5. También se puede usar un empuje **corto y seguro del teléfono** para avanzar, sin caminar, correr, saltar ni jugar cerca de obstáculos. Botones para avanzar y laterales están siempre disponibles.
-6. RECENTRAR recalibra la referencia del móvil sin mover el anclaje del tablero; pausa el motor mientras recalibra.
+4. Presionar A JUGAR. El modo predeterminado es **MOVIMIENTO REAL DEL TELÉFONO**, no botones: cuando esté en verde acercá el teléfono unos 6–10 cm hacia el semáforo y regresá suave a la posición inicial; cada impulso válido hace que VOS avance en la pista virtual. Repetilo a un ritmo cómodo sin desplazarte por la habitación. Durante amarillo frená y en rojo quedate quieto.
+5. Para jugar de otra manera, tocá **🎮 BOTONES** durante la carrera, y aparecerán los controles en pantalla. **🚶 MOVIMIENTO** vuelve a activar el mando físico. Los botones de la demo 2D se mantienen. No implica seguimiento de pies o cuerpo.
+6. RECENTRAR recalibra la referencia del móvil sin mover el anclaje del tablero; pausa el motor mientras recalibra. La ventana de movimiento tolera ~2,8 cm laterales y ~9,5 cm de oscilación accidental al estar quieto en rojo, con >0,7 s de reacción; filtra saltos de relocalización de ARCore.
 7. Si falla tracking, el motor deja de procesar avances/penalizaciones hasta recuperar la pose.
 
-La API de WebXR mide **teléfono**, no pies, ni pelvis, ni piernas. No inferir seguimiento corporal.
+La API de WebXR mide **teléfono**, no pies, ni pelvis, ni piernas. No inferir seguimiento corporal. Los impulsos físicos no equivalen a recorrer metros reales.
+
+### Segunda etapa — rediseño centrado en el jugador físico
+
+- `/semaforo-motion.js`: motor separado de detección de impulsos del dispositivo, con desacople de render, calibración, orientación del tablero y reglas.
+- La posición del teléfono mueve a VOS de forma virtual; desplazamiento lateral real filtra hacia los carriles. La pequeña trayectoria de ida/vuelta vuelve a armar el impulso; no demanda avanzar físicamente 15 metros ni correr.
+- **AR predeterminado sin botones**. Botones a demanda y demo 2D tradicional conservados.
+- La pantalla de juego oculta `REUBICAR` (control heredado del motor), muestra indicación física breve al iniciar y libera el centro de la escena.
+- Textos AR en español y calibración compacta sin el recuadro fijo enorme.
+- `node tests/semaforo-motion.test.cjs`: movimiento físico repetido, reinicio del gesto, tolerancias, señal roja, salto ARCore, movimiento lateral y carrera física completa. Simulación de control *no equivale a prueba de sensores reales*.
+
 
 ## Multijugador experimental — NO CERTIFICADO
 
