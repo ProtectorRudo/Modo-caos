@@ -81,3 +81,15 @@ Se solucionó con:
 - Nueva prueba de navegador Chromium con WebXR simulado `METEORS_AUTOSTART=1`: banner no queda pegado, marcador físico responde antes de iniciar, tiempo se descuenta sin nuevo toque.
 
 **Pendiente:** confirmar en Chrome Android físico/ARCore sobre el dispositivo que envió la captura. Tests de poses sintéticas no reemplazan esta validación.
+
+## 24/10/2026 — Actualización visual y de ritmo: Tormenta Premium
+
+**Motivo:** después de verificar físicamente en Android la pista, calibración y seguimiento de YO, el jugador confirmó que Lluvia de Meteoros funciona, pero la partida era fácil al principio y tenía un salto brusco de dificultad al final.
+
+- **Cuatro capítulos:** PRIMEROS IMPACTOS (0–8 s), LLUVIA INTENSA (8–27 s), CAOS CRECIENTE (27–54 s), TORMENTA FINAL (54–72 s), con rótulo e indicador de progreso sutil.
+- La primera oleada comienza ~1,75 s después del inicio jugable; intervalos entre oleadas de ~2,8 s inicialmente a ~1,9 s al final, con aumento gradual de 1–2 impactos a 3–4 (sujeto al verificador de escape). Advertencias de 1,82–2,30 s: evitan exigir carreras y saltos.
+- Ataques dirigidos al punto del teléfono en modo solo; variantes de meteorito traicionero desde la segunda fase, gigantes, alertas falsas, cráteres y recompensas. Avisos breves para ráfagas y bonificaciones de rachas al esquivar consecutivamente 6, 12 y 20 impactos. La semilla online sigue determinista y no depende de la posición local.
+- Estética WebGL: rocas volcánicas de forma irregular, material shader con fisuras incandescentes dinámicas, cola de fuego con brasas, esquirlas y marcas de impacto; las 25 baldosas reaccionan a amenazas cercanas. Rivales convertidos en robots cazadores de meteoritos con cascos oscuros, visores, articulaciones y paleta propia, pero YO **sigue siendo un simple marcador de suelo y nunca un avatar**. Efectos equivalentes Canvas para modo 2D.
+- **Límites de desempeño:** geometría procedural sin bibliotecas externas ni assets pesados, máximo 25 baldosas + un número pequeño y fijo de chispas por impacto; render dentro del framebuffer WebXR ya existente. Debe comprobarse FPS/legibilidad reales en Chrome Android, no presentarlo como resultado medido.
+- **Pruebas:** además del núcleo y regresiones, `tests/meteoros-pacing.test.cjs` evalúa centenares de oleadas, dificultad progresiva, duración, avisos previos, diversidad de eventos, recompensa por rachas, diferencia entre jugador inmóvil y desplazamiento simulado de 0,23 m/s. Chromium verifica Canvas y WebGL sintético, **sin fingir validación física**.
+- **Sin modificar** calibración por celda, gestos de redimensionamiento/rotación, sistema YO ni Supabase; online continúa beta.
