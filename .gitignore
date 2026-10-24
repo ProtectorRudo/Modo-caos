@@ -1,0 +1,11 @@
+# Credentials, local metadata and builds
+.env
+.env.*
+!.env.example
+.vercel/
+node_modules/
+dist/
+build/
+coverage/
+.DS_Store
+*.log
