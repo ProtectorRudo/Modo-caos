@@ -26,6 +26,11 @@ const server=http.createServer((req,res)=>{
  assert.ok((await page.evaluate(()=>globalThis.__RodeadosDebug.game.elapsed))>.3,'clock advances');
  assert(await page.locator('canvas').count()>0,'Three.js created renderer');
  assert(await page.locator('#fire').isVisible(),'shoot visible');
+ const floorStart=await page.evaluate(()=>globalThis.__RodeadosDebug.floorRendering);
+ assert.equal(floorStart.plates,25);
+ assert.equal(floorStart.darkPlates,25,'all 25 cells are tactical graphite war plates in battle mode');
+ assert.equal(floorStart.visible,25,'combat deck visible over camera');
+
  assert(await page.locator('#radarWrap').isVisible(),'360-degree radar is active');
  await page.waitForTimeout(300);
  assert(await page.locator('#radar').evaluate(c=>{
@@ -48,6 +53,10 @@ const server=http.createServer((req,res)=>{
  const blastDebug=await page.evaluate(()=>({bomb:__RodeadosDebug.game.bombs,bombHits:__RodeadosDebug.game.bombHits,
   enemies:__RodeadosDebug.game.enemies,elapsed:__RodeadosDebug.game.elapsed,stage:__RodeadosDebug.stage,
   charges:__RodeadosDebug.game.bombCharges,phase:__RodeadosDebug.game.phase,fx:__RodeadosDebug.game.fx}));
+ const warStatus=await page.evaluate(()=>({core:globalThis.__RodeadosDebug.game.floorDamage,
+  art:globalThis.__RodeadosDebug.floorRendering}));
+ assert(warStatus.core.some(v=>v>0),'bomb must leave accumulated cosmetic damage on 5x5 deck');
+ assert(warStatus.art.scars.some(v=>v>0),'damage must show an actual scorched texture in 3D');
  assert(blastDebug.bombHits>=1,
   'bomb blast actually affects robots in its world-space radius '+JSON.stringify(blastDebug));
  await page.locator('#pause').click();
