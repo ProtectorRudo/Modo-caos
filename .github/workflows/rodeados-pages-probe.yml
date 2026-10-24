@@ -31,8 +31,10 @@ jobs:
           test "$HTTP" = "200"
           grep -q 'RODEADOS 360' /tmp/rodeados-mirror.html
           grep -q 'id="botGuide"' /tmp/rodeados-mirror.html
-          grep -q 'rodeados-runtime.js?v=9' /tmp/rodeados-mirror.html
-          grep -q 'rodeados-core.js?v=9' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-runtime.js?v=10' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-core.js?v=10' /tmp/rodeados-mirror.html
+          grep -q '∞  BALAS' /tmp/rodeados-mirror.html
+          ! grep -q 'id="reload"' /tmp/rodeados-mirror.html
           grep -q 'id="bomb"' /tmp/rodeados-mirror.html
           grep -q 'id="arWorldOverlay"' /tmp/rodeados-mirror.html
           curl -fsSL -m 15 "https://protectorrudo.github.io/Modo-caos/rodeados-runtime.js" -o /tmp/rodeados-published-runtime.js
@@ -44,7 +46,10 @@ jobs:
           grep -q 'lastShotStatus=r.hit' /tmp/rodeados-published-runtime.js
           grep -q 'function bombCaos()' /tmp/rodeados-published-runtime.js
           grep -q "drawShot(packet,preHit" /tmp/rodeados-published-runtime.js
-          grep -q "rodeados-art.js?v=9" /tmp/rodeados-published-runtime.js
+          grep -q "rodeados-art.js?v=10" /tmp/rodeados-published-runtime.js
+          grep -q 'lastMenaceAt' /tmp/rodeados-published-runtime.js
+          grep -q "MUNICIÓN ILIMITADA" /tmp/rodeados-published-runtime.js
+          echo 'V10: DISPAROS INFINITOS SIN RECARGA Y TENSIÓN ROBÓTICA PUBLICADOS'
           echo 'V9: BOMBA CAOS Y DISPAROS RENOVADOS PUBLICADOS'
           echo 'V8 PUBLICADO: DISPARAR usa mira muestreada en fotograma XR válido'
           grep -q 'eyeLocal.x+direction.x\*slot.distance' /tmp/rodeados-published-runtime.js
@@ -52,13 +57,16 @@ jobs:
           grep -q "addEventListener('pointerdown'" /tmp/rodeados-published-runtime.js
           curl -fsSL -m 12 "https://protectorrudo.github.io/Modo-caos/rodeados-core.js" -o /tmp/rodeados-v6-core.js
           grep -q 'SAFE_DISTANCE=2.45' /tmp/rodeados-v6-core.js
-          grep -q 'function throwBomb(g,target' /tmp/rodeados-v6-core.js
+          grep -q 'infiniteAmmo:true' /tmp/rodeados-v6-core.js
+          grep -q "function throwBomb(g,target" /tmp/rodeados-v6-core.js
           grep -q 'BOMB_RADIUS=2.5' /tmp/rodeados-v6-core.js
           grep -q "function boxRay" /tmp/rodeados-v6-core.js
           curl -fsSL -m 12 "https://protectorrudo.github.io/Modo-caos/rodeados-art.js" -o /tmp/rodeados-v6-art.js
           grep -q "Narrow athletic 1.75m humanoid silhouette" /tmp/rodeados-v6-art.js
           grep -q 'function blastWave(x,z' /tmp/rodeados-v6-art.js
           grep -q 'function drawShot(ray' /tmp/rodeados-v6-art.js
+          grep -q 'a.head.rotation.y=' /tmp/rodeados-v6-art.js
+          grep -q 'a.visorMat.emissiveIntensity=' /tmp/rodeados-v6-art.js
           echo "V6 PUBLICADO: robots 3m, visual renovado y disparo Android"
           grep -q 'pausedByTracking' /tmp/rodeados-published-runtime.js
           grep -q 'renderer.render(nativeXRScene,camera)' /tmp/rodeados-published-runtime.js
