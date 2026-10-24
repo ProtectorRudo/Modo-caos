@@ -59,10 +59,10 @@ Ya contiene la copia completa de los 23 archivos HTML y JavaScript del despliegu
 
 ## Supabase
 
-- NO reutilizar tablas ni datos de Viralio para el nuevo arcade.
-- Proyecto exclusivo pendiente de elección de organización y aceptación de costos.
-- Migraciones y políticas deben versionarse en `supabase/migrations`.
-- Cliente público: clave publicable exclusivamente. Contraseñas y claves service-role se guardan solo en secretos gestionados.
+- NO reutilizar las tablas de clientes y comercios de Viralio; el esquema separado `modo_caos` tiene salas, participantes y resultados.
+- Proyecto compartido con Viralio, ID `bwsgxpttnrctklrcjmjs`, región `sa-east-1` (no crear otro proyecto). Aislamiento de tablas con schema privado `modo_caos` y funciones `public.mc_*` accesibles solo con JWT Auth.
+- Migración aplicada y sincronizada en `supabase/migrations/20261024_arcade_initial.sql`; ver [Supabase Modo Caos](SUPABASE_MODO_CAOS.md).
+- Cliente público: solo clave publicable; nunca `service_role`. Acceso a las RPC con un usuario `auth.uid()` real; habilitar inicio anónimo únicamente tras auditar las políticas de TODOS los productos que comparten este Supabase.
 - Habilitar RLS en todas las tablas públicas, evitar puntuación client-side privilegiada y no compartir salas privadas entre terceros.
 
 ## Documentación viva
@@ -75,4 +75,4 @@ Actualizar este documento cuando cambien motor AR, paths, base, repo o despliegu
 - Código versionado en `ProtectorRudo/Modo-caos`, rama `main`.
 - Vercel Git project `modo-caos`, ID `prj_3irMVa8fdbifSh1mvWA67NcDGn1n`.
 - Producción original **separada**: `color-rush-ar-demo.vercel.app`.
-- Cliente Color Rush online aún enlazado a Supabase Viralio hasta migrar y configurar autenticación y Realtime en nuevo proyecto.
+- **Confirmado**: Modo Caos y Color Rush comparten el MISMO proyecto Supabase `viralio`, pero Modo Caos tiene esquema `modo_caos` privado y funciones RPC con prefijo `mc_`. El duelo existente sigue usando canales Realtime públicos heredados; nuevas salas requieren integración client-side y políticas Realtime privadas.

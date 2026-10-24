@@ -9,8 +9,8 @@ Plataforma de minijuegos y torneos en realidad aumentada.
 - Web de producción: https://color-rush-ar-demo.vercel.app/
 - Proyecto Vercel existente: `color-rush-ar-demo` (`prj_uZe3OiOzgj2iCkr39YvweIyDOuWl`)
 - GitHub central: `ProtectorRudo/Modo-caos`
-- Base temporal utilizada previamente: Supabase `viralio` (`bwsgxpttnrctklrcjmjs`). **No modificar ese proyecto al preparar Modo Caos.**
-- Supabase dedicado a Modo Caos: **pendiente de aprobación del propietario, región y costo**.
+- Supabase compartido con Viralio: proyecto `viralio` (`bwsgxpttnrctklrcjmjs`), región `sa-east-1`. **Modo Caos usa exclusivamente el esquema privado `modo_caos` y las RPC `mc_*`**; no se modificaron tablas existentes de Viralio.
+- La migración `modo_caos_shared_arcade_v1` se aplicó y verificó el 24/10/2026. Ver [guía de Supabase](docs/SUPABASE_MODO_CAOS.md).
 
 ## Juegos ya publicados
 
@@ -44,7 +44,7 @@ Consultar [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md). Base: HTML/CSS/JavaScrip
 2. Evitar secretos en GitHub o en JavaScript del cliente.
 3. Probar entradas AR, anclaje, calibración, física, tiempo, colisiones, reinicio y multijugador en distintos teléfonos.
 4. [LISTO] `main` conectado al proyecto Vercel `modo-caos` (`prj_3irMVa8fdbifSh1mvWA67NcDGn1n`); el dominio anterior sigue aislado.
-5. Configurar Supabase exclusivo con RLS y políticas de seguridad.
+5. [LISTO] Configurar esquema independiente `modo_caos` DENTRO del proyecto Supabase existente `viralio`; sin crear un nuevo proyecto. Pendiente: autenticación anónima autorizada, canal Realtime privado y validación de puntuaciones en backend.
 6. Promover al dominio público **solo después de validar**.
 
 ### Arquitectura de nombres
