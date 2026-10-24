@@ -16,10 +16,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: {node-version: '22'}
       - run: node --check rodeados-core.js
+      - run: node --check rodeados-ux.js
       - run: node --check rodeados-progression.js
       - run: node --check rodeados-art.js
       - run: node --check rodeados-runtime.js
       - run: node --test tests/rodeados.test.cjs
+      - run: node --test tests/rodeados-ux.test.cjs
       - run: node --test tests/rodeados-progression.test.cjs
   chromium:
     runs-on: ubuntu-latest
