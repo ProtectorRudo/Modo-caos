@@ -100,7 +100,6 @@ const server=http.createServer((req,res)=>{
  const now=await page.evaluate(()=>({pose:__RodeadosDebug.floorTransform,player:__RodeadosDebug.player}));
  assert(Math.abs(now.player.x-fixed.player.x)>.05,'tracked phone movement changes YOU marker');
  assert.deepEqual(now.pose,fixed.pose,'floor stays stable while physical phone moves');
- assert(window,'playable simulated XR');
  assert.equal(errors.length,0,'no WebXR Javascript errors '+errors.join(' | '));
  console.log('PASS: simulated WebXR placement, gestures, 25 cells, noncenter calibration, real-pose movement and floor lock.');
  }catch(e){console.error(e.stack||e);process.exitCode=1}
