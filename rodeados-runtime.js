@@ -577,4 +577,7 @@ const daily=globalThis.RodeadosProgress?.daily();
 if(daily)$('daily').textContent='🎯 DESAFÍO DEL DÍA: '+daily.text;
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(game)},get floorSize(){return floorSize},
+ get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
+ get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
+ get player(){return {x:game.player.x,z:game.player.z}},
  get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
