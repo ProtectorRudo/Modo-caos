@@ -55,3 +55,7 @@ jobs:
         run: node tests/meteoros-browser.test.cjs
       - name: Exercise simulated WebXR lifecycle and GPU
         run: node tests/meteoros-xr-smoke.test.cjs
+      - name: Test standalone HTML as real playable 2D game
+        run: METEORS_PAGE=/meteoros-autonomo.html node tests/meteoros-browser.test.cjs
+      - name: Test standalone HTML simulated WebXR lifecycle
+        run: METEORS_PAGE=/meteoros-autonomo.html node tests/meteoros-xr-smoke.test.cjs
