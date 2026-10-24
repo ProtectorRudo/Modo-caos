@@ -16,7 +16,7 @@
  let filtered=null,redAnchor=null,lockTime=0,lastTrack=0,lastFrame=0,lastHUD=0,lastFX=0;
  let running=false,buttons={forward:false,left:false,right:false},keys=new Set();
  let mode='hybrid',calForce=false,demoCtx=null,lastEvent=0,lastGreenMove=0,rewardedRound=-1;
- let audio=null,lastSfx=0,muted=false,best=0,arStarted=false,frameId=0;
+ let audio=null,lastSfx=0,nextBeat=0,muted=false,best=0,arStarted=false,frameId=0;
  let online=null,onlineTimer=null,onlineConnecting=false,onlineActive=false,peerLast=0;
  try{best=Number(localStorage.getItem('mc-semaforo-best')||0)}catch(e){}
  $('introRecords').textContent=(best?'🏆 RÉCORD: '+best.toLocaleString('es-AR')+' PTS · ':'')+'4 COMPETIDORES · 3 VIDAS · 76 SEGUNDOS';
@@ -35,6 +35,13 @@
    v.gain.setValueAtTime(.065,t);v.gain.exponentialRampToValueAtTime(.0001,t+lasting);
    o.connect(v);v.connect(audio.destination);o.start(t);o.stop(t+lasting+.02);
   }catch(e){}
+ }
+ function musicTick(t){
+  if(muted||!running||game.state!=='playing'||t<nextBeat)return;
+  // Rhythm accelerates towards the final seconds; no audio downloads.
+  nextBeat=t+clamp(740-game.raceTime*5.4,285,740);
+  sound(game.signal==='red'?190:game.signal==='amber'?385:440,.09,
+    game.signal==='red'?'triangle':'sine');
  }
  function voice(s){
   if(muted||!window.speechSynthesis)return;
@@ -78,6 +85,9 @@
      vibrate([80,30,65]);
     }else{
      lastGreenMove=0;rewardedRound=-1;
+     if(ev.trap==='gold')fx('🌟 ¡BONO DORADO!');
+     if(ev.trap==='fake')fx('🎭 ¡HAY SEÑUELOS!');
+     if(ev.trap==='turbo')fx('⚡ ¡TURBO!');
      sound(950,.17);voice(ev.trap==='turbo'?'¡Verde turbo!':'¡Verde, avanzá!');
     }
    }else if(ev.type==='penalty'&&ev.id===game.players[0].id){
@@ -255,7 +265,7 @@
   $('status').style.display='none';if(online)$('onlinePanel').style.display='none';
   notify('🎮 VERDE AVANZAR · AMARILLO SOLTAR · ROJO QUIETO');
   hud();sound(780,.35);renderEvents();
-  if(online)onlineActive=true;
+  nextBeat=0;if(online)onlineActive=true;
  }
  function demoMode(){
   demo=true;status='fixed';calibrated=true;setup();
@@ -292,7 +302,7 @@
   const c=$('demoCanvas'),dpr=Math.min(devicePixelRatio||1,2);
   const w=innerWidth,h=innerHeight;
   if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr)}
-  if(running){controls(dt,null);syncedTick(dt);renderEvents();if(t-lastHUD>130){hud();lastHUD=t}}
+  if(running){controls(dt,null);syncedTick(dt);renderEvents();musicTick(t);if(t-lastHUD>130){hud();lastHUD=t}}
   try{A.drawDemo(demoCtx,w,h,game,t)}catch(e){console.warn('Arte demo:',e)}
   requestAnimationFrame(demoFrame);
  }
@@ -309,7 +319,7 @@
      notify('📡 SEGUIMIENTO PERDIDO · SOSTENÉ QUIETO EL TELÉFONO');
      G.input(game,{}); // prevents a false red-light penalty
     }else{
-     controls(dt,pos);syncedTick(dt);renderEvents();
+     controls(dt,pos);syncedTick(dt);renderEvents();musicTick(t);
     }
    }
    if(t-lastHUD>125){lastHUD=t;hud()}
