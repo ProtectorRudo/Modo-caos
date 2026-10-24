@@ -94,6 +94,7 @@ const server=http.createServer((req,res)=>{
  const fixed=await page.evaluate(()=>({pose:__RodeadosDebug.floorTransform,player:__RodeadosDebug.player,side:__RodeadosDebug.floorSize}));
  assert(Math.abs(fixed.player.x+fixed.side/5)<.03&&Math.abs(fixed.player.z+fixed.side/5)<.03,'noncentral 5x5 selected player placement');
  assert(await page.locator('#begin').isEnabled(),'calibration enables battle');
+ assert(!await page.locator('#radarWrap').isVisible(),'radar does not obstruct calibration');
  await page.locator('#begin').click();
  await page.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:5500});
  await page.evaluate(()=>window.__simPhone.x=.18);

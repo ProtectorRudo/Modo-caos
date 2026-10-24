@@ -26,6 +26,12 @@ const server=http.createServer((req,res)=>{
  assert.ok((await page.evaluate(()=>globalThis.__RodeadosDebug.game.elapsed))>.3,'clock advances');
  assert(await page.locator('canvas').count()>0,'Three.js created renderer');
  assert(await page.locator('#fire').isVisible(),'shoot visible');
+ assert(await page.locator('#radarWrap').isVisible(),'360-degree radar is active');
+ await page.waitForTimeout(300);
+ assert(await page.locator('#radar').evaluate(c=>{
+  const d=c.getContext('2d').getImageData(108,108,1,1).data;
+  return d[3]>0;
+ }),'radar displays player orientation marker');
  await page.locator('#fire').click();
  assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.game.shots),1,'fire updates ammo and shot count');
  await page.locator('#reload').click();
