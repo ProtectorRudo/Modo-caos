@@ -83,3 +83,17 @@ Animaciones GLB esqueléticas con licencias verificadas; audio espacial HRTF y m
 En salas de 2–4 participantes cada usuario tiene su propio cargador de 28 disparos y recarga independiente de 1,35 s, incluso cuando el anfitrión mantiene la simulación de robots. La cadencia de mensajes de disparo de invitados está limitada por el tiempo simulado a 0,16 s y se retransmite el estado de munición de cada integrante mediante snapshots Realtime autenticados; no se requiere migración SQL. El anfitrión sigue controlando vida de equipo y oleadas. Pruebas deterministas en `tests/rodeados-coop.test.cjs` y regresión Chromium.
 
 **Alcance:** la autoridad sigue estando en el navegador anfitrión, no en un servidor antitrampas. No hay aún anclas AR compartidas verificadas y no se probó la experiencia física con dos Android. Las municiones independientes no equivalen a un multijugador espacial certificado.
+
+## Corrección AR Blackzone V25/V34 · robots invisibles en Android (24/10/2026)
+
+**Diagnóstico con captura real:** el radar y los puntos de vida mostraban enemigos pero el mundo WebXR nativo era invisible, incluso cuando el core generaba modelos 3D. El motor Blackzone, referencia ya validada, tiene documentado este fallo específico de Android ARCore/Chrome y lo evita con una segunda capa Three.js transparente **dentro del DOM overlay de la sesión AR**.
+
+RODEADOS ahora aplica el mismo patrón:
+- `rodeados-ar-compositor.js`: renderizador WebGL alfa separado, cámara con `matrixWorld`, `matrixWorldInverse` y `projectionMatrix` COPIADAS del ojo XR real. Escenas/robots/piso quedan en coordenadas espaciales del XR ReferenceSpace y NO se fijan a pantalla.
+- Renderizador nativo WebXR dibuja `nativeXRScene` (vacía) para refrescar la pose real sin duplicar robots.
+- Renderizador del mundo de RODEADOS dibuja la escena íntegra (piso, bots, efectos, arma) sobre el video de ARCore, como Blackzone.
+- Se crea y destruye con la sesión XR; entrenamiento de PC mantiene el renderizador original. Se adapta al tamaño de pantalla.
+- Si falla al crear la capa, se informa un error claro y **no se inicia una partida invisible**.
+- WebXR Chromium simulado verifica ahora que la capa transparente DOM exista, reciba geometría mediante draw calls y renderice enemigos sin errores. Las pruebas NO equivalen a una validación física en Android.
+
+**Archivo original auditado:** `ProtectorRudo/ProtectorRudo.github.io/la-casa-alterada/ar-compositor.js` (Blackzone V25) y `main.js` (Blackzone V34, `nativeXRScene`, `arCompositor.render(...)`).
