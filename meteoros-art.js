@@ -69,16 +69,29 @@ function create3D(gl){
    const viewport=xrLayer.getViewport(view);gl.bindFramebuffer(gl.FRAMEBUFFER,xrLayer.framebuffer);
    gl.viewport(viewport.x,viewport.y,viewport.width,viewport.height);
    vp=multiply(view.projectionMatrix,view.transform.inverse.matrix);
-   // SQUARE playing surface: all four edges match the collision box exactly.
-   // The transparent dark floor keeps the real room visible in AR.
-   draw('box',0,.010,0,ARENA,.007,ARENA,[.018,.046,.086,.23]);
-   for(const s of [-1,1]){
-    draw('box',s*ARENA,.034,0,.014,.012,ARENA,colors.mint,.56);
-    draw('box',0,.034,s*ARENA,ARENA,.012,.014,colors.mint,.56);
+   // Premium 5x5 physical floor: 25 solid-looking, contrasted cells, not a ghost grid.
+   // Camera remains visible around and faintly through tiles to preserve depth cues.
+   draw('box',0,.011,0,ARENA,.010,ARENA,[.018,.088,.155,.84]);
+   const pitch=ARENA*2/5,half=pitch*.483;
+   for(let row=0;row<5;row++)for(let col=0;col<5;col++){
+    const x=(col-2)*pitch,z=(row-2)*pitch;
+    const picked=g.calibrationCell===row*5+col;
+    const shade=(row+col)%2;
+    const fill=picked?[.22,1,.63,.98]:shade?[.085,.66,.94,.95]:[.08,.86,.80,.94];
+    draw('box',x,.028,z,half,.005,half,fill,picked?.70:.48);
+    if(picked)draw('box',x,.038,z,pitch*.46,.003,pitch*.46,[.19,.95,.75,.26],.36);
    }
-   for(let i=-4;i<=4;i++){
-    draw('box',i*ARENA*.2,.023,0,.002,.001,ARENA,[.06,.39,.49,.28]);
-    draw('box',0,.024,i*ARENA*.2,ARENA,.001,.002,[.06,.39,.49,.28]);
+   for(const s of [-1,1]){
+    draw('box',s*ARENA,.047,0,.016,.019,ARENA,[.23,1,.79,.98],.68);
+    draw('box',0,.047,s*ARENA,ARENA,.019,.016,[.23,1,.79,.98],.68);
+   }
+   // Human is indicated by a small FLOOR-LOCKED point (no humanoid avatar).
+   // It follows the recalibrated phone pose inside the physical square.
+   if(g.calibrated&&g.players[0].alive){
+    const you=g.players[0],breath=.5+.5*Math.sin(now*7);
+    draw('disc',you.x,.051,you.z,.085,.004,.085,[.12,1,.72,.40],.35);
+    draw('ring',you.x,.068,you.z,.09+breath*.013,.004,.09+breath*.013,[.51,1,.83,1],.90);
+    draw('globe',you.x,.078,you.z,.022,.022,.022,[.83,1,.94,1],.60);
    }
    if(!g.online&&g.wave>4&&g.safeHint&&g.elapsed<g.safeHint.until){
     const s=g.safeHint,pulse=.5+.5*Math.sin(now*6);
@@ -118,7 +131,7 @@ function create3D(gl){
     }
    }
    // First-person AR: no humanoid VOS — the person holding the camera IS the player.
-   if(g.showCalibrationMarker)draw('ring',0,.049,0,.12,.004,.12,colors.mint,.8);
+   // Calibration marker is the picked 5x5 cell and then the tracked floor point.
    g.players.forEach((h,i)=>{
     if(i===0||!h.alive)return;const walking=h.kind!=='human'&&h.dist>.03;
     const bob=.012*Math.sin(now*12+i),sz=.095,x=h.x,z=h.z;
