@@ -35,9 +35,7 @@
   return g;
  }
  function reset(g,config={}){
-  const next=create({...config,mode:config.mode||g.mode,arena:config.arena||g.arena});
-  Object.keys(next).forEach(k=>g[k]=next[k]);
-  return g;
+  return create({...config,mode:config.mode||g.mode,arena:config.arena||g.arena});
  }
  function begin(g){if(g.phase==='ready'){g.phase='playing';g.spawnClock=.5;}return g}
  function copy(g){
