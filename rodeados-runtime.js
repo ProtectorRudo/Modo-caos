@@ -62,7 +62,7 @@ function relativeAngle(p){
  return Math.atan2(forward.x*toward.z-forward.z*toward.x,forward.x*toward.x+forward.z*toward.z);
 }
 function drawRadar(t){
- if(t-lastRadar<160||stage!=='playing')return;
+ if(t-lastRadar<160||(stage!=='playing'&&stage!=='paused'))return;
  lastRadar=t;
  const canvas=$('radar'),ctx=canvas.getContext('2d');if(!ctx)return;
  const c=108,R=82;
@@ -106,6 +106,21 @@ function updateBattleFeedback(t){
  $('combo').textContent=game.combo>=2?'×'+game.combo+' IMPACTOS CONSECUTIVOS':'';
  $('combo').style.opacity=game.combo>=2?'1':'0';
  drawRadar(t);
+}
+function showBotDirection(){
+ if(stage!=='playing'&&stage!=='paused')return;
+ const cue=$('botGuide'),targets=game.enemies.filter(e=>e.hp>0&&e.portal<.3);
+ if(!targets.length){cue.textContent='🤖 ROBOTS ENTRANDO A LA PISTA';return}
+ const target=targets.slice().sort((a,b)=>
+  Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z))[0];
+ const angle=relativeAngle(target);
+ if(angle>.66)cue.textContent='🤖 ROBOTS A TU DERECHA → GIRÁ EL CELULAR';
+ else if(angle<-.66)cue.textContent='← 🤖 ROBOTS A TU IZQUIERDA · GIRÁ EL CELULAR';
+ else{
+  const cam=demo?camera:renderer.xr.getCamera(camera);
+  cam.getWorldDirection(centerRay);
+  cue.textContent=centerRay.y<-.42?'⬆ LEVANTÁ EL CELULAR · ROBOT AL FRENTE':'🎯 ROBOT FRENTE A VOS · ¡APUNTÁ Y DISPARÁ!';
+ }
 }
 function renderThreats(){
  const war=$('warning');war.replaceChildren();
@@ -172,7 +187,7 @@ function setPhase(next){
  visible('manualPlace',next==='search'&&performance.now()-searchSince>1800,'block');
  visible('placementHelp',false);visible('healthTrack',['ready','countdown','playing','paused'].includes(next),'block');
  visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown','block');
- visible('radarWrap',next==='playing'||next==='paused','block');
+ visible('radarWrap',next==='playing'||next==='paused','block');visible('botGuide',next==='playing'||next==='paused','block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
  visible('actions',next==='paused');$('pause').textContent=next==='paused'?'▶ CONTINUAR':'Ⅱ PAUSA';
  $('topHud').style.display=['ready','countdown','playing','paused','finished'].includes(next)?'flex':'none';
@@ -647,6 +662,7 @@ function animate(t,frame){
  if(stage==='edit')art.setFloor(floorSize,true,selected);
  else art.setFloor(floorSize,stage==='cell'||stage==='sample',selected,calibrated?game.player:null);
  if(stage==='playing'||stage==='paused'||stage==='countdown'||stage==='ready')art.drawEnemies(game);
+ if(stage==='paused'){drawRadar(t);if(t-lastPing>1200){lastPing=t;showBotDirection();}}
  tickGame(dt,t);
  if(stage==='playing')art.positionWeapon(xrSession?renderer.xr.getCamera(camera):camera,fireFlash>0);
  art.rifle.visible=stage==='playing';
