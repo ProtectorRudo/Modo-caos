@@ -85,11 +85,22 @@ const server=http.createServer((req,res)=>{
   assert(Number(await page.locator('#time').innerText())<90,'90 s AR clock advances');
   assert(await page.locator('#radar').isVisible(),'top-down radar visible while playing AR');
   assert.equal(await page.locator('#radarCells i').count(),36,'radar has 6x6 tiles');
-  assert((await page.locator('#radarTime').innerText()).length>0,'hazard anticipation displayed');
+  const radarBounds=await page.locator('#radar').boundingBox();
+  assert(radarBounds&&radarBounds.width>=160,'tactical view enlarged for a physical AR game');
+  await page.waitForFunction(()=>document.querySelector('#radarTime')?.textContent.includes('EN '),null,{timeout:8500});
+  assert((await page.locator('#radarTime').innerText()).includes('EN '),'timer forecasts red impact');
+  assert((await page.locator('#radarDirection').innerText()).includes('DESDE')||
+    (await page.locator('#radarDirection').innerText()).length>5,'radar indicates incoming direction');
+  assert(await page.locator('#radarYou').isVisible(),'screen-fixed status of the player's cell');
+  assert(await page.locator('#radarCells i.warning').count()>0,'incoming orange light is visible even with camera pointing elsewhere');
+  assert((await page.locator('#radarCells').innerText()).match(/[123]/),'on-grid 3, 2, 1 countdown visible');
   const before=await page.evaluate(()=>window.__draws);
   assert(before>preDraws+100,'real WebGL keeps painting after lock');
   for(let i=0;i<9;i++){await page.evaluate(()=>window.__position.x+=.07);await page.waitForTimeout(85)}
   await page.waitForTimeout(280);
+  const radarBoundsAfter=await page.locator('#radar').boundingBox();
+  assert(Math.abs(radarBoundsAfter.x-radarBounds.x)<1&&Math.abs(radarBoundsAfter.y-radarBounds.y)<1,
+    'radar stays fixed to HUD while phone moves in 3D');
   assert((await page.locator('#whereAmI').innerText()).includes('COLUMNA 5'),
    'moving phone in world physically changes selected tile');
   await page.locator('#pause').click();
