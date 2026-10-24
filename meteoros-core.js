@@ -94,6 +94,7 @@ function planWave(g){
  // Meteorites which move always announce a second telegraph >=0.95s before impact.
  const trick=made.find(e=>e.kind==='tricky');
  if(trick&&lead<1.9)trick.kind='normal';
+ if(g.elapsed>16&&random(g)<.075)made[Math.floor(random(g)*made.length)].fake=true;
  g.events.push(...made);g.wave++;g.maxActive=Math.max(g.maxActive,made.length);
  if(g.wave%5===0||f==='apocalipsis')g.fx.push({type:'siren',at:g.elapsed,text:f==='apocalipsis'?'☄️ TORMENTA APOCALÍPTICA':'⚠️ ¡LLUVIA MÚLTIPLE!'});
  return made;
@@ -150,6 +151,7 @@ function hit(g,p,e){
 function impactTick(g){
  for(const e of g.events){
   if(e.cancelled)continue;
+  if(e.fake&&g.elapsed>=e.impact-.80){e.cancelled=true;g.fx.push({type:'fake',at:g.elapsed,text:'😂 ¡ERA UNA FALSA ALARMA!'});continue}
   moveTrick(g,e);
   if(g.elapsed>=e.impact&&!e.impactDone){e.impactDone=true;
    g.fx.push({type:'impact',at:g.elapsed,x:e.x,z:e.z,giant:e.kind==='giant',text:e.kind==='giant'?'☄️ ¡METEORITO GIGANTE!':'💥 IMPACTO'});
