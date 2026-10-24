@@ -121,7 +121,7 @@
    c.strokeStyle='rgba(45,192,240,.10)';c.lineWidth=1;
    c.beginPath();c.moveTo(xx,0);c.lineTo(xx+amp,h*.61);c.stroke();
   }
-  const y0=h*.30,y1=h*.82,xc=w*.5,wt=w*.35,wb=w*.94;
+  const y0=h*.30,y1=h*.73,xc=w*.5,wt=w*.35,wb=w*.94;
   const X=(l,z)=>xc+l*(wt+(wb-wt)*z)*.5,Y=z=>y0+(y1-y0)*z;
   const poly=(points,fill,stroke=null,lw=1)=>{
    c.beginPath();points.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));
