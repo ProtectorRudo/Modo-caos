@@ -2,12 +2,12 @@ import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.
 import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
-const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),mini:$('mini'),results:$('results'),status:$('status'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
+const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
 let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing';
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
-function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=p!=='placing';ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
+function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=p!=='placing';ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
 function updateHUD(){ui.hudHeight.textContent=G.score(phase==='settling'?lastTop:top).toString();ui.hudPieces.textContent=states.length.toString();ui.hudRecord.textContent=Math.max(record,G.score(top)).toString()}
 function startPhysics(){
  if(world){world.free();world=null}if(queue){queue.free();queue=null}
@@ -169,7 +169,7 @@ function gestureUp(e){
 }
 ui.gesture.addEventListener('pointerdown',gestureDown);ui.gesture.addEventListener('pointermove',gestureMove);ui.gesture.addEventListener('pointerup',gestureUp);ui.gesture.addEventListener('pointercancel',e=>{if(phase==='placing'){pointers.delete(e.pointerId);pinch=null}else drag=null});
 function updateScale(){$('sizeText').textContent=Math.round(scale*100)+'%'}
-function setARMode(ar){mode=ar?'ar':'demo';art.setAR(ar);ui.home.hidden=true;ui.overlay.hidden=false;if(!ar){session=null;scale=1;art.setScale(1);art.group.visible=true;$('recenter').hidden=true;newGame();return}$('recenter').hidden=false;scale=.48;art.setScale(scale);updateScale();phaseTo('placing');art.group.visible=false;showText('APUNTÁ AL PISO Y AJUSTÁ TU PLATAFORMA',3600)}
+function setARMode(ar){mode=ar?'ar':'demo';art.setAR(ar);ui.home.hidden=true;ui.overlay.hidden=false;if(!ar){session=null;projectedFloor=false;ui.xrScene.replaceChildren();scale=1;art.setScale(1);art.group.visible=true;$('recenter').hidden=true;newGame();return}$('recenter').hidden=false;scale=.48;art.setScale(scale);updateScale();projectedFloor=false;phaseTo('placing');art.group.visible=false;ui.xrScene.replaceChildren();showText('APUNTÁ AL PISO Y AJUSTÁ TU PLATAFORMA',3600)}
 function arReady(){return !!navigator.xr&&window.isSecureContext}
 async function startAR(){
  if(!art){showText('Motor todavía cargando');return}
@@ -189,6 +189,93 @@ async function startAR(){
  }catch(e){showText('No se pudo abrir AR: '+(e.message||e),6500);$('precheck').textContent='AR: '+e.message;try{await session?.end()}catch(_){} session=null;art.setAR(false)}
  $('arBtn').disabled=false;
 }
+
+/** A world-locked WebXR projection of the real 3D platform.
+ * Uses the XR view and the SAME group transform as Three.js. This also gives a
+ * dependable visible reticle on DOM-overlay implementations with faulty WebGL
+ * compositing. Never attach the platform to screen space.
+ */
+const XR_COLORS=['#37d9c5','#ffc15b','#6b98ff','#fc6a8b','#af82ff','#ff8656','#a6e66b'];
+let lastARPaint=0, projectedFloor=false, xrRenderFailures=0;
+function renderARSpatial(frame,time){
+ if(mode!=='ar'||!art||!ref||phase==='home')return;
+ if(time-lastARPaint<31)return;
+ lastARPaint=time;
+ let pose=null;
+ try{pose=frame.getViewerPose(ref)}catch(_){}
+ const view=pose?.views?.[0];
+ if(!view||!art.group.visible){ui.xrScene.replaceChildren();projectedFloor=false;if(phase==='placing')ui.xrState.textContent='APUNTÁ DESPACIO AL PISO';return}
+ const width=Math.max(1,innerWidth),height=Math.max(1,innerHeight);
+ ui.xrScene.setAttribute('viewBox','0 0 '+width+' '+height);
+ const vp=new THREE.Matrix4().fromArray(view.projectionMatrix).multiply(new THREE.Matrix4().fromArray(view.transform.inverse.matrix));
+ art.group.updateWorldMatrix(true,false);
+ const wm=art.group.matrixWorld;
+ const vv=new THREE.Vector4();
+ function project(x,y,z){
+  vv.set(x,y,z,1).applyMatrix4(wm).applyMatrix4(vp);
+  if(!Number.isFinite(vv.w)||vv.w<=.035)return null;
+  const nx=vv.x/vv.w,ny=vv.y/vv.w;
+  if(!Number.isFinite(nx)||!Number.isFinite(ny))return null;
+  return {x:(nx+1)*width*.5,y:(1-ny)*height*.5,depth:vv.z/vv.w};
+ }
+ function corners(coords){return coords.map(p=>project(...p))}
+ const fmt=p=>p.x.toFixed(1)+','+p.y.toFixed(1);
+ function poly(ps,fill,stroke='#94fff0',sw=1,alpha=1){
+  if(ps.some(p=>!p))return '';
+  return '<polygon points="'+ps.map(fmt).join(' ')+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'" opacity="'+alpha+'" stroke-linejoin="round"/>';
+ }
+ const topPlane=corners([[-1.25,.14,-.36],[1.25,.14,-.36],[1.25,.14,.36],[-1.25,.14,.36]]);
+ const inView=topPlane.every(Boolean)&&topPlane.some(p=>p.x>-60&&p.x<width+60&&p.y>-60&&p.y<height+60);
+ projectedFloor=inView;
+ if(!inView){
+  ui.xrScene.replaceChildren();
+  if(phase==='placing')ui.xrState.textContent='SUPERFICIE DETECTADA · ENCUADRÁ EL PISO';
+  return;
+ }
+ const shapes=[];
+ shapes.push(poly(corners([[-1.25,-.01,.36],[1.25,-.01,.36],[1.25,.14,.36],[-1.25,.14,.36]]),'#13435b','#55fee3',2,.65));
+ shapes.push(poly(topPlane,'#0b637c','#71ffe3',3.7,.42));
+ // Perimetral 3D highlight + surface ticks that follow the physical floor.
+ for(const x of [-1,-.5,0,.5,1]){
+  const line=corners([[x,.145,-.35],[x,.145,.35]]);
+  if(line.every(Boolean))shapes.push('<polyline points="'+line.map(fmt).join(' ')+'" fill="none" stroke="#94fff0" stroke-width="1.25" opacity=".57"/>');
+ }
+ for(const z of [-.24,0,.24]){
+  const line=corners([[-1.24,.147,z],[1.24,.147,z]]);
+  if(line.every(Boolean))shapes.push('<polyline points="'+line.map(fmt).join(' ')+'" fill="none" stroke="#89eafa" stroke-width="1" opacity=".5"/>');
+ }
+ const center=project(0,.16,0), cx=center?.x,cy=center?.y;
+ if(center){
+  shapes.push('<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="6" fill="#cffff9" stroke="#07556a" stroke-width="3"/>');
+ }
+ function piece(shape,x,y,angle,opacity=1){
+  const front=DEPTH*.5, back=-front;
+  const color=XR_COLORS[shape.tone%XR_COLORS.length];
+  for(const polygon of shape.parts){
+   const vertices=G.rotated(polygon,angle).map(([xx,yy])=>[x+xx*BLOCK,y+yy*BLOCK]);
+   const rear=corners(vertices.map(([xx,yy])=>[xx,yy,back]));
+   const face=corners(vertices.map(([xx,yy])=>[xx,yy,front]));
+   shapes.push(poly(rear,'#193d58',color,.9,opacity*.6));
+   for(let i=0;i<vertices.length;i++){
+    const k=(i+1)%vertices.length;
+    shapes.push(poly(corners([[vertices[i][0],vertices[i][1],back],[vertices[k][0],vertices[k][1],back],[vertices[k][0],vertices[k][1],front],[vertices[i][0],vertices[i][1],front]]),color,'#091e39',1.25,opacity*.55));
+   }
+   shapes.push(poly(face,color,'#f2fff9',1.45,opacity*.82));
+  }
+ }
+ if(phase==='placing'&&!editing){piece(G.SHAPES[0],0,.14+BLOCK*.5,0,.52)}
+ else{
+  const sorted=states.map(s=>{
+   const p=s.body.translation(),q=s.body.rotation();
+   return {shape:s.shape,x:p.x,y:p.y,a:2*Math.atan2(q.z,q.w)};
+  }).sort((a,b)=>b.y-a.y);
+  for(const item of sorted)piece(item.shape,item.x,item.y,item.a,.78);
+  if(active)piece(active.shape,active.x,active.y,active.angle,.8);
+ }
+ ui.xrScene.innerHTML=shapes.join('');
+ if(phase==='placing')ui.xrState.textContent='✓ PLATAFORMA VISIBLE · PODÉS FIJARLA';
+}
+
 function xrFrame(time,frame){
  if(!ref||!trackSource)return;
  const hit=frame.getHitTestResults(trackSource);
@@ -196,16 +283,21 @@ function xrFrame(time,frame){
   if(hit.length){const p=hit[0].getPose(ref);if(p){latestHit=hit[0];hitSeen=time;rawPose={x:p.transform.position.x,y:p.transform.position.y,z:p.transform.position.z};if(!fixedPose){const view=frame.getViewerPose(ref)?.transform.position;if(view)yaw=Math.atan2(view.x-rawPose.x,view.z-rawPose.z);fixedPose={...rawPose};}
    art.group.visible=true;art.setPreviewPose({x:rawPose.x+shift.x,y:rawPose.y,z:rawPose.z+shift.z},yaw);$('fix').disabled=false;
   }}
-  if(time-hitSeen>950){$('fix').disabled=true;if(!latestHit)art.group.visible=false}
+  if(time-hitSeen>950){$('fix').disabled=true;art.group.visible=false;projectedFloor=false}
   art.aim.visible=true;
  }else if(anchor){
   const p=frame.getPose(anchor.anchorSpace,ref);
   if(p){art.group.position.set(p.transform.position.x+shift.x,p.transform.position.y,p.transform.position.z+shift.z)}
   art.aim.visible=false;
  }else art.aim.visible=false;
+ try{renderARSpatial(frame,time)}catch(e){
+  if(++xrRenderFailures<4)console.warn('Torre Caos XR projection:',e);
+  projectedFloor=false;ui.xrState.textContent='REAJUSTÁ LA CÁMARA PARA VER LA PLATAFORMA';
+ }
+ if(phase==='placing')$('fix').disabled=!projectedFloor||time-hitSeen>950;
 }
 async function fix(){
- if(phase!=='placing'||!rawPose||performance.now()-hitSeen>1800)return;
+ if(phase!=='placing'||!projectedFloor||!rawPose||performance.now()-hitSeen>1050)return;
  const cp={x:rawPose.x+shift.x,y:rawPose.y,z:rawPose.z+shift.z};
  art.setPreviewPose(cp,yaw);art.group.visible=true;fixedPose={...cp};
  try{if(latestHit?.createAnchor){anchor=await latestHit.createAnchor();}}catch(_){}
@@ -216,7 +308,7 @@ async function fix(){
 function pause(){if(phase!=='playing'&&phase!=='settling')return;paused=true;$('pauseMenu').hidden=false;showText('PAUSA')}
 function resume(){paused=false;$('pauseMenu').hidden=true}
 function retry(){resume();replaying=false;newGame()}
-function edit(){if(!session)return;resumePhase=phase;editing=true;paused=true;drag=null;$('pauseMenu').hidden=true;phaseTo('placing');shift={x:0,z:0};latestHit=null;hitSeen=0;rawPose=null;fixedPose=null;anchor?.delete?.();anchor=null;showText('REUBICÁ LA TORRE SIN PERDER TU CONSTRUCCIÓN');}
+function edit(){if(!session)return;resumePhase=phase;editing=true;paused=true;drag=null;$('pauseMenu').hidden=true;phaseTo('placing');shift={x:0,z:0};latestHit=null;hitSeen=0;projectedFloor=false;ui.xrScene.replaceChildren();rawPose=null;fixedPose=null;anchor?.delete?.();anchor=null;showText('REUBICÁ LA TORRE SIN PERDER TU CONSTRUCCIÓN');}
 function miniToggle(){ui.mini.classList.toggle('expanded')}
 $('demoBtn').addEventListener('click',()=>{if(!art)return;setARMode(false)});
 $('arBtn').addEventListener('click',startAR);
