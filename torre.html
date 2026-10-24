@@ -1,0 +1,84 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#061527">
+<title>TORRE CAOS 🏗️ · MODO CAOS</title>
+<style>
+:root{color-scheme:dark;--mint:#6ffff0;--gold:#ffd48b;--ink:#061527;--glass:#10263bdc}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--ink);color:#f2fbff;font:14px system-ui,-apple-system,Arial,sans-serif}
+[hidden]{display:none!important}button{border:0;border-radius:14px;min-height:45px;padding:11px 15px;cursor:pointer;color:#092b30;background:#7affed;font:900 13px system-ui;touch-action:manipulation}button:disabled{opacity:.44;cursor:not-allowed}
+button:focus-visible,a:focus-visible{outline:3px solid white;outline-offset:3px}button.secondary{background:#15324a;color:#e9fffa;border:1px solid #4b8694}button:active{transform:scale(.985)}
+#arena{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;pointer-events:none}
+#home{position:fixed;inset:0;z-index:30;background:radial-gradient(ellipse at 55% 22%,#2c4d69 0%,#101f39 44%,#030a17 100%);display:flex;flex-direction:column;align-items:center;text-align:center;overflow:auto;padding:18px 20px 35px}
+#back{align-self:flex-start;color:#a9ffe6;font-size:12px;font-weight:900;text-decoration:none}
+.eyebrow{font-size:10px;font-weight:950;letter-spacing:3.2px;color:#88ffe6;margin:22px 0 8px}
+h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spacing:-4px;margin:11px 0;text-shadow:0 6px 22px #0009}h1 em{font-style:normal;color:#74ffe5}
+#home p{font-size:13px;line-height:1.55;color:#c5dce7;max-width:380px;margin:12px 0 7px}
+.hero{position:relative;width:min(95vw,365px);height:min(34vh,267px);min-height:195px;margin:13px 0 9px;perspective:850px;overflow:hidden;flex-shrink:0}
+.hero:before{content:'';position:absolute;bottom:13px;left:10%;width:80%;height:72px;background:linear-gradient(155deg,#2b5d75,#09283f);border:3px solid #64ffe3;border-radius:20px;transform:perspective(250px) rotateX(58deg);box-shadow:0 0 35px #30d0c04a}
+.blocks{position:absolute;inset:0;transform:rotate(-5deg)}
+.blocks i{position:absolute;display:block;border-radius:5px;border:2px solid #ffffff44;box-shadow:inset -11px -8px 14px #071c3769,inset 5px 5px 9px #ffffff66,0 11px 18px #020e2cb0}
+.blocks i:nth-child(1){left:28%;bottom:40px;width:46%;height:38px;background:#28cdb8;transform:rotate(-4deg)}
+.blocks i:nth-child(2){left:40%;bottom:80px;width:35%;height:31px;background:#ffba51;transform:rotate(15deg)}
+.blocks i:nth-child(3){left:37%;bottom:118px;width:20%;height:43px;background:#6d90ff;transform:rotate(-9deg)}
+.blocks i:nth-child(4){left:49%;bottom:162px;width:25%;height:28px;background:#f77193;transform:rotate(19deg)}
+.blocks i:nth-child(5){left:55%;bottom:199px;width:23%;height:26px;background:#ae89fb;clip-path:polygon(50% 0,100% 100%,0 100%);transform:rotate(10deg)}
+.hero strong{position:absolute;right:3%;top:6%;font-weight:950;font-size:11px;letter-spacing:1.4px;color:#d3fff7;transform:rotate(5deg);text-shadow:0 2px 6px #000}
+.pills{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:6px 0 15px}
+.pills span{font-size:10px;font-weight:900;color:#bde6ef;border:1px solid #497a8d;border-radius:8px;padding:6px 9px;background:#12314a}
+.cta{display:grid;gap:9px;width:min(100%,400px);margin:9px 0 0}#arBtn{min-height:58px;font-size:16px;background:linear-gradient(120deg,#66ffe5,#99ffe6);box-shadow:0 0 30px #4bffcc2e}#demoBtn{min-height:53px}
+#introRecord{font-size:12px;font-weight:950;color:#ffdd9b;margin:13px 0 3px}#precheck{font-size:11px!important;color:#9fbdca!important;margin-top:13px!important}
+.micro{color:#819db2;font-size:10px;line-height:1.5;max-width:380px}
+#overlay{position:fixed;inset:0;z-index:10;pointer-events:none;overflow:hidden}
+#gesture{position:absolute;inset:6% 0 13%;z-index:2;pointer-events:none;touch-action:none}
+#hud{position:absolute;left:12px;right:12px;top:max(15px,env(safe-area-inset-top));z-index:8;display:flex;gap:8px;align-items:stretch;justify-content:space-between;pointer-events:none}
+.stat{border:1px solid #679baf7a;background:#071c30c9;backdrop-filter:blur(12px);padding:8px 10px;border-radius:13px;min-width:69px;text-align:center;box-shadow:0 7px 20px #0006}
+.stat small{display:block;font-size:9px;color:#b7cedb;letter-spacing:1px;font-weight:1000}.stat b{display:block;font-size:21px;letter-spacing:-.8px;line-height:1.3;font-variant-numeric:tabular-nums}.stat b span{font-size:10px;letter-spacing:0;color:#b4e9de}
+#hud button{pointer-events:auto;width:43px;height:43px;min-height:43px;align-self:center;border-radius:13px;background:#122b41d9;border:1px solid #5a8b9f;color:#f5fffc;padding:5px;font-size:18px}
+#blockName{position:absolute;left:50%;transform:translateX(-50%);top:calc(max(15px,env(safe-area-inset-top)) + 73px);z-index:6;color:#d2fff5;font-weight:950;text-shadow:0 2px 10px #000;letter-spacing:1.6px;font-size:10px;background:#0923389e;border-radius:30px;padding:8px 13px;pointer-events:none;white-space:nowrap}
+#notice{position:absolute;top:27%;left:7%;right:7%;text-align:center;font-weight:950;font-size:14px;letter-spacing:.8px;text-shadow:0 3px 9px #000;pointer-events:none;opacity:0;transition:opacity .2s;z-index:15}
+#tip{position:absolute;bottom:max(28px,env(safe-area-inset-bottom));left:9%;right:9%;text-align:center;color:#bde7ec;font-weight:850;font-size:11px;text-shadow:0 2px 7px #001}
+#mini{position:absolute;right:12px;bottom:81px;z-index:6;width:94px;height:151px;border:1px solid #6cb4bd;background:#10263bb8;border-radius:12px;backdrop-filter:blur(7px);object-fit:fill;pointer-events:auto;transition:width .2s,height .2s}
+#mini.expanded{width:155px;height:244px}
+#miniBtn{position:absolute;right:12px;bottom:55px;font-size:9px;min-height:22px;padding:4px 9px;background:#0b2a3d;color:#abf9ec;pointer-events:auto;border:1px solid #4b9a9d;border-radius:9px;z-index:6}
+#stage[data-phase=placing] #mini,#stage[data-phase=placing] #miniBtn,#stage[data-phase=home] #mini,#stage[data-phase=home] #miniBtn{display:none}
+#arControls{position:absolute;bottom:max(20px,env(safe-area-inset-bottom));left:13px;right:13px;pointer-events:auto;z-index:8;background:#071b2edb;backdrop-filter:blur(14px);border:1px solid #4b8391;border-radius:20px;padding:12px 13px;display:grid;gap:9px}
+#arControls h2{font-size:13px;margin:0;text-align:center;letter-spacing:1px}#arControls p{font-size:10px;color:#b6dbe6;margin:0;text-align:center}
+.scale{display:flex;align-items:center;justify-content:center;gap:8px}.scale button{min-height:39px;min-width:56px;background:#173e54;color:#e9fff9;border:1px solid #598fa0}
+#sizeText{font-weight:1000;color:#b5fff0;min-width:48px;text-align:center}
+#fix{font-size:15px;min-height:51px}
+#setup{position:absolute;top:8%;left:10px;right:10px;z-index:7;text-align:center;color:white;font-weight:950;text-shadow:0 2px 6px #000;font-size:12px}
+#results,#pauseMenu{position:absolute;z-index:19;inset:0;background:#031021df;backdrop-filter:blur(16px);display:grid;place-items:center;pointer-events:auto}
+.modal{background:linear-gradient(145deg,#173a4b,#07182b);border:1px solid #568d9e;border-radius:24px;box-shadow:0 30px 70px #000b;width:min(90vw,380px);padding:25px 22px;text-align:center}
+.modal h2{margin:4px 0 10px;font-size:29px;line-height:1.08;letter-spacing:-1px;color:#fff}.modal p{color:#b6d9e3;line-height:1.4;font-size:12px}.big{font-size:68px;color:#8affdf;font-weight:1000;letter-spacing:-4px;line-height:1;margin:14px auto}.big small{font-size:15px;letter-spacing:0;color:#b9dfed}.split{display:flex;justify-content:space-between;border-top:1px solid #ffffff22;margin:13px 0;padding-top:11px;gap:9px}.split div{flex:1}.split b{display:block;font-size:18px}.split small{font-size:10px;color:#b7cfdb}
+.modal .cta{margin-top:18px}.modal .cta button{width:100%;font-size:15px;min-height:51px}
+#pauseMenu .modal h2{font-size:35px}
+#replay{position:absolute;z-index:16;bottom:40px;left:0;right:0;text-align:center;font-size:16px;font-weight:950;color:#ffe3c6;text-shadow:0 3px 12px #000;pointer-events:none}
+#skipReplay{pointer-events:auto;display:block;margin:16px auto 0;background:#294352;color:white;border:1px solid #7c9fac}
+#sound,#vibration{font-size:11px;min-height:36px}
+#overlay button,#home button{user-select:none}
+@media(max-height:680px){.eyebrow{margin-top:12px}.hero{height:185px;min-height:185px;margin:7px 0}h1{font-size:55px}.pills{margin:2px 0 7px}#home p{margin:7px 0}#mini{width:74px;height:120px}#arControls{padding:9px}}
+</style></head>
+<body>
+<canvas id="arena" aria-label="Escenario tridimensional de Torre Caos"></canvas>
+<div id="home"><a id="back" href="/">← VOLVER A MODO CAOS</a>
+<div class="eyebrow">MODO CAOS · FÍSICA REAL EN TU CASA</div>
+<h1>TORRE <em>CAOS</em></h1>
+<p>Una pieza más. Un poquito más alto. Y… ¡que no se caiga!</p>
+<div class="hero" aria-hidden="true"><div class="blocks"><i></i><i></i><i></i><i></i><i></i></div><strong>¿HASTA DÓNDE LLEGÁS?</strong></div>
+<div class="pills"><span>👆 TOCÁ Y GIRÁ</span><span>↔️ ARRASTRÁ</span><span>✋ SOLTÁ Y CAE</span></div>
+<div class="cta"><button id="arBtn" disabled>📷 CONSTRUIR EN MI CASA · AR</button><button class="secondary" id="demoBtn" disabled>🎮 JUGAR EN 3D · SIN CÁMARA</button></div>
+<div id="introRecord">RÉCORD: 0 CM</div><p id="precheck">Cargando física 3D…</p><div class="micro">Tocá para girar 90°. Arrastrá y soltá para dejar caer. La gravedad decide. Para AR, usá un lugar despejado y no camines mirando la pantalla.</div>
+</div>
+<div id="overlay" hidden><div id="stage" data-phase="home"></div><div id="gesture"></div>
+<div id="setup" hidden>UBICÁ LA PLATAFORMA SOBRE EL PISO REAL</div>
+<div id="hud" hidden><div class="stat"><small>ALTURA</small><b id="height">0</b><small>CM</small></div><div class="stat"><small>RÉCORD</small><b id="recordHud">0</b><small>CM</small></div><div class="stat"><small>PIEZAS</small><b id="pieces">0</b></div><button id="recenter" aria-label="Reubicar plataforma" title="Reubicar plataforma">◎</button><button id="pause" aria-label="Pausa" title="Pausar">Ⅱ</button></div>
+<div id="blockName" hidden>CUBO</div><div id="notice" role="status" aria-live="polite"></div>
+<canvas id="mini" width="155" height="244" aria-label="Vista auxiliar de torre"></canvas><button id="miniBtn">AMPLIAR VISTA</button>
+<div id="tip" hidden>TOCÁ PARA GIRAR · ARRASTRÁ Y SOLTÁ PARA COLOCAR</div>
+<div id="arControls" hidden><h2>📍 COLOCÁ TU TORRE</h2><p>Deslizá para mover · dos dedos para cambiar tamaño y girar</p>
+<div class="scale"><button id="minus" aria-label="Achicar">−</button><span id="sizeText">100%</span><button id="plus" aria-label="Agrandar">+</button><button id="turn" aria-label="Girar">↻ GIRAR</button></div>
+<button id="fix" disabled>✓ FIJAR PLATAFORMA Y JUGAR</button></div>
+<div id="results" hidden><div class="modal"><div style="font-size:44px">🏗️</div><h2 id="resultTitle">TORRE DERRUMBADA</h2><div class="big" id="finalHeight">0 cm</div><div class="split"><div><b id="finalPieces">0</b><small>PIEZAS</small></div><div><b id="finalRecord">0 cm</b><small>RÉCORD PERSONAL</small></div></div><div class="cta"><button id="resultRetry">↻ REINTENTAR</button><button class="secondary" id="quit">SALIR AL MENÚ</button></div></div></div>
+<div id="replay" hidden>🎬 REPETICIÓN DEL DERRUMBE<button id="skipReplay">SALTAR</button></div>
+<div id="pauseMenu" hidden><div class="modal"><h2>EN PAUSA</h2><p>Tu torre se queda exactamente como la dejaste.</p><div class="cta"><button id="resume">▶ CONTINUAR</button><button class="secondary" id="retry">↻ VOLVER A EMPEZAR</button><button class="secondary" id="sound">🔊 Sonido</button><button class="secondary" id="vibration">📳 Vibración</button><button class="secondary" onclick="location.href='/'">SALIR AL MENÚ</button></div></div></div>
+</div>
+<script src="./torre-core.js"></script><script type="module" src="./torre-runtime.js"></script>
+</body></html>
