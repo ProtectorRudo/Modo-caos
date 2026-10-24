@@ -214,12 +214,8 @@ function freezeEditor(){
  art.setFloor(floorSize,true,-1);
  hint('👣 TOCÁ EN EL PISO LA CELDA DONDE ESTÁS PARADO');
  $('begin').disabled=true;
- // Anchor is optional. No fabricated positional tracking when unavailable.
- const captured=hit;
- if(captured&&typeof captured.createAnchor==='function'){
-  captured.createAnchor().then(a=>{if(stage==='home'||stage==='search'||stage==='edit'){a.delete?.();return}
-   anchor?.delete?.();anchor=a;anchorOffset=null;}).catch(()=>{});
- }
+ // Spatial anchoring must be requested during an active XRFrame.
+ anchorPending=true;
 }
 function resetEditor(fromGame=false){
  if(!xrSession)return;
