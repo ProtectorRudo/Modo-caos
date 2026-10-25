@@ -203,3 +203,58 @@ test('tiempo y derrota en duelos; el clásico mantiene sus fases y sus 88 segund
  c.protection=999;c.elapsed=44.97;G.tick(c,.08);
  assert.equal(c.phase,3,'el juego clásico continúa con fases cronometradas');
 });
+
+test('toque anticipado se guarda brevemente y devuelve la MISMA pelota al entrar en ventana',()=>{
+ const g=G.make({seed:600,mode:'duelo'});G.begin(g);g.projectiles=[];g.nextShot=999;
+ const target=g.enemies[0];const ball={id:410,type:'normal',
+  pos:G.V(0,1.55,-1.54),prev:G.V(0,1.55,-1.54),
+  velocity:G.V(0,0,2.4),speed:2.4,radius:.17,age:.4,
+  returning:false,dead:false,targetId:target.id};
+ g.projectiles=[ball];G.setView(g,G.V(0,1.55,.05),G.V(0,0,-1));
+ const res=G.returnShot(g);
+ assert.equal(res.ok,false);assert.equal(res.queued,true);
+ assert.equal(res.reason,'CARGANDO REBOTE');
+ assert.equal(g.attempts,1,'one tap registered');
+ assert.equal(g.returns,0,'do not auto-score before the ball arrives');
+ step(g,.19);
+ assert.equal(ball.returning,true,'buffered shot becomes an actual physical return');
+ assert.equal(g.attempts,1,'automatic resolution must never double-count a tap');
+ assert.equal(g.returns,1);assert.equal(g.bufferedHits,1);
+ assert.equal(g.bufferedShot,null);
+});
+test('asistencia no devuelve pelotas fuera de mira, lejanas o alejándose',()=>{
+ const g=G.make({seed:7,mode:'duelo'});G.begin(g);g.projectiles=[];g.nextShot=999;
+ const e=g.enemies[0],ball={id:311,type:'normal',pos:G.V(0,1.55,-1.60),
+  prev:G.V(0,1.55,-1.60),velocity:G.V(0,0,2),speed:2,radius:.17,
+  age:.4,returning:false,dead:false,targetId:e.id};
+ g.projectiles=[ball];G.setView(g,G.V(0,1.55,.05),G.V(1,0,0));
+ let r=G.returnShot(g);assert.equal(r.queued,undefined);
+ assert.equal(r.reason,'ESPERÁ');assert.equal(g.bufferedShot,null);
+ g.elapsed+=.15;G.setView(g,G.V(0,1.55,.05),G.V(0,0,-1));
+ ball.pos=G.V(0,1.55,-2.2);r=G.returnShot(g);
+ assert.equal(r.queued,undefined,'too-far ball never queues');
+ g.elapsed+=.15;ball.pos=G.V(0,1.55,-1.65);ball.velocity=G.V(0,0,-2);
+ r=G.returnShot(g);assert.equal(r.queued,undefined,'receding ball never queues');
+ step(g,.65);assert.equal(g.returns,0);
+});
+test('toque en ventana más generosa salva desviación moderada; perfectos siguen precisos',()=>{
+ const g=G.make({mode:'duelo'});G.begin(g);g.nextShot=999;
+ const e=g.enemies[0];
+ const p={id:666,type:'normal',pos:G.V(.30,1.55,-.65),prev:G.V(.30,1.55,-.65),
+  velocity:G.V(0,0,2),speed:2,radius:.17,age:.2,returning:false,
+  dead:false,targetId:e.id};
+ g.projectiles=[p];G.setView(g,G.V(0,1.55,.05),G.V(0,0,-1));
+ const res=G.returnShot(g);
+ assert.equal(res.ok,true,'30cm lateral aim error is forgiving on mobile');
+ assert.notEqual(res.grade,'PERFECTO','precision grade still requires a centered return');
+});
+test('el buffer no permite un rebote fantasma al cambiar de rival',()=>{
+ const g=G.make({mode:'duelo'});G.begin(g);g.nextShot=999;
+ const p={id:777,type:'normal',pos:G.V(0,1.55,-1.50),prev:G.V(0,1.55,-1.50),
+ velocity:G.V(0,0,2.0),speed:2,radius:.17,age:0,returning:false,dead:false,targetId:0};
+ g.projectiles=[p];G.setView(g,G.V(0,1.55,.05),G.V(0,0,-1));
+ assert.equal(G.returnShot(g).queued,true);
+ g.projectiles=[];step(g,.1);
+ assert.equal(g.bufferedShot,null);
+ assert.equal(g.returns,0);
+});
