@@ -78,11 +78,13 @@ export async function installAutoRobots({THREE,art,signal,debug}){
   if(signal?.aborted)return stats;
   const render=upgradeAndroidMaterials(THREE,gltf.scene);
   const adapter=buildAdapter(THREE,gltf,{label:'ANDROIDES TÁCTICOS',source});
-  adapter.setFacing(180);
+  // Rig front already aligns with +Z, exactly matching e.angle in the core.
+  // A forced 180° turn had displayed every enemy's back on Android.
+  adapter.setFacing(0);
   art.setRobotAdapter(adapter);
   stats.phase='active';stats.source=source;
   stats.meshes=render.meshes;stats.clips=gltf.animations.length;
-  stats.triangles=adapter.summary.tris;stats.reason='';
+  stats.triangles=adapter.summary.tris;stats.facingDegrees=adapter.summary.facingDegrees;stats.selectedClips=adapter.summary.selectedClips;stats.reason='';
   return stats;
  }catch(e){
   stats.phase='fallback';stats.reason=String(e?.message||e);
