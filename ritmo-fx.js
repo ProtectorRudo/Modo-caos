@@ -18,7 +18,7 @@
    if(spot&&Number.isFinite(spot[0])&&Number.isFinite(spot[1]))return spot;
    return [w*(lane+.5)/4,h*.74];
   }
-  function burst(lane,spot,rating='PERFECTO',combo=0){
+  function burst(lane,spot,rating='PERFECTO',combo=0,points=0){
    size();
    const [x,y]=position(lane,spot),color=PALETTE[lane]||'#fff';
    const miss=rating==='FALLO',bonus=rating==='HOLD'||combo>=10;
@@ -34,6 +34,7 @@
    if(!miss){flash=Math.max(flash,bonus?.19:.09);flashTint=color;comboPulse=bonus?.52:.27}
    const word=rating==='HOLD'?'¡SOSTENIDA PERFECTA!':rating==='PERFECTO'?'PERFECTO':rating==='GENIAL'?'GENIAL':rating==='BIEN'?'BIEN':'FALLO';
    labels.push({text:word,x,y:y-22,age:0,ttl:bonus?1.0:.72,color:miss?'#ff8093':color,size:bonus?20:15});
+   if(points>0)labels.push({text:'+'+points.toLocaleString('es-AR'),x,y:y+4,age:0,ttl:.85,color:'#ffffff',size:bonus?21:14});
    if(labels.length>7)labels.shift();
   }
   function celebrate(combo){
