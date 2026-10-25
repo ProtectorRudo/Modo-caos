@@ -155,12 +155,18 @@ export function createReboteArt(T,scene){
  }
  function makeBall(p){
   const group=new T.Group();shotLayer.add(group);
-  const material=new T.MeshBasicMaterial({color:p.returning?0x6effea:p.type==='pesada'?0xffc35a:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0xaf8bf9:0xff744d,transparent:p.type==='fake',opacity:p.type==='fake'?.38:1});
-  const core=mesh(sphereG,material,group,[0,0,0],[p.radius*.73,p.radius*.73,p.radius*.73]);
+  const material=new T.MeshBasicMaterial({color:p.returning?0x6effea:p.type==='pesada'?0xffc35a:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0xaf8bf9:0xff9a61,transparent:true,opacity:p.type==='fake'?.27:1});
+  const core=mesh(sphereG,material,group,[0,0,0],[p.radius*.80,p.radius*.80,p.radius*.80]);
+  const shine=new T.Mesh(new T.SphereGeometry(1,12,9),new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.65,depthWrite:false}));
+  shine.position.set(-p.radius*.24,p.radius*.22,p.radius*.48);
+  shine.scale.setScalar(p.radius*.21);group.add(shine);
   const shell=new T.Mesh(shellG,new T.MeshBasicMaterial({color:p.returning?0x7cfff4:0xff6a33,transparent:true,opacity:.20,depthWrite:false}));
   shell.scale.setScalar(p.radius*1.42);group.add(shell);
   const halo=new T.Mesh(haloG,new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false}));
-  halo.scale.setScalar(p.radius*1.24);group.add(halo);group.userData={core,material,shell,halo};return group;
+  halo.scale.setScalar(p.radius*1.24);group.add(halo);
+  const trail=new T.Mesh(new T.CylinderGeometry(.04,.24,1,8),new T.MeshBasicMaterial({color:0xff8e59,transparent:true,opacity:.24,depthWrite:false,side:T.DoubleSide}));
+  trail.position.z=-.28;group.add(trail);
+  group.userData={core,material,shell,halo,trail,shine};return group;
  }
  function spark(pos,color,count=9,life=.5,power=1){
   for(let i=0;i<count;i++){
@@ -187,6 +193,9 @@ export function createReboteArt(T,scene){
    let b=bots.get(e.id);if(!b){b=buildRobot(e);bots.set(e.id,b)}
    b.visible=e.alive||g.elapsed-e.hitTime<1.1;
    b.position.set(e.x,0,e.z);
+   // Contact pad stays on the floor; only the mechanical body bobs subtly.
+   b.userData.mech.position.y=.012+Math.sin(time*1.7+e.phase)*.013;
+   b.userData.reactor.rotation.y+=dt*2.5;
    b.rotation.y=Math.sin(time*.48+e.phase)*.14;
    b.userData.head.rotation.y=Math.sin(time*.74+e.phase)*.19;
    b.userData.leftArm.rotation.x=-.55+Math.sin(time*2+e.phase)*.26;
@@ -203,13 +212,13 @@ export function createReboteArt(T,scene){
    b.userData.visor.material=dmg>.48?red:blue;
    b.userData.reactor.material=dmg>.48?orange:blue;
    const hit=g.elapsed-e.hitTime<.26;
-   b.scale.setScalar((e.boss?1.35:1)*(hit?1-.09*Math.sin((g.elapsed-e.hitTime)*32):1));
+   b.scale.setScalar((e.boss?1.13:.84)*(hit?1-.055*Math.sin((g.elapsed-e.hitTime)*32):1));
    if(!e.alive)b.rotation.z=(Math.min(1,(g.elapsed-e.hitTime)/.75))*-1.2;
   }
   for(const [id,b] of bots)if(!g.enemies.some(e=>e.id===id)){
    botLayer.remove(b);
    b.traverse(obj=>{
-    if(obj.geometry)obj.geometry.dispose();
+    if(obj.geometry&&!sharedRobotGeometries.has(obj.geometry))obj.geometry.dispose();
     if(obj.material&&!sharedRobotMaterials.has(obj.material))obj.material.dispose();
    });
    bots.delete(id);
@@ -219,6 +228,16 @@ export function createReboteArt(T,scene){
    group.position.set(p.pos.x,p.pos.y,p.pos.z);
    group.rotation.z+=dt*3;
    const m=group.userData;
+   m.trail.visible=p.type!=='fake'&&p.age>.08;
+   m.trail.material.color.setHex(p.returning?0x4dfff0:0xffa066);
+   m.trail.material.opacity=p.returning?.36:.16;
+   m.trail.position.set(0,0,0);
+   const velocity=new T.Vector3(p.velocity.x,p.velocity.y,p.velocity.z);
+   // Align the short plume behind each moving sphere in 3D world coordinates.
+   m.trail.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),velocity.clone().normalize().negate());
+   m.trail.scale.set(p.radius*.9,.5+p.speed*.055,p.radius*.9);
+   m.trail.position.addScaledVector(velocity.clone().normalize(),-.20);
+   m.shine.material.opacity=p.returning?.78:.55;
    m.material.color.setHex(p.returning?0x65ffe7:p.type==='pesada'?0xffcd67:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0x9c80e9:0xff693b);
    m.shell.material.color.setHex(p.returning?0x7cfff5:0xff7939);
    m.halo.rotation.y+=dt*4.7;
@@ -247,14 +266,17 @@ export function createReboteArt(T,scene){
   }
  }
  function effect(e){
-  if(e.type==='return'){const p=shots.get(e.id);if(p)spark(p.position,e.grade==='PERFECTO'?0x6dfff1:0x50b8ff,e.grade==='PERFECTO'?28:12,.5,e.grade==='PERFECTO'?1.4:1)}
-  if(e.type==='enemy-hit'||e.type==='enemy-down')spark({x:e.x,y:1.4,z:e.z},e.type==='enemy-down'?0xff7343:0x7effec,e.type==='enemy-down'?49:19,.8,1.6);
+  if(e.type==='return'){const p=shots.get(e.id);if(p)spark(p.position,e.grade==='PERFECTO'?0x6dfff1:0x50b8ff,e.grade==='PERFECTO'?19:10,.5,e.grade==='PERFECTO'?1.4:1)}
+  if(e.type==='enemy-hit'||e.type==='enemy-down')spark({x:e.x,y:1.4,z:e.z},e.type==='enemy-down'?0xff7343:0x7effec,e.type==='enemy-down'?28:13,.8,1.6);
   if(e.type==='damage')spark({x:0,y:1.4,z:0},0xff3f58,23,.38,1.4);
   if(e.type==='legend')spark({x:0,y:1.45,z:-1},0xdfffff,60,1.1,2.2);
  }
  function dispose(){
   scene.remove(root);
-  root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&!Object.values({dark,steel,edge,blue,orange,red}).includes(o.material))o.material.dispose()});
+  root.traverse(o=>{if(o.geometry&&!sharedRobotGeometries.has(o.geometry))o.geometry.dispose();
+   if(o.material&&!sharedRobotMaterials.has(o.material))o.material.dispose()});
+  for(const g of sharedRobotGeometries)g.dispose();
+  for(const m of sharedRobotMaterials)m.dispose();
  }
  return {root,plane,update,effect,dispose,setSize(v){plane.userData.size=Math.max(.7,Math.min(1.45,v))},getRobotCount(){return bots.size},getShotCount(){return shots.size}};
 }
