@@ -208,33 +208,94 @@ function drawMini(){
  if(active){ctx.save();ctx.globalAlpha=.74;ctx.fillStyle='#68ffe4';for(const poly of active.shape.parts){ctx.beginPath();G.rotated(poly,active.angle).forEach(([xx,yy],i)=>{i?ctx.lineTo(X(active.x+xx*BLOCK),Y(active.y+yy*BLOCK)):ctx.moveTo(X(active.x+xx*BLOCK),Y(active.y+yy*BLOCK))});ctx.closePath();ctx.fill()}ctx.restore()}
  ctx.fillStyle='#b3ebe4';ctx.font='bold 10px system-ui';ctx.fillText('VISTA TORRE',8,14);
 }
+// Building controls: tap = precision 90°, two-finger twist = any orientation.
+// Two-finger release NEVER drops the piece by accident.
+const playPointers=new Map();
+function turnActive(delta){
+ if(!active)return;
+ active.angle=G.angleDelta(0,active.angle+delta);
+ art.moveActive(active.x,active.y,active.angle);
+ updateLanding();
+}
 function gestureDown(e){
  if(phase!=='playing'&&phase!=='placing')return;
  e.preventDefault();ui.gesture.setPointerCapture(e.pointerId);
- if(phase==='placing'){const p={id:e.pointerId,x:e.clientX,y:e.clientY};pointers.set(e.pointerId,p);if(pointers.size===2){let a=[...pointers.values()];pinch={dist:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),angle:Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x),scale,yaw}}return}
- drag={id:e.pointerId,x:e.clientX,y:e.clientY,startX:active?.x||0,moved:false};soundFX(540,.028,.034);
+ if(phase==='placing'){
+  const p={id:e.pointerId,x:e.clientX,y:e.clientY};pointers.set(e.pointerId,p);
+  if(pointers.size===2){const a=[...pointers.values()];pinch={dist:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),angle:Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x),scale,yaw}}
+  return;
+ }
+ if(!active)return;
+ playPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(playPointers.size===2){
+  const a=[...playPointers.values()];
+  twist={angle:Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x)};
+  drag=null;vibe(6);
+ }else if(playPointers.size===1){
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY,startX:active.x,moved:false};
+  soundFX(540,.028,.034);
+ }
 }
 const pointers=new Map();
 function gestureMove(e){
  if(phase==='placing'){
-  if(!pointers.has(e.pointerId))return;e.preventDefault();const prev=pointers.get(e.pointerId),dx=e.clientX-prev.x,dy=e.clientY-prev.y;pointers.set(e.pointerId,{id:e.pointerId,x:e.clientX,y:e.clientY});
-  if(pointers.size===1){const c=Math.cos(yaw),sn=Math.sin(yaw);shift.x=clamp(shift.x+(dx*c+dy*sn)*.0016,-1.7,1.7);shift.z=clamp(shift.z+(-dx*sn+dy*c)*.0016,-1.7,1.7)}
-  else{const a=[...pointers.values()],dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),ang=Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x);
-   if(pinch){scale=clamp(pinch.scale*(dist/Math.max(20,pinch.dist)),.30,1.15);yaw=pinch.yaw+ang-pinch.angle;art?.setScale(scale)}
-  }updateScale();return;
+  if(!pointers.has(e.pointerId))return;
+  e.preventDefault();const prev=pointers.get(e.pointerId),dx=e.clientX-prev.x,dy=e.clientY-prev.y;
+  pointers.set(e.pointerId,{id:e.pointerId,x:e.clientX,y:e.clientY});
+  if(pointers.size===1){
+   const c=Math.cos(yaw),sn=Math.sin(yaw);
+   shift.x=clamp(shift.x+(dx*c+dy*sn)*.0016,-1.7,1.7);
+   shift.z=clamp(shift.z+(-dx*sn+dy*c)*.0016,-1.7,1.7);
+  }else{
+   const a=[...pointers.values()],dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),ang=Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x);
+   if(pinch){scale=clamp(pinch.scale*(dist/Math.max(20,pinch.dist)),.30,1.15);yaw=pinch.yaw+G.angleDelta(pinch.angle,ang);art.setScale(scale)}
+  }
+  updateScale();return;
  }
- if(!drag||!active||drag.id!==e.pointerId||phase!=='playing')return;e.preventDefault();
+ if(!playPointers.has(e.pointerId)||!active||phase!=='playing')return;
+ e.preventDefault();playPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(playPointers.size===2){
+  const a=[...playPointers.values()];
+  const angle=Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x);
+  if(twist){turnActive(G.angleDelta(twist.angle,angle));twist.angle=angle}
+  return;
+ }
+ if(!drag||drag.id!==e.pointerId||twist)return;
  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
  if(Math.hypot(dx,dy)>12)drag.moved=true;
- if(drag.moved){active.x=clamp(drag.startX+dx/(innerWidth||360)*2.8,-1.08,1.08);art.moveActive(active.x,active.y,active.angle);updateLanding()}
+ if(drag.moved){
+  active.x=clamp(drag.startX+dx/Math.max(320,innerWidth)*2.8,-1.08,1.08);
+  art.moveActive(active.x,active.y,active.angle);
+  updateLanding();
+ }
 }
 function gestureUp(e){
  if(phase==='placing'){pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;return}
+ if(!playPointers.has(e.pointerId))return;
+ const usedTwoFingers=!!twist;
+ playPointers.delete(e.pointerId);
+ if(usedTwoFingers){
+  drag=null;
+  if(playPointers.size===0){twist=null;vibe(5)}
+  return; // drop only after a separate one-finger placement swipe
+ }
  if(!drag||drag.id!==e.pointerId||phase!=='playing'||!active)return;
  const moved=drag.moved;drag=null;
- if(moved)drop();else{active.angle=(active.angle+PI/2)%(2*PI);art.moveActive(active.x,active.y,active.angle);updateLanding();soundFX(710,.05,.045);vibe(7)}
+ if(moved)drop();
+ else{turnActive(Math.PI/2);soundFX(710,.05,.045);vibe(7)}
 }
-ui.gesture.addEventListener('pointerdown',gestureDown);ui.gesture.addEventListener('pointermove',gestureMove);ui.gesture.addEventListener('pointerup',gestureUp);ui.gesture.addEventListener('pointercancel',e=>{if(phase==='placing'){pointers.delete(e.pointerId);pinch=null}else drag=null});
+function gestureCancel(e){
+ if(phase==='placing'){pointers.delete(e.pointerId);if(pointers.size<2)pinch=null}
+ else{playPointers.delete(e.pointerId);drag=null;if(playPointers.size===0)twist=null}
+}
+ui.gesture.addEventListener('pointerdown',gestureDown);
+ui.gesture.addEventListener('pointermove',gestureMove);
+ui.gesture.addEventListener('pointerup',gestureUp);
+ui.gesture.addEventListener('pointercancel',gestureCancel);
+ui.gesture.addEventListener('wheel',e=>{
+ if(phase!=='playing'||!active)return;
+ e.preventDefault();turnActive(Math.sign(e.deltaY)*Math.PI/12);
+},{passive:false});
 function updateScale(){$('sizeText').textContent=Math.round(scale*100)+'%'}
 function setARMode(ar){mode=ar?'ar':'demo';art.setAR(ar);ui.home.hidden=true;ui.overlay.hidden=false;if(!ar){session=null;clearARProjection();scale=1;art.setScale(1);art.group.visible=true;$('recenter').hidden=true;newGame();return}$('recenter').hidden=false;scale=.48;art.setScale(scale);updateScale();projectedFloor=false;phaseTo('placing');art.group.visible=false;ui.xrScene.replaceChildren();showText('APUNTÁ AL PISO Y AJUSTÁ TU PLATAFORMA',3600)}
 function arReady(){return !!navigator.xr&&window.isSecureContext}
