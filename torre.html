@@ -135,6 +135,14 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 #overlay[data-mode="demolition"] #mini,#overlay[data-mode="demolition"] #miniBtn{display:none!important}
 #xrPaint .tile.demolition-face{box-shadow:inset -5px -5px 13px #00182a80,inset 5px 5px 10px #ffffff66;filter:saturate(1.1)}
 @media(max-height:680px){#overlay[data-mode="demolition"] #tip{font-size:10px;padding:7px 10px}}
+
+/* Demolition campaign HUD, deliberately below the general score HUD. */
+#demolitionRoundHud{position:absolute;top:calc(max(15px,env(safe-area-inset-top)) + 114px);left:50%;transform:translateX(-50%);z-index:9;width:min(86vw,330px);pointer-events:none;display:grid;gap:5px;background:#071c2bdc;border:1px solid #ffcd7475;border-radius:13px;padding:6px 10px;box-shadow:0 3px 10px #0007}
+#demolitionRoundHud[hidden]{display:none!important}
+#demolitionRoundLabel{text-align:center;color:#ffe0a1;font-size:11px;font-weight:1000;letter-spacing:.35px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#demolitionRoundBar{width:100%;height:6px;display:block;accent-color:#5af7ca}
+#overlay[data-mode="demolition"] #modeStatus{max-width:94vw;font-size:10px}
+@media(max-height:690px){#demolitionRoundHud{top:calc(max(15px,env(safe-area-inset-top)) + 107px);padding:4px 8px}}
 </style></head>
 <body>
 <canvas id="arena" aria-label="Escenario tridimensional de Torre Caos"></canvas>
@@ -160,7 +168,7 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
  <canvas id="copyCanvas" width="320" height="274" role="img" aria-label="Imagen de la estructura que tenés que copiar"></canvas>
  <div class="copyRefFooter"><span>CONSTRUILA APARTE</span><strong id="copyProgress">0/3</strong></div>
  <div id="copyInstruction">Mirá la imagen y armala en tu pista</div>
-</div><div id="modeStatus" hidden></div><div id="notice" role="status" aria-live="polite"></div>
+</div><div id="modeStatus" hidden></div><div id="demolitionRoundHud" hidden><span id="demolitionRoundLabel">RONDA 1/10 · CASTILLO LOCO</span><progress id="demolitionRoundBar" max="10" value="0" aria-label="Rondas completadas"></progress></div><div id="notice" role="status" aria-live="polite"></div>
 <canvas id="mini" width="155" height="244" aria-label="Vista auxiliar de torre"></canvas><button id="miniBtn">AMPLIAR VISTA</button>
 <div id="tip" hidden>TOCÁ = 90° · DOS DEDOS = GIRAR LIBRE · ARRASTRÁ Y SOLTÁ</div>
 <div id="pieceDock" aria-label="Piezas disponibles" hidden>
@@ -170,7 +178,7 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 <div id="arControls" hidden><h2>📍 COLOCÁ TU TORRE</h2><p>Deslizá para mover · dos dedos para cambiar tamaño y girar</p>
 <div class="scale"><button id="minus" aria-label="Achicar">−</button><span id="sizeText">100%</span><button id="plus" aria-label="Agrandar">+</button><button id="turn" aria-label="Girar">↻ GIRAR</button></div>
 <button id="fix" disabled>✓ FIJAR PLATAFORMA Y JUGAR</button></div>
-<div id="results" hidden><div class="modal"><div style="font-size:44px">🏗️</div><h2 id="resultTitle">TORRE DERRUMBADA</h2><p id="resultNote">La gravedad ganó esta vez.</p><div class="big" id="finalHeight">0 cm</div><div id="resultMetric">ALTURA</div><div class="split"><div><b id="finalPieces">0</b><small>PIEZAS</small></div><div><b id="finalRecord">0 cm</b><small>RÉCORD PERSONAL</small></div></div><div class="cta"><button id="resultRetry">↻ REINTENTAR</button><button class="secondary" id="resultModes" onclick="location.href='./torre.html'">🎮 CAMBIAR MODO</button><button class="secondary" id="quit">SALIR AL MENÚ</button></div></div></div>
+<div id="results" hidden><div class="modal"><div style="font-size:44px">🏗️</div><h2 id="resultTitle">TORRE DERRUMBADA</h2><p id="resultNote">La gravedad ganó esta vez.</p><div class="big" id="finalHeight">0 cm</div><div id="resultMetric">ALTURA</div><div class="split"><div><b id="finalPieces">0</b><small id="resultPiecesLabel">PIEZAS</small></div><div><b id="finalRecord">0 cm</b><small>RÉCORD PERSONAL</small></div></div><div class="cta"><button id="resultRetry">↻ REINTENTAR</button><button class="secondary" id="resultModes" onclick="location.href='./torre.html'">🎮 CAMBIAR MODO</button><button class="secondary" id="quit">SALIR AL MENÚ</button></div></div></div>
 <div id="replay" hidden>🎬 REPETICIÓN DEL DERRUMBE<button id="skipReplay">SALTAR</button></div>
 <div id="pauseMenu" hidden><div class="modal"><h2>EN PAUSA</h2><p>Tu torre se queda exactamente como la dejaste.</p><div class="cta"><button id="resume">▶ CONTINUAR</button><button class="secondary" id="retry">↻ VOLVER A EMPEZAR</button><button class="secondary" id="pauseModes" onclick="location.href='./torre.html'">🎮 CAMBIAR MODO</button><button class="secondary" id="sound">🔊 Sonido</button><button class="secondary" id="vibration">📳 Vibración</button><button class="secondary" onclick="location.href='/'">SALIR AL MENÚ</button></div></div></div>
 </div>
