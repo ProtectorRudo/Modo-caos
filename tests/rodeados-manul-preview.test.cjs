@@ -1,6 +1,26 @@
 'use strict';
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright'),root=path.resolve(__dirname,'..');
+const {spawnSync}=require('node:child_process');
+function officialLikeZip(){
+ // Exercise Sketchfab's officially documented scene.gltf + scene.bin + textures layout.
+ const glb=buildTestGlb(),jsonLen=glb.readUInt32LE(12),binStart=20+jsonLen;
+ const dataLen=glb.readUInt32LE(binStart),raw=glb.subarray(binStart+8,binStart+8+dataLen);
+ const desc=JSON.parse(glb.subarray(20,20+jsonLen).toString().trim());
+ desc.buffers[0].uri='scene.bin';
+ const payload=JSON.stringify({description:desc,buffer:raw.toString('base64')});
+ const python=`import sys,json,base64,io,zipfile
+ p=json.loads(sys.stdin.read())
+ buff=io.BytesIO()
+ with zipfile.ZipFile(buff,'w',zipfile.ZIP_DEFLATED) as z:
+  z.writestr('gltf/scene.gltf',json.dumps(p['description']))
+  z.writestr('gltf/scene.bin',base64.b64decode(p['buffer']))
+ sys.stdout.buffer.write(buff.getvalue())`;
+ const out=spawnSync('python3',['-c',python],{input:payload,encoding:'buffer',maxBuffer:2e6});
+ if(out.status!==0)throw Error('zip generation '+out.stderr?.toString());
+ return out.stdout;
+}
+
 function buildTestGlb(){
  // A tiny legal glTF 2.0 GLB with a triangular humanoid-shaped visual test.
  // Test-only geometry, NOT the real Sketchfab M.A.N.U.L. asset.
@@ -52,6 +72,12 @@ const server=http.createServer((req,res)=>{
   await page.locator('#manulFile').setInputFiles({name:'test-preview.glb',mimeType:'model/gltf-binary',buffer:buildTestGlb()});
   await page.waitForFunction(()=>__RodeadosManulPreview.status.includes('MODELO CARGADO'),null,{timeout:18000});
   assert.equal(await page.evaluate(()=>__RodeadosManulPreview.actorStatus.enabled),true);
+  // Official Sketchfab downloads ZIP a glTF + BIN, not a standalone GLB.
+  // Verify the whole user-facing process with this compatible package.
+  await page.locator('#manulFile').setInputFiles({name:'sketchfab-test-gltf.zip',
+   mimeType:'application/zip',buffer:officialLikeZip()});
+  await page.waitForFunction(()=>__RodeadosManulPreview.status.includes('MODELO CARGADO')&&
+   __RodeadosManulPreview.status.includes('sketchfab-test-gltf.zip'),null,{timeout:16000});
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:11000});
   const loaded=await page.evaluate(()=>({visual:__RodeadosManulPreview.actorStatus,phase:__RodeadosDebug.stage}));
