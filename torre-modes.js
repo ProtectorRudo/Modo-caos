@@ -23,11 +23,11 @@ const TARGETS=[
  ],
  [
   {id:'base',shape:'ancho',x:0,y:.227,angle:0},
-  {id:'left',shape:'cubo',x:-.15,y:.526,angle:0},
-  {id:'right',shape:'cubo',x:.15,y:.526,angle:0}
+  {id:'walls',shape:'cubo',x:0,y:.526,angle:0},
+  {id:'roof',shape:'triangulo',x:0,y:.914,angle:0}
  ]
 ];
-const TARGET_NAMES=['PUENTE','TÓTEM','PIRÁMIDE'];
+const TARGET_NAMES=['PUENTE','TÓTEM','CASITA'];
 function get(id){return MODES[id]||MODES.infinite}
 function boardHalfWidth(mode,placed){return mode==='balance'?Math.max(.42,1.05-Math.floor(Math.max(0,placed)/2)*.135):1.25}
 function angleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b))}
