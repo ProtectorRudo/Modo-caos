@@ -118,6 +118,9 @@ const server=http.createServer((req,res)=>{
 
  assert(await page.locator('#returnBtn').isVisible(),'return button active in real XR overlay');
  assert(await page.locator('#radar').isVisible(),'AR radar shows orientation information for offscreen robots');
+ assert(await page.locator('#duelHud').isVisible(),'AR duel HUD exists after physical calibration');
+ assert.equal(await page.evaluate(()=>__ReboteDebug.duelEnemies),1,'one physical opponent in AR');
+
  assert(await page.evaluate(()=>__ReboteDebug.robotFacingDot>.95),'robot faces physical tracked phone from its fixed AR position');
 
  assert(await page.evaluate(()=>__simDrawCalls)>0,'3D is rendered in AR XR frames');
