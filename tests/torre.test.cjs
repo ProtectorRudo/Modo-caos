@@ -11,4 +11,18 @@ assert.equal(G.score(.736),74);
 assert.equal(G.collapsed([{id:1,x:0,y:.6,top:1}],0,1),false);
 assert.equal(G.collapsed([{id:1,x:0,y:-.5,top:0}],0,1),true);
 assert.equal(G.collapsed([{id:1,x:0,y:.4,top:.55},{id:2,x:0,y:.4,top:.56}],1.4,2),true);
+// Piece-kit gameplay regression: four choices are visible at once, deterministic,
+ // and each pack changes the shape set without imposing a random next-piece order.
+const kitA=G.makePack(0,G.rng(1));
+assert.equal(kitA.length,4);
+assert.deepEqual(kitA.map(p=>p.id),['cubo','ancho','triangulo','trapecio']);
+const kitB=G.makePack(1,G.rng(1));
+assert.deepEqual(kitB.map(p=>p.id),['cubo','alto','ele','fino']);
+for(let n=0;n<100;n++){
+ const pack=G.makePack(n,G.rng(9001));
+ assert.equal(pack.length,4);
+ assert.equal(new Set(pack.map(x=>x.id)).size,4);
+}
+assert.ok(Math.abs(G.angleDelta(Math.PI*179/180,-Math.PI*179/180)-2*Math.PI/180)<.00001);
+assert.ok(Math.abs(G.angleDelta(-Math.PI*179/180,Math.PI*179/180)+2*Math.PI/180)<.00001);
 console.log('TORRE CAOS: geometrías, RNG, progresión, colapsos y puntos OK');
