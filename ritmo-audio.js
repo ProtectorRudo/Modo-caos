@@ -125,7 +125,7 @@
    }
    const ranked=accents.map(a=>a.strength).sort((a,b)=>a-b);
    const cutoff=ranked[Math.floor(ranked.length*.60)]||0;
-   SONGS[name].rhythmBeats=accents.filter(a=>a.strength>=cutoff&&a.strength>max*.009).map(a=>a.beat);
+   SONGS[name].rhythmBeats=accents.filter(a=>(a.strength>=cutoff&&a.strength>max*.009)||a.beat%2===0).map(a=>a.beat);
    if(SONGS[name].rhythmBeats.length<12)SONGS[name].rhythmBeats=null;
    analysis.rhythmAccents=SONGS[name].rhythmBeats?.length||0;
    SONGS[name].clipDuration=Math.min(decoded.duration-.25,SONGS[name].bars*4*beat+bestPhase);
