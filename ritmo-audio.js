@@ -5,6 +5,7 @@
  function create(){
   let ctx=null,timer=null,startAt=0,nextBeat=0,nextMelody=0,melodyQueue=[],sourceNodes=new Set(),gain=null,mute=false,track='neon',ended=false;
   let personalBuffer=null,personalSong=null,personalSource=null,analysis=null;
+  const licensedBuffers=new Map();
   function init(){ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();if(!gain){gain=ctx.createGain();gain.gain.value=mute?0:.25;gain.connect(ctx.destination)}return ctx}
   function oscillator(freq,start,dur,wave='sine',vol=.14,slide=null){
    const o=ctx.createOscillator(),g=ctx.createGain();o.type=wave;o.frequency.setValueAtTime(freq,start);
@@ -58,10 +59,33 @@
     oscillator(frequency,startAt+m.beat*beat,Math.min(1.2,m.duration*beat*.84),song.instrument==='brass'?'sawtooth':'triangle',song.instrument==='brass'?.049:.095);
    }
   }
+  async function preload(name){
+   const song=SONGS[name];
+   if(!song?.licensedRecording)return true;
+   if(licensedBuffers.has(name))return true;
+   if(!song.audioUrl)throw Error('No hay grabación licenciada para este tema');
+   const response=await fetch(song.audioUrl,{cache:'force-cache'});
+   if(!response.ok)throw Error('El audio autorizado no está disponible ('+response.status+')');
+   const bytes=await response.arrayBuffer();
+   const decoded=await init().decodeAudioData(bytes);
+   const latest=song.noteTimes?.at(-1)||0;
+   if(decoded.duration<latest+.3||decoded.duration<song.clipDuration-.5)
+    throw Error('La duración de la grabación y las notas no coinciden');
+   licensedBuffers.set(name,decoded);
+   return true;
+  }
   async function start(name='neon'){
    stop();track=SONGS[name]?name:'neon';init();ended=false;
    await ctx.resume();startAt=ctx.currentTime+.12;nextBeat=0;nextMelody=0;melodyQueue=melodyNotes(SONGS[track]);
-   if(SONGS[track].requiresFile){
+   if(SONGS[track].licensedRecording){
+    await preload(track);
+    personalSource=ctx.createBufferSource();personalSource.buffer=licensedBuffers.get(track);personalSource.connect(gain);
+    // Empezar en el reloj de AudioContext, con margen para programar el primer frame.
+    startAt=ctx.currentTime+.15;
+    personalSource.start(startAt);
+    sourceNodes.add(personalSource);
+    personalSource.onended=()=>sourceNodes.delete(personalSource);
+   }else if(SONGS[track].requiresFile){
     if(!personalBuffer||personalSong!==track)throw Error('Elegí el archivo de esta canción antes de comenzar.');
     personalSource=ctx.createBufferSource();personalSource.buffer=personalBuffer;personalSource.connect(gain);
     personalSource.start(startAt);sourceNodes.add(personalSource);personalSource.onended=()=>sourceNodes.delete(personalSource);
@@ -135,7 +159,7 @@
 
   function volume(v){mute=!!v;if(gain)gain.gain.value=mute?0:.25}
   function state(){return {muted:mute,playing:!!timer&&!ended,started:startAt,track}}
-  return {init,start,now,pause,resume,stop,volume,state,loadLocal,localStatus};
+  return {init,preload,start,now,pause,resume,stop,volume,state,loadLocal,localStatus};
  }
  root.RitmoAudio={create};
 })(window);
