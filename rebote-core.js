@@ -14,7 +14,7 @@ function make(opts={}){
  const seed=(Number(opts.seed)>>>0)||0xCA052026,mode=['clasico','supervivencia','precision','caos'].includes(opts.mode)?opts.mode:'clasico';
  return {seed,initialSeed:seed,mode,state:'ready',elapsed:0,acc:0,paused:false,phase:0,
   lives:3,score:0,combo:0,perfectStreak:0,bestCombo:0,perfect:0,returns:0,attempts:0,
-  enemiesKilled:0,shotIndex:0,nextShot:2.25,projectiles:[],enemies:[],effects:[],
+  enemiesKilled:0,shotIndex:0,nextShot:2.25,projectiles:[],delayed:[],enemies:[],effects:[],
   eye:V(0,1.55,.05),aim:V(0,0,-1),enemyId:0,projectileId:0,
   protection:0,lastResult:'',reason:'',bossSpawned:false,bossDefeated:false,stats:{missed:0,grazed:0},lastShotAt:-100};
 }
@@ -36,8 +36,8 @@ function typeAt(g){
  return r<.20?'pesada':r<.42?'curva':r<.64?'veloz':r<.82?'explosiva':'normal';
 }
 function spawnEnemy(g,boss=false){
- const idx=g.enemyId++,side= Math.sin(idx*2.3)*(.35+(g.phase>.5?.22:0));
- const z=-2.65+(idx%3)*-.21;
+ const idx=g.enemyId++,side=Math.sin(idx*2.3)*(g.phase===3?2.0:g.phase>=2?1.07:.43);
+ const z=g.phase===3?-1.84+(idx%3)*-.18:-2.65+(idx%3)*-.21;
  const e={id:idx,boss,x:side,z,homeX:side,health:boss?11:g.phase<2?3:4,
    maxHealth:boss?11:g.phase<2?3:4,damage:0,hitTime:-10,shield:false,alive:true,
    phase:idx*.76,stagger:0.0};
@@ -60,6 +60,11 @@ function launch(g,type=typeAt(g),target=activeEnemy(g)){
    radius:type==='pesada'?.22:.17,age:0,returning:false,dead:false,targetId:target.id,
    bend:type==='curva'?.22:0,curvePhase:random(g)*6.28,hit:false,warning:0.50,hasDouble:type==='doble'};
  g.projectiles.push(p);
+ if(type==='doble')g.delayed.push({at:g.elapsed+1.12,type:'normal',targetId:target.id});
+ if(type==='fantasma'){
+  const fake={...p,id:++g.projectileId,type:'fake',pos:add(origin,V(.32,0,0)),prev:add(origin,V(.32,0,0)),radius:.125,hasDouble:false};
+  g.projectiles.push(fake);
+ }
  g.effects.push({type:'launch',t:g.elapsed,id,x:origin.x,z:origin.z,style:type});
  g.shotIndex++;
  return true;
@@ -116,8 +121,14 @@ function damage(g,p){
 }
 function hitRobot(g,p,e){
  p.dead=true;
- const amount=p.grade==='PERFECTO'?(g.perfectStreak===13?5:2):p.grade==='BUENO'?1:1;
- const shield=e.boss&&Math.sin(g.elapsed*1.75)>0.80;
+ const amount=(p.grade==='PERFECTO'?(g.perfectStreak===13?5:2):1)+(p.type==='explosiva'||p.type==='pesada'?1:0);
+ const guard=e.boss?Math.sin(g.elapsed*1.75):0;
+ if(e.boss&&guard>.96){
+  p.dead=false;p.returning=false;p.age=0;p.prev=p.pos;p.type='veloz';p.radius=.19;
+  p.velocity=mul(norm(sub(g.eye,p.pos)),2.65);p.speed=2.65;
+  g.effects.push({type:'boss-parry',t:g.elapsed,x:e.x,z:e.z});return;
+ }
+ const shield=e.boss&&guard>.80;
  e.health-=shield?Math.max(1,amount-1):amount;e.damage=1-e.health/e.maxHealth;e.hitTime=g.elapsed;
  g.score+=shield?25:100*amount;
  g.effects.push({type:'enemy-hit',t:g.elapsed,x:e.x,z:e.z,boss:e.boss,shield,amount});
@@ -142,6 +153,11 @@ function step(g,dt){
  for(const e of g.enemies)if(e.alive&&!e.boss){
    e.x=e.homeX+Math.sin(g.elapsed*.65+e.phase)*Math.min(.48,.11+g.phase*.095);
  }
+ for(const d of [...g.delayed])if(g.elapsed>=d.at){
+  const enemy=g.enemies.find(e=>e.id===d.targetId&&e.alive)||activeEnemy(g);
+  if(enemy&&g.projectiles.filter(p=>!p.dead&&!p.returning&&p.type!=='fake').length<2)launch(g,d.type,enemy);
+  g.delayed.splice(g.delayed.indexOf(d),1);
+ }
  if(g.elapsed>=g.nextShot){
    if(!activeEnemy(g))spawnEnemy(g,g.phase===4);
    const ok=launch(g);g.nextShot=g.elapsed+(g.phase===0?3.0:g.phase===1?2.5:g.phase===2?2.08:g.phase===3?1.69:1.87);
@@ -160,6 +176,7 @@ function step(g,dt){
    if(enemy)p.velocity=mul(norm(sub(targetPoint(enemy),p.pos)),p.speed);
   }
   p.pos=add(p.pos,mul(p.velocity,dt));
+  if(p.type==='fake'){if(p.age>2.8)p.dead=true;continue}
   if(p.returning){
    const e=g.enemies.find(v=>v.id===p.targetEnemy&&v.alive);
    if(e&&sweptPoint(p.prev,p.pos,targetPoint(e))<.55+p.radius)hitRobot(g,p,e);
