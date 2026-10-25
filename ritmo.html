@@ -1,0 +1,121 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#080c1f"><title>RITMO CAOS 🎸 · MODO CAOS</title>
+<style>
+:root{--cyan:#65fbe2;--white:#f3ffff;--dark:#0a1127}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#060a1a;color:var(--white);font:15px system-ui,-apple-system,sans-serif}
+button,select{border:0;border-radius:12px;font:800 13px system-ui;min-height:42px;padding:9px 13px;cursor:pointer}
+button{background:#73ffe2;color:#09283c}button.alt{color:#f0ffff;background:#152d44;border:1px solid #497585}
+button:disabled{opacity:.38}small,p{line-height:1.5}a{color:#a7ffe9}
+#home{position:fixed;inset:0;z-index:30;overflow-y:auto;display:flex;align-items:center;flex-direction:column;padding:19px 17px 35px;text-align:center;background:radial-gradient(ellipse at 35% 12%,#194371,#0b1638 44%,#050817 88%)}
+#home .wrap{max-width:480px;width:100%}#back{display:block;text-align:left;text-decoration:none;font-weight:900;font-size:12px;color:#a6ffe2}
+.kicker{margin:28px 0 5px;font-size:10px;letter-spacing:3px;color:#a4ffd2;font-weight:1000}
+h1{font-size:clamp(45px,12vw,72px);letter-spacing:-3px;line-height:1;margin:8px 0;font-weight:1000;text-shadow:0 6px 30px #0008}
+h1 span{background:linear-gradient(95deg,#4cff85,#ff5274,#ffd34c,#438eff,#ff9b38);color:transparent;background-clip:text;-webkit-background-clip:text}
+.intro{margin:8px auto 15px;color:#ccdeef;font-size:13px;max-width:410px}
+.hero{position:relative;width:100%;height:185px;border:1px solid #547eb4;border-radius:22px;overflow:hidden;background:radial-gradient(ellipse at bottom,#1c5a75,#101a3c 58%,#121029)}
+.stage{position:absolute;left:12%;right:12%;top:-18%;height:133%;transform:perspective(270px) rotateX(45deg);display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.stage i{border:2px solid var(--c);background:linear-gradient(0deg,transparent,#ffffff15);box-shadow:0 0 20px var(--c)}
+.stage i:before{content:'●';position:absolute;bottom:10%;color:var(--c);font-size:31px;filter:drop-shadow(0 0 10px var(--c))}
+.stage i:nth-child(1){--c:#4cff85}.stage i:nth-child(2){--c:#ff5274}.stage i:nth-child(3){--c:#ffd34c}.stage i:nth-child(4){--c:#438eff}.stage i:nth-child(5){--c:#ff9b38}
+.hero strong{position:absolute;left:0;right:0;top:15px;font-size:16px;letter-spacing:3px;text-shadow:0 2px 15px #000}
+.features{display:flex;justify-content:center;flex-wrap:wrap;gap:5px;margin:12px 0 17px}.features b{font-size:10px;padding:7px 9px;border-radius:9px;background:#122b46;color:#c3e9ee;border:1px solid #335d75}
+.config{display:grid;grid-template-columns:1fr 1fr;gap:9px;text-align:left;margin:10px 0}
+.config label{display:grid;gap:5px;color:#bdd7e5;font-size:11px;font-weight:850}
+select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-height:48px}
+#enter{width:100%;min-height:57px;font-size:15px;background:linear-gradient(115deg,#73ffde,#bfffe9)}
+#demo{width:100%;margin-top:9px;min-height:49px}
+#precheck{color:#abc7da;font-size:11px;margin:16px 2px}
+#bestIntro{color:#fddd83;font-size:12px;font-weight:850;margin:8px}
+.details{padding:10px;text-align:left;background:#0b1e37;border:1px solid #2d5570;border-radius:13px;margin-top:9px;font-size:11px;color:#c4dbe6}
+.details summary{font-weight:800;cursor:pointer}.details input{width:100%}
+#overlay{position:fixed;inset:0;display:none;pointer-events:none;z-index:10;overflow:hidden;background:transparent}
+#tiles,#rtSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#tiles{opacity:.055}#rtSvg{z-index:2}
+#gameCanvas{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:auto;touch-action:none}
+#reticle{position:absolute;left:50%;top:50%;width:28px;height:28px;border:3px solid var(--cyan);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 18px #69ffe7}
+#touchpad{position:absolute;left:0;right:0;top:20%;bottom:31%;display:none;pointer-events:auto;touch-action:none;z-index:6}
+#head{position:absolute;top:max(14px,env(safe-area-inset-top));left:12%;right:12%;text-align:center;z-index:4;text-shadow:0 2px 12px #000}
+#headline{font-size:clamp(20px,6vw,31px);font-weight:1000}
+#subtitle{font-size:11px;font-weight:700;color:#ccf2f1}
+#calibrate{position:absolute;top:19%;left:5%;right:5%;text-align:center;padding:7px;border-radius:10px;background:#10293ce5;color:#d4fff4;font-size:10px;font-weight:900;display:none}
+#fallback{position:absolute;top:45%;left:10%;right:10%;background:#0b2945e8;border-radius:12px;padding:13px;display:none}
+#toolbar{display:none;position:absolute;bottom:max(125px,env(safe-area-inset-bottom) + 122px);left:7%;right:7%;gap:5px;pointer-events:auto;z-index:12}
+#toolbar button{flex:1;min-width:0;background:#142c49df;color:white;border:1px solid #55b8ac}
+#toolbar #size{flex:1.5;font-size:11px}
+#lock{display:none;position:absolute;bottom:max(49px,env(safe-area-inset-bottom) + 43px);left:7%;right:7%;width:86%;pointer-events:auto;z-index:11;min-height:56px;font-size:15px}
+#mock,#support,#notice,#play,#edit,#diagbtn,#debug{display:none!important}
+#topActions{position:absolute;top:max(10px,env(safe-area-inset-top));left:8px;right:8px;display:flex;justify-content:space-between;pointer-events:auto;z-index:14}
+#topActions button{background:#081d35dc;color:white;border:1px solid #628292;font-size:11px;padding:6px 9px;min-height:32px}
+#hud{position:absolute;top:54px;left:8px;right:8px;z-index:13;display:none;pointer-events:none}
+.hudRow{display:flex;justify-content:space-between;gap:7px}.hudRow div{background:#07162ad8;border:1px solid #406984;border-radius:11px;min-width:0;flex:1;text-align:center;font-size:9px;font-weight:900;padding:7px 3px;color:#c4dcec}
+.hudRow strong{font-size:18px;color:#ffffff;display:block;font-variant-numeric:tabular-nums}
+#progress{height:4px;border-radius:10px;background:#17465b;margin-top:7px;overflow:hidden}#progressFill{background:linear-gradient(90deg,#4cff85,#438eff,#ff9b38);height:100%;width:0}
+#where{position:absolute;left:50%;bottom:max(141px,env(safe-area-inset-bottom) + 129px);transform:translateX(-50%);padding:8px 13px;background:#051a32d9;border:1px solid #507b97;border-radius:22px;min-width:170px;text-align:center;font-size:12px;font-weight:1000;z-index:10;display:none;pointer-events:none;white-space:nowrap}
+#forecast{display:flex;gap:6px;justify-content:center;margin-top:8px}#forecast i{width:13px;height:13px;border:1px solid white;border-radius:50%}
+#toast{position:absolute;top:34%;left:5%;right:5%;font-size:clamp(24px,7vw,40px);font-weight:1000;text-align:center;text-shadow:0 3px 19px #000;pointer-events:none;z-index:14;opacity:0;transition:opacity .19s}
+#prepare{position:absolute;left:7%;right:7%;bottom:max(18px,env(safe-area-inset-bottom) + 12px);z-index:13;display:none;pointer-events:auto}
+#calPanel{border-radius:15px;border:1px solid #4e9eb0;background:#091d37ee;padding:11px;text-align:center;margin-bottom:8px}
+#calTitle{font-weight:1000;font-size:13px}#calHint{font-size:10px;color:#bad7e8;margin:5px}
+#pickLanes{display:flex;justify-content:center;gap:8px;margin:10px 0}
+#pickLanes button{border:2px solid #ffffff65;border-radius:50%;background:var(--lane);min-height:0;padding:0;width:38px;height:38px;color:#082137;font-weight:1000}
+#pickLanes button.selected{border:4px solid white;box-shadow:0 0 17px var(--lane);transform:scale(1.07)}
+#calProgress{width:100%;height:5px;background:#26465b;border-radius:10px;overflow:hidden}
+#calFill{height:100%;background:var(--cyan);width:0}
+#rtStart{width:100%;min-height:56px;font-size:17px}
+#rtRecenter{margin-top:6px;width:100%;min-height:36px}
+#gamePause{display:none}
+#result{display:none;position:absolute;inset:0;z-index:18;pointer-events:auto;align-items:center;justify-content:center;background:#050b1def;padding:17px;text-align:center}
+#result .card{width:min(420px,100%);border:1px solid #6b98aa;background:linear-gradient(155deg,#153457,#0b1832);border-radius:23px;padding:21px 18px;box-shadow:0 20px 55px #000a}
+#result h2{font-size:clamp(28px,8vw,42px);letter-spacing:-1px;margin:9px 0}
+#result .rank{color:#ffe08d;font-size:13px;font-weight:1000}
+#resultStats{line-height:1.9;color:#d0e8f2;font-size:13px}
+#result button{width:100%;margin-top:7px}
+#demoControls{display:none;position:absolute;bottom:35px;left:14%;right:14%;justify-content:space-between;pointer-events:auto;z-index:12}
+#demoControls button{font-size:25px;font-weight:1000;background:#133450d9;color:white;border:1px solid #71d7db;min-width:78px}
+@media(max-height:700px){#prepare{bottom:6px}#where{bottom:124px}#hud{top:43px}#pickLanes button{width:32px;height:32px}#calPanel{padding:7px}}
+</style></head><body>
+<main id="home"><div class="wrap">
+<a id="back" href="/">← VOLVER AL ARCADE</a>
+<div class="kicker">MODO CAOS · JUEGOS CON TU CUERPO</div>
+<h1>RITMO <span>CAOS</span></h1>
+<p class="intro">🎸 Las notas vienen hacia vos. <b>Vos sos el joystick:</b> movete de costado hasta el color justo cuando suene.</p>
+<div class="hero"><div class="stage"><i></i><i></i><i></i><i></i><i></i></div><strong>EL ESCENARIO ES TU CASA</strong></div>
+<div class="features"><b>🎼 3 CANCIONES ORIGINALES</b><b>🟢 5 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
+<div class="config"><label>CANCIÓN<select id="song"><option value="neon">⚡ Neón sin freno</option><option value="fuego">🎸 Fuego en el escenario</option><option value="solar">☀️ Solar latino</option></select></label>
+<label>DIFICULTAD<select id="difficulty"><option value="facil">Fácil · 3 carriles</option><option value="normal" selected>Normal · 5 carriles</option><option value="dificil">Difícil</option><option value="caos">MODO CAOS</option></select></label></div>
+<button id="enter">📷 JUGAR EN REALIDAD AUMENTADA</button>
+<button id="demo" class="alt">🎮 PROBAR DEMO 2D (SIN SEGUIMIENTO FÍSICO)</button>
+<div id="bestIntro">RÉCORD PERSONAL · —</div>
+<details class="details"><summary>🎚 Ajuste fino de sincronización</summary>
+<p>Si las notas llegan antes o después del sonido, ajustá la compensación. Predeterminado: 0 ms.</p>
+<label>Latencia: <span id="latencyValue">0 ms</span><input id="latency" type="range" min="-120" max="120" value="0" step="10"></label></details>
+<p id="precheck">Chrome Android + ARCore · Suelo despejado y seco · Adaptá el tamaño de la pista a tu habitación. No corras ni saltes: se sigue la posición del <b>celular</b>, no tus pies.</p>
+</div></main>
+<div id="overlay">
+<svg id="tiles"></svg><svg id="rtSvg"></svg><canvas id="gameCanvas"></canvas>
+<div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Apuntá a una superficie real</div></div>
+<div id="reticle"></div><div id="mock"></div><button id="support"></button>
+<div id="calibrate">☝ DESLIZÁ · 🤏 PELLIZCÁ PARA AJUSTAR · 🔄 GIRÁ CON DOS DEDOS</div><div id="fallback"></div>
+<div id="touchpad"></div><div id="toolbar"><button id="minus">−</button><button id="size" disabled>1,60 m</button><button id="plus">+</button><button id="rotate">↻</button></div>
+<div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
+<button id="lock" disabled>📍 FIJAR PISTA</button>
+<div id="topActions"><button id="exit">← MENÚ</button><button id="gamePause">Ⅱ PAUSA</button><button id="sound">🔊</button></div>
+<div id="hud"><div class="hudRow"><div>PUNTOS<strong id="score">0</strong></div><div>COMBO<strong id="combo">×0</strong></div><div>ENERGÍA<strong id="energy">55%</strong></div><div>TIEMPO<strong id="clock">00:00</strong></div></div>
+<div id="progress"><div id="progressFill"></div></div><div id="forecast"></div></div>
+<div id="where">📍 VOS · CENTRO</div><div id="toast" aria-live="polite"></div>
+<div id="prepare"><div id="calPanel"><div id="calTitle">👣 MARCÁ TU CARRIL INICIAL</div><div id="calHint">Parate en el color donde estás. Tocá ese círculo y mantené quieto el celular un segundo.</div>
+<div id="pickLanes"><button data-lane="0" style="--lane:#4cff85" aria-label="Carril verde">1</button><button data-lane="1" style="--lane:#ff5274" aria-label="Carril rojo">2</button><button data-lane="2" style="--lane:#ffd34c" aria-label="Carril amarillo" class="selected">3</button><button data-lane="3" style="--lane:#438eff" aria-label="Carril azul">4</button><button data-lane="4" style="--lane:#ff9b38" aria-label="Carril naranja">5</button></div>
+<div id="calProgress"><div id="calFill"></div></div></div>
+<button id="rtStart" disabled>CALIBRANDO POSICIÓN…</button><button id="rtRecenter" class="alt">🎯 RECENTRAR SIN MOVER LA PISTA</button></div>
+<div id="demoControls"><button id="left" aria-label="Ir a la izquierda">◀</button><button id="right" aria-label="Ir a la derecha">▶</button></div>
+<div id="result"><div class="card"><div class="kicker">EL ESCENARIO TE APLAUDE</div><h2 id="resultTitle">¡GRAN SHOW!</h2>
+<div class="rank" id="resultRank"></div><p id="resultStats"></p>
+<button id="retry">↻ REVANCHA</button><button id="share" class="alt">↗ COMPARTIR RESULTADO</button><button id="finishExit" class="alt">← VOLVER AL ARCADE</button></div></div>
+</div>
+<script defer src="/engine.js?v=ritmo1"></script>
+<script defer src="/ritmo-core.js?v=1"></script>
+<script defer src="/ritmo-audio.js?v=1"></script>
+<script defer src="/ritmo-art.js?v=1"></script>
+<script defer src="/ritmo-runtime.js?v=1"></script>
+</body></html>
