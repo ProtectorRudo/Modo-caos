@@ -20,6 +20,7 @@ jobs:
       - run: node --check rodeados-progression.js
       - run: node --check rodeados-art.js
       - run: node --check rodeados-manul.js
+      - run: node --check rodeados-robots-auto.js
       - run: node --check rodeados-runtime.js
       - run: node --test tests/rodeados.test.cjs
       - run: node --test tests/rodeados-ux.test.cjs
@@ -39,3 +40,5 @@ jobs:
       - run: node tests/rodeados-browser.test.cjs
       - run: node tests/rodeados-xr-smoke.test.cjs
       - run: node tests/rodeados-manul-preview.test.cjs
+      - run: node tests/rodeados-auto-robots.test.cjs
+      - run: RODEADOS_REAL_ASSET=1 node tests/rodeados-auto-robots.test.cjs
