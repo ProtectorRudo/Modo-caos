@@ -11,11 +11,11 @@ function officialLikeZip(){
  const payload=JSON.stringify({description:desc,buffer:raw.toString('base64')});
  const python=`import sys,json,base64,io,zipfile
  p=json.loads(sys.stdin.read())
- buff=io.BytesIO()
- with zipfile.ZipFile(buff,'w',zipfile.ZIP_DEFLATED) as z:
-  z.writestr('gltf/scene.gltf',json.dumps(p['description']))
-  z.writestr('gltf/scene.bin',base64.b64decode(p['buffer']))
- sys.stdout.buffer.write(buff.getvalue())`;
+buff=io.BytesIO()
+with zipfile.ZipFile(buff,'w',zipfile.ZIP_DEFLATED) as z:
+ z.writestr('gltf/scene.gltf',json.dumps(p['description']))
+ z.writestr('gltf/scene.bin',base64.b64decode(p['buffer']))
+sys.stdout.buffer.write(buff.getvalue())`;
  const out=spawnSync('python3',['-c',python],{input:payload,encoding:'buffer',maxBuffer:2e6});
  if(out.status!==0)throw Error('zip generation '+out.stderr?.toString());
  return out.stdout;
