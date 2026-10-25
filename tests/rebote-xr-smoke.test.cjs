@@ -81,7 +81,10 @@ const server=http.createServer((req,res)=>{
  assert(await page.locator('#returnBtn').isVisible(),'return button active in real XR overlay');
  assert(await page.evaluate(()=>__simDrawCalls)>0,'3D is rendered in AR XR frames');
  assert(await page.evaluate(()=>__ReboteDebug.tracking),'active XRFrame samples reliable phone ray');
+ const beforeTap=await page.evaluate(()=>__ReboteDebug.returnAttempts);
  await page.locator('#returnBtn').tap();
+ assert.equal(await page.evaluate(()=>__ReboteDebug.returnAttempts),beforeTap+1,'one physical tap must count one return attempt');
+ assert.equal(await page.locator('#status').innerText(),'SIN ESFERA','touch-generated click must not overwrite first response');
  assert.equal(await page.evaluate(()=>__ReboteDebug.stage),'playing','touch controls do not reset game');
  await page.locator('#center').tap();
  await page.waitForFunction(()=>__ReboteDebug.stage==='ready',null,{timeout:7000});
