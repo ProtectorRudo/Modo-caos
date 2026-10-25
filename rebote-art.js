@@ -349,5 +349,16 @@ export function createReboteArt(T,scene){
   ballTexture.dispose();seamG.dispose();rippleG.dispose();
   for(const m of sharedRobotMaterials)m.dispose();
  }
- return {root,plane,update,effect,dispose,setSize(v){plane.userData.size=Math.max(.7,Math.min(1.45,v))},getRobotCount(){return bots.size},getShotCount(){return shots.size}};
+ return {root,plane,update,effect,dispose,setSize(v){plane.userData.size=Math.max(.7,Math.min(1.45,v))},
+  getRobotCount(){return bots.size},getShotCount(){return shots.size},
+  getTexturedBalls(){return [...shots.values()].filter(group=>!!group.userData.material?.map).length},
+  getRobotFacingDot(eye){
+   const dots=[...bots.values()].filter(b=>b.visible).map(b=>{
+    const dx=eye.x-b.position.x,dz=eye.z-b.position.z,d=Math.hypot(dx,dz);
+    return d>.01?(Math.sin(b.rotation.y)*dx+Math.cos(b.rotation.y)*dz)/d:1;
+   });
+   return dots.length?Math.min(...dots):1;
+  },
+  getRicochetRipples(){return ripples.length}
+ };
 }
