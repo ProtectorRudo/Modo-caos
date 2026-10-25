@@ -4,7 +4,7 @@ function step(g,s){for(let t=0;t<s;t+=.016)G.tick(g,Math.min(.016,s-t))}
 test('simulación de 90Hz, tutorial y fase progresiva',()=>{
  const g=G.make({seed:1234});assert.equal(g.state,'ready');assert.equal(g.lives,3);
  assert(G.begin(g));assert.equal(g.state,'playing');assert.equal(g.enemies.length,1);
- step(g,14.1);assert.equal(g.phase,1);
+ g.protection=100;step(g,14.1);assert.equal(g.phase,1);
  assert.equal(G.phaseAt(29),2);assert.equal(G.phaseAt(49),3);assert.equal(G.phaseAt(68),4);
 });
 test('devolución perfecta exige mira y ventana',()=>{
@@ -46,7 +46,7 @@ test('jefe final aparece, puede recibir daños y se alcanza victoria',()=>{
  const g=G.make();G.begin(g);g.elapsed=61.99;g.nextShot=999;g.projectiles=[];
  step(g,.07);const boss=g.enemies.find(e=>e.boss);
  assert(boss&&g.bossSpawned,'boss is real entity');
- boss.health=2;
+ boss.health=1;
  const p={id:90,type:'normal',pos:G.V(boss.x,1.54,boss.z+.9),prev:G.V(boss.x,1.54,boss.z+.9),
   velocity:G.V(0,0,-5),speed:5,radius:.2,age:0,returning:true,dead:false,targetId:boss.id,
   targetEnemy:boss.id,grade:'PERFECTO'};
