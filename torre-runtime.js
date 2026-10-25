@@ -2,7 +2,7 @@ import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.
 import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,M=window.TorreModes,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
-const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),copyReference:$('copyReference'),copyCanvas:$('copyCanvas'),copyProgress:$('copyProgress'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
+const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),copyReference:$('copyReference'),copyExpand:$('copyExpand'),copyCanvas:$('copyCanvas'),copyProgress:$('copyProgress'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
 let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayStartAt=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,modeId='infinite',targetIndex=0,currentTarget=M.TARGET,copyMatched=0,clockRemaining=0,baseHalf=1.25,baseBody=null,baseCollider=null,tiltBody=null,tiltFailSeconds=0,removals=0,demolitionStart=[],demolitionRemoved=[],demolitionMarks=0,demolitionPoints=0,modeOutcome='',stableBodies=[],collapseSeconds=0,collapseReason=null,startingRecord=0;
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
@@ -83,6 +83,21 @@ function drawCopyBlueprint(){
  $('copyProgress').textContent='0/'+currentTarget.length;
  ui.copyReference.dataset.perfect='false';
 }
+function setCopyReferenceExpanded(expanded){
+ if(modeId!=='copy')expanded=false;
+ const next=Boolean(expanded);
+ ui.copyReference.dataset.expanded=String(next);
+ ui.copyExpand.setAttribute('aria-expanded',String(next));
+ ui.copyExpand.setAttribute('aria-label',next?'Reducir imagen de referencia':'Ampliar imagen de referencia');
+ ui.copyExpand.title=next?'Reducir figura':'Ampliar figura';
+ ui.copyExpand.textContent=next?'−':'⤢';
+}
+ui.copyExpand.addEventListener('click',e=>{
+ e.preventDefault();
+ e.stopPropagation();
+ if(modeId!=='copy'||ui.copyReference.hidden)return;
+ setCopyReferenceExpanded(ui.copyReference.dataset.expanded!=='true');
+});
 function modeHUD(){
  const cfg=M.get(modeId);let message=cfg.icon+' '+cfg.name.toUpperCase();
  if(cfg.seconds)message+=' · '+Math.ceil(Math.max(0,clockRemaining))+'s';
@@ -245,6 +260,7 @@ function makeActive(){
  updateHUD();
 }
 function startTrayGrab(e,i,btn){
+ if(modeId==='copy')setCopyReferenceExpanded(false);
  if(modeId==='demolition'||phase!=='playing'||stock[i]?.used)return;
  if(e.pointerType==='mouse'&&e.button!==0)return;
  e.preventDefault();
@@ -529,6 +545,7 @@ function paintReplay(dt){
  if(i>=replayFrames.length-1||elapsed>4){endReplay()}
 }
 function newGame(){
+ setCopyReferenceExpanded(false);
  startingRecord=record;editing=false;paused=false;startPhysics();ui.results.hidden=true;
  if(modeId==='demolition')createDemolitionTower();
  else makeActive();
@@ -578,6 +595,7 @@ function turnActive(delta){
  updateLanding();
 }
 function gestureDown(e){
+ if(phase==='playing'&&modeId==='copy')setCopyReferenceExpanded(false);
  if(phase!=='playing'&&phase!=='placing')return;
  e.preventDefault();ui.gesture.setPointerCapture(e.pointerId);
  if(phase==='placing'){
