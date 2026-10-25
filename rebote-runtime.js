@@ -62,6 +62,7 @@ function audioEvent(e){
  if(e.type==='legend'){sound(1380,.65,'triangle',.11);status('⚡ ¡SOS UNA MÁQUINA! ⚡');vibration([80,40,110])}
  if(e.type==='phase'){sound(680,.4,'sawtooth',.08);status('FASE '+(e.value+1)+' · '+G.PHASES[e.value])}
  if(e.type==='boss'){sound(115,.65,'sawtooth',.13);status('⚠ JEFE FINAL · ¡DERROTALO!')}
+ if(e.type==='boss-parry'){sound(370,.32,'sawtooth',.10);status('⚠ ¡EL JEFE TE LA DEVOLVIÓ!');vibration([28,28,35])}
  if(e.type==='victory'){sound(1450,.5,'triangle',.13);vibration([30,30,30,30,110])}
  if(e.type==='defeat'){sound(170,.5,'triangle',.13)}
 }
@@ -301,8 +302,9 @@ $('startDemo').onclick=()=>{
 async function startXR(){
  if(!window.isSecureContext||!navigator.xr){$('support').textContent='Sin WebXR AR. Usá Chrome Android con ARCore y HTTPS, o elegí Entrenamiento 3D.';return}
  // El gesto del botón debe crear la sesión directamente, antes del primer await.
- const promise=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['anchors','local-floor'],domOverlay:{root:$('overlay')}});
+ $('arena').style.display='block';
  try{
+  const promise=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['anchors','local-floor'],domOverlay:{root:$('overlay')}});
   const s=await promise;session=s;demo=false;
   await renderer.xr.setSession(s);
   space=renderer.xr.getReferenceSpace()||await s.requestReferenceSpace('local');
