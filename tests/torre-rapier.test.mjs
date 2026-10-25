@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import R from '@dimforge/rapier3d-compat/rapier.es.js';
-const require=createRequire(import.meta.url),G=require('../torre-core.js');
+const require=createRequire(import.meta.url),G=require('../torre-core.js'),M=require('../torre-modes.js');
 await R.init({});
 const SHAPE_SCALE=.38,DEPTH=.22;
 function makeWorld(){
@@ -40,6 +40,24 @@ for(const shape of G.SHAPES){
  const upper=spawn(w,G.SHAPES[1],0,first.translation().y+.75);tick(w,340);
  assert.ok(upper.translation().y>.46,'rectangle rests on cube');
  assert.ok(first.translation().y>.2,'support remains grounded');
+ w.free();
+}
+// All three Copy-the-Shape blueprints must be physically reachable, not merely
+// mathematically matchable or drawn on screen.
+for(const [num,target] of M.TARGETS.entries()){
+ const w=makeWorld(),pieces=[];
+ for(const t of target){
+  const shape=G.SHAPES.find(s=>s.id===t.shape);
+  const body=spawn(w,shape,t.x,t.y+.35,t.angle);
+  pieces.push({shape:shape.id,body});
+  tick(w,360);
+ }
+ const current=pieces.map((p,i)=>{
+  const pose=p.body.translation(),rot=p.body.rotation();
+  return {id:i+1,shape:p.shape,x:pose.x,y:pose.y,angle:2*Math.atan2(rot.z,rot.w)};
+ });
+ const result=M.matchTarget(current,target);
+ assert.equal(result.won,true,'Copy silhouette '+num+': physical blocks must align with goal '+JSON.stringify(current));
  w.free();
 }
 console.log('Torre Caos Rapier: 14/14 solids, 3D plane constraints and stacking passed');
