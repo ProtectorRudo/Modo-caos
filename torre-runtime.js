@@ -99,7 +99,7 @@ function readSnapshot(){
  return states.map(s=>{const p=s.body.translation(),q=s.body.rotation();return {id:s.id,shape:s.shape.id,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}})
 }
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
-function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.overlay.dataset.mode=modeId;ui.copyReference.hidden=modeId!=='copy'||(p!=='playing'&&p!=='settling');ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home'||modeId==='copy';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing'||modeId==='demolition';ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
+function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.overlay.dataset.mode=modeId;ui.copyReference.hidden=modeId!=='copy'||(p!=='playing'&&p!=='settling');ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home'||modeId==='copy';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing'||modeId==='demolition'||(modeId==='copy'&&!active);ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
 function updateHUD(){
  $('hudHeightLabel').textContent=modeId==='demolition'?'PUNTOS':'ALTURA';
  ui.hudHeight.textContent=modeId==='demolition'?demolitionPoints.toString():G.score(phase==='settling'?lastTop:top).toString();
@@ -179,7 +179,7 @@ function renderDemolitionDock(){
 function renderPack(){
  if(!ui.pieceSlots)return;
  if(modeId==='demolition'){renderDemolitionDock();return}
- ui.packCounter.textContent=stock.filter(s=>!s.used).length+' DISPONIBLES';
+ ui.packCounter.textContent=stock.filter(s=>!s.used).length+(modeId==='copy'?' PARA ELEGIR':' DISPONIBLES');
  // Keep elements stable during pointer capture; rebuilding the tray breaks drag.
  while(ui.pieceSlots.children.length>stock.length)ui.pieceSlots.lastElementChild.remove();
  while(ui.pieceSlots.children.length<stock.length){
@@ -220,7 +220,7 @@ function choosePiece(i){
  const shape=stock[i].shape;
  active={shape,x:0,y:Math.max(.92,top+.52),angle:0};
  art.setActive(shape);art.moveActive(active.x,active.y,active.angle);updateLanding();
- ui.blockName.textContent=shape.name.toUpperCase();
+ ui.blockName.textContent=shape.name.toUpperCase();if(modeId==='copy')ui.blockName.hidden=false;
  renderPack();
  soundFX(560,.045,.05);vibe(5);
 }
@@ -233,8 +233,15 @@ function makeActive(){
  }
  selectedIndex=-1;active=null;
  phaseTo('playing');
- choosePiece(stock.findIndex(s=>!s.used));
- if(states.length===0)showText('ELEGÍ UNA PIEZA · GIRÁ CON DOS DEDOS · ARRASTRÁ Y SOLTÁ',3800);
+ if(modeId==='copy'){
+  renderPack();
+  ui.blockName.hidden=true;
+  if(states.length===0)showText('MIRÁ LA IMAGEN · ELEGÍ UNA PIEZA PARA COPIARLA',3500);
+  else showText('ELEGÍ QUÉ PIEZA COLOCAR AHORA',1200);
+ }else{
+  choosePiece(stock.findIndex(s=>!s.used));
+  if(states.length===0)showText('ELEGÍ UNA PIEZA · GIRÁ CON DOS DEDOS · ARRASTRÁ Y SOLTÁ',3800);
+ }
  updateHUD();
 }
 function startTrayGrab(e,i,btn){
@@ -554,21 +561,6 @@ function drawMini(){
  const viewHeight=modeId==='copy'?Math.max(1.32,top+.2):Math.max(2.6,top+.65,hi+.65);const px=Math.min(w/2.9,(h-20)/viewHeight);
  const X=x=>w/2+x*px, Y=y=>h-15-(y+.04)*px;
  ctx.strokeStyle='#84f7e8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(-baseHalf),Y(.14));ctx.lineTo(X(baseHalf),Y(.14));ctx.stroke();
- if(false){ // No blueprint ghost in the user's own tower/map.
-  ctx.save();ctx.strokeStyle='#ffe1a1';ctx.lineWidth=2.5;ctx.setLineDash([5,3]);
-  for(const t of currentTarget){
-   const shape=G.SHAPES.find(sh=>sh.id===t.shape);
-   for(const poly of shape.parts){
-    ctx.beginPath();
-    G.rotated(poly,t.angle).forEach(([xx,yy],i)=>{
-     const px=X(t.x+xx*BLOCK),py=Y(t.y+yy*BLOCK);
-     i?ctx.lineTo(px,py):ctx.moveTo(px,py)
-    });
-    ctx.closePath();ctx.stroke();
-   }
-  }
-  ctx.restore();
- }
  for(const s of states){const snap=replaySnapshot?.find(b=>b.id===s.id),p=snap||s.body.translation(),q=s.body.rotation(),a=snap?snap.angle:2*Math.atan2(q.z,q.w);const c=['#34e1c1','#ffb952','#7da3ff','#ff769a','#b184ff','#ffa17a','#c3ea65'][s.shape.tone%7];
  ctx.fillStyle=c;ctx.strokeStyle='#ffffffa0';ctx.lineWidth=.85;
  for(const poly of s.shape.parts){ctx.beginPath();G.rotated(poly,a).forEach(([xx,yy],i)=>{const xxw=X(p.x+xx*BLOCK),yyw=Y(p.y+yy*BLOCK);i?ctx.lineTo(xxw,yyw):ctx.moveTo(xxw,yyw)});ctx.closePath();ctx.fill();ctx.stroke()}
