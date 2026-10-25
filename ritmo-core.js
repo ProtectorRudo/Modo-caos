@@ -2,7 +2,7 @@
 /* Ritmo Caos: reglas deterministas e independientes de WebXR y del render. */
 (function(root){
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const COLORS=['#4cff85','#ff5274','#ffd34c','#438eff','#ff9b38'];
+const LANES=4,COLORS=['#4cff85','#ff5274','#ffd34c','#438eff'];
 const SONGS={
  neon:{title:'NEÓN SIN FRENO',genre:'Electrónica',bpm:112,bars:32,bass:55,scale:[0,3,5,7,10],lead:[0,3,5,7,10,7,5,3],beat:0},
  fuego:{title:'FUEGO EN EL ESCENARIO',genre:'Rock',bpm:100,bars:28,bass:41,scale:[0,2,3,5,7,10],lead:[0,7,5,3,2,3,5,7],beat:1},
@@ -11,7 +11,7 @@ const SONGS={
 function random(seed){let s=seed>>>0;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296}}
 function chart(songId='neon',difficulty='normal',laneWidth=.31){
  const song=SONGS[songId]||SONGS.neon,rand=random((song.beat+1)*972641+song.bpm);
- const active=difficulty==='facil'?[1,2,3]:[0,1,2,3,4];
+ const active=difficulty==='facil'?[1,2]:[0,1,2,3];
  const beat=60/song.bpm,phase=Number(song.phaseSeconds)||0,duration=Math.min(Number(song.clipDuration)||Infinity,song.bars*4*beat+phase);
  const melodyEvents=[];
  if(song.publicDomain&&Array.isArray(song.melody)&&song.melody.length){
@@ -21,7 +21,7 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
    if(pos>=4&&pos<song.bars*4-3)melodyEvents.push({beat:pos,pitch:n.midi});
   }
  }
- const notes=[];let lane=2,lastAt=0;
+ const notes=[];let lane=1,lastAt=0;
  const spacing={facil:2.5,normal:2,dificil:1.5,caos:1.25}[difficulty]||2;
  const accentEvents=!melodyEvents.length&&Array.isArray(song.rhythmBeats)&&song.rhythmBeats.length>=12
   ?song.rhythmBeats.filter(b=>b>=4&&b<song.bars*4-3).map(b=>({beat:b,pitch:null})):[];
@@ -40,7 +40,7 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
   let maxHops=Math.max(0,Math.floor((dt*.70-.12)/laneWidth));
   const possible=active.filter(c=>Math.abs(c-lane)<=maxHops);
   const options=possible.length?possible:[lane];
-  const phrase=Math.floor(beatIndex/4),desired=song.lead[(phrase+Math.floor(rand()*3))%song.lead.length]%5;
+  const phrase=Math.floor(beatIndex/4),desired=song.lead[(phrase+Math.floor(rand()*3))%song.lead.length]%LANES;
   // Preference for melody movement, without ever requesting impossible physical transitions.
   options.sort((a,b)=>Math.abs(a-desired)-Math.abs(b-desired));
   const fromLane=lane;
@@ -59,14 +59,14 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
 }
 function make(songId='neon',difficulty='normal',laneWidth=.31){
  const c=chart(songId,difficulty,laneWidth);
- return {...c,state:'ready',elapsed:0,cursor:0,lane:2,offset:0,score:0,combo:0,bestCombo:0,perfect:0,great:0,good:0,miss:0,
- energy:55,events:[],eventSeq:0,judged:0,holdActive:null,slideActive:null,enteredAt:0,lastLane:2,paused:false};
+ return {...c,state:'ready',elapsed:0,cursor:0,lane:1,offset:1,score:0,combo:0,bestCombo:0,perfect:0,great:0,good:0,miss:0,
+ energy:55,events:[],eventSeq:0,judged:0,holdActive:null,slideActive:null,enteredAt:0,lastLane:1,paused:false};
 }
 function reset(g){Object.assign(g,make(g.songId,g.difficulty,g.laneWidth));return g}
 function start(g){if(g.state!=='ready')return false;g.state='playing';return true}
 function setPosition(g,x,t=g.elapsed){
  if(!Number.isFinite(x))return;
- const c=clamp(x,0,4),lane=clamp(Math.round(c),0,4);
+ const c=clamp(x,0,LANES-1),lane=clamp(Math.round(c),0,LANES-1);
  if(lane!==g.lastLane){g.enteredAt=t;g.lastLane=lane}
  g.offset=c;g.lane=lane;
 }
@@ -125,5 +125,5 @@ function tick(g,time){
 }
 function accuracy(g){return g.judged?Math.round((g.perfect+g.great*.7+g.good*.4)/g.judged*100):0}
 function ranking(g){const a=accuracy(g);return a>=96?'LEYENDA DEL RITMO':a>=85?'ESTRELLA':a>=70?'ARTISTA':a>=50?'PROMESA':'¡SEGUÍ EL RITMO!'}
-root.RitmoCore={COLORS,SONGS,chart,make,reset,start,setPosition,tick,multiplier,accuracy,ranking};
+root.RitmoCore={LANES,COLORS,SONGS,chart,make,reset,start,setPosition,tick,multiplier,accuracy,ranking};
 })(typeof window!=='undefined'?window:globalThis);
