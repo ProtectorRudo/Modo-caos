@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "despacito_remix_justin",
   "title": "Despacito (Remix) · Luis Fonsi, Daddy Yankee & Justin Bieber",
-  "sourceDescription": "User-supplied MP3, 229.04 s / 192 kbps. Verified in local analysis. Requested song first in menu after media deployment.",
+  "sourceDescription": "User-provided 229.04s MP3; production round is encoded 80s Ogg Opus stereo excerpt 00:55–02:15.",
   "sourceClip": {
     "startSeconds": 55,
     "durationSeconds": 80,
@@ -101,7 +101,18 @@
   "rights": {
     "status": "user-declared-authorized; upload/digital-distribution terms not independently verified"
   },
-  "audioDistributionStatus": "not-hosted; do not expose as selectable until accessible",
+  "audioDistributionStatus": "published-live-via-vercel-project-route",
   "notesCount": 84,
-  "engineeringNotes": "Exact cue points aligned to 80-second provided remix excerpt, physically filtered by four-lane chart logic. Final in-device user verification of feel remains necessary."
+  "engineeringNotes": "User-supplied recording mapped with 84 timestamps; 4-lane physically reachable notes in all 4 difficulties; first option on game menu. Audio transcoded to Opus for browser delivery. Android real-device QA pending.",
+  "publishedRelease": {
+    "url": "https://modo-caos-eta.vercel.app/ritmo.html",
+    "audioUrl": "https://modo-caos-eta.vercel.app/media/ritmo/despacito-remix-80s.ogg.b64",
+    "format": "Ogg Opus stereo (base64 text transport), dynamically decoded by Web Audio",
+    "bytesDecoded": 345600,
+    "base64Chars": 460800,
+    "sha256Decoded": "e476cb427141255f5f4e404e6630e81ca218a350e822a11c9ba2969e3d7fdb92",
+    "sourceCommit": "d33bd568a70c19d9fda17c8e51d8ce4fa24b87ab",
+    "vercelRoutesVersion": "2ee4d9e8-1e92-487f-be6e-8f3544002994",
+    "verification": "200 on live game and audio, B64 checksum equal, Web Audio mock decodes Ogg and synchronizes transport; not tested physically on Android ARCore"
+  }
 }
