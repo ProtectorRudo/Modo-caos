@@ -6,7 +6,7 @@ const MODES={
  heavy:{id:'heavy',name:'Peso Pesado',icon:'💪',short:'Distribuí el peso',description:'En 60 segundos, construí sobre una balanza física. Evitá una inclinación de más de 22°.',seconds:60,goal:0,limit:35},
  copy:{id:'copy',name:'Copiá la Figura',icon:'🧩',short:'Construí la silueta',description:'Mirá la imagen de referencia y armá esa figura en TU plataforma. Elegí las tres piezas en el orden que quieras. Tenés 75 segundos.',seconds:75,goal:0,limit:3},
  five:{id:'five',name:'Cinco Piezas',icon:'🎯',short:'Solo cinco intentos',description:'Con exactamente cinco bloques, conseguí una torre estable de 175 cm o más.',seconds:0,goal:1.75,limit:5},
- demolition:{id:'demolition',name:'Demolición Caótica',icon:'💥',short:'¡10 rondas y 40 figuras!',description:'10 rondas, 10 figuras distintas elegidas de 40. Tenés 3 extracciones por torre y 32 segundos por ronda. Tocá cada bloque directamente y acumulá puntos.',seconds:32,goal:10,limit:3}
+ demolition:{id:'demolition',name:'Demolición Caótica',icon:'💥',short:'¡10 rondas y 40 figuras!',description:'10 rondas, 10 figuras distintas elegidas de 40. Tenés 3 extracciones por torre y 32 segundos por ronda. Tocá cada bloque directamente y acumulá puntos.',seconds:42,goal:10,limit:3}
 };
 const MODE_ORDER=['infinite','balance','heavy','copy','five','demolition'];
 const TARGET=[
@@ -71,7 +71,7 @@ function demolitionScore(original,current,removedIds){
  for(const p of current){
   const prior=original.find(item=>item.id===p.id);
   if(!prior)continue;
-  if(prior.y-p.y>.26||Math.abs(prior.x-p.x)>.4||Math.abs(angleDelta(prior.angle,p.angle))>.88||p.y<-.25)fallen++;
+  if(prior.y-p.y>.16||Math.abs(prior.x-p.x)>.23||Math.abs(angleDelta(prior.angle,p.angle))>.58||p.y<-.25)fallen++;
  }
  return {fallen,removed:removedIds.length,points:fallen*100+removedIds.length*20};
 }

@@ -41,8 +41,15 @@ const DEMOLITION_SHAPES=Object.freeze([
  {id:'plano',name:'Pasarela',tone:6,weight:.92,parts:[[[-1.2,-.24],[1.2,-.24],[1.2,.24],[-1.2,.24]]]}, // .912 x .182
  {id:'peso',name:'Contrapeso',tone:3,weight:2.0,parts:[[[-.66,-.5],[.66,-.5],[.66,.5],[-.66,.5]]]},  // .502 x .38
  {id:'soporte',name:'Apoyo de arco',tone:0,weight:1.05,parts:[[[-.42,-.61],[.42,-.61],[.42,.61],[-.42,.61]]]} // .319 x .464
+ ,
+  {id:'medio_pilar',name:'Medio pilar',tone:2,weight:1.1,parts:[[[-.365,-.4],[.365,-.4],[.365,.4],[-.365,.4]]]},
+  {id:'media_piedra',name:'Ladrillo estructural',tone:0,weight:1.2,parts:[[[-.5,-.25],[.5,-.25],[.5,.25],[-.5,.25]]]},
+  {id:'medio_peso',name:'Medio contrapeso',tone:3,weight:1.6,parts:[[[-.66,-.25],[.66,-.25],[.66,.25],[-.66,.25]]]},
+  {id:'medio_soporte',name:'Medio apoyo',tone:0,weight:1.05,parts:[[[-.42,-.305],[.42,-.305],[.42,.305],[-.42,.305]]]},
+  {id:'gran_viga',name:'Plataforma de cimientos',tone:4,weight:.75,parts:[[[-2.78,-.21],[2.78,-.21],[2.78,.21],[-2.78,.21]]]}
+
 ]);
-const HEIGHTS={cubo:.38,ancho:.2204,alto:.608,fino:.1292,pil:.608,viga:.171,techo:.1672,plano:.1824,peso:.38,soporte:.4636};
+const HEIGHTS={medio_pilar:.304,media_piedra:.19,medio_peso:.19,medio_soporte:.2318,gran_viga:.1596,cubo:.38,ancho:.2204,alto:.608,fino:.1292,pil:.608,viga:.171,techo:.1672,plano:.1824,peso:.38,soporte:.4636};
 function part(shape,x,bottom=FLOOR){const h=HEIGHTS[shape];if(!h)throw Error('Unknown demolition shape '+shape);return {shape,x:+x.toFixed(5),y:+(bottom+h/2).toFixed(5),angle:0}}
 function tower(x,shapes,bottom=FLOOR){const blocks=[];for(const shape of shapes){blocks.push(part(shape,x,bottom));bottom+=HEIGHTS[shape]}return blocks}
 function at(x,shape,bottom){return part(shape,x,bottom)}
@@ -55,7 +62,7 @@ function figureParts(family,v){
  case 0: // OPEN ARCH: one column is a critical support for roof and load.
    stack(-.39,['pil']);stack(.39,['pil']);put('viga',0,H);
    stack(v%2?-.26:.26,v>1?['cubo','cubo']:['peso'],bridgeTop);
-   if(v===3)put('cubo',-.31,bridgeTop);break;
+   if(v===3)put('cubo',.28,bridgeTop);break;
  case 1: // MUSHROOM, one tiny stem below a heavy canopy.
    stack(0,['pil']);put(v>=2?'techo':'viga',0,H);
    put('peso',-.31,H+(v>=2?.1672:.171));
@@ -132,9 +139,45 @@ const FIGURE_NAMES=[
  'Puerta del desastre','Hongo radioactivo','Martillo del juicio','Balancín apocalíptico','Murallas enlazadas',
  'Castillo que tiembla','Grúa final','Doble puente extremo','El último voladizo','Cascada de portales'
 ];
-const ROUNDS=10,ROUND_SECONDS=32;
+const ROUNDS=10,ROUND_SECONDS=42;
+// Structural grammar V3: split a support into independently removable joint
+// pieces and distribute its load over a redundant foundation with 3-5 legs.
+// There is deliberately no marked winning brick: the player must choose a
+// sequence of THREE supports, balancing safe moves against a chain collapse.
+function puzzleParts(upper,tier,family){
+ const floorTop=FLOOR+.38,roofBottom=floorTop,splitDeck=family%3!==0&&family!==2,roofTop=roofBottom+(splitDeck?HEIGHTS.plano:HEIGHTS.gran_viga);
+ const xPositions=(family%2===0?[-.77,-.25,.25,.77]:[-.75,-.28,.28,.75]);
+ const base=[];
+ // Two halves of every foundation block, 6-10 independently touchable parts.
+ for(const x of xPositions){
+  base.push(part('media_piedra',x,FLOOR),part('media_piedra',x,FLOOR+.19));
+ }
+ if(splitDeck){base.push(part('plano',-.465,roofBottom),part('plano',.465,roofBottom))}
+ else base.push(part('gran_viga',0,roofBottom));
+ const offset=roofTop-FLOOR;
+ const top=[];
+ let splits=0;
+ for(const original of upper){
+  const h=HEIGHTS[original.shape];
+  const bottom=original.y-h/2+offset;
+  let halves=null;
+  if(original.shape==='pil'&&!((tier===4&&family===0)||(tier===3&&family===4)))halves=['medio_pilar','medio_pilar'];
+  else if(original.shape==='soporte')halves=['medio_soporte','medio_soporte'];
+  else if(original.shape==='peso')halves=['medio_peso','medio_peso'];
+  else if(original.shape==='cubo'&&(splits<=(tier===1?2:tier===2?4:6)||family%2===0))halves=['media_piedra','media_piedra'];
+  if(halves){
+   let y=bottom;
+   for(const shape of halves){top.push(part(shape,original.x,y));y+=HEIGHTS[shape]}
+   splits++;
+  }else top.push(part(original.shape,original.x,bottom));
+ }
+ // All added elements are simulated by Rapier in the identical coordinate
+ // system as the original stack, not welded/fixed to anything.
+ return base.concat(top);
+}
 const FIGURES=FIGURE_NAMES.map((title,id)=>{
- const blocks=figureParts(id%10,Math.floor(id/10));
+ const tier=Math.floor(id/10)+1;
+ const blocks=puzzleParts(figureParts(id%10,tier-1),tier,id%10);
  return Object.freeze({
   id,title,tier:Math.floor(id/10)+1,family:id%10,
   blocks:Object.freeze(blocks.map(b=>Object.freeze(b)))
