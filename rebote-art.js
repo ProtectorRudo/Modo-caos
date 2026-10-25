@@ -150,7 +150,7 @@ export function createReboteArt(T,scene){
    m.shell.material.color.setHex(p.returning?0x7cfff5:0xff7939);
    m.halo.rotation.y+=dt*4.7;
    // The ball itself telegraphs the strike window without covering the camera.
-   const distance=G.len(G.sub(p.pos,g.eye));
+   const distance=Math.hypot(p.pos.x-g.eye.x,p.pos.y-g.eye.y,p.pos.z-g.eye.z);
    const nearStrike=!p.returning&&p.type!=='fake';
    const urgency=nearStrike?Math.max(0,1-Math.abs(distance-.58)/.48):0;
    m.halo.scale.setScalar(p.radius*1.24*(1+urgency*.36));
