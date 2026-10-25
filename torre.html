@@ -128,6 +128,13 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 #overlay[data-mode="copy"] #mini,#overlay[data-mode="copy"] #miniBtn{display:none!important}
 #overlay[data-mode="copy"] #tip{font-size:10px;bottom:157px}
 @media(max-height:710px){#copyReference{top:calc(max(15px,env(safe-area-inset-top)) + 111px);width:min(42vw,167px);padding:7px}#copyReference .copyRefTitle{font-size:14px}#copyReference .copyRefHeader{font-size:9px}}
+
+#overlay[data-mode="demolition"] #pieceDock{display:none!important}
+#overlay[data-mode="demolition"] #gesture{inset:5% 0 4%;touch-action:none}
+#overlay[data-mode="demolition"] #tip{bottom:max(16px,env(safe-area-inset-bottom));left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:90vw;padding:9px 14px;background:#071e32cc;border:1px solid #50c3bf8a;border-radius:13px;color:#e9fffa;font-size:12px;letter-spacing:.4px;z-index:10}
+#overlay[data-mode="demolition"] #mini,#overlay[data-mode="demolition"] #miniBtn{display:none!important}
+#xrPaint .tile.demolition-face{box-shadow:inset -5px -5px 13px #00182a80,inset 5px 5px 10px #ffffff66;filter:saturate(1.1)}
+@media(max-height:680px){#overlay[data-mode="demolition"] #tip{font-size:10px;padding:7px 10px}}
 </style></head>
 <body>
 <canvas id="arena" aria-label="Escenario tridimensional de Torre Caos"></canvas>
@@ -145,7 +152,7 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 <div id="overlay" hidden><div id="stage" data-phase="home"></div>
 <svg id="xrScene" viewBox="0 0 400 800" aria-hidden="true" hidden></svg><canvas id="xrDraw" aria-hidden="true" hidden></canvas><div id="xrPaint" aria-hidden="true" hidden></div><div id="xrState" role="status" hidden>BUSCANDO UNA SUPERFICIE...</div><div id="gesture"></div>
 <div id="setup" hidden>UBICÁ LA PLATAFORMA SOBRE EL PISO REAL</div>
-<div id="hud" hidden><div class="stat"><small id="hudHeightLabel">ALTURA</small><b id="height">0</b><small>CM</small></div><div class="stat"><small>RÉCORD</small><b id="recordHud">0</b><small>CM</small></div><div class="stat"><small>PIEZAS</small><b id="pieces">0</b></div><button id="recenter" aria-label="Reubicar plataforma" title="Reubicar plataforma">◎</button><button id="pause" aria-label="Pausa" title="Pausar">Ⅱ</button></div>
+<div id="hud" hidden><div class="stat"><small id="hudHeightLabel">ALTURA</small><b id="height">0</b><small id="heightUnit">CM</small></div><div class="stat"><small>RÉCORD</small><b id="recordHud">0</b><small id="recordUnit">CM</small></div><div class="stat"><small>PIEZAS</small><b id="pieces">0</b></div><button id="recenter" aria-label="Reubicar plataforma" title="Reubicar plataforma">◎</button><button id="pause" aria-label="Pausa" title="Pausar">Ⅱ</button></div>
 <div id="blockName" hidden>CUBO</div>
 <div id="copyReference" aria-label="Imagen de referencia del rompecabezas, separada de tu plataforma" data-expanded="false" hidden>
  <div class="copyRefTop"><span class="copyRefHeader">🧩 OBJETIVO</span><button id="copyExpand" type="button" aria-label="Ampliar imagen de referencia" aria-expanded="false" title="Ampliar figura">⤢</button></div>
@@ -167,5 +174,5 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 <div id="replay" hidden>🎬 REPETICIÓN DEL DERRUMBE<button id="skipReplay">SALTAR</button></div>
 <div id="pauseMenu" hidden><div class="modal"><h2>EN PAUSA</h2><p>Tu torre se queda exactamente como la dejaste.</p><div class="cta"><button id="resume">▶ CONTINUAR</button><button class="secondary" id="retry">↻ VOLVER A EMPEZAR</button><button class="secondary" id="pauseModes" onclick="location.href='./torre.html'">🎮 CAMBIAR MODO</button><button class="secondary" id="sound">🔊 Sonido</button><button class="secondary" id="vibration">📳 Vibración</button><button class="secondary" onclick="location.href='/'">SALIR AL MENÚ</button></div></div></div>
 </div>
-<script src="./torre-core.js"></script><script src="./torre-modes.js"></script><script type="module" src="./torre-runtime.js"></script>
+<script src="./torre-core.js"></script><script src="./torre-modes.js"></script><script src="./torre-demolition.js"></script><script type="module" src="./torre-runtime.js"></script>
 </body></html>
