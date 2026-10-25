@@ -167,10 +167,22 @@ async function begin(){
  try{
   await audio.start(song());audio.volume(muted);game.paused=false;
  }catch(e){
-  running=false;game.state='ready';game.paused=false;
-  notify('NO SE PUDO CARGAR LA CANCIÓN',2600);
-  E('rtStart').disabled=false;
-  if(!demo)showPrepare(true);
+  audio.stop();running=false;game.state='ready';game.paused=false;
+  const detail=String(e?.message||e||'No se pudo reproducir el audio').slice(0,240);
+  notify('⚠️ ERROR AL INICIAR LA CANCIÓN',2300);
+  E('rtStart').disabled=false;E('gamePause').style.display='none';
+  if(demo){
+   // Don't strand the player inside a frozen demo. Offer another track or a retry.
+   demo=false;
+   E('overlay').style.display='none';E('home').style.display='flex';
+   E('gameCanvas').style.display='none';E('demoControls').style.display='none';
+   E('precheck').textContent='⚠️ No se pudo iniciar '+G.SONGS[song()].title+': '+detail+'. Probá otro tema o volvé a tocar DEMO.';
+  }else{
+   E('rtStart').textContent='↻ REINTENTAR CANCIÓN';
+   E('calTitle').textContent='⚠️ LA CANCIÓN NO PUDO INICIAR';
+   E('calHint').textContent=detail+' · Tocá REINTENTAR o volvé al menú para elegir otra.';
+   E('calPanel').style.display='block';showPrepare(true);
+  }
   return;
  }
  notify('🎸 ¡A MOVERSE!',1200);
@@ -235,6 +247,9 @@ window.modoCaosXRFrame=function(t,frame,W){
  if(t-hudLast>120){hudLast=t;if(locked)showHUD(t);hideToast(t)}
 };
 setInterval(()=>{if(!demo&&running&&!sampling&&!lost&&performance.now()-lastTrack>1350){lost=true;pause(true);notify('📡 SEGUIMIENTO PERDIDO · EN PAUSA',1600)}},400);
-E('enter').addEventListener('click',()=>{demo=false;ending=false;locked=false;calibrated=false;audio.init()});
+E('enter').addEventListener('click',()=>{
+ demo=false;ending=false;locked=false;calibrated=false;
+ try{audio.init()}catch(e){E('precheck').textContent='⚠️ El navegador no pudo inicializar audio: '+(e.message||e)+'. Probá Chrome Android.'}
+});
 requestAnimationFrame(loop);
 })();
