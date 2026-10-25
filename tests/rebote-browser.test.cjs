@@ -43,10 +43,16 @@ const server=http.createServer((req,res)=>{
   },null,2));throw e;
  }
  assert.match(await page.title(),/REBOTE MORTAL/);
+ assert(await page.locator('#selectDuel').isVisible());
+ assert.equal(await page.locator('#selectDuel').getAttribute('aria-pressed'),'true','duel mode is default');
+ await page.locator('#selectClassic').click();
+ assert.equal(await page.evaluate(()=>__ReboteDebug.selectedMode),'clasico','old classic mode is selectable');
+ await page.locator('#selectDuel').click();
+ assert.equal(await page.evaluate(()=>__ReboteDebug.selectedMode),'duelo','new duel mode selectable');
  assert(await page.locator('#startAR').isVisible());
  assert.equal(await page.locator('script[src^="./rebote-core.js"]').count(),1,'core URL relative for external HTTPS mirrors');
  assert.equal(await page.locator('script[src^="./rebote-runtime.js"]').count(),1,'WebXR runtime URL relative for CDN and Pages');
- assert.equal(await page.locator('script[src="./rebote-runtime.js?v=9"]').count(),1,'new ricochet edition V9 is loaded');
+ assert.equal(await page.locator('script[src="./rebote-runtime.js?v=10"]').count(),1,'duel edition V10 is loaded');
 
  assert.equal(await page.locator('a[href="https://modo-caos-eta.vercel.app/"]').count(),1,'fallback play links back to original arcade menu');
  // An embedded Android WebView may not expose navigator.xr at all.
@@ -61,6 +67,11 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__ReboteDebug.game.elapsed>.15,null,{timeout:12000});
  assert.equal(await page.locator('#returnBtn').isVisible(),true);
  assert.equal(await page.locator('#reticle').isVisible(),true);
+ assert(await page.locator('#duelHud').isVisible(),'duel HUD visible during gameplay');
+ assert.equal(await page.locator('#duelStage').innerText(),'RIVAL 1 DE 6','duel title on screen');
+ assert.match(await page.locator('#duelName').innerText(),/CHISPA/);
+ assert.equal(await page.evaluate(()=>__ReboteDebug.duelEnemies),1,'one opponent visible');
+ assert.equal(await page.evaluate(()=>__ReboteDebug.game.duelTotal),6);
  assert(await page.locator('#radar').isVisible(),'small enemy radar appears during gameplay');
  assert(await page.evaluate(()=>__ReboteDebug.radarVisible),'radar uses camera-relative tracked view');
  await page.waitForFunction(()=>document.querySelectorAll('#radarBots .radarBot').length>0,null,{timeout:5000});
