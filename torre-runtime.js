@@ -164,7 +164,7 @@ function makeActive(){
  if(modeId==='demolition')return;
  if(states.length>=M.get(modeId).limit){challengeCompleted('limit');return}
  if(!stock.length||stock.every(s=>s.used)){
-  if(modeId==='copy'){challengeCompleted('limit');return}
+  if(modeId==='copy'&&stock.length){challengeCompleted('limit');return}
   nextPack();
  }
  selectedIndex=-1;active=null;
