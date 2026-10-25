@@ -89,7 +89,7 @@ function figureParts(family,v){
    if(v>=2)put('cubo',v%2?.36:-.36,gateTop+.1672);
    if(v===3)put('cubo',0,gateTop+.1672);break;
  case 6: // CRANE: long boom and counterweight sit on a narrow stem.
-   stack(-.22,['pil']);put('techo',-.10,H);
+   stack(-.22,['pil']);if(v===3)stack(.33,['pil']);put('techo',-.10,H);
    stack(-.53,v>1?['peso','cubo']:['peso'],H+.1672);
    stack(.31,v%2?['cubo','cubo']:['cubo'],H+.1672);
    if(v===1)put('cubo',-.53,H+.1672+.38);
@@ -116,9 +116,9 @@ function figureParts(family,v){
    put('plano',-.47,cap);put('plano',.47,cap);
    stack(v%2?-.41:-.29,['peso'],cap+.1824);
    stack(v%2?.23:.42,['cubo'],cap+.1824);
-   if(v>=1)put('cubo',0,cap+.1824);
+   if(v>=1)put('cubo',v%2?.23:.42,cap+.1824+.38);
    if(v>=2)put('cubo',-.31,cap+.1824+.38);
-   if(v===3)put('cubo',.34,cap+.1824+.38);break;
+   if(v===3)put('cubo',.23,cap+.1824+.76);break;
  }
  return add;
 }
