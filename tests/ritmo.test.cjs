@@ -5,7 +5,9 @@ require('../ritmo-core.js');
 require('../ritmo-catalog.js');
 const C=globalThis.RitmoCore;
 assert(C,'RitmoCore no inicializado');
-for(const name of Object.keys(C.SONGS))for(const difficulty of ['facil','normal','dificil','caos'])for(const width of [.22,.32,.40]){
+assert.equal(C.LANES,4,'Deben ser exactamente cuatro carriles');
+assert.equal(C.COLORS.length,4,'Deben existir exactamente cuatro colores');
+for(const name of Object.keys(C.SONGS))for(const difficulty of ['facil','normal','dificil','caos'])for(const width of [.20,.25,.32]){
  const first=C.chart(name,difficulty,width),second=C.chart(name,difficulty,width);
  assert.deepEqual(first.notes,second.notes,'Mapa reproducible');
  assert(first.duration>=60&&first.duration<=90,'Duración de concierto');
@@ -13,6 +15,7 @@ for(const name of Object.keys(C.SONGS))for(const difficulty of ['facil','normal'
  for(let i=0;i<first.notes.length;i++){
   const n=first.notes[i];
   assert(first.active.includes(n.lane),'Carril fuera de rango');
+  assert(n.lane>=0&&n.lane<4,'No debe existir un quinto carril');
   if(i){const p=first.notes[i-1],available=(n.at-p.at)*.70;
    assert(Math.abs(n.lane-p.lane)*width+.12<=available+.000001,'Salto físicamente injusto');}
  }
@@ -22,7 +25,7 @@ for(const name of Object.keys(C.SONGS))for(const difficulty of ['facil','normal'
  assert.equal(g.judged,1);assert.equal(g.miss,0,'Acierto sin tocar pantalla');
  assert.equal(g.combo,1,'Combo');
  g=C.make(name,difficulty,width);C.start(g);
- C.setPosition(g,n.lane===0?4:0,n.at);C.tick(g,n.at+.25);
+ C.setPosition(g,n.lane===0?3:0,n.at);C.tick(g,n.at+.25);
  assert.equal(g.miss,1,'Fallo al estar en otro carril');
  assert.equal(g.combo,0);
  g=C.make(name,difficulty,width);C.start(g);
@@ -49,5 +52,5 @@ for(const path of ['correct','skip-motion']){
  assert.equal(slide.status,path==='correct'?'PERFECTO':'FALLO','Validación del deslizamiento');
 }
 assert(C.chart('neon','caos',.32).notes.some(n=>n.type==='caos'),'Notas CAOS');
-console.log('OK: 132 mapas (11 canciones x 4 dificultades x 3 anchos), distancias, aciertos, fallos, sostenidas, slides, notas CAOS, pausa y fin');
+console.log('OK: 168 mapas (14 perfiles x 4 dificultades x 3 anchos; nueve disponibles en menú), distancias, aciertos, fallos, sostenidas, slides, notas CAOS, pausa y fin');
 
