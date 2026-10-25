@@ -3,7 +3,7 @@ import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,M=window.TorreModes,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
 const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
-let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayStartAt=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,modeId='infinite',clockRemaining=0,baseHalf=1.25,baseBody=null,baseCollider=null,tiltBody=null,tiltFailSeconds=0,removals=0,demolitionStart=[],demolitionRemoved=[],demolitionMarks=0,demolitionPoints=0,modeOutcome='',stableBodies=[],collapseSeconds=0,collapseReason=null,startingRecord=0;
+let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayStartAt=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,modeId='infinite',targetIndex=0,currentTarget=M.TARGET,clockRemaining=0,baseHalf=1.25,baseBody=null,baseCollider=null,tiltBody=null,tiltFailSeconds=0,removals=0,demolitionStart=[],demolitionRemoved=[],demolitionMarks=0,demolitionPoints=0,modeOutcome='',stableBodies=[],collapseSeconds=0,collapseReason=null,startingRecord=0;
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
 function selectGameMode(id){
@@ -35,7 +35,7 @@ function modeHUD(){
  if(cfg.seconds)message+=' · '+Math.ceil(Math.max(0,clockRemaining))+'s';
  if(modeId==='balance')message+=' · BASE '+Math.round(baseHalf*200)+' CM';
  if(modeId==='heavy')message+=' · INCLINACIÓN '+Math.round(Math.abs(tiltBody?2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w):0)*180/Math.PI)+'°';
- if(modeId==='copy')message+=' · '+M.matchTarget(readSnapshot(),G.SHAPES).matched+'/3';
+ if(modeId==='copy')message+=' · '+M.TARGET_NAMES[targetIndex]+' '+M.matchTarget(readSnapshot(),currentTarget).matched+'/3';
  if(modeId==='five')message+=' · '+Math.max(0,5-states.length)+' RESTANTES';
  if(modeId==='demolition')message+=' · '+(3-removals)+' EXTRACCIONES · '+demolitionPoints+' PTS';
  $('modeStatus').textContent=message;
@@ -85,7 +85,12 @@ function startPhysics(){
   baseBody=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.039,0));
   createPlatform(M.boardHalfWidth(modeId,0));
  }
- if(modeId==='copy')art.setTarget(M.TARGET,G.SHAPES);
+ if(modeId==='copy'){
+  const requested=Number(new URLSearchParams(location.search).get('figura'));
+  const valid=new URLSearchParams(location.search).has('figura')&&Number.isInteger(requested)&&requested>=0&&requested<M.TARGETS.length;
+  targetIndex=valid?requested:Math.floor(Math.random()*M.TARGETS.length);
+  currentTarget=M.TARGETS[targetIndex];art.setTarget(currentTarget,G.SHAPES);
+ }
  $('pieceDock').dataset.demolition=String(modeId==='demolition');
  $('pieceDock').dataset.five=String(modeId==='five');
  $('mini').dataset.copy=String(modeId==='copy');
@@ -144,7 +149,7 @@ function renderPack(){
 }
 function nextPack(){
  if(modeId==='copy'){
-  stock=[G.SHAPES[0],G.SHAPES[0],G.SHAPES[1]].map(shape=>({shape,used:false}));
+  stock=currentTarget.map(t=>({shape:G.SHAPES.find(s=>s.id===t.shape),used:false}));
  }else if(modeId==='five'){
   // Exactly five known pieces, not an endless replenishing random shelf.
   stock=[G.SHAPES[0],G.SHAPES[1],G.SHAPES[2],G.SHAPES[5],G.SHAPES[6]].map(shape=>({shape,used:false}));
@@ -318,7 +323,7 @@ function settleAccepted(pieces){
   if(half<baseHalf-.001){createPlatform(half);showText('⚠️ ¡LA BASE SE ESTRECHA!',1400);vibe(16)}
  }
  if(modeId==='copy'){
-  const outcome=M.matchTarget(readSnapshot(),G.SHAPES);
+  const outcome=M.matchTarget(readSnapshot(),currentTarget);
   if(outcome.won){challengeCompleted('objective');return}
   if(states.length>=3){challengeCompleted('limit');return}
  }
@@ -404,7 +409,7 @@ function challengeCompleted(reason='time'){
  const cfg=M.get(modeId);
  if(modeId==='infinite'){finish('¡TORRE LEGENDARIA!');return}
  if(active){art.releaseActive();active=null}
- const metric=modeId==='demolition'?demolitionPoints:modeId==='copy'?M.matchTarget(readSnapshot(),G.SHAPES).matched:G.score(hi);
+ const metric=modeId==='demolition'?demolitionPoints:modeId==='copy'?M.matchTarget(readSnapshot(),currentTarget).matched:G.score(hi);
  const result=M.outcome(modeId,{height:hi,placed:states.length,timeLeft:clockRemaining,matched:modeId==='copy'?metric:0,fallen:demolitionMarks,tilt:tiltBody?Math.abs(2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w)):0});
  const prior=modeBest();saveModeBest(metric);
  phaseTo('finished');
@@ -493,7 +498,7 @@ function drawMini(){
  ctx.strokeStyle='#84f7e8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(-baseHalf),Y(.14));ctx.lineTo(X(baseHalf),Y(.14));ctx.stroke();
  if(modeId==='copy'){
   ctx.save();ctx.strokeStyle='#ffe1a1';ctx.lineWidth=2.5;ctx.setLineDash([5,3]);
-  for(const t of M.TARGET){
+  for(const t of currentTarget)
    const shape=G.SHAPES.find(sh=>sh.id===t.shape);
    for(const poly of shape.parts){
     ctx.beginPath();
@@ -725,7 +730,7 @@ function renderARSpatial(frame,time){
  }
  if(phase==='placing'&&!editing)piece(G.SHAPES[0],0,.145+BLOCK*.5,0,.95);
  else{
-  if(modeId==='copy')for(const t of M.TARGET){
+  if(modeId==='copy')for(const t of currentTarget)
    const shape=G.SHAPES.find(s=>s.id===t.shape);
    if(shape)piece(shape,t.x,t.y,t.angle,.20);
   }
