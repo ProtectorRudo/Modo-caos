@@ -84,3 +84,16 @@ Se solicitaron nuevamente despliegues **preview** en el proyecto Vercel de Modo 
 8. **Pruebas**: 168 variaciones deterministas (14 perfiles internos × cuatro dificultades × tres anchos), sólo cuatro índices posibles; simulación de posición y de calibración (elegir carril 2, terminar 1 s, recorrer +50 cm al carril 4 y recentrar), regresión de UI FIJAR y de ausencia del cargador de música. No equivalen a prueba física con Android.
 
 **Publicación:** el pedido manual a Vercel para el HEAD recibió HTTP 402 `api-deployments-free-per-day`; verificar si GitHub Auto Deploy alcanzó el HEAD antes de ofrecer URL como corregida. No trasladar cambios al proyecto original Color Rush ni a la base Supabase.
+
+
+## Publicación operativa en Vercel — 25/10/2026
+
+**Publicación REAL en la URL del proyecto:** `https://modo-caos-eta.vercel.app/ritmo.html`.
+
+Se superó la cuota `api-deployments-free-per-day` por una ruta de proyecto Vercel, **no por un nuevo deployment/build**. Esto debe comunicarse correctamente: la página se sirve en el dominio Vercel mediante reverse proxy a `raw.githack.com` con código del repositorio público fijado a commit inmutable `5e4164b609c740c6ba8fea0e20af7cbb8e181679`. El código fuente se conserva en GitHub, el front se entrega por la capa de rutas de Vercel. La versión de rutas live es `6dc521c1-7ed0-4ec1-a65c-15a799c66e6a` y la regla es `854c377c-26a2-4629-a33f-aa30a9d1b0a1`. La ruta sólo cubre `/ritmo.html` y los archivos `/ritmo*.js` exclusivos de este juego; no intercepta `/engine.js`, `/`, Ball Rush u otros juegos.
+
+Para aislar completamente el motor compartido, se agregó `ritmo-engine.js` y `ritmo.html` se cambió para cargarlo, conservando sus mejoras de renderización sólo en este juego.
+
+**Verificación:** ruta promovida en Vercel con `isLive:true`; `/ritmo.html`, `/ritmo-core.js`, `/ritmo-catalog.js`, `/ritmo-audio.js`, `/ritmo-art.js`, `/ritmo-runtime.js`, `/ritmo-engine.js` responden HTTP 200; HTML `text/html`, scripts `application/javascript`. Se comprobó que `/` y `/ball.html` siguen respondiendo HTTP 200. El HTML publicado tiene cuatro carriles y la selección `cumple`. **No se ha probado una partida ARCore física**, ni la calidad sonora sobre el dispositivo.
+
+**Operación futura:** la URL apunta al commit fijado, de forma que nuevas confirmaciones en GitHub no cambian esta publicación. Para subir versiones posteriores, ejecutar tests, inspeccionar diff y cambiar el destino de la regla Vercel al nuevo SHA mediante versión staged + promoción, comprobando el alias staged antes de promover. Considerar más adelante volver a un despliegue Vercel convencional para eliminar la dependencia de GitHack, una vez disponible la cuota. No afirmar que el juego fue compilado/desplegado por Vercel: fue publicado mediante enrutamiento.
