@@ -38,9 +38,13 @@ const server=http.createServer((req,res)=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--disable-web-security']});
   const page=await browser.newPage({viewport:{width:393,height:852},isMobile:true,hasTouch:true});
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',msg=>{if(msg.type()==='error')errors.push('console: '+msg.text())});
   await page.goto('http://127.0.0.1:'+server.address().port+'/rodeados-manul.html',{waitUntil:'load'});
-  await page.waitForFunction(()=>!!__RodeadosManulPreview&&!!__RodeadosDebug,null,{timeout:25000});
+  await page.waitForFunction(()=>!!globalThis.__RodeadosDebug,null,{timeout:25000});
+  await page.waitForFunction(()=>!!globalThis.__RodeadosManulPreview||
+   document.getElementById('manulStatus')?.textContent.includes('⚠'),null,{timeout:20000});
+  assert(await page.evaluate(()=>!!globalThis.__RodeadosManulPreview),
+   'preview init must work: '+(await page.locator('#manulStatus').innerText())+'; errors: '+errors.join(' | '));
   assert(await page.locator('#manulFile').count(),'3D import field must appear in isolated lab');
   assert.equal(await page.locator('#manulStatus').isVisible(),true);
   assert.equal(await page.evaluate(()=>__RodeadosManulPreview.actorStatus.enabled),false,'default models untouched until user selects actual asset');
