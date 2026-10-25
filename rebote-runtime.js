@@ -22,6 +22,7 @@ let game=G.make(),stage='home',demo=false,session=null,space=null,hitSource=null
 let latestHit=null,pendingAnchorHit=null,lastFrame=null,trackedEye=null,calStart=0,samples=[],calibrated=false,calibrationMotion=null;
 let fixed=false,previewPosition=V(),previewYaw=0,move=V(),yaw=0,arenaScale=1,fixPending=false;
 let timePrev=0,hudPrev=0,demoYaw=0,demoPitch=0,lastAim=null,lastAimAt=0,trackingAt=0;
+let viewRight=G.V(1,0,0),viewUp=G.V(0,1,0);
 let effectsSeen=new WeakSet(),audioCtx=null,sounds=true,beeped=new Set(),pausedForTracking=false,beatAt=0,qualityFrames=0,qualityCost=0;
 const fingers=new Map();let gesture=null,toastEnd=0,phaseAt=-1,resultShown=false;
 function ui(){
@@ -185,29 +186,55 @@ function updateAim(pose,t){
  const pos=pose.transform.position,q=pose.transform.orientation;
  art.root.updateMatrixWorld(true);
  const eye=art.root.worldToLocal(V(pos.x,pos.y,pos.z));
- const worldDirection=V(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));
- const rootQ=art.root.getWorldQuaternion(new THREE.Quaternion());
- const localDirection=worldDirection.applyQuaternion(rootQ.invert()).normalize();
+ const worldQ=new THREE.Quaternion(q.x,q.y,q.z,q.w);
+ const inverseRoot=art.root.getWorldQuaternion(new THREE.Quaternion()).invert();
+ const localDirection=V(0,0,-1).applyQuaternion(worldQ).applyQuaternion(inverseRoot).normalize();
+ const right=V(1,0,0).applyQuaternion(worldQ).applyQuaternion(inverseRoot).normalize();
+ const up=V(0,1,0).applyQuaternion(worldQ).applyQuaternion(inverseRoot).normalize();
  const dir=G.V(localDirection.x,localDirection.y,localDirection.z);
+ viewRight=G.V(right.x,right.y,right.z);viewUp=G.V(up.x,up.y,up.z);
  lastAim={eye:G.V(eye.x,eye.y,eye.z),dir};
  lastAimAt=t;G.setView(game,lastAim.eye,lastAim.dir);
 }
 function aimFeedback(t){
  if(stage!=='playing')return;
- const p=game.projectiles.filter(v=>!v.dead&&!v.returning).sort((a,b)=>G.len(G.sub(a.pos,game.eye))-G.len(G.sub(b.pos,game.eye)))[0];
- const ret=$('reticle'),cue=$('cue'),button=$('returnBtn');
+ // Urgency is measured along the incoming velocity, never by a fake decoy.
+ const arrival=p=>{
+   const toEye=G.sub(game.eye,p.pos),distance=G.len(toEye);
+   const towards=(p.velocity.x*toEye.x+p.velocity.y*toEye.y+p.velocity.z*toEye.z)/Math.max(distance,.001);
+   return towards>.15?distance/towards:1000+distance;
+ };
+ const inbound=game.projectiles.filter(v=>!v.dead&&!v.returning&&v.type!=='fake');
+ const p=inbound.sort((a,b)=>arrival(a)-arrival(b))[0];
+ const ret=$('reticle'),cue=$('cue'),button=$('returnBtn'),gauge=$('strikeGauge');
  ret.className='';button.classList.remove('hot');
- $('leftArrow').style.opacity='0';$('rightArrow').style.opacity='0';
- if(!p){cue.textContent='PREPARATE · EL ROBOT ESTÁ CARGANDO';return}
+ for(const id of ['leftArrow','rightArrow','upArrow','downArrow'])$(id).style.opacity='0';
+ if(!p){gauge.style.display='none';cue.textContent='PREPARATE · EL ROBOT ESTÁ CARGANDO';return}
  const diff=G.sub(p.pos,game.eye),dist=G.len(diff),q=G.quality(game,p);
- const dot=G.norm(diff).x*game.aim.x+G.norm(diff).y*game.aim.y+G.norm(diff).z*game.aim.z;
- const cross=game.aim.x*diff.z-game.aim.z*diff.x;
- if(dot<.88){if(cross<0)$('leftArrow').style.opacity='1';else $('rightArrow').style.opacity='1'}
+ const unit=G.norm(diff);
+ const forward=unit.x*game.aim.x+unit.y*game.aim.y+unit.z*game.aim.z;
+ const lateral=unit.x*viewRight.x+unit.y*viewRight.y+unit.z*viewRight.z;
+ const vertical=unit.x*viewUp.x+unit.y*viewUp.y+unit.z*viewUp.z;
+ const behind=forward<-.18;
+ if(forward<.94){
+  // Full camera-local direction: still correct after turning or tilting an AR phone.
+  if(behind&&Math.abs(lateral)<.18){
+   $('leftArrow').style.opacity='1';$('rightArrow').style.opacity='1';
+  }else if(Math.abs(lateral)>.13){
+   $(lateral>0?'rightArrow':'leftArrow').style.opacity='1';
+  }
+  if(Math.abs(vertical)>.16)$(vertical>0?'upArrow':'downArrow').style.opacity='1';
+ }
+ gauge.style.display='block';
+ const fill=Math.round(clamp((1.72-dist)/(1.72-.58),0,1)*100);
+ gauge.style.setProperty('--charge',fill+'%');
  if(q.ok){ret.classList.add('ready');button.classList.add('hot');cue.textContent='⚡ ¡AHORA! · '+q.grade;
    if(!beeped.has(p.id)){beeped.add(p.id);sound(960,.065,'triangle',.04)}
- }else if(dist<1.5){
-   ret.classList.add('aim');cue.textContent=q.reason==='APUNTÁ A LA ESFERA'?'🎯 CENTRÁ LA MIRA':dist<.3?'¡TARDE!':'ACERCÁ EL TIEMPO · ¡ESPERÁ!';
- }else{cue.textContent='ESFERA EN CAMINO · APUNTÁ Y ESPERÁ'}
+ }else if(behind){ret.classList.add('aim');cue.textContent='↻ ATAQUE DETRÁS · GIRÁ DESPACIO'}
+ else if(q.reason==='APUNTÁ A LA ESFERA'){ret.classList.add('aim');cue.textContent='🎯 SEGUÍ LA FLECHA · CENTRÁ LA MIRA'}
+ else if(dist<.31){ret.classList.add('aim');cue.textContent='¡MUY TARDE! · PREPARATE'}
+ else if(dist<1.5){ret.classList.add('aim');cue.textContent='ENERGÍA CARGÁNDOSE · ¡ESPERÁ!'}
+ else cue.textContent=p.type==='veloz'?'⚡ VELOZ · SEGUÍ LA ESFERA':p.type==='pesada'?'🟡 PESADA · TENÉS TIEMPO':'ESFERA EN CAMINO · APUNTÁ Y ESPERÁ';
 }
 function onReturn(){
  if(stage!=='playing'||game.paused)return;
@@ -252,6 +279,9 @@ function animate(t,frame){
   camera.rotation.order='YXZ';camera.rotation.set(demoPitch,demoYaw,0,'YXZ');
   camera.updateMatrixWorld(true);
   const eye=camera.getWorldPosition(V()),dir=camera.getWorldDirection(V());
+  const camQ=camera.getWorldQuaternion(new THREE.Quaternion());
+  const right=V(1,0,0).applyQuaternion(camQ),up=V(0,1,0).applyQuaternion(camQ);
+  viewRight=G.V(right.x,right.y,right.z);viewUp=G.V(up.x,up.y,up.z);
   G.setView(game,G.V(eye.x,eye.y,eye.z),G.V(dir.x,dir.y,dir.z));
  }
  if(stage==='playing'){
