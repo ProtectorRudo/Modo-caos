@@ -19,6 +19,7 @@ jobs:
       - run: node --check rodeados-ux.js
       - run: node --check rodeados-progression.js
       - run: node --check rodeados-art.js
+      - run: node .github/scripts/rodeados-asset-metadata.cjs
       - run: node --check rodeados-manul.js
       - run: node --check rodeados-robots-auto.js
       - run: node --check rodeados-runtime.js
