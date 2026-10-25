@@ -140,7 +140,7 @@ export function createRodeadosArt(THREE,scene,camera){
  }
  // Physical-looking rubble and electrical rim are scenery only. Instancing
  // replaces 75 separate draw calls and never changes actual walkable surfaces.
- let battlefieldSide=2.6,battlefieldEditing=true,activeDebris=0;
+ let battlefieldSide=2.6,battlefieldEditing=true,activeDebris=0,lastDebrisKey='';
  const fragmentCount=75;
  const fragments=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),
   new THREE.MeshStandardMaterial({color:0x56616a,metalness:.45,roughness:.95,
@@ -161,6 +161,10 @@ export function createRodeadosArt(THREE,scene,camera){
   const eye=new THREE.Mesh(geo.box,beaconMat);eye.scale.set(.047,.018,.047);eye.position.y=.177;g.add(eye);
  }
  function updateBattlefieldRubble(game,editing=false){
+  const key=battlefieldSide+':'+editing+':'+
+   (game?.floorDamage||[]).map(v=>Math.round(v*8)/8).join(',');
+  if(key===lastDebrisKey)return;
+  lastDebrisKey=key;
   let visible=0;
   const side=(battlefieldSide||2.6)/5;
   for(let i=0;i<25;i++){
@@ -271,7 +275,9 @@ export function createRodeadosArt(THREE,scene,camera){
     warScars[i]=step+heat*10;
     warMat[i].color.setRGB(.84+(i%7)*.014,.91,.94)
       .lerp(new THREE.Color(0x8b6255),Math.min(1,step*.70));
-    warMat[i].opacity=.76+step*.12;
+    warMat[i].opacity=.84+step*.08;
+    warMat[i].emissive.set(step>.3?0x622418:0x101e24);
+    warMat[i].emissiveIntensity=.12+step*.16+heat*.35;
     warBurn[i].material.opacity=Math.min(.7,damage*.58+heat*.12);
     warCracks[i].material.opacity=damage<.16?0:Math.min(.92,(damage-.16)*1.30+heat*.17);
     const border=warMarks[i].children[0].material;
@@ -566,6 +572,9 @@ export function createRodeadosArt(THREE,scene,camera){
  return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,getRobotAdapterStatus,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
    darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
-   scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity)}),
+   scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity),
+   textured:warMat.every(m=>m.map===warTexture&&m.isMeshStandardMaterial),
+   fragmentCount:activeDebris,ashCount:ashCloud.visible?ashCount:0,
+   perimeterPosts:battlefieldCorners.visible?battlefieldCorners.children.length:0}),
   drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
 }
