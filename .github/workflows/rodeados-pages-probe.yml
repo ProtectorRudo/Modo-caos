@@ -33,10 +33,26 @@ jobs:
           LAB_HTTP=$(curl -sSL -m 15 -o /tmp/manul-lab.html -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-manul.html?v=13")
           echo "MANUL_LAB_HTTP=$LAB_HTTP"
           test "$LAB_HTTP" = "200"
+          grep -q "location.replace('./rodeados.html?v=14')" /tmp/manul-lab.html
+          ! grep -q 'id="manulFile"' /tmp/rodeados-mirror.html
+          grep -q 'ANDROIDES TÁCTICOS 3D' /tmp/rodeados-mirror.html
+          grep -q 'BAMEN' /tmp/rodeados-mirror.html
+          grep -q 'type="importmap"' /tmp/rodeados-mirror.html
+          ASSET_HTTP=$(curl -fsSL -m 25 -o /tmp/rodeados-tactical.glb -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/assets/rodeados/tactical-android.glb")
+          echo "AUTO_ROBOT_GLB_HTTP=$ASSET_HTTP"
+          test "$ASSET_HTTP" = "200"
+          python3 - <<'PY'
+          import os,struct
+          f='/tmp/rodeados-tactical.glb'; data=open(f,'rb').read(12)
+          magic,version,length=struct.unpack('<III',data)
+          assert magic==0x46546c67 and version==2 and length==os.stat(f).st_size
+          assert 100000<length<8000000
+          print('AUTO_ROBOT_GLB_VALID_BYTES=',length)
+          PY
           grep -q 'id="manulFile"' /tmp/manul-lab.html
           grep -q 'Robot M.A.N.U.L.' /tmp/manul-lab.html
           grep -q 'Andrei Milin' /tmp/manul-lab.html
-          grep -q 'rodeados-runtime.js?v=13' /tmp/manul-lab.html
+          grep -q 'rodeados-runtime.js?v=14' /tmp/manul-lab.html
           grep -q 'id="manulRemember"' /tmp/manul-lab.html
           grep -q 'id="manulFacing"' /tmp/manul-lab.html
           MANUL_JS_HTTP=$(curl -sSL -m 15 -o /tmp/manul-lab.js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-manul.js")
@@ -61,7 +77,7 @@ jobs:
           grep -o 'id="reload"' /tmp/rodeados-mirror.html || true
           grep -q 'RODEADOS 360' /tmp/rodeados-mirror.html
           grep -q 'id="botGuide"' /tmp/rodeados-mirror.html
-          grep -q 'rodeados-runtime.js?v=11' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-runtime.js?v=14' /tmp/rodeados-mirror.html
           grep -q 'rodeados-core.js?v=11' /tmp/rodeados-mirror.html
           grep -q '∞  BALAS' /tmp/rodeados-mirror.html
           ! grep -q 'id="reload"' /tmp/rodeados-mirror.html
@@ -75,10 +91,17 @@ jobs:
           grep -q 'if(!latestAim||performance.now()-lastAimStamp>1200)return null;' /tmp/rodeados-published-runtime.js
           grep -q 'lastShotStatus=r.hit' /tmp/rodeados-published-runtime.js
           grep -q 'function bombCaos()' /tmp/rodeados-published-runtime.js
+          grep -q "installAutoRobots" /tmp/rodeados-published-runtime.js
+          grep -q "rodeados-robots-auto.js?v=14" /tmp/rodeados-published-runtime.js
+          AUTO_MOD_HTTP=$(curl -fsSL -m 15 -o /tmp/rodeados-auto.js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-robots-auto.js")
+          echo "AUTO_LOADER_JS_HTTP=$AUTO_MOD_HTTP"
+          test "$AUTO_MOD_HTTP" = "200"
+          grep -q 'FREE \[Military Soldier\] RIGGED' /tmp/rodeados-auto.js
+          echo 'V14 PUBLIC: ROBÓTS 3D AUTOMÁTICOS, SIN ZIP/LOGIN'
           grep -q 'art.setFloorDamage(game,' /tmp/rodeados-published-runtime.js
           grep -q 'HEADSHOT LETAL' /tmp/rodeados-published-runtime.js
           grep -q "drawShot(packet,preHit" /tmp/rodeados-published-runtime.js
-          grep -q "rodeados-art.js?v=13" /tmp/rodeados-published-runtime.js
+          grep -q "rodeados-art.js?v=14" /tmp/rodeados-published-runtime.js
           grep -q 'lastMenaceAt' /tmp/rodeados-published-runtime.js
           grep -q "MUNICIÓN ILIMITADA" /tmp/rodeados-published-runtime.js
           echo 'V10: DISPAROS INFINITOS SIN RECARGA Y TENSIÓN ROBÓTICA PUBLICADOS'
