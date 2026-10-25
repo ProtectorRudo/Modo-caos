@@ -98,8 +98,21 @@ function pieceIcon(shape){
  const parts=shape.parts.map(p=>'<polygon points="'+p.map(([x,y])=>(50+x*34).toFixed(1)+','+(29-y*26).toFixed(1)).join(' ')+'" fill="'+col+'" stroke="#eefffd" stroke-width="2.3" stroke-linejoin="round"/>').join('');
  return '<svg viewBox="0 0 100 58" aria-hidden="true">'+parts+'</svg>';
 }
+function renderDemolitionDock(){
+ ui.packCounter.textContent=(3-removals)+' INTENTOS · '+demolitionPoints+' PTS';
+ ui.pieceSlots.replaceChildren();
+ for(const [index,item] of states.entries()){
+  const btn=document.createElement('button');
+  btn.type='button';btn.className='piecePick';btn.setAttribute('aria-label','Retirar bloque '+item.id);
+  btn.innerHTML=pieceIcon(item.shape)+'<span>BLOQUE '+item.id+'</span>';
+  btn.disabled=phase!=='playing';
+  btn.addEventListener('click',()=>removeDemolitionBlock(item.id));
+  ui.pieceSlots.appendChild(btn);
+ }
+}
 function renderPack(){
  if(!ui.pieceSlots)return;
+ if(modeId==='demolition'){renderDemolitionDock();return}
  ui.packCounter.textContent=stock.filter(s=>!s.used).length+' DISPONIBLES';
  // Keep elements stable during pointer capture; rebuilding the tray breaks drag.
  while(ui.pieceSlots.children.length>stock.length)ui.pieceSlots.lastElementChild.remove();
@@ -143,6 +156,7 @@ function choosePiece(i){
  soundFX(560,.045,.05);vibe(5);
 }
 function makeActive(){
+ if(modeId==='demolition')return;
  if(states.length>=M.get(modeId).limit){challengeCompleted('limit');return}
  if(!stock.length||stock.every(s=>s.used)){
   if(modeId==='copy'){challengeCompleted('limit');return}
@@ -155,7 +169,7 @@ function makeActive(){
  updateHUD();
 }
 function startTrayGrab(e,i,btn){
- if(phase!=='playing'||stock[i]?.used)return;
+ if(modeId==='demolition'||phase!=='playing'||stock[i]?.used)return;
  if(e.pointerType==='mouse'&&e.button!==0)return;
  e.preventDefault();
  choosePiece(i);
@@ -178,13 +192,11 @@ function endTrayGrab(e){
  trayTouch=null;
  if(wasDragged)drop();
 }
-function drop(){
- if(phase!=='playing'||!active||!world)return;
- let {shape,x,y,angle}=active;
- const desc=RAPIER.RigidBodyDesc.dynamic().setTranslation(x,y,0).setLinearDamping(.075).setAngularDamping(.11).setCcdEnabled(true);
- const body=world.createRigidBody(desc);
- body.setEnabledTranslations(true,true,false,true);body.setEnabledRotations(false,false,true,true);
- const q={x:0,y:0,z:Math.sin(angle/2),w:Math.cos(angle/2)};body.setRotation(q,true);
+function spawnBlock(shape,x,y,angle=0){
+ const body=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(x,y,0).setLinearDamping(.075).setAngularDamping(.11).setCcdEnabled(true));
+ body.setEnabledTranslations(true,true,false,true);
+ body.setEnabledRotations(false,false,true,true);
+ body.setRotation({x:0,y:0,z:Math.sin(angle/2),w:Math.cos(angle/2)},true);
  let attached=0;
  for(const poly of shape.parts){
   const vertices=[];
@@ -194,9 +206,53 @@ function drop(){
   col.setDensity(3.5*shape.weight).setFriction(.89).setRestitution(.048).setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
   world.createCollider(col,body);attached++;
  }
- if(!attached){world.removeRigidBody(body);showText('No se pudo cargar esa figura');return}
- const id=nextId++;states.push({id,shape,body});if(stock[selectedIndex])stock[selectedIndex].used=true;art.releaseActive();art.startBlock(id,shape);renderPack();
- active=null;lastTop=top;settleTime=0;stillTime=0;collapseSeconds=0;collapseReason=null;frames=[];phaseTo('settling');showText('EQUILIBRANDO...',700);
+ if(!attached){world.removeRigidBody(body);return null}
+ const id=nextId++;const item={id,shape,body};
+ states.push(item);art.startBlock(id,shape);
+ return item;
+}
+function createDemolitionTower(){
+ const cube=G.SHAPES[0],pieces=[];
+ for(let level=0;level<4;level++){
+  for(const x of [-.215,.215]){
+   const item=spawnBlock(cube,x,.307+level*.384,0);
+   if(item)pieces.push(item);
+  }
+ }
+ for(let i=0;i<270;i++)world.step();
+ readStates();lastTop=top;hi=top;settleTime=0;
+ demolitionStart=readSnapshot();
+ demolitionRemoved=[];removals=0;demolitionMarks=0;demolitionPoints=0;
+ phaseTo('playing');renderPack();updateHUD();modeHUD();
+ showText('TOCÁ EL BLOQUE QUE QUERÉS EXTRAER',3000);
+}
+function removeDemolitionBlock(id){
+ if(modeId!=='demolition'||phase!=='playing'||removals>=3)return;
+ const ix=states.findIndex(s=>s.id===id);
+ if(ix<0)return;
+ const piece=states[ix];world.removeRigidBody(piece.body);
+ art.removeBlock(id);states.splice(ix,1);
+ demolitionRemoved.push(id);removals++;
+ settleTime=0;stillTime=0;collapseSeconds=0;
+ phaseTo('settling');renderPack();modeHUD();
+ soundFX(135,.19,.12,'sawtooth');vibe(25);
+ showText('¡SE SOLTÓ EL BLOQUE!',1000);
+}
+function scoreDemolition(){
+ const score=M.demolitionScore(demolitionStart,readSnapshot(),demolitionRemoved);
+ demolitionMarks=Math.max(demolitionMarks,score.fallen);
+ demolitionPoints=Math.max(demolitionPoints,score.points);
+ modeHUD();
+}
+function drop(){
+ if(phase!=='playing'||!active||!world||modeId==='demolition')return;
+ let {shape,x,y,angle}=active;
+ const item=spawnBlock(shape,x,y,angle);
+ if(!item){showText('No se pudo cargar esa figura');return}
+ if(stock[selectedIndex])stock[selectedIndex].used=true;
+ art.releaseActive();renderPack();
+ active=null;lastTop=top;settleTime=0;stillTime=0;collapseSeconds=0;collapseReason=null;frames=[];
+ phaseTo('settling');showText('EQUILIBRANDO...',700);
  soundFX(370,.04,.11,'triangle');vibe(9);
 }
 function soundFX(freq,duration,amp=.11,type='sine'){
