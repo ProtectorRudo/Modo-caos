@@ -82,7 +82,8 @@ export class TorreArt{
   const camera=xrCamera.isArrayCamera?(xrCamera.cameras[0]||this.camera):xrCamera;
   this.pointer.set(x/innerWidth*2-1,1-y/innerHeight*2);
   this.raycaster.setFromCamera(this.pointer,camera);
-  for(const hit of this.raycaster.intersectObjects([...this.objects.values()],true)){
+  const pickMeshes=[...this.objects.values()].flatMap(group=>group.children.filter(child=>child.isMesh));
+  for(const hit of this.raycaster.intersectObjects(pickMeshes,false)){
    let obj=hit.object;
    while(obj&&!obj.userData.blockId)obj=obj.parent;
    if(obj?.userData.blockId&&this.objects.has(obj.userData.blockId))return obj.userData.blockId;
