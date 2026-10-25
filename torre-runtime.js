@@ -2,12 +2,12 @@ import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.
 import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
-const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
+const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
 let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing';
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
-function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=p!=='placing';ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
+function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=p!=='placing';ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
 function updateHUD(){ui.hudHeight.textContent=G.score(phase==='settling'?lastTop:top).toString();ui.hudPieces.textContent=states.length.toString();ui.hudRecord.textContent=Math.max(record,G.score(top)).toString()}
 function startPhysics(){
  if(world){world.free();world=null}if(queue){queue.free();queue=null}
@@ -169,7 +169,7 @@ function gestureUp(e){
 }
 ui.gesture.addEventListener('pointerdown',gestureDown);ui.gesture.addEventListener('pointermove',gestureMove);ui.gesture.addEventListener('pointerup',gestureUp);ui.gesture.addEventListener('pointercancel',e=>{if(phase==='placing'){pointers.delete(e.pointerId);pinch=null}else drag=null});
 function updateScale(){$('sizeText').textContent=Math.round(scale*100)+'%'}
-function setARMode(ar){mode=ar?'ar':'demo';art.setAR(ar);ui.home.hidden=true;ui.overlay.hidden=false;if(!ar){session=null;projectedFloor=false;ui.xrScene.replaceChildren();scale=1;art.setScale(1);art.group.visible=true;$('recenter').hidden=true;newGame();return}$('recenter').hidden=false;scale=.48;art.setScale(scale);updateScale();projectedFloor=false;phaseTo('placing');art.group.visible=false;ui.xrScene.replaceChildren();showText('APUNTÁ AL PISO Y AJUSTÁ TU PLATAFORMA',3600)}
+function setARMode(ar){mode=ar?'ar':'demo';art.setAR(ar);ui.home.hidden=true;ui.overlay.hidden=false;if(!ar){session=null;clearARProjection();scale=1;art.setScale(1);art.group.visible=true;$('recenter').hidden=true;newGame();return}$('recenter').hidden=false;scale=.48;art.setScale(scale);updateScale();projectedFloor=false;phaseTo('placing');art.group.visible=false;ui.xrScene.replaceChildren();showText('APUNTÁ AL PISO Y AJUSTÁ TU PLATAFORMA',3600)}
 function arReady(){return !!navigator.xr&&window.isSecureContext}
 async function startAR(){
  if(!art){showText('Motor todavía cargando');return}
@@ -197,83 +197,166 @@ async function startAR(){
  */
 const XR_COLORS=['#37d9c5','#ffc15b','#6b98ff','#fc6a8b','#af82ff','#ff8656','#a6e66b'];
 let lastARPaint=0, projectedFloor=false, xrRenderFailures=0;
+
+function clearARProjection(){
+ ui.xrScene.replaceChildren();
+ ui.xrPaint.replaceChildren();
+ const canvas=ui.xrDraw,ctx=canvas.getContext('2d');
+ if(ctx)ctx.clearRect(0,0,canvas.width,canvas.height);
+ projectedFloor=false;
+}
 function renderARSpatial(frame,time){
  if(mode!=='ar'||!art||!ref||phase==='home')return;
- if(time-lastARPaint<31)return;
+ if(time-lastARPaint<32)return;
  lastARPaint=time;
- let pose=null;
- try{pose=frame.getViewerPose(ref)}catch(_){}
- const view=pose?.views?.[0];
- if(!view||!art.group.visible){ui.xrScene.replaceChildren();projectedFloor=false;if(phase==='placing')ui.xrState.textContent='APUNTÁ DESPACIO AL PISO';return}
+ const pose=frame.getViewerPose(ref),view=pose?.views?.[0];
+ if(!view||!art.group.visible){clearARProjection();if(phase==='placing')ui.xrState.textContent='BUSCANDO EL PISO…';return}
  const width=Math.max(1,innerWidth),height=Math.max(1,innerHeight);
- ui.xrScene.setAttribute('viewBox','0 0 '+width+' '+height);
  const vp=new THREE.Matrix4().fromArray(view.projectionMatrix).multiply(new THREE.Matrix4().fromArray(view.transform.inverse.matrix));
  art.group.updateWorldMatrix(true,false);
- const wm=art.group.matrixWorld;
- const vv=new THREE.Vector4();
+ const world=art.group.matrixWorld,vv=new THREE.Vector4();
  function project(x,y,z){
-  vv.set(x,y,z,1).applyMatrix4(wm).applyMatrix4(vp);
+  vv.set(x,y,z,1).applyMatrix4(world).applyMatrix4(vp);
   if(!Number.isFinite(vv.w)||vv.w<=.035)return null;
   const nx=vv.x/vv.w,ny=vv.y/vv.w;
-  if(!Number.isFinite(nx)||!Number.isFinite(ny))return null;
-  return {x:(nx+1)*width*.5,y:(1-ny)*height*.5,depth:vv.z/vv.w};
+  return Number.isFinite(nx)&&Number.isFinite(ny)?{x:(nx+1)*width*.5,y:(1-ny)*height*.5}:null;
  }
- function corners(coords){return coords.map(p=>project(...p))}
+ const map=coords=>coords.map(p=>project(...p));
  const fmt=p=>p.x.toFixed(1)+','+p.y.toFixed(1);
- function poly(ps,fill,stroke='#94fff0',sw=1,alpha=1){
-  if(ps.some(p=>!p))return '';
-  return '<polygon points="'+ps.map(fmt).join(' ')+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'" opacity="'+alpha+'" stroke-linejoin="round"/>';
+ const topPlane=map([[-1.25,.145,-.36],[1.25,.145,-.36],[1.25,.145,.36],[-1.25,.145,.36]]);
+ const center=project(0,.16,0);
+ const controlsTop=phase==='placing'?ui.arControls.getBoundingClientRect().top:height;
+ const safeBottom=Math.max(175,Math.min(height-20,controlsTop-16));
+ // Only count the unobstructed viewport above the control panel.
+ function clippedArea(input){
+  let polygon=input.slice();
+  for(const [axis,limit,gt] of [['x',8,true],['x',width-8,false],['y',100,true],['y',safeBottom,false]]){
+   if(!polygon.length)return 0;
+   const old=polygon;polygon=[];
+   const inside=p=>gt?p[axis]>=limit:p[axis]<=limit;
+   for(let i=0;i<old.length;i++){
+    const a=old[i],b=old[(i+1)%old.length],ai=inside(a),bi=inside(b);
+    if(ai)polygon.push(a);
+    if(ai!==bi){
+     const denominator=b[axis]-a[axis],t=Math.abs(denominator)<1e-8?0:(limit-a[axis])/denominator;
+     polygon.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
+    }
+   }
+  }
+  let area=0;
+  for(let i=0;i<polygon.length;i++){
+   const a=polygon[i],b=polygon[(i+1)%polygon.length];
+   area+=a.x*b.y-b.x*a.y;
+  }
+  return Math.abs(area)*.5;
  }
- const topPlane=corners([[-1.25,.14,-.36],[1.25,.14,-.36],[1.25,.14,.36],[-1.25,.14,.36]]);
- const inView=topPlane.every(Boolean)&&topPlane.some(p=>p.x>-60&&p.x<width+60&&p.y>-60&&p.y<height+60);
- projectedFloor=inView;
+ const inView=topPlane.every(Boolean)&&center&&center.x>12&&center.x<width-12&&
+  center.y>105&&center.y<safeBottom-12&&clippedArea(topPlane)>Math.max(650,width*1.5);
  if(!inView){
-  ui.xrScene.replaceChildren();
-  if(phase==='placing')ui.xrState.textContent='SUPERFICIE DETECTADA · ENCUADRÁ EL PISO';
+  clearARProjection();
+  if(phase==='placing')ui.xrState.textContent=topPlane.every(Boolean)?
+   'PISO DETECTADO · ALEJÁ LA PISTA DEL PANEL INFERIOR':'BUSCANDO UN ESPACIO LIBRE…';
   return;
  }
- const shapes=[];
- shapes.push(poly(corners([[-1.25,-.01,.36],[1.25,-.01,.36],[1.25,.14,.36],[-1.25,.14,.36]]),'#13435b','#55fee3',2,.65));
- shapes.push(poly(topPlane,'#0b637c','#71ffe3',3.7,.42));
- // Perimetral 3D highlight + surface ticks that follow the physical floor.
- for(const x of [-1,-.5,0,.5,1]){
-  const line=corners([[x,.145,-.35],[x,.145,.35]]);
-  if(line.every(Boolean))shapes.push('<polyline points="'+line.map(fmt).join(' ')+'" fill="none" stroke="#94fff0" stroke-width="1.25" opacity=".57"/>');
+ const shapes=[],draw=[];
+ function poly(points,fill,stroke='#a0ffec',sw=2,alpha=1,closed=true){
+  if(points.some(p=>!p))return '';
+  draw.push({points,fill,stroke,sw,alpha,closed});
+  const tag=closed?'polygon':'polyline';
+  return '<'+tag+' points="'+points.map(fmt).join(' ')+'" fill="'+(fill||'none')+
+   '" stroke="'+stroke+'" stroke-width="'+sw+'" opacity="'+alpha+'" stroke-linejoin="round"/>';
  }
- for(const z of [-.24,0,.24]){
-  const line=corners([[-1.24,.147,z],[1.24,.147,z]]);
-  if(line.every(Boolean))shapes.push('<polyline points="'+line.map(fmt).join(' ')+'" fill="none" stroke="#89eafa" stroke-width="1" opacity=".5"/>');
- }
- const center=project(0,.16,0), cx=center?.x,cy=center?.y;
- if(center){
-  shapes.push('<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="6" fill="#cffff9" stroke="#07556a" stroke-width="3"/>');
- }
- function piece(shape,x,y,angle,opacity=1){
-  const front=DEPTH*.5, back=-front;
-  const color=XR_COLORS[shape.tone%XR_COLORS.length];
+ shapes.push(poly(map([[-1.25,-.01,.36],[1.25,-.01,.36],[1.25,.145,.36],[-1.25,.145,.36]]),'#07546c','#74fff1',4,.75));
+ shapes.push(poly(topPlane,'#00d8ca','#aafff6',5,.75));
+ for(const x of [-1,-.5,0,.5,1])
+  shapes.push(poly(map([[x,.149,-.35],[x,.149,.35]]),null,'#b8fff5',1.6,.92,false));
+ for(const z of [-.24,0,.24])
+  shapes.push(poly(map([[-1.24,.149,z],[1.24,.149,z]]),null,'#b8fff5',1.6,.92,false));
+ function piece(shape,x,y,angle,alpha=1){
+  const front=DEPTH*.5,back=-front,color=XR_COLORS[shape.tone%XR_COLORS.length];
   for(const polygon of shape.parts){
-   const vertices=G.rotated(polygon,angle).map(([xx,yy])=>[x+xx*BLOCK,y+yy*BLOCK]);
-   const rear=corners(vertices.map(([xx,yy])=>[xx,yy,back]));
-   const face=corners(vertices.map(([xx,yy])=>[xx,yy,front]));
-   shapes.push(poly(rear,'#193d58',color,.9,opacity*.6));
-   for(let i=0;i<vertices.length;i++){
-    const k=(i+1)%vertices.length;
-    shapes.push(poly(corners([[vertices[i][0],vertices[i][1],back],[vertices[k][0],vertices[k][1],back],[vertices[k][0],vertices[k][1],front],[vertices[i][0],vertices[i][1],front]]),color,'#091e39',1.25,opacity*.55));
+   const v=G.rotated(polygon,angle).map(([u,v])=>[x+u*BLOCK,y+v*BLOCK]);
+   shapes.push(poly(map(v.map(([u,v])=>[u,v,back])),'#153456',color,1,alpha*.7));
+   for(let i=0;i<v.length;i++){
+    const k=(i+1)%v.length;
+    shapes.push(poly(map([[v[i][0],v[i][1],back],[v[k][0],v[k][1],back],
+      [v[k][0],v[k][1],front],[v[i][0],v[i][1],front]]),color,'#04192a',1,alpha*.72));
    }
-   shapes.push(poly(face,color,'#f2fff9',1.45,opacity*.82));
+   shapes.push(poly(map(v.map(([u,v])=>[u,v,front])),color,'#ffffff',2.4,alpha));
   }
  }
- if(phase==='placing'&&!editing){piece(G.SHAPES[0],0,.14+BLOCK*.5,0,.52)}
+ if(phase==='placing'&&!editing)piece(G.SHAPES[0],0,.145+BLOCK*.5,0,.95);
  else{
-  const sorted=states.map(s=>{
-   const p=s.body.translation(),q=s.body.rotation();
-   return {shape:s.shape,x:p.x,y:p.y,a:2*Math.atan2(q.z,q.w)};
-  }).sort((a,b)=>b.y-a.y);
-  for(const item of sorted)piece(item.shape,item.x,item.y,item.a,.78);
-  if(active)piece(active.shape,active.x,active.y,active.angle,.8);
+  const all=states.map(item=>{const p=item.body.translation(),q=item.body.rotation();return {shape:item.shape,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}}).sort((a,b)=>b.y-a.y);
+  for(const it of all)piece(it.shape,it.x,it.y,it.angle,.93);
+  if(active)piece(active.shape,active.x,active.y,active.angle,.92);
  }
+ // WebXR camera compositor fallback #1: canvas2d DOM-overlay
+ const canvas=ui.xrDraw,r=Math.min(devicePixelRatio||1,1.5);
+ const cw=Math.round(width*r),ch=Math.round(height*r);
+ if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch}
+ const ctx=canvas.getContext('2d',{alpha:true});
+ if(ctx){
+  ctx.setTransform(r,0,0,r,0,0);ctx.clearRect(0,0,width,height);
+  for(const sh of draw){
+   const v=sh.points;
+   ctx.beginPath();ctx.moveTo(v[0].x,v[0].y);
+   for(let i=1;i<v.length;i++)ctx.lineTo(v[i].x,v[i].y);
+   if(sh.closed)ctx.closePath();
+   ctx.globalAlpha=sh.alpha;
+   if(sh.fill){ctx.fillStyle=sh.fill;ctx.fill()}
+   ctx.lineWidth=sh.sw;ctx.strokeStyle=sh.stroke;ctx.lineJoin='round';ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+ }
+ // Fallback #2: SVG, always in world coordinates
+ ui.xrScene.setAttribute('viewBox','0 0 '+width+' '+height);
  ui.xrScene.innerHTML=shapes.join('');
- if(phase==='placing')ui.xrState.textContent='✓ PLATAFORMA VISIBLE · PODÉS FIJARLA';
+ // Fallback #3: native HTML divs, same compositor as already-visible interface text.
+ function tile(points,color,opacity){
+  if(points.some(p=>!p))return '';
+  const lx=Math.min(...points.map(p=>p.x)),ty=Math.min(...points.map(p=>p.y));
+  const rx=Math.max(...points.map(p=>p.x)),by=Math.max(...points.map(p=>p.y));
+  if(rx-lx<1||by-ty<1)return '';
+  const clip=points.map(p=>(p.x-lx).toFixed(1)+'px '+(p.y-ty).toFixed(1)+'px').join(',');
+  return '<div class="tile" style="left:'+lx.toFixed(1)+'px;top:'+ty.toFixed(1)+'px;width:'+(rx-lx).toFixed(1)+
+   'px;height:'+(by-ty).toFixed(1)+'px;background:'+color+';opacity:'+opacity+
+   ';clip-path:polygon('+clip+')"></div>';
+ }
+ function edge(a,b,color='#73ffe5',thickness=4){
+  if(!a||!b)return '';
+  const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+  return '<div class="edge" style="left:'+a.x.toFixed(1)+'px;top:'+a.y.toFixed(1)+
+    'px;width:'+len.toFixed(1)+'px;height:'+thickness+'px;transform:rotate('+Math.atan2(dy,dx).toFixed(5)+
+    'rad);background:'+color+'"></div>';
+ }
+ const html=[tile(topPlane,'#00ffe2',.6)];
+ for(let i=0;i<4;i++)html.push(edge(topPlane[i],topPlane[(i+1)%4]));
+ for(const x of [-.5,0,.5]){
+  const v=map([[x,.153,-.36],[x,.153,.36]]);
+  html.push(edge(v[0],v[1],'#c0fff7',2));
+ }
+ if(phase==='placing'){
+  const face=map(G.SHAPES[0].parts[0].map(([u,v])=>[u*BLOCK,.145+BLOCK*.5+v*BLOCK,DEPTH*.5]));
+  html.push(tile(face,'#ffae3e',.91));
+  if(face.every(Boolean))for(let i=0;i<face.length;i++)html.push(edge(face[i],face[(i+1)%face.length],'#ffffff',3));
+  html.push('<div class="marker" style="left:'+center.x.toFixed(1)+'px;top:'+(center.y-18).toFixed(1)+'px">🏗️ TORRE CAOS</div>');
+ }else{
+  for(const it of states.slice(-12)){
+   const p=it.body.translation(),q=it.body.rotation(),angle=2*Math.atan2(q.z,q.w);
+   for(const polygon of it.shape.parts){
+    const points=map(G.rotated(polygon,angle).map(([u,v])=>[p.x+u*BLOCK,p.y+v*BLOCK,DEPTH*.5]));
+    html.push(tile(points,XR_COLORS[it.shape.tone%XR_COLORS.length],.86));
+   }
+  }
+  if(active)for(const polygon of active.shape.parts){
+   const points=map(G.rotated(polygon,active.angle).map(([u,v])=>[active.x+u*BLOCK,active.y+v*BLOCK,DEPTH*.5]));
+   html.push(tile(points,'#d4fff7',.9));
+  }
+ }
+ ui.xrPaint.innerHTML=html.join('');
+ projectedFloor=true;
+ if(phase==='placing')ui.xrState.textContent='PISTA DETECTADA · FIJALA CUANDO LA VEAS';
 }
 
 function xrFrame(time,frame){
@@ -292,7 +375,7 @@ function xrFrame(time,frame){
  }else art.aim.visible=false;
  try{renderARSpatial(frame,time)}catch(e){
   if(++xrRenderFailures<4)console.warn('Torre Caos XR projection:',e);
-  projectedFloor=false;ui.xrState.textContent='REAJUSTÁ LA CÁMARA PARA VER LA PLATAFORMA';
+  projectedFloor=false;clearARProjection();ui.xrState.textContent='NO SE PUDO DIBUJAR · REENCUADRÁ';
  }
  if(phase==='placing')$('fix').disabled=!projectedFloor||time-hitSeen>950;
 }
@@ -308,7 +391,7 @@ async function fix(){
 function pause(){if(phase!=='playing'&&phase!=='settling')return;paused=true;$('pauseMenu').hidden=false;showText('PAUSA')}
 function resume(){paused=false;$('pauseMenu').hidden=true}
 function retry(){resume();replaying=false;newGame()}
-function edit(){if(!session)return;resumePhase=phase;editing=true;paused=true;drag=null;$('pauseMenu').hidden=true;phaseTo('placing');shift={x:0,z:0};latestHit=null;hitSeen=0;projectedFloor=false;ui.xrScene.replaceChildren();rawPose=null;fixedPose=null;anchor?.delete?.();anchor=null;showText('REUBICÁ LA TORRE SIN PERDER TU CONSTRUCCIÓN');}
+function edit(){if(!session)return;resumePhase=phase;editing=true;paused=true;drag=null;$('pauseMenu').hidden=true;phaseTo('placing');shift={x:0,z:0};latestHit=null;hitSeen=0;clearARProjection();rawPose=null;fixedPose=null;anchor?.delete?.();anchor=null;showText('REUBICÁ LA TORRE SIN PERDER TU CONSTRUCCIÓN');}
 function miniToggle(){ui.mini.classList.toggle('expanded')}
 $('demoBtn').addEventListener('click',()=>{if(!art)return;setARMode(false)});
 $('arBtn').addEventListener('click',startAR);
