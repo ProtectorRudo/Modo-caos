@@ -406,6 +406,8 @@ async function startXR(){
  }
  const ticket=++xrStartVersion;
  let requested,created=null;
+ // The XR DOM overlay must be mounted and visible when the session is requested.
+ $('arena').style.display='block';
  // Request the session synchronously inside the click; awaiting first loses user activation.
  try{
   requested=navigator.xr.requestSession('immersive-ar',{
@@ -413,8 +415,7 @@ async function startXR(){
    optionalFeatures:['anchors','local-floor'],
    domOverlay:{root:$('overlay')}
   });
- }catch(err){arStartError(err);return}
- $('arena').style.display='block';
+ }catch(err){$('arena').style.display='none';arStartError(err);return}
  setStage('connecting');$('startAR').disabled=true;
  $('arConnectingTitle').textContent='ABRIENDO CÁMARA AR';
  $('arConnectingHelp').textContent='Si Chrome solicita permiso de cámara o seguimiento, tocá Permitir.';
