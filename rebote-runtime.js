@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createReboteArt} from './rebote-art.js?v=10';
-import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=10';
+import {createReboteArt} from './rebote-art.js?v=11';
+import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=11';
 /* REBOTE MORTAL · WebXR immersive-ar con Hit Test y anclaje opcional.
    La matriz AR no depende del HUD. El "jugador" es la posición del TELÉFONO, nunca pies/cuerpo. */
 const $=id=>document.getElementById(id),G=globalThis.ReboteCore;
@@ -50,6 +50,7 @@ function ui(){
  $('editbar').style.display=stage==='search'||stage==='edit'?'flex':'none';
  $('readybar').style.display=stage==='ready'||stage==='paused'?'flex':'none';
  $('controls').style.display=stage==='playing'?'flex':'none';
+ $('tapZone').style.display=stage==='playing'?'block':'none';
  $('reticle').style.display=stage==='playing'?'block':'none';
  $('direction').style.display=stage==='playing'?'flex':'none';
  $('radar').style.display=stage==='playing'?'block':'none';
@@ -366,7 +367,7 @@ function aimFeedback(t){
  const ret=$('reticle'),cue=$('cue'),button=$('returnBtn'),gauge=$('strikeGauge');
  ret.className='';button.classList.remove('hot');
  for(const id of ['leftArrow','rightArrow','upArrow','downArrow'])$(id).style.opacity='0';
- if(!p){gauge.style.display='none';cue.textContent=game.mode==='duelo'&&game.nextDuelAt!==null?'¡KO! · ENTRA EL SIGUIENTE RIVAL':'PREPARATE · EL ROBOT ESTÁ CARGANDO';return}
+ if(!p){gauge.style.display='none';cue.textContent=game.mode==='duelo'&&game.nextDuelAt!==null?'¡KO! · ENTRA EL SIGUIENTE RIVAL':'PREPARATE · TOCÁ ABAJO PARA DEVOLVER';return}
  const diff=G.sub(p.pos,game.eye),dist=G.len(diff),q=G.quality(game,p);
  const unit=G.norm(diff);
  const forward=unit.x*game.aim.x+unit.y*game.aim.y+unit.z*game.aim.z;
@@ -382,6 +383,8 @@ function aimFeedback(t){
   }
   if(Math.abs(vertical)>.16)$(vertical>0?'upArrow':'downArrow').style.opacity='1';
  }
+ if(game.bufferedShot){cue.textContent='↯ REBOTE CARGADO · ¡MANTENÉ LA MIRA!';ret.classList.add('aim');
+  button.classList.add('hot');gauge.style.display='block';return}
  gauge.style.display='block';
  const fill=Math.round(clamp((1.72-dist)/(1.72-.58),0,1)*100);
  gauge.style.setProperty('--charge',fill+'%');
@@ -399,9 +402,20 @@ function aimFeedback(t){
 }
 function onReturn(){
  if(stage!=='playing'||game.paused)return;
- if(!demo&&(!lastAim||performance.now()-lastAimAt>550)){toast('SIN SEGUIMIENTO · ORIENTÁ LA CÁMARA',1);return}
- const res=G.returnShot(game);if(res.ok)status(res.grade+' · +'+res.points);
- else{status(res.reason);if(res.reason!=='ESPERÁ')sound(150,.1,'sine',.029)}
+ if(!demo&&(!lastAim||performance.now()-lastAimAt>850)){
+  toast('SIN SEGUIMIENTO · ORIENTÁ LA CÁMARA',1);return;
+ }
+ const res=G.returnShot(game);
+ if(res.ok){
+  status(res.grade+' · +'+res.points);
+ }else if(res.queued){
+  status('↯ ¡TOQUE REGISTRADO!');
+  $('cue').textContent='↯ REBOTE CARGADO · ¡MANTENÉ LA MIRA!';
+  vibration(12);
+ }else{
+  status(res.reason);
+  if(res.reason!=='ESPERÁ')sound(150,.08,'sine',.022);
+ }
 }
 function pause(){if(stage==='playing'){game.paused=true;setStage('paused');$('message').textContent='PAUSA · RESPIRÁ';status('PARTIDA PAUSADA')}}
 function updateAnchor(frame){
@@ -512,17 +526,24 @@ $('share').onclick=async()=>{
  else if(navigator.clipboard){try{await navigator.clipboard.writeText(txt);toast('RESULTADO COPIADO',2)}catch(_){}}
 };
 let pointerReturnClickUntil=0;
-$('returnBtn').addEventListener('pointerdown',e=>{
+function handleParryPointer(e){
  if(!e.isPrimary)return;
  e.preventDefault();e.stopPropagation();
- // Android dispatches click AFTER pointerdown. Handle the touch immediately, once.
+ // pointerdown is the earliest dependable Android input; no click delay.
  pointerReturnClickUntil=performance.now()+650;
  onReturn();
-});
-$('returnBtn').addEventListener('click',e=>{
+}
+function handleParryClick(e){
  e.preventDefault();
- // Keep keyboard/assistive-tech click usable; suppress only the pointer-generated click.
+ // Pointer-generated click must never fire a second (invalid) shot.
  if(performance.now()>=pointerReturnClickUntil)onReturn();
+}
+for(const name of ['returnBtn','tapZone']){
+ $(name).addEventListener('pointerdown',handleParryPointer);
+ $(name).addEventListener('click',handleParryClick);
+}
+$('tapZone').addEventListener('keydown',e=>{
+ if(e.code==='Enter'||e.code==='Space'){e.preventDefault();onReturn()}
 });
 $('overlay').addEventListener('beforexrselect',e=>e.preventDefault());
 $('touch').addEventListener('pointerdown',e=>{
@@ -693,4 +714,4 @@ window.addEventListener('resize',()=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
 if(window.__reboteEarlyTap)window.ReboteBoot?.show('MOTOR LISTO','Ahora tocá otra vez JUGAR EN REALIDAD AUMENTADA para abrir la cámara.');
 else window.ReboteBoot?.clear();
-globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError},get radarVisible(){return $('radar').style.display==='block'},get robotFacingDot(){return art.getRobotFacingDot(game.eye)},get selectedMode(){return selectedMode},get duelEnemies(){return game.enemies.filter(e=>e.alive&&e.duel).length},get texturedBalls(){return art.getTexturedBalls()},get ricochetRipples(){return art.getRicochetRipples()},get floorStable(){return floorStable},get floorSamples(){return floorSamples.length},get calibrationRms(){return calibrationRms},get previewYaw(){return previewYaw}};
+globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError},get radarVisible(){return $('radar').style.display==='block'},get robotFacingDot(){return art.getRobotFacingDot(game.eye)},get selectedMode(){return selectedMode},get duelEnemies(){return game.enemies.filter(e=>e.alive&&e.duel).length},get texturedBalls(){return art.getTexturedBalls()},get ricochetRipples(){return art.getRicochetRipples()},get tapZoneVisible(){return $('tapZone').style.display==='block'},get bufferedReturn(){return !!game.bufferedShot},get floorStable(){return floorStable},get floorSamples(){return floorSamples.length},get calibrationRms(){return calibrationRms},get previewYaw(){return previewYaw}};
