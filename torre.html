@@ -34,7 +34,7 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 #hud button{pointer-events:auto;width:43px;height:43px;min-height:43px;align-self:center;border-radius:13px;background:#122b41d9;border:1px solid #5a8b9f;color:#f5fffc;padding:5px;font-size:18px}
 #blockName{position:absolute;left:50%;transform:translateX(-50%);top:calc(max(15px,env(safe-area-inset-top)) + 73px);z-index:6;color:#d2fff5;font-weight:950;text-shadow:0 2px 10px #000;letter-spacing:1.6px;font-size:10px;background:#0923389e;border-radius:30px;padding:8px 13px;pointer-events:none;white-space:nowrap}
 #notice{position:absolute;top:27%;left:7%;right:7%;text-align:center;font-weight:950;font-size:14px;letter-spacing:.8px;text-shadow:0 3px 9px #000;pointer-events:none;opacity:0;transition:opacity .2s;z-index:15}
-#tip{position:absolute;bottom:max(28px,env(safe-area-inset-bottom));left:9%;right:9%;text-align:center;color:#bde7ec;font-weight:850;font-size:11px;text-shadow:0 2px 7px #001}
+#tip{position:absolute;bottom:137px;left:9%;right:9%;text-align:center;color:#bde7ec;font-weight:850;font-size:11px;text-shadow:0 2px 7px #001}
 #xrScene{position:absolute;inset:0;z-index:3;width:100%;height:100%;pointer-events:none;overflow:hidden}
 #xrDraw{position:absolute;inset:0;z-index:5;width:100%;height:100%;pointer-events:none}
 #xrPaint{position:absolute;inset:0;z-index:6;pointer-events:none;overflow:hidden;contain:layout paint}
@@ -42,9 +42,20 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 #xrPaint .tile{position:absolute;inset:0;opacity:.44;background:#04dacf;will-change:clip-path}
 #xrPaint .marker{position:absolute;transform:translate(-50%,-100%);padding:5px 10px;border:2px solid #c6fff3;border-radius:10px;background:#006b68e6;color:white;font-size:13px;font-weight:1000;letter-spacing:1px;text-shadow:0 2px 5px #002;box-shadow:0 0 20px #31ffe3;white-space:nowrap}
 #xrState{position:absolute;top:calc(max(15px,env(safe-area-inset-top)) + 30px);left:14px;right:14px;z-index:9;text-align:center;font-size:11px;font-weight:900;letter-spacing:.5px;color:#b9fff2;text-shadow:0 2px 9px #001827;pointer-events:none}
-#mini{position:absolute;right:12px;bottom:81px;z-index:6;width:94px;height:151px;border:1px solid #6cb4bd;background:#10263bb8;border-radius:12px;backdrop-filter:blur(7px);object-fit:fill;pointer-events:auto;transition:width .2s,height .2s}
+#pieceDock{position:absolute;bottom:max(12px,env(safe-area-inset-bottom));left:10px;right:10px;z-index:12;pointer-events:auto;border:1px solid #67afa8a8;background:linear-gradient(130deg,#061d30ed,#112a3bea);backdrop-filter:blur(12px);border-radius:18px;padding:9px 11px 10px;box-shadow:0 -8px 29px #0008}
+#pieceDock .dockHead{display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:10px;font-weight:900;letter-spacing:.6px;color:#d1fff5;margin-bottom:6px}
+#pieceDock #packCounter{font-variant-numeric:tabular-nums;color:#91ddff}
+#pieceSlots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+#pieceSlots .piecePick{min-height:76px;height:78px;padding:3px 3px 4px;border:1px solid #528b9c;border-radius:11px;background:#153347bb;color:#d9f9fa;display:flex;flex-direction:column;align-items:center;justify-content:space-between;touch-action:none;user-select:none;min-width:0;transition:border-color .14s,background .14s,opacity .14s}
+#pieceSlots .piecePick svg{width:100%;height:49px;max-width:73px;pointer-events:none}
+#pieceSlots .piecePick span{font-size:9px;line-height:1.2;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;pointer-events:none}
+#pieceSlots .piecePick.selected{border:2px solid #73ffdb;background:#215760;box-shadow:0 0 16px #4dffdc66}
+#pieceSlots .piecePick.used{opacity:.30;pointer-events:none;background:#0a1928;border:1px dashed #44596b}
+#pieceSlots .piecePick:active{transform:scale(.96)}
+#pieceDock[hidden]{display:none!important}
+#mini{position:absolute;right:12px;bottom:190px;z-index:6;width:94px;height:151px;border:1px solid #6cb4bd;background:#10263bb8;border-radius:12px;backdrop-filter:blur(7px);object-fit:fill;pointer-events:auto;transition:width .2s,height .2s}
 #mini.expanded{width:155px;height:244px}
-#miniBtn{position:absolute;right:12px;bottom:55px;font-size:9px;min-height:22px;padding:4px 9px;background:#0b2a3d;color:#abf9ec;pointer-events:auto;border:1px solid #4b9a9d;border-radius:9px;z-index:6}
+#miniBtn{position:absolute;right:12px;bottom:164px;font-size:9px;min-height:22px;padding:4px 9px;background:#0b2a3d;color:#abf9ec;pointer-events:auto;border:1px solid #4b9a9d;border-radius:9px;z-index:6}
 #mini[hidden],#miniBtn[hidden]{display:none!important}
 #arControls{position:absolute;bottom:max(20px,env(safe-area-inset-bottom));left:13px;right:13px;pointer-events:auto;z-index:8;background:#071b2edb;backdrop-filter:blur(14px);border:1px solid #4b8391;border-radius:20px;padding:12px 13px;display:grid;gap:9px}
 #arControls h2{font-size:13px;margin:0;text-align:center;letter-spacing:1px}#arControls p{font-size:10px;color:#b6dbe6;margin:0;text-align:center}
@@ -68,11 +79,11 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 <div id="home"><a id="back" href="/">← VOLVER A MODO CAOS</a>
 <div class="eyebrow">MODO CAOS · FÍSICA REAL EN TU CASA</div>
 <h1>TORRE <em>CAOS</em></h1>
-<p>Una pieza más. Un poquito más alto. Y… ¡que no se caiga!</p>
+<p>Elegí entre cuatro piezas, giralas con los dedos y construí la torre más alta.</p>
 <div class="hero" aria-hidden="true"><div class="blocks"><i></i><i></i><i></i><i></i><i></i></div><strong>¿HASTA DÓNDE LLEGÁS?</strong></div>
-<div class="pills"><span>👆 TOCÁ Y GIRÁ</span><span>↔️ ARRASTRÁ</span><span>✋ SOLTÁ Y CAE</span></div>
+<div class="pills"><span>👆 TOCÁ Y GIRÁ</span><span>🤏 GIRÁ CON 2 DEDOS</span><span>📦 ELEGÍ LA PIEZA</span></div>
 <div class="cta"><button id="arBtn" disabled>📷 CONSTRUIR EN MI CASA · AR</button><button class="secondary" id="demoBtn" disabled>🎮 JUGAR EN 3D · SIN CÁMARA</button></div>
-<div id="introRecord">RÉCORD: 0 CM</div><p id="precheck">Cargando física 3D…</p><div class="micro">Tocá para girar 90°. Arrastrá y soltá para dejar caer. La gravedad decide. Para AR, usá un lugar despejado y no camines mirando la pantalla.</div>
+<div id="introRecord">RÉCORD: 0 CM</div><p id="precheck">Cargando física 3D…</p><div class="micro">Elegí una pieza de la bandeja. Girá con dos dedos, arrastrá y soltá para construir. La gravedad decide. Para AR, usá un lugar despejado y no camines mirando la pantalla.</div>
 </div>
 <div id="overlay" hidden><div id="stage" data-phase="home"></div>
 <svg id="xrScene" viewBox="0 0 400 800" aria-hidden="true" hidden></svg><canvas id="xrDraw" aria-hidden="true" hidden></canvas><div id="xrPaint" aria-hidden="true" hidden></div><div id="xrState" role="status" hidden>BUSCANDO UNA SUPERFICIE...</div><div id="gesture"></div>
@@ -80,7 +91,11 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 <div id="hud" hidden><div class="stat"><small>ALTURA</small><b id="height">0</b><small>CM</small></div><div class="stat"><small>RÉCORD</small><b id="recordHud">0</b><small>CM</small></div><div class="stat"><small>PIEZAS</small><b id="pieces">0</b></div><button id="recenter" aria-label="Reubicar plataforma" title="Reubicar plataforma">◎</button><button id="pause" aria-label="Pausa" title="Pausar">Ⅱ</button></div>
 <div id="blockName" hidden>CUBO</div><div id="notice" role="status" aria-live="polite"></div>
 <canvas id="mini" width="155" height="244" aria-label="Vista auxiliar de torre"></canvas><button id="miniBtn">AMPLIAR VISTA</button>
-<div id="tip" hidden>TOCÁ PARA GIRAR · ARRASTRÁ Y SOLTÁ PARA COLOCAR</div>
+<div id="tip" hidden>TOCÁ = 90° · DOS DEDOS = GIRAR LIBRE · ARRASTRÁ Y SOLTÁ</div>
+<div id="pieceDock" aria-label="Piezas disponibles" hidden>
+ <div class="dockHead"><span>PIEZAS PARA CONSTRUIR</span><span id="packCounter">4 DISPONIBLES</span></div>
+ <div id="pieceSlots"></div>
+</div>
 <div id="arControls" hidden><h2>📍 COLOCÁ TU TORRE</h2><p>Deslizá para mover · dos dedos para cambiar tamaño y girar</p>
 <div class="scale"><button id="minus" aria-label="Achicar">−</button><span id="sizeText">100%</span><button id="plus" aria-label="Agrandar">+</button><button id="turn" aria-label="Girar">↻ GIRAR</button></div>
 <button id="fix" disabled>✓ FIJAR PLATAFORMA Y JUGAR</button></div>
