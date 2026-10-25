@@ -19,15 +19,18 @@ function updateBest(){try{best=Number(localStorage.getItem(recordKey())||0)}catc
 // Sólo se agregan canciones comerciales cuando el operador cargó permiso de master,
 // sincronización de composición, grabación en nuestro servidor y mapa de notas exacto.
 const licensed=window.RitmoLicensed?.available?.()||[];
-if(licensed.length){
+const availableOptions=new Set(Array.from(E('song').querySelectorAll('option')).map(o=>o.value));
+const missingOptions=licensed.filter(item=>!availableOptions.has(item.id));
+if(missingOptions.length){
  const group=document.createElement('optgroup');group.label='ÉXITOS AUTORIZADOS · AUDIO INCLUIDO';
- for(const item of licensed){
+ for(const item of missingOptions){
   const option=document.createElement('option');option.value=item.id;option.textContent='🎧 '+item.title;group.appendChild(option);
  }
- // Licensed hit becomes the first selection as soon as its validated audio is integrated.
  E('song').insertBefore(group,E('song').firstChild);
- E('song').value=licensed[0].id;
 }
+// Despacito siempre arranca seleccionada, incluso si el navegador restaura el select.
+if(G.SONGS.despacito_remix_justin)E('song').value='despacito_remix_justin';
+else if(licensed.length)E('song').value=licensed[0].id;
 let audioStatusToken=0;
 async function checkMusic(){
  const token=++audioStatusToken,id=song(),status=E('audioStatus');
@@ -271,5 +274,7 @@ E('enter').addEventListener('click',()=>{
  demo=false;ending=false;locked=false;calibrated=false;
  try{audio.init()}catch(e){E('precheck').textContent='⚠️ El navegador no pudo inicializar audio: '+(e.message||e)+'. Probá Chrome Android.'}
 });
+window.modoCaosRuntimeReady=true;
+E('enter').dataset.gameReady='true';
 requestAnimationFrame(loop);
 })();
