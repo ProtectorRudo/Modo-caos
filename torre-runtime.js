@@ -323,7 +323,7 @@ function buildDemolitionRound(){
  settleTime=0;stillTime=0;collapseSeconds=0;top=0;lastTop=0;hi=0;clockRemaining=D.ROUND_SECONDS;
  art.clearBlockHighlight();
  for(const placement of figure.blocks){
-  const shape=G.SHAPES.find(s=>s.id===placement.shape);
+  const shape=G.SHAPES.find(s=>s.id===placement.shape)||D.DEMOLITION_SHAPES.find(s=>s.id===placement.shape);
   if(shape)spawnBlock(shape,placement.x,placement.y,placement.angle);
  }
  // Settle the exact rigid bodies BEFORE recording the scoring baseline.
