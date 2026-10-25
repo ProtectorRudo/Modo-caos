@@ -4,7 +4,7 @@ const MODES={
  infinite:{id:'infinite',name:'Torre Infinita',icon:'🏗️',short:'¡Una pieza más!',description:'Elegí bloques y levantá la torre más alta que puedas. Si se derrumba, perdés.',seconds:0,goal:0,limit:65},
  balance:{id:'balance',name:'Equilibrio Mortal',icon:'⚖️',short:'La base se achica',description:'En 60 segundos, construí sobre una plataforma que se estrecha cada dos bloques. Si cae, perdés.',seconds:60,goal:0,limit:35},
  heavy:{id:'heavy',name:'Peso Pesado',icon:'💪',short:'Distribuí el peso',description:'En 60 segundos, construí sobre una balanza física. Evitá una inclinación de más de 22°.',seconds:60,goal:0,limit:35},
- copy:{id:'copy',name:'Copiá la Figura',icon:'🧩',short:'Construí la silueta',description:'Recreá la silueta de una figura diferente en 75 segundos. El modelo está en la vista auxiliar.',seconds:75,goal:0,limit:3},
+ copy:{id:'copy',name:'Copiá la Figura',icon:'🧩',short:'Construí la silueta',description:'Mirá la imagen de referencia y armá esa figura en TU plataforma. Elegí las tres piezas en el orden que quieras. Tenés 75 segundos.',seconds:75,goal:0,limit:3},
  five:{id:'five',name:'Cinco Piezas',icon:'🎯',short:'Solo cinco intentos',description:'Con exactamente cinco bloques, conseguí una torre estable de 175 cm o más.',seconds:0,goal:1.75,limit:5},
  demolition:{id:'demolition',name:'Demolición Caótica',icon:'💥',short:'Sacá el bloque clave',description:'Tres extracciones. Elegí bloques de la estructura y derribá tantos como puedas en 60 segundos.',seconds:60,goal:4,limit:3}
 };
