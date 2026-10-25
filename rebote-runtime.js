@@ -9,6 +9,8 @@ const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreferenc
 renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;
+// AR camera passthrough must see through every pixel outside world geometry.
+renderer.setClearColor(0x000000,0);
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6));renderer.setSize(innerWidth,innerHeight);
 $('world').append(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xc4f8ff,0x123447,2.5));
@@ -35,6 +37,7 @@ function ui(){
  $('center').style.display=!demo&&['ready','playing','paused'].includes(stage)?'block':'none';
  $('result').style.display=stage==='finished'?'flex':'none';
  $('begin').textContent=stage==='paused'?'▶ CONTINUAR':'⚡ ¡EMPEZAR!';
+ $('begin').disabled=stage==='paused'&&pausedForTracking&&(!lastAim||performance.now()-lastAimAt>550);
  $('fix').disabled=!latestHit;
 }
 function setStage(next){stage=next;ui()}
@@ -83,7 +86,13 @@ function resetGame(reuse){
  if(reuse){G.setView(game,game.eye,game.aim)}
 }
 function startRound(){
- if(stage==='paused'){game.paused=false;pausedForTracking=false;setStage('playing');status('¡DEVOLVÉ LOS ATAQUES!');return}
+ if(stage==='paused'){
+  // A stale XR ray cannot resume combat: wait for a fresh tracked frame.
+  if(session&&pausedForTracking&&(!lastAim||performance.now()-lastAimAt>550)){
+   status('⚠ RECUPERÁ EL SEGUIMIENTO DE LA CÁMARA');return;
+  }
+  game.paused=false;pausedForTracking=false;setStage('playing');status('¡DEVOLVÉ LOS ATAQUES!');return
+ }
  if(stage!=='ready'||!calibrated)return;
  G.begin(game);setStage('playing');$('cue').textContent='APUNTÁ. ESPERÁ. ¡DEVOLVÉ!';
  status('⚡ ¡APUNTÁ A LA ESFERA!');sound(800,.23,'triangle',.08);
@@ -234,6 +243,10 @@ function animate(t,frame){
     if(!trackingAt)trackingAt=t;
     if(t-trackingAt>1400){game.paused=true;pausedForTracking=true;setStage('paused');status('⚠ TRACKING PERDIDO · VOLVÉ A ENFOCAR EL PISO');$('message').textContent='SEGUIMIENTO INTERRUMPIDO'}
   }else if(pose)trackingAt=0;
+  if(stage==='paused'&&pausedForTracking){
+   $('begin').disabled=!pose||!lastAim||performance.now()-lastAimAt>550;
+   if(pose)status('✅ SEGUIMIENTO RECUPERADO · CONTINUÁ');
+  }
  }else if(demo){
   camera.position.set(0,1.61,1.2);
   camera.rotation.order='YXZ';camera.rotation.set(demoPitch,demoYaw,0,'YXZ');
@@ -336,6 +349,9 @@ async function startXR(){
   space=renderer.xr.getReferenceSpace()||await s.requestReferenceSpace('local');
   const viewer=await s.requestReferenceSpace('viewer');
   hitSource=await s.requestHitTestSource({space:viewer});
+  s.addEventListener('visibilitychange',()=>{
+   if(s.visibilityState!=='visible'&&stage==='playing')pause();
+  });
   s.addEventListener('end',()=>{
    session=null;hitSource?.cancel?.();hitSource=null;anchor?.delete?.();anchor=null;anchorDelta=null;
    fixed=false;calibrated=false;lastAim=null;latestHit=null;resetGame();setStage('home');
@@ -354,4 +370,4 @@ if(window.isSecureContext&&navigator.xr)navigator.xr.isSessionSupported('immersi
 try{$('record').textContent='🏆 RÉCORD: '+(Number(localStorage.getItem('mc-rebote-record'))||0).toLocaleString('es-AR')}catch(_){}
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
-globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get returnAttempts(){return game.attempts},get scale(){return arenaScale}};
+globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale}};
