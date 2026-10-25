@@ -31,4 +31,12 @@ assert.equal(elements.play.style.display,'','El motor permite comenzar tras fija
 assert.match(runtime,/stage==='fixed'&&\!locked\)fixed\(\)/,'Runtime debe entrar en calibración al fijar');
 assert.match(runtime,/E\('rtStart'\)\.disabled=false/,'Debe habilitar EMPEZAR al calibrar');
 assert.match(runtime,/E\('rtStart'\)\.onclick/,'Debe haber acción real para empezar');
-console.log('OK: botón FIJAR visible/interactivo, transición PREVIEW → FIJADA → CALIBRAR → EMPEZAR');
+const laneTags=html.match(/data-lane="[0-9]"/g)||[];
+assert.equal(laneTags.length,4,'El HTML debe mostrar exactamente cuatro carriles calibrables');
+assert(!/data-lane="4"/.test(html),'No debe haber quinto carril');
+assert(/repeat\(4,1fr\)/.test(html),'La portada debe mostrar cuatro carriles');
+assert(!html.includes('id="localFile"'),'No se debe pedir cargar canciones al jugar');
+assert(engine.includes('modoCaosCustomArena'),'Motor debe ocultar la vieja cuadrícula de cinco celdas');
+assert(runtime.includes('window.modoCaosCustomArena=true'),'Ritmo activa la arena propia');
+assert(runtime.includes('function chooseLane()'),'Debe existir selección obligatoria de carril');
+console.log('OK: botón FIJAR, cuatro carriles calibrables, sin carga de archivos y arena personalizada AR');
