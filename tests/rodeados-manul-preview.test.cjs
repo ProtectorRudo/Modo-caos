@@ -17,7 +17,7 @@ function officialLikeZip(){
  "    z.writestr('gltf/scene.gltf',json.dumps(p['description']))",
  "    z.writestr('gltf/scene.bin',base64.b64decode(p['buffer']))",
  'sys.stdout.buffer.write(buff.getvalue())'
- ].join('\\n');
+ ].join('\n');
  const out=spawnSync('python3',['-c',python],{input:payload,maxBuffer:2e6});
  if(out.status!==0)throw Error('zip generation '+out.stderr?.toString());
  return out.stdout;
