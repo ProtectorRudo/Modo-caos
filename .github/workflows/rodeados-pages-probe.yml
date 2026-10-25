@@ -1,0 +1,179 @@
+name: RODEADOS — GitHub Pages public diagnosis
+on:
+  pull_request:
+    paths:
+      - .github/workflows/rodeados-pages-probe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pages: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check public Pages URL and GitHub Pages status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          echo "CHECK PAGES BASE"
+          for url in https://protectorrudo.github.io/ https://protectorrudo.github.io/Modo-caos/ https://protectorrudo.github.io/Modo-caos/rodeados.html; do
+            echo "$url"
+            curl -sSL -m 12 -o /tmp/body -w "HTTP=%{http_code} TYPE=%{content_type} BYTES=%{size_download}\n" "$url" || true
+            head -c 90 /tmp/body | tr '\n' ' '; echo
+          done
+          echo "VERIFY NOW-PUBLISHED MIRROR HTTP 200"
+          URL="https://protectorrudo.github.io/Modo-caos/rodeados.html"
+          HTTP=$(curl -sSL -m 15 -o /tmp/rodeados-mirror.html -w "%{http_code}" "$URL")
+          echo "MIRROR_HTTP=$HTTP"
+          test "$HTTP" = "200"
+          echo "CHECK M.A.N.U.L. ISOLATED LAB"
+          LAB_HTTP=$(curl -sSL -m 15 -o /tmp/manul-lab.html -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-manul.html?v=13")
+          echo "MANUL_LAB_HTTP=$LAB_HTTP"
+          test "$LAB_HTTP" = "200"
+          grep -q "location.replace('./rodeados.html?v=15')" /tmp/manul-lab.html
+          ! grep -q 'id="manulFile"' /tmp/rodeados-mirror.html
+          grep -q 'ANDROIDES TÁCTICOS 3D' /tmp/rodeados-mirror.html
+          grep -q 'BAMEN' /tmp/rodeados-mirror.html
+          grep -q 'type="importmap"' /tmp/rodeados-mirror.html
+          ASSET_HTTP=$(curl -fsSL -m 25 -o /tmp/rodeados-tactical.glb -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/assets/rodeados/tactical-android.glb")
+          echo "AUTO_ROBOT_GLB_HTTP=$ASSET_HTTP"
+          test "$ASSET_HTTP" = "200"
+          python3 - <<'PY'
+          import os,struct
+          f='/tmp/rodeados-tactical.glb'; data=open(f,'rb').read(12)
+          magic,version,length=struct.unpack('<III',data)
+          assert magic==0x46546c67 and version==2 and length==os.stat(f).st_size
+          assert 100000<length<8000000
+          print('AUTO_ROBOT_GLB_VALID_BYTES=',length)
+          PY
+          grep -q 'id="manulFile"' /tmp/manul-lab.html
+          grep -q 'Robot M.A.N.U.L.' /tmp/manul-lab.html
+          grep -q 'Andrei Milin' /tmp/manul-lab.html
+          grep -q 'rodeados-runtime.js?v=15' /tmp/manul-lab.html
+          grep -q 'id="manulRemember"' /tmp/manul-lab.html
+          grep -q 'id="manulFacing"' /tmp/manul-lab.html
+          MANUL_JS_HTTP=$(curl -sSL -m 15 -o /tmp/manul-lab.js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-manul.js")
+          echo "MANUL_MODULE_HTTP=$MANUL_JS_HTTP"
+          test "$MANUL_JS_HTTP" = "200"
+          grep -q 'installManulPreview' /tmp/manul-lab.js
+          grep -q 'loadZip(file,THREE)' /tmp/manul-lab.js
+          grep -q 'SkeletonUtils.js' /tmp/manul-lab.js
+          grep -q 'const UPRIGHT_CLIPS=' /tmp/manul-lab.js
+          grep -q "idle:\['idle','ready_idle','aim_idle'\]" /tmp/manul-lab.js
+          echo 'V15 PUBLICADO: androides de frente, caminar erguidos y acercarse hasta distancia justa'
+          grep -q 'modo-caos-manul-local' /tmp/manul-lab.js
+          grep -q "const MAX_ARCHIVE=55" /tmp/manul-lab.js
+          grep -q 'testVisualBudget' /tmp/manul-lab.js
+          grep -q 'IndexedDB' /tmp/manul-lab.js
+          curl -fsSL -m 15 "https://protectorrudo.github.io/Modo-caos/rodeados-art.js" -o /tmp/rodeados-live-art.js
+          grep -q 'const MAX_EXTERNAL_ROBOTS=4' /tmp/rodeados-live-art.js
+          echo 'LAB V13: MODELO LOCAL PERSISTENTE, GIRO Y LÍMITE MÓVIL VERIFICADOS'
+          echo "LAB M.A.N.U.L. PUBLICADO SIN ALTERAR VERSION ESTABLE"
+          echo "PUBLIC VERSION TOKENS:"
+          grep -oE 'rodeados-(core|runtime).js\\?v=[0-9]+' /tmp/rodeados-mirror.html || true
+          echo "INFINITE HUD PRESENT?"
+          grep -o '∞  BALAS' /tmp/rodeados-mirror.html || true
+          echo "RELOAD BUTTON PRESENT?"
+          grep -o 'id="reload"' /tmp/rodeados-mirror.html || true
+          grep -q 'RODEADOS 360' /tmp/rodeados-mirror.html
+          grep -q 'id="botGuide"' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-runtime.js?v=16' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-core.js?v=15' /tmp/rodeados-mirror.html
+          grep -q '∞  BALAS' /tmp/rodeados-mirror.html
+          ! grep -q 'id="reload"' /tmp/rodeados-mirror.html
+          grep -q 'id="bomb"' /tmp/rodeados-mirror.html
+          grep -q 'id="arWorldOverlay"' /tmp/rodeados-mirror.html
+          curl -fsSL -m 15 "https://protectorrudo.github.io/Modo-caos/rodeados-runtime.js" -o /tmp/rodeados-published-runtime.js
+          grep -q 'spawnOpeningEnemies' /tmp/rodeados-published-runtime.js
+          grep -q 'distance:3.15,lateral:0' /tmp/rodeados-published-runtime.js
+          grep -q 'openingEyePosition' /tmp/rodeados-published-runtime.js
+          grep -q 'function cacheLiveAim(frame,t)' /tmp/rodeados-published-runtime.js
+          grep -q 'if(!latestAim||performance.now()-lastAimStamp>1200)return null;' /tmp/rodeados-published-runtime.js
+          grep -q 'lastShotStatus=r.hit' /tmp/rodeados-published-runtime.js
+          grep -q 'function bombCaos()' /tmp/rodeados-published-runtime.js
+          grep -q "installAutoRobots" /tmp/rodeados-published-runtime.js
+          grep -q "rodeados-robots-auto.js?v=15" /tmp/rodeados-published-runtime.js
+          AUTO_MOD_HTTP=$(curl -fsSL -m 15 -o /tmp/rodeados-auto.js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-robots-auto.js")
+          echo "AUTO_LOADER_JS_HTTP=$AUTO_MOD_HTTP"
+          test "$AUTO_MOD_HTTP" = "200"
+          grep -q 'FREE \[Military Soldier\] RIGGED' /tmp/rodeados-auto.js
+          grep -q 'adapter.setFacing(0)' /tmp/rodeados-auto.js
+          grep -q "rodeados-manul.js?v=15" /tmp/rodeados-auto.js
+          grep -q 'stats.selectedClips=' /tmp/rodeados-auto.js
+          echo 'V14 PUBLIC: ROBÓTS 3D AUTOMÁTICOS, SIN ZIP/LOGIN'
+          grep -q 'art.setFloorDamage(game,' /tmp/rodeados-published-runtime.js
+          grep -q 'HEADSHOT LETAL' /tmp/rodeados-published-runtime.js
+          grep -q "drawShot(packet,preHit" /tmp/rodeados-published-runtime.js
+          grep -q "rodeados-art.js?v=16" /tmp/rodeados-published-runtime.js
+          grep -q 'lastMenaceAt' /tmp/rodeados-published-runtime.js
+          grep -q "MUNICIÓN ILIMITADA" /tmp/rodeados-published-runtime.js
+          echo 'V10: DISPAROS INFINITOS SIN RECARGA Y TENSIÓN ROBÓTICA PUBLICADOS'
+          echo 'V9: BOMBA CAOS Y DISPAROS RENOVADOS PUBLICADOS'
+          echo 'V8 PUBLICADO: DISPARAR usa mira muestreada en fotograma XR válido'
+          grep -q 'eyeLocal.x+direction.x\*slot.distance' /tmp/rodeados-published-runtime.js
+          echo 'V7: disparo y robots centrados según la cámara XR real'
+          grep -q "addEventListener('pointerdown'" /tmp/rodeados-published-runtime.js
+          curl -fsSL -m 12 "https://protectorrudo.github.io/Modo-caos/rodeados-core.js" -o /tmp/rodeados-v6-core.js
+          grep -q 'SAFE_DISTANCE=2.45' /tmp/rodeados-v6-core.js
+          grep -q 'infiniteAmmo:true' /tmp/rodeados-v6-core.js
+          grep -q 'speed:.62,range:2.54' /tmp/rodeados-v6-core.js
+          grep -q 'function markFloorDamage(g,x,z,radius,amount)' /tmp/rodeados-v6-core.js
+          grep -q 'headshotStreak' /tmp/rodeados-v6-core.js
+          grep -q 'const precision=head?165' /tmp/rodeados-v6-core.js
+          grep -q "function throwBomb(g,target" /tmp/rodeados-v6-core.js
+          grep -q 'BOMB_RADIUS=2.5' /tmp/rodeados-v6-core.js
+          grep -q "function boxRay" /tmp/rodeados-v6-core.js
+          curl -fsSL -m 12 "https://protectorrudo.github.io/Modo-caos/rodeados-art.js" -o /tmp/rodeados-v6-art.js
+          grep -q "Narrow athletic 1.75m humanoid silhouette" /tmp/rodeados-v6-art.js
+          grep -q 'function blastWave(x,z' /tmp/rodeados-v6-art.js
+          grep -q 'function drawShot(ray' /tmp/rodeados-v6-art.js
+          grep -q 'function setFloorDamage(game,editing=false)' /tmp/rodeados-v6-art.js
+          grep -q 'function battlePlateTexture()' /tmp/rodeados-v6-art.js
+          grep -q 'function updateBattlefieldRubble(game,editing=false)' /tmp/rodeados-v6-art.js
+          grep -q 'function updateBattlefieldAtmosphere(dt)' /tmp/rodeados-v6-art.js
+          grep -q 'blastWave(f.x,f.z,f.radius' /tmp/rodeados-v6-art.js
+          grep -q 'const fragmentCount=75' /tmp/rodeados-v6-art.js
+          grep -q 'const ashCount=26' /tmp/rodeados-v6-art.js
+          echo 'V16 PUBLICADO: PISO PBR, RESTOS DE BATALLA Y LUZ REACTIVA'
+          grep -q 'burnTexture=new THREE.CanvasTexture' /tmp/rodeados-v6-art.js
+          echo 'V11 PUBLICADO: PISO BÉLICO DETERIORABLE + HEADSHOTS DE PRECISIÓN'
+          grep -q 'a.head.rotation.y=' /tmp/rodeados-v6-art.js
+          grep -q 'a.visorMat.emissiveIntensity=' /tmp/rodeados-v6-art.js
+          echo "V6 PUBLICADO: robots 3m, visual renovado y disparo Android"
+          grep -q 'pausedByTracking' /tmp/rodeados-published-runtime.js
+          grep -q 'renderer.render(nativeXRScene,camera)' /tmp/rodeados-published-runtime.js
+          grep -q 'arCompositor.render(scene,renderer.xr.getCamera(camera))' /tmp/rodeados-published-runtime.js
+          HTTP=$(curl -sSL -m 15 -o /tmp/rodeados-compositor.js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-ar-compositor.js")
+          echo "BLACKZONE_COMPOSITOR_HTTP=$HTTP"
+          test "$HTTP" = "200"
+          grep -q 'matrixWorldInverse.copy' /tmp/rodeados-compositor.js
+          echo "BLACKZONE 3D DOM OVERLAY PUBLICADO"
+          echo 'CONFIRMADO: robots 3D iniciales y seguimiento ARCore robusto publicados'
+          echo 'VERIFICAR VERCEL RODEADOS V16 (PRODUCCION)'
+          VH=$(curl -sSL -m 22 -o /tmp/vercel-rodeados.html -w "%{http_code}" "https://modo-caos-eta.vercel.app/rodeados.html?v=16")
+          echo "VERCEL_V16_HTTP=$VH"
+          if [ "$VH" = "200" ]; then
+            grep -q 'rodeados-runtime.js?v=16' /tmp/vercel-rodeados.html
+            grep -q 'id="fire"' /tmp/vercel-rodeados.html
+            grep -q 'id="bomb"' /tmp/vercel-rodeados.html
+            A=$(curl -sSL -m 20 -o /tmp/vercel-rodeados-art.js -w "%{http_code}" "https://modo-caos-eta.vercel.app/rodeados-art.js?v=16")
+            echo "VERCEL_ART_V16_HTTP=$A"
+            test "$A" = "200"
+            grep -q 'function battlePlateTexture()' /tmp/vercel-rodeados-art.js
+            grep -q 'function updateBattlefieldRubble(game,editing=false)' /tmp/vercel-rodeados-art.js
+            echo 'VERCEL V16 VERIFIED PLAYABLE 200'
+          else
+            echo 'VERCEL URL NOT PUBLICLY REACHABLE BY CURL; GITHUB PAGES V16 REMAINS VERIFIED'
+          fi
+          for file in rodeados-core.js rodeados-art.js rodeados-ux.js rodeados-runtime.js rodeados-progression.js mc-config.js mc-rooms-client.js; do
+            HTTP=$(curl -sSL -m 12 -o /tmp/rodeados-mirror-js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/$file")
+            echo "$file: $HTTP"
+            test "$HTTP" = "200"
+          done
+          echo "PAGES CONFIG (if enabled)"
+          gh api repos/ProtectorRudo/Modo-caos/pages --jq '{status:.status,html_url:.html_url,build_type:.build_type,source:.source}' || true
+          echo "LAST PAGES WORKFLOW"
+          gh api 'repos/ProtectorRudo/Modo-caos/actions/workflows/publish-pages.yml/runs?per_page=5' --jq '.workflow_runs[] | {id,status,conclusion,html_url,head_sha}' || true
