@@ -59,6 +59,7 @@ const server=http.createServer((req,res)=>{
  });
  await page.goto('http://127.0.0.1:'+server.address().port+'/rebote.html',{waitUntil:'load'});
  await page.waitForFunction(()=>!!__ReboteDebug,null,{timeout:30000});
+ assert.equal(await page.evaluate(()=>__ReboteDebug.clearAlpha),0,'AR framebuffer must preserve transparent camera passthrough');
  await page.locator('#startAR').click();
  await page.waitForFunction(()=>__ReboteDebug.stage==='edit',null,{timeout:7500});
  assert(await page.locator('#editbar').isVisible(),'AR edit controls visible');
@@ -93,7 +94,9 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__ReboteDebug.stage==='playing',null,{timeout:3000});
  await page.evaluate(()=>window.__simLostTracking=true);
  await page.waitForFunction(()=>__ReboteDebug.stage==='paused',null,{timeout:5000});
+ assert(await page.locator('#begin').isDisabled(),'no unsafe resume with an expired camera pose');
  await page.evaluate(()=>window.__simLostTracking=false);
+ await page.waitForFunction(()=>!document.querySelector('#begin').disabled,null,{timeout:4000});
  await page.locator('#begin').tap();
  assert.equal(await page.evaluate(()=>__ReboteDebug.stage),'playing','game resumes after tracking recovery');
  assert.equal(errors.length,0,'no XR JavaScript exceptions: '+errors.join(' | '));
