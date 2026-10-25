@@ -46,7 +46,7 @@ const server=http.createServer((req,res)=>{
  assert(await page.locator('#startAR').isVisible());
  assert.equal(await page.locator('script[src^="./rebote-core.js"]').count(),1,'core URL relative for external HTTPS mirrors');
  assert.equal(await page.locator('script[src^="./rebote-runtime.js"]').count(),1,'WebXR runtime URL relative for CDN and Pages');
- assert.equal(await page.locator('script[src="./rebote-runtime.js?v=8"]').count(),1,'premium release does not serve a cached v7 runtime');
+ assert.equal(await page.locator('script[src="./rebote-runtime.js?v=9"]').count(),1,'new ricochet edition V9 is loaded');
 
  assert.equal(await page.locator('a[href="https://modo-caos-eta.vercel.app/"]').count(),1,'fallback play links back to original arcade menu');
  // An embedded Android WebView may not expose navigator.xr at all.
@@ -61,6 +61,11 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__ReboteDebug.game.elapsed>.15,null,{timeout:12000});
  assert.equal(await page.locator('#returnBtn').isVisible(),true);
  assert.equal(await page.locator('#reticle').isVisible(),true);
+ assert(await page.locator('#radar').isVisible(),'small enemy radar appears during gameplay');
+ assert(await page.evaluate(()=>__ReboteDebug.radarVisible),'radar uses camera-relative tracked view');
+ await page.waitForFunction(()=>document.querySelectorAll('#radarBots .radarBot').length>0,null,{timeout:5000});
+ assert(await page.evaluate(()=>__ReboteDebug.robotFacingDot>.96),'mechs turn their visor towards the user');
+
  assert.equal(await page.locator('#upArrow').count(),1,'vertical AR threat guidance exists');
  assert.equal(await page.locator('#downArrow').count(),1,'low AR threat guidance exists');
  await page.waitForFunction(()=>document.querySelector('#strikeGauge')?.style.display==='block',null,{timeout:8500});
