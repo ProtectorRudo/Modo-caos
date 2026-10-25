@@ -29,7 +29,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 #localPanel{display:none;text-align:left;border:1px solid #69bdba;background:#0b2944;border-radius:13px;padding:12px;margin:10px 0;font-size:12px;color:#d7eeef}
 #localPanel label{display:block;font-size:12px;font-weight:900;margin-bottom:5px}
 #localFile{display:block;width:100%;margin-top:7px;color:#e9ffff;font-size:12px}
-#fileStatus{font-size:11px;color:#ffe4a5;margin-top:7px}
+#fileStatus{font-size:11px;color:#ffe4a5;margin-top:7px}#beatOffset{width:100%}#beatOffsetLabel{color:#a7ffce}
 #precheck{color:#abc7da;font-size:11px;margin:16px 2px}
 #bestIntro{color:#fddd83;font-size:12px;font-weight:850;margin:8px}
 .details{padding:10px;text-align:left;background:#0b1e37;border:1px solid #2d5570;border-radius:13px;margin-top:9px;font-size:11px;color:#c4dbe6}
@@ -88,13 +88,13 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <div class="features"><b>🎼 6 CANCIONES INCLUIDAS</b><b>🟢 5 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
 <div class="config"><label>CANCIÓN<select id="song"><option value="neon">⚡ Neón sin freno</option><option value="fuego">🎸 Fuego en el escenario</option><option value="solar">☀️ Solar latino</option><optgroup label="FAMOSAS · LISTAS PARA JUGAR"><option value="alegria">🎻 Oda a la Alegría · Beethoven</option><option value="elise">🎹 Para Elisa · Beethoven</option><option value="jingle">🎄 Jingle Bells · Remix</option></optgroup><optgroup label="HITS COMERCIALES · TU PROPIO AUDIO"><option value="despacito">💃 Despacito · Luis Fonsi (audio local)</option><option value="blinding">🌃 Blinding Lights · The Weeknd (audio local)</option><option value="levitating">🪩 Levitating · Dua Lipa (audio local)</option></optgroup></select></label>
 <label>DIFICULTAD<select id="difficulty"><option value="facil">Fácil · 3 carriles</option><option value="normal" selected>Normal · 5 carriles</option><option value="dificil">Difícil</option><option value="caos">MODO CAOS</option></select></label></div>
-<div id="localPanel"><label for="localFile">🎧 CARGAR AUDIO DESDE TU CELULAR (NO SE SUBE A INTERNET)</label><span>Los éxitos modernos requieren una grabación que tengas permiso de utilizar. Seleccioná tu archivo y sincronizaremos el ritmo en el dispositivo. Puede requerir ajustar el desfase.</span><input id="localFile" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac"><div id="fileStatus">Elegí tu archivo de audio antes de jugar.</div></div>
+<div id="localPanel"><label for="localFile">🎧 CARGAR AUDIO DESDE TU CELULAR (NO SE SUBE A INTERNET)</label><span>Los éxitos modernos requieren una grabación que tengas permiso de utilizar. Seleccioná tu archivo y sincronizaremos el ritmo en el dispositivo. Puede requerir ajustar el desfase.</span><input id="localFile" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac"><div id="fileStatus">Elegí tu archivo de audio antes de jugar.</div><label for="beatOffset" style="margin-top:10px">🎚 AJUSTE DEL INICIO DEL PULSO <b id="beatOffsetLabel">0 ms</b></label><input type="range" id="beatOffset" min="-1000" max="1000" step="20" value="0"></div>
 <button id="enter">📷 JUGAR EN REALIDAD AUMENTADA</button>
 <button id="demo" class="alt">🎮 PROBAR DEMO 2D (SIN SEGUIMIENTO FÍSICO)</button>
 <div id="bestIntro">RÉCORD PERSONAL · —</div>
 <details class="details"><summary>🎚 Ajuste fino de sincronización</summary>
 <p>Si las notas llegan antes o después del sonido, ajustá la compensación. Predeterminado: 0 ms.</p>
-<label>Latencia: <span id="latencyValue">0 ms</span><input id="latency" type="range" min="-120" max="120" value="0" step="10"></label></details>
+<label>Latencia: <span id="latencyValue">0 ms</span><input id="latency" type="range" min="-300" max="300" value="0" step="10"></label></details>
 <p id="precheck">Chrome Android + ARCore · Suelo despejado y seco · Adaptá el tamaño de la pista a tu habitación. No corras ni saltes: se sigue la posición del <b>celular</b>, no tus pies.</p>
 </div></main>
 <div id="overlay">
