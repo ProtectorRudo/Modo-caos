@@ -18,6 +18,9 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>!!globalThis.__ReboteDebug,null,{timeout:35000});
  assert.match(await page.title(),/REBOTE MORTAL/);
  assert(await page.locator('#startAR').isVisible());
+ assert.equal(await page.locator('script[src^="./rebote-core.js"]').count(),1,'core URL relative for external HTTPS mirrors');
+ assert.equal(await page.locator('script[src^="./rebote-runtime.js"]').count(),1,'WebXR runtime URL relative for CDN and Pages');
+ assert.equal(await page.locator('a[href="./index.html"]').count(),1,'back-to-menu is mirror-safe');
  // An embedded Android WebView may not expose navigator.xr at all.
  await page.evaluate(()=>Object.defineProperty(navigator,'xr',{configurable:true,value:undefined}));
  await page.locator('#startAR').click();
