@@ -15,15 +15,13 @@ const elise=[
 [64,.5],[76,.5],[75,.5],[76,.5],[75,.5],[76,.5],[71,.5],[74,.5],[72,.5],[69,1.5],
 [60,.5],[64,.5],[69,.5],[71,1.5],[64,.5],[72,.5],[71,.5],[69,2]
 ];
-// Célebre motivo de la obertura Guillermo Tell (Rossini), arreglo de sintetizador.
-const tell=[[60,.5],[60,.5],[60,.5],[60,.5],[60,.5],[60,.5],[60,1],
-[64,.5],[64,.5],[64,.5],[64,.5],[64,.5],[64,.5],[64,1],
-[67,.5],[67,.5],[67,.5],[67,.5],[67,.5],[67,.5],[67,1],
-[72,1],[71,1],[69,1],[67,1],[65,1],[64,1],[62,1],[60,2]];
+// Villancico tradicional Jingle Bells, obra de J. Pierpont (1857), partitura de dominio público.
+const jingle=[[64,1],[64,1],[64,2],[64,1],[64,1],[64,2],[64,1],[67,1],[60,1],[62,1],[64,4],
+[65,1],[65,1],[65,2],[65,1],[64,1],[64,2],[64,1],[62,1],[62,1],[64,1],[62,2],[67,2]];
 const classics=[
  ['alegria',{title:'ODA A LA ALEGRÍA · BEETHOVEN',genre:'Clásico remix',bpm:110,bars:32,bass:48,scale:[0,2,4,5,7],lead:[0,2,4,5,7],beat:3,publicDomain:true,melody:phrase(joy),instrument:'brass'}],
  ['elise',{title:'PARA ELISA · BEETHOVEN',genre:'Clásico remix',bpm:118,bars:36,bass:45,scale:[0,3,4,7,9],lead:[0,3,4,7,9],beat:4,publicDomain:true,melody:phrase(elise),instrument:'keys'}],
- ['guillermo',{title:'GUILLERMO TELL · ROSSINI',genre:'Clásico remix',bpm:132,bars:40,bass:48,scale:[0,2,4,5,7],lead:[0,2,4,5,7],beat:5,publicDomain:true,melody:phrase(tell),instrument:'brass'}]
+ ['jingle',{title:'JINGLE BELLS · REMIX',genre:'Clásico popular',bpm:126,bars:36,bass:48,scale:[0,2,4,5,7],lead:[0,2,4,5,7],beat:5,publicDomain:true,melody:phrase(jingle),instrument:'brass'}]
 ];
 for(const [id,config] of classics)SONGS[id]=config;
 const modern=[
