@@ -111,11 +111,12 @@ export function buildAdapter(THREE,gltf,meta){
  const texturesReduced=optimizeTextures(gltf.scene,THREE);
  const clips=gltf.animations||[];
  const bonesPrepared=stats.bones>0;
+ const selectedClips=Object.fromEntries(['idle','walk','dash','attack','stun','taunt'].map(kind=>[kind,findAction(clips,kind)?.name||null]));
  let facingRadians=0;
  const adapter={
   name:typeof meta==='object'&&meta?.label?meta.label:'Robot M.A.N.U.L.',
   setFacing(degrees){facingRadians=THREE.MathUtils.degToRad(degrees);adapter.summary.facingDegrees=degrees},
-  summary:{...stats,clips:clips.map(a=>a.name),texturesReduced,source:typeof meta==='string'?meta:(meta?.source||'')},
+  summary:{...stats,clips:clips.map(a=>a.name),selectedClips,texturesReduced,source:typeof meta==='string'?meta:(meta?.source||'')},
   create({actor,enemy}){
    // SkeletonUtils keeps bone/mesh bindings intact when several robots appear.
    const source=cloneSkinned(gltf.scene);
