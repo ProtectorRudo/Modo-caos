@@ -95,11 +95,14 @@ jobs:
           grep -q 'lastShotStatus=r.hit' /tmp/rodeados-published-runtime.js
           grep -q 'function bombCaos()' /tmp/rodeados-published-runtime.js
           grep -q "installAutoRobots" /tmp/rodeados-published-runtime.js
-          grep -q "rodeados-robots-auto.js?v=14" /tmp/rodeados-published-runtime.js
+          grep -q "rodeados-robots-auto.js?v=15" /tmp/rodeados-published-runtime.js
           AUTO_MOD_HTTP=$(curl -fsSL -m 15 -o /tmp/rodeados-auto.js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-robots-auto.js")
           echo "AUTO_LOADER_JS_HTTP=$AUTO_MOD_HTTP"
           test "$AUTO_MOD_HTTP" = "200"
           grep -q 'FREE \[Military Soldier\] RIGGED' /tmp/rodeados-auto.js
+          grep -q 'adapter.setFacing(0)' /tmp/rodeados-auto.js
+          grep -q "rodeados-manul.js?v=15" /tmp/rodeados-auto.js
+          grep -q 'stats.selectedClips=' /tmp/rodeados-auto.js
           echo 'V14 PUBLIC: ROBÓTS 3D AUTOMÁTICOS, SIN ZIP/LOGIN'
           grep -q 'art.setFloorDamage(game,' /tmp/rodeados-published-runtime.js
           grep -q 'HEADSHOT LETAL' /tmp/rodeados-published-runtime.js
