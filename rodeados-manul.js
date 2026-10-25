@@ -141,7 +141,7 @@ function buildAdapter(THREE,gltf,meta){
  };
  return adapter;
 }
-async function loadZip(file){
+async function loadZip(file,THREE){
  const {default:JSZip}=await import(CDN_ZIP);
  const zip=await JSZip.loadAsync(await file.arrayBuffer());
  const files=Object.values(zip.files).filter(o=>!o.dir&&!o.name.startsWith('__MACOSX/'));
@@ -178,7 +178,7 @@ export async function installManulPreview({THREE,art,notice}){
  let release=null;
  async function parseLocal(file){
   if(!file||file.size>MAX_ARCHIVE)throw Error('Máximo 55 MB');
-  if(/\.zip$/i.test(file.name))return loadZip(file);
+  if(/\.zip$/i.test(file.name))return loadZip(file,THREE);
   if(!/\.glb$/i.test(file.name))throw Error('Solo ZIP de Sketchfab o GLB');
   const bytes=await file.arrayBuffer();
   const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(bytes,'',resolve,reject));
