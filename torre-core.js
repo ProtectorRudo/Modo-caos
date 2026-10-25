@@ -42,7 +42,56 @@ function rotated(points,angle){const c=Math.cos(angle),s=Math.sin(angle);return 
 function bounds(shape,angle=0){let xs=[],ys=[];for(const poly of shape.parts)for(const [x,y] of rotated(poly,angle)){xs.push(x);ys.push(y)}
 return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)}}
 function score(height,pieces){return Math.round(Math.max(0,height)*100)}
-function collapsed(items,baseHeight,latestId){const last=items.find(i=>i.id===latestId);if(!last||last.y<-.28||Math.abs(last.x)>1.45)return true;let survivors=items.filter(i=>i.y>-.22&&Math.abs(i.x)<1.38);return survivors.length<items.length||((baseHeight>.62)&&Math.max(...survivors.map(i=>i.top),0)<baseHeight-.24)}
-const api={SHAPES:S,rng,select,makePack,angleDelta,rotated,bounds,polygonArea,score,collapsed};
+/**
+ * Structural collapse rules for TORRE INFINITA. Only measures simulated
+ * rigid-body positions/rotations, never manufactured animation. Caller must
+ * debounce failures (~0.7s) so a wobble that recovers is not penalized.
+ *
+ * reference: snapshots of the PREVIOUS accepted stable tower. An intentional
+ * rotation while holding the *new* piece is not part of this reference.
+ */
+function diagnoseCollapse(items,baseHeight=0,latestId,reference=[]){
+ if(!items.length)return {failed:false,reason:null};
+ const last=items.find(p=>p.id===latestId);
+ if(!last)return {failed:true,reason:'pieza_perdida'};
+ if(items.some(p=>p.y<-.28||Math.abs(p.x)>1.45||(Number.isFinite(p.minY)&&p.minY<-.26)))
+  return {failed:true,reason:'pieza_fuera'};
+ const highest=Math.max(...items.map(p=>Number.isFinite(p.top)?p.top:p.y),.14)-.14;
+ // The tower has lost a meaningful fraction of its former stable height.
+ if(baseHeight>.48&&baseHeight-highest>.19&&highest<baseHeight*.78)
+  return {failed:true,reason:'altura_perdida'};
+ // At least three blocks have fallen back onto the floor. In a vertical
+ // tower game this is a spill, even if a standing rectangle keeps the
+ // bounding-box height deceptively high (the screenshot regression).
+ const grounded=items.filter(p=>Number.isFinite(p.minY)&&p.minY<=.19&&p.y>-.28);
+ if(items.length>=3&&grounded.length>=3&&grounded.length>=Math.ceil(items.length*.62))
+  return {failed:true,reason:'piezas_desparramadas'};
+ // Multiple ground contacts over a large width: the pile broke apart,
+ // regardless of whether one tall block remains upright.
+ const xs=items.map(p=>p.x);
+ const span=Math.max(...xs)-Math.min(...xs);
+ if(items.length>=3&&grounded.length>=2&&span>1.34)
+  return {failed:true,reason:'torre_dispersa'};
+ // A previously settled load-bearing piece has been moved radically.
+ // Relative-to-baseline checks allow intentionally rotated weird shapes.
+ if(reference&&reference.length){
+  let moved=0;
+  for(const prior of reference){
+   const now=items.find(p=>p.id===prior.id);
+   if(!now)continue;
+   const tipping=Number.isFinite(now.angle)&&Number.isFinite(prior.angle)&&Math.abs(angleDelta(prior.angle,now.angle))>.92;
+   const slipping=Math.abs(now.x-prior.x)>.42;
+   const sinking=prior.y-now.y>.26;
+   if(tipping||slipping||sinking)moved++;
+  }
+  if(moved>=Math.max(1,Math.ceil(reference.length*.34))&&(grounded.length>=2||highest<baseHeight-.12))
+   return {failed:true,reason:'estructura_desarmada'};
+ }
+ return {failed:false,reason:null};
+}
+function collapsed(items,baseHeight,latestId,reference=[]){
+ return diagnoseCollapse(items,baseHeight,latestId,reference).failed;
+}
+const api={SHAPES:S,rng,select,makePack,angleDelta,rotated,bounds,polygonArea,score,collapsed,diagnoseCollapse};
 root.TorreCore=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
