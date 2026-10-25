@@ -114,8 +114,9 @@ function returnShot(g){
  return {ok:true,grade,points,combo:g.combo,distance:bestResult.distance};
 }
 function damage(g,p){
- if(g.elapsed<g.protection)return;
- p.dead=true;g.lives=Math.max(0,g.lives-1);g.combo=0;g.perfectStreak=0;g.protection=g.elapsed+.85;
+ // A blocked hit still consumes its projectile; it must not collide again.
+ p.dead=true;
+ if(g.elapsed<g.protection)return;g.lives=Math.max(0,g.lives-1);g.combo=0;g.perfectStreak=0;g.protection=g.elapsed+.85;
  g.stats.missed++;g.effects.push({type:'damage',t:g.elapsed,lives:g.lives});
  if(!g.lives)finish(g,false,'sin_vidas');
 }
