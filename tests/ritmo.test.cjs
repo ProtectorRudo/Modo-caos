@@ -2,6 +2,7 @@
 /* Ejecutar: node tests/ritmo.test.cjs */
 const assert=require('node:assert/strict');
 require('../ritmo-core.js');
+require('../ritmo-catalog.js');
 const C=globalThis.RitmoCore;
 assert(C,'RitmoCore no inicializado');
 for(const name of Object.keys(C.SONGS))for(const difficulty of ['facil','normal','dificil','caos'])for(const width of [.22,.32,.40]){
@@ -48,5 +49,5 @@ for(const path of ['correct','skip-motion']){
  assert.equal(slide.status,path==='correct'?'PERFECTO':'FALLO','Validación del deslizamiento');
 }
 assert(C.chart('neon','caos',.32).notes.some(n=>n.type==='caos'),'Notas CAOS');
-console.log('OK: 36 mapas, distancias, aciertos, fallos, sostenidas, slides, notas CAOS, pausa y fin');
+console.log('OK: 108 mapas (9 canciones x 4 dificultades x 3 anchos), distancias, aciertos, fallos, sostenidas, slides, notas CAOS, pausa y fin');
 
