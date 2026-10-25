@@ -76,10 +76,10 @@ function startPhysics(){
  if(modeId==='heavy'){
   // Rigid beam constrained to rotate around Z, with gravity, impacts and a
   // weak real spring torque in physicsStep. This is not a scripted tilt effect.
-  tiltBody=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,.039,0).setAngularDamping(1.65));
+  tiltBody=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,.039,0).setAngularDamping(1.15));
   tiltBody.setEnabledTranslations(false,false,false,true);
   tiltBody.setEnabledRotations(false,false,true,true);
-  world.createCollider(RAPIER.ColliderDesc.cuboid(1.18,.079,.36).setDensity(20).setFriction(.91).setRestitution(.01),tiltBody);
+  world.createCollider(RAPIER.ColliderDesc.cuboid(1.18,.079,.36).setDensity(8).setFriction(.91).setRestitution(.01),tiltBody);
   baseHalf=1.18;art.setBoardHalf(baseHalf);
  }else{
   baseBody=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.039,0));
@@ -334,7 +334,7 @@ function physicsStep(){
  if(modeId==='heavy'&&tiltBody){
   const angle=2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w);
   const velocity=tiltBody.angvel().z;
-  tiltBody.addTorque({x:0,y:0,z:-7.2*angle-2.5*velocity},true);
+  tiltBody.addTorque({x:0,y:0,z:-4.5*angle-1.6*velocity},true);
  }
  world.step(queue);steps++;collisionAudio();
  if(tiltBody){
