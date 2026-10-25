@@ -104,7 +104,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>__ReboteDebug.stage),'ready','calibration completes');
  assert((await page.evaluate(()=>__ReboteDebug.calibrationRms))<.045,'calibration accepts a steady phone, not tracking jitter');
  const hero=await page.evaluate(()=>__ReboteDebug.game);
- assert(hero.phase===0,'premium AR calibration preserves the initial phase');
+ assert.equal(hero.phase,'APRENDIZ','premium AR calibration preserves the initial phase');
 
  const before=await page.evaluate(()=>__ReboteDebug.root);
  await page.evaluate(()=>window.__simPhone.x=.17);
