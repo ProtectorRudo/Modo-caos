@@ -32,20 +32,26 @@ function pieceIcon(shape){
 function renderPack(){
  if(!ui.pieceSlots)return;
  ui.packCounter.textContent=stock.filter(s=>!s.used).length+' DISPONIBLES';
- ui.pieceSlots.replaceChildren();
- stock.forEach((item,i)=>{
-  const btn=document.createElement('button');
-  btn.type='button';btn.className='piecePick'+(item.used?' used':'')+(selectedIndex===i&&!item.used?' selected':'');
-  btn.setAttribute('aria-label',(item.used?'Ya utilizada: ':'Elegir ')+item.shape.name);
-  btn.setAttribute('aria-pressed',String(selectedIndex===i&&!item.used));
-  btn.disabled=item.used;
-  btn.innerHTML=pieceIcon(item.shape)+'<span>'+item.shape.name+'</span>';
-  btn.addEventListener('click',()=>{if(!item.used&&phase==='playing'&&selectedIndex!==i)choosePiece(i)});
+ // Keep elements stable during pointer capture; rebuilding the tray breaks drag.
+ while(ui.pieceSlots.children.length>stock.length)ui.pieceSlots.lastElementChild.remove();
+ while(ui.pieceSlots.children.length<stock.length){
+  const i=ui.pieceSlots.children.length,btn=document.createElement('button');
+  btn.type='button';btn.className='piecePick';btn.setAttribute('data-index',String(i));
+  btn.addEventListener('click',()=>{if(!stock[i]?.used&&phase==='playing'&&selectedIndex!==i)choosePiece(i)});
   btn.addEventListener('pointerdown',e=>startTrayGrab(e,i,btn));
   btn.addEventListener('pointermove',moveTrayGrab);
   btn.addEventListener('pointerup',endTrayGrab);
   btn.addEventListener('pointercancel',()=>{trayTouch=null});
   ui.pieceSlots.appendChild(btn);
+ }
+ stock.forEach((item,i)=>{
+  const btn=ui.pieceSlots.children[i];
+  btn.className='piecePick'+(item.used?' used':'')+(selectedIndex===i&&!item.used?' selected':'');
+  btn.setAttribute('aria-label',(item.used?'Ya utilizada: ':'Elegir ')+item.shape.name);
+  btn.setAttribute('aria-pressed',String(selectedIndex===i&&!item.used));
+  btn.disabled=item.used;
+  const newMarkup=pieceIcon(item.shape)+'<span>'+item.shape.name+'</span>';
+  if(btn.innerHTML!==newMarkup)btn.innerHTML=newMarkup;
  });
 }
 function nextPack(){
