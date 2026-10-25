@@ -80,3 +80,12 @@ Nueva prueba automatizada verifica canvas visible *dentro* del DOM Overlay, rend
 ### Segunda vía de visibilidad (SVG anclado a XR)
 
 Para cubrir teléfonos donde incluso el segundo lienzo WebGL no llegue a mostrar la superficie, el modo de edición dibuja un contorno y cuadrícula SVG a partir de XRView.projectionMatrix × XRView.transform.inverse.matrix × arena.root.matrixWorld. El resultado está proyectado en los mismos metros del Hit Test, se actualiza con el movimiento/rotación real del celular y se oculta al fijar la pista. No sustituye los robots WebGL, pero evita una pantalla vacía durante la colocación. Prueba Chromium simulado comprueba que el path SVG sigue matrices XR. Validar con ARCore real.
+
+## V8 — Calibración espacial y salto visual (25/10/2026)
+
+- Hit Test usa muestras de suelo recientes y mediana de alturas para evitar saltos; no habilita FIJAR hasta acumular al menos ocho lecturas consistentes y 220 ms de estabilidad. El origen de la arena se coloca unos 0,78 m **delante del teléfono** en la dirección del espectador y solo lo sigue *antes* de fijar. Al fijar queda en espacio XR y la calibración de ~1 s promedio valida un RMS <= 4,5 cm. El inicio no resetea el transform.
+- Arena de jugador ligera, semitransparente y de menor radio, con cuadrícula discreta, borde limpio y marca central; los enemigos poseen pad de contacto con el suelo para evitar sensación de flotar. La visibilidad SVG XR y el compositor transparente permanecen intactos.
+- Robótica estilo mech premium procedural: casco, visor envolvente, partes redondeadas compartidas, placas de armadura, piernas y brazos articulados, núcleo brillante, respiración mecánica, reacción a daño y jefe final. Sin descargas manuales de modelos ni servicios externos.
+- Nuevas esferas luminosas con brillo y estela vectorial. Liberación de geometrías temporales y preservación de geometrías compartidas hasta terminar la escena.
+- HUD de móviles reducido para no tapar la mitad inferior de la cámara.
+- Tests automáticos XR sintético: piso estabilizado, posición inicial delante de la cámara, calibración estable y sin salto de anclaje, render 3D, retícula, proyectiles, juego, pérdidas de tracking y regresiones. La prueba física ARCore con teléfono **sigue pendiente**.

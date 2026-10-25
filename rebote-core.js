@@ -37,7 +37,7 @@ function typeAt(g){
 }
 function spawnEnemy(g,boss=false){
  const idx=g.enemyId++,side=Math.sin(idx*2.3)*(g.phase===3?2.0:g.phase>=2?1.07:.43);
- const z=g.phase===3?-1.84+(idx%3)*-.18:-2.65+(idx%3)*-.21;
+ const z=g.phase===3?-1.84+(idx%3)*-.18:-2.25+(idx%3)*-.16;
  const e={id:idx,boss,x:side,z,homeX:side,health:boss?11:g.phase<2?3:4,
    maxHealth:boss?11:g.phase<2?3:4,damage:0,hitTime:-10,shield:false,alive:true,
    phase:idx*.76,stagger:0.0};

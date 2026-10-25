@@ -2,8 +2,10 @@
 export function createReboteArt(T,scene){
  const root=new T.Group();scene.add(root);
  const mat=(color,metal=.7,rough=.28,em=0,ei=.0)=>new T.MeshStandardMaterial({color,metalness:metal,roughness:rough,emissive:em,emissiveIntensity:ei});
- const dark=mat(0x162537,.78,.29),steel=mat(0x5f829b,.87,.21),edge=mat(0xc5e9f0,.88,.18);
- const blue=mat(0x20dfff,.22,.22,0x12b9e7,2.2),orange=mat(0xff5b31,.19,.29,0xfa3716,2),red=mat(0xf03662,.25,.3,0xe51c41,1.5);
+ const dark=mat(0x0c1927,.70,.35),steel=mat(0x48647c,.75,.26),edge=mat(0x9bbdce,.58,.27);
+ const carbon=mat(0x091823,.28,.54),armor=mat(0x2c5368,.62,.31),warm=mat(0xefa563,.36,.30,0xff7439,.44);
+ const blue=mat(0x37e9ef,.16,.24,0x18d6ee,1.22),orange=mat(0xffa36b,.18,.29,0xeb662e,.9),red=mat(0xff5178,.27,.3,0xee2156,1.2);
+
  const plane=new T.Group();root.add(plane);
  const placementCue=new T.Group();root.add(placementCue);
  const neon=new T.MeshBasicMaterial({color:0x60ffe1,depthTest:false});
@@ -17,28 +19,28 @@ export function createReboteArt(T,scene){
   post.position.set(sx*1.02,.25,sz*1.02);
   placementCue.add(post);
  }
- const floor=new T.Mesh(new T.CylinderGeometry(1.45,1.45,.06,64),new T.MeshBasicMaterial({color:0x07455a,transparent:true,opacity:.90,side:T.DoubleSide,depthWrite:false}));
+ const floor=new T.Mesh(new T.CylinderGeometry(1.22,1.22,.022,56),new T.MeshBasicMaterial({color:0x064352,transparent:true,opacity:.29,side:T.DoubleSide,depthWrite:false}));
  floor.position.y=.016;plane.add(floor);
- const ringMat=new T.MeshBasicMaterial({color:0x30efff,transparent:true,opacity:1,depthTest:false});
- const gridMaterial=new T.MeshBasicMaterial({color:0x4dffea,transparent:true,opacity:.67,depthTest:false,depthWrite:false});
+ const ringMat=new T.MeshBasicMaterial({color:0x45eee5,transparent:true,opacity:.72,depthTest:false,depthWrite:false});
+ const gridMaterial=new T.MeshBasicMaterial({color:0x69dedc,transparent:true,opacity:.32,depthTest:false,depthWrite:false});
  for(let i=-2;i<=2;i++){
-  const pos=i*.48,length=2.58;
+  const pos=i*.40,length=2.05;
   const xLine=new T.Mesh(new T.BoxGeometry(length,.009,.015),gridMaterial);
   xLine.position.set(0,.085,pos);plane.add(xLine);
   const zLine=new T.Mesh(new T.BoxGeometry(.015,.009,length),gridMaterial);
   zLine.position.set(pos,.085,0);plane.add(zLine);
  }
  for(let i=0;i<3;i++){
-  const r=new T.Mesh(new T.TorusGeometry(1.36-i*.22,.012,8,88),i===0?ringMat:new T.MeshBasicMaterial({color:i===1?0x3de8e5:0x164d75,transparent:true,opacity:i===1?.65:.7}));
+  const r=new T.Mesh(new T.TorusGeometry(1.17-i*.20,.009,6,64),i===0?ringMat:new T.MeshBasicMaterial({color:i===1?0x4de8cf:0x316a79,transparent:true,opacity:i===1?.44:.30,depthWrite:false}));
   r.rotation.x=-Math.PI/2;r.position.y=.068+i*.003;plane.add(r);
  }
- const radialMat=new T.MeshBasicMaterial({color:0x4fb8c6,transparent:true,opacity:.3});
+ const radialMat=new T.MeshBasicMaterial({color:0x50d9d3,transparent:true,opacity:.38,depthWrite:false});
  for(let i=0;i<16;i++){
    const tick=new T.Mesh(new T.BoxGeometry(.012,.004,i%4===0?.19:.095),radialMat);
-   const a=i*Math.PI/8,r=1.18;
+   const a=i*Math.PI/8,r=1.05;
    tick.position.set(Math.sin(a)*r,.066,Math.cos(a)*r);tick.rotation.y=a;plane.add(tick);
  }
- const center=new T.Mesh(new T.CylinderGeometry(.24,.3,.035,8),mat(0x103a4a,.7,.34,0x149cba,.2));
+ const center=new T.Mesh(new T.CylinderGeometry(.14,.19,.025,32),new T.MeshBasicMaterial({color:0x4cabb2,transparent:true,opacity:.22,depthWrite:false}));
  center.position.y=.07;plane.add(center);
  const youMarker=new T.Group();root.add(youMarker);
  const yourRing=new T.Mesh(new T.TorusGeometry(.135,.012,8,40),new T.MeshBasicMaterial({color:0x65ffe1,transparent:true,opacity:.84,depthWrite:false}));
@@ -49,69 +51,122 @@ export function createReboteArt(T,scene){
  const shotLayer=new T.Group();root.add(shotLayer);
  const fxLayer=new T.Group();root.add(fxLayer);
  const bots=new Map(),shots=new Map(),particles=[];
- const sphereG=new T.SphereGeometry(1,14,10),capsuleG=new T.CylinderGeometry(1,1,1,8);
+ const sphereG=new T.SphereGeometry(1,18,14),capsuleG=new T.CylinderGeometry(1,1,1,10);
+ // Rounded, reusable hull geometry replaces the sharp voxel cubes.
+ const hullShape=new T.Shape();
+ hullShape.moveTo(-.42,-.5);hullShape.lineTo(.42,-.5);hullShape.quadraticCurveTo(.5,-.5,.5,-.42);
+ hullShape.lineTo(.5,.42);hullShape.quadraticCurveTo(.5,.5,.42,.5);
+ hullShape.lineTo(-.42,.5);hullShape.quadraticCurveTo(-.5,.5,-.5,.42);
+ hullShape.lineTo(-.5,-.42);hullShape.quadraticCurveTo(-.5,-.5,-.42,-.5);
+ const hullG=new T.ExtrudeGeometry(hullShape,{depth:.86,steps:1,bevelEnabled:true,bevelThickness:.055,bevelSize:.055,bevelSegments:2,curveSegments:3});
+ hullG.translate(0,0,-.43);
+ const sharedRobotGeometries=new Set([hullG,sphereG,capsuleG]);
  // Shared projectile geometry avoids compiling/allocating a new geometry for every shot.
  const shellG=new T.SphereGeometry(1,20,12),haloG=new T.TorusGeometry(1,.09,6,30);
- const sharedRobotMaterials=new Set([dark,steel,edge,blue,orange,red]);
+ const sharedRobotMaterials=new Set([dark,steel,edge,carbon,armor,warm,blue,orange,red]);
  function mesh(geo,material,parent,pos,scale){
   const m=new T.Mesh(geo,material);m.position.set(...pos);m.scale.set(...scale);parent.add(m);return m
  }
- function box(parent,material,pos,sz){return mesh(new T.BoxGeometry(1,1,1),material,parent,pos,sz)}
+ function box(parent,material,pos,sz){return mesh(hullG,material,parent,pos,sz)}
+ function segment(parent,material,start,end,r1=.07,r2=.075){
+  const a=new T.Vector3(...start),b=new T.Vector3(...end),v=b.clone().sub(a);
+  const m=new T.Mesh(new T.CylinderGeometry(r1,r2,v.length(),10),material);
+  m.position.copy(a.add(b).multiplyScalar(.5));
+  m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),v.normalize());parent.add(m);return m;
+ }
  function buildRobot(e){
-  const body=new T.Group();botLayer.add(body);let scale=e.boss?1.35:1;
-  body.scale.setScalar(scale);
-  const shadow=new T.Mesh(new T.CircleGeometry(.42,24),new T.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.23,depthWrite:false}));
-  shadow.rotation.x=-Math.PI/2;shadow.position.y=.075;body.add(shadow);
-  const hips=box(body,dark,[0,.85,0],[.52,.28,.33]);
-  const torso=box(body,steel,[0,1.39,0],[.73,.76,.43]);torso.rotation.z=.03;
-  box(body,dark,[0,1.38,.245],[.64,.51,.075]);
-  box(body,edge,[0,1.61,.275],[.44,.11,.09]);
-  const reactor=new T.Mesh(new T.CylinderGeometry(.15,.15,.04,12),blue);
-  reactor.rotation.x=Math.PI/2;reactor.position.set(0,1.35,.304);body.add(reactor);
-  const head=new T.Group();head.position.set(0,1.91,0);body.add(head);
-  box(head,steel,[0,0,0],[.43,.39,.38]);
-  const visor=box(head,blue,[0,-.035,.211],[.38,.12,.05]);visor.rotation.x=-.07;
-  box(head,edge,[0,.19,0],[.32,.08,.35]);
+  const bot=new T.Group();botLayer.add(bot);
+  // Separate ground footprint gives robots contact with the actual detected floor.
+  const base=new T.Group();bot.add(base);
+  const pad=new T.Mesh(new T.CircleGeometry(.43,32),new T.MeshBasicMaterial({color:0x142d3c,transparent:true,opacity:.31,depthWrite:false}));
+  pad.rotation.x=-Math.PI/2;pad.position.y=.013;base.add(pad);
+  const padRing=new T.Mesh(new T.TorusGeometry(.39,.009,5,48),new T.MeshBasicMaterial({color:0x49cacc,transparent:true,opacity:.53,depthWrite:false}));
+  padRing.rotation.x=-Math.PI/2;padRing.position.y=.023;base.add(padRing);
+  const mech=new T.Group();bot.add(mech);
+  // Feet and articulated legs — 1.7m human-sized silhouette instead of block toy.
+  const legs=[];
   for(const sign of [-1,1]){
-   const shoulder=new T.Group();shoulder.position.set(sign*.49,1.67,.02);body.add(shoulder);
-   box(shoulder,edge,[sign*.015,-.05,0],[.32,.28,.4]);
-   const arm=new T.Group();arm.position.set(sign*.09,-.22,0);shoulder.add(arm);
-   box(arm,dark,[0,-.27,0],[.25,.55,.26]);
-   box(arm,steel,[0,-.55,.03],[.3,.18,.32]);
-   const leg=new T.Group();leg.position.set(sign*.19,.72,0);body.add(leg);
-   box(leg,dark,[0,-.26,0],[.29,.54,.31]);
-   box(leg,steel,[0,-.57,.02],[.32,.22,.39]);
-   box(leg,edge,[0,-.71,.13],[.38,.13,.53]);
-   if(sign===-1)body.userData.leftArm=shoulder;
-   else body.userData.rightArm=shoulder;
-   (body.userData.legs??=[]).push(leg);
+   const foot=box(mech,carbon,[sign*.175,.115,.14],[.24,.13,.39]);
+   box(mech,steel,[sign*.175,.16,.205],[.25,.07,.14]);
+   const leg=new T.Group();leg.position.set(sign*.175,.77,0);mech.add(leg);legs.push(leg);
+   segment(leg,carbon,[0,-.04,0],[0,-.43,.04],.115,.12);
+   box(leg,armor,[0,-.19,.095],[.245,.38,.22]);
+   box(leg,edge,[0,-.38,.13],[.22,.13,.20]);
+   segment(mech,carbon,[sign*.175,.39,.035],[sign*.175,.19,.10],.085,.085);
   }
-  const belt=box(body,edge,[0,.97,.18],[.62,.1,.18]);belt.rotation.z=.05;
+  const pelvis=box(mech,dark,[0,.82,0],[.48,.22,.34]);
+  box(mech,steel,[0,.91,.11],[.40,.10,.20]);
+  const torso=box(mech,armor,[0,1.22,0],[.68,.61,.38]);
+  const breast=box(mech,carbon,[0,1.26,.215],[.51,.41,.075]);
+  const yoke=box(mech,steel,[0,1.53,.08],[.59,.12,.37]);
+  // Stylized armored plating, beveled and layered; thin lit seams.
+  for(const sign of [-1,1]){
+   const plate=box(mech,edge,[sign*.22,1.33,.27],[.14,.28,.09]);
+   plate.rotation.z=-sign*.22;
+   box(mech,blue,[sign*.26,1.03,.225],[.09,.075,.075]);
+  }
+  const reactor=new T.Group();reactor.position.set(0,1.26,.272);mech.add(reactor);
+  const bezel=new T.Mesh(new T.TorusGeometry(.165,.034,8,24),steel);reactor.add(bezel);
+  const reactorCore=new T.Mesh(new T.IcosahedronGeometry(.116,1),orange);
+  reactor.add(reactorCore);
+  const reactorGlint=new T.Mesh(new T.SphereGeometry(.07,12,8),new T.MeshBasicMaterial({color:0xffd7a7,transparent:true,opacity:.68,depthWrite:false}));
+  reactorGlint.position.z=.075;reactor.add(reactorGlint);
+  // Short neck + rounded helmet with wraparound luminous visor.
+  segment(mech,carbon,[0,1.56,0],[0,1.70,0],.13,.13);
+  const head=new T.Group();head.position.set(0,1.80,0);mech.add(head);
+  box(head,steel,[0,0,0],[.42,.33,.37]);
+  box(head,dark,[0,.115,.012],[.44,.13,.36]);
+  const visor=box(head,blue,[0,-.025,.215],[.37,.092,.065]);
+  box(head,edge,[0,-.14,.158],[.25,.04,.13]);
+  for(const sign of [-1,1]){
+   box(head,armor,[sign*.24,-.02,.015],[.115,.22,.24]);
+   const antenna=segment(head,steel,[sign*.17,.14,0],[sign*.19,.28,0],.021,.021);
+   const diode=new T.Mesh(new T.SphereGeometry(.038,8,6),blue);
+   diode.position.set(sign*.19,.29,0);head.add(diode);
+  }
+  const shoulderGroups=[];
+  for(const sign of [-1,1]){
+   const shoulder=new T.Group();shoulder.position.set(sign*.45,1.46,0);mech.add(shoulder);shoulderGroups.push(shoulder);
+   const joint=new T.Mesh(new T.SphereGeometry(.145,14,10),carbon);shoulder.add(joint);
+   box(shoulder,steel,[sign*.05,.025,.03],[.28,.26,.34]);
+   box(shoulder,edge,[sign*.07,.11,.18],[.24,.055,.14]);
+   segment(shoulder,carbon,[sign*.065,-.10,0],[sign*.11,-.39,.015],.098,.095);
+   box(shoulder,armor,[sign*.11,-.26,.078],[.21,.32,.23]);
+   const elbow=new T.Mesh(new T.SphereGeometry(.10,12,10),steel);
+   elbow.position.set(sign*.11,-.45,.025);shoulder.add(elbow);
+   segment(shoulder,carbon,[sign*.11,-.45,.025],[sign*.11,-.72,.075],.087,.095);
+   box(shoulder,steel,[sign*.11,-.63,.10],[.20,.29,.18]);
+   box(shoulder,dark,[sign*.11,-.83,.08],[.205,.13,.22]);
+   box(shoulder,blue,[sign*.11,-.65,.22],[.09,.12,.045]);
+  }
+  bot.userData={mech,base,head,visor,reactor:reactorCore,reactorRing:bezel,legs,
+   leftArm:shoulderGroups[0],rightArm:shoulderGroups[1],torso,
+   armorPanels:[]};
   if(e.boss){
-   const shield=new T.Mesh(new T.IcosahedronGeometry(1.13,1),new T.MeshBasicMaterial({
-    color:0x3be8ff,transparent:true,opacity:.29,depthWrite:false,side:T.DoubleSide,wireframe:true
-   }));
-   shield.position.set(0,1.25,0);shield.scale.set(1,1.14,.72);shield.visible=false;
-   body.add(shield);body.userData.shieldMesh=shield;
-   // Separate heavy armor plates, progressively lost during the boss battle.
-   body.userData.armorPanels=[];
-   for(const side of [-1,1]){
-    const panel=box(body,edge,[side*.46,1.47,.11],[.19,.56,.32]);
-    panel.rotation.z=side*.18;
-    body.userData.armorPanels.push(panel);
+   for(const sign of [-1,1]){
+    const panel=box(mech,edge,[sign*.38,1.20,.10],[.23,.43,.36]);
+    panel.rotation.z=sign*.11;bot.userData.armorPanels.push(panel);
    }
+   const shield=new T.Mesh(new T.IcosahedronGeometry(1.03,1),new T.MeshBasicMaterial({color:0x49dfea,wireframe:true,transparent:true,opacity:.17,depthWrite:false}));
+   shield.position.set(0,1.03,0);shield.scale.set(.78,1.05,.69);shield.visible=false;
+   mech.add(shield);bot.userData.shieldMesh=shield;
   }
-  body.userData.visor=visor;body.userData.head=head;body.userData.torso=torso;body.userData.reactor=reactor;
-  return body;
+  return bot;
  }
  function makeBall(p){
   const group=new T.Group();shotLayer.add(group);
-  const material=new T.MeshBasicMaterial({color:p.returning?0x6effea:p.type==='pesada'?0xffc35a:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0xaf8bf9:0xff744d,transparent:p.type==='fake',opacity:p.type==='fake'?.38:1});
-  const core=mesh(sphereG,material,group,[0,0,0],[p.radius*.73,p.radius*.73,p.radius*.73]);
+  const material=new T.MeshBasicMaterial({color:p.returning?0x6effea:p.type==='pesada'?0xffc35a:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0xaf8bf9:0xff9a61,transparent:true,opacity:p.type==='fake'?.27:1});
+  const core=mesh(sphereG,material,group,[0,0,0],[p.radius*.80,p.radius*.80,p.radius*.80]);
+  const shine=new T.Mesh(new T.SphereGeometry(1,12,9),new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.65,depthWrite:false}));
+  shine.position.set(-p.radius*.24,p.radius*.22,p.radius*.48);
+  shine.scale.setScalar(p.radius*.21);group.add(shine);
   const shell=new T.Mesh(shellG,new T.MeshBasicMaterial({color:p.returning?0x7cfff4:0xff6a33,transparent:true,opacity:.20,depthWrite:false}));
   shell.scale.setScalar(p.radius*1.42);group.add(shell);
   const halo=new T.Mesh(haloG,new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false}));
-  halo.scale.setScalar(p.radius*1.24);group.add(halo);group.userData={core,material,shell,halo};return group;
+  halo.scale.setScalar(p.radius*1.24);group.add(halo);
+  const trail=new T.Mesh(new T.CylinderGeometry(.04,.24,1,8),new T.MeshBasicMaterial({color:0xff8e59,transparent:true,opacity:.24,depthWrite:false,side:T.DoubleSide}));
+  trail.position.z=-.28;group.add(trail);
+  group.userData={core,material,shell,halo,trail,shine};return group;
  }
  function spark(pos,color,count=9,life=.5,power=1){
   for(let i=0;i<count;i++){
@@ -138,6 +193,9 @@ export function createReboteArt(T,scene){
    let b=bots.get(e.id);if(!b){b=buildRobot(e);bots.set(e.id,b)}
    b.visible=e.alive||g.elapsed-e.hitTime<1.1;
    b.position.set(e.x,0,e.z);
+   // Contact pad stays on the floor; only the mechanical body bobs subtly.
+   b.userData.mech.position.y=.012+Math.sin(time*1.7+e.phase)*.013;
+   b.userData.reactor.rotation.y+=dt*2.5;
    b.rotation.y=Math.sin(time*.48+e.phase)*.14;
    b.userData.head.rotation.y=Math.sin(time*.74+e.phase)*.19;
    b.userData.leftArm.rotation.x=-.55+Math.sin(time*2+e.phase)*.26;
@@ -154,13 +212,13 @@ export function createReboteArt(T,scene){
    b.userData.visor.material=dmg>.48?red:blue;
    b.userData.reactor.material=dmg>.48?orange:blue;
    const hit=g.elapsed-e.hitTime<.26;
-   b.scale.setScalar((e.boss?1.35:1)*(hit?1-.09*Math.sin((g.elapsed-e.hitTime)*32):1));
+   b.scale.setScalar((e.boss?1.13:.84)*(hit?1-.055*Math.sin((g.elapsed-e.hitTime)*32):1));
    if(!e.alive)b.rotation.z=(Math.min(1,(g.elapsed-e.hitTime)/.75))*-1.2;
   }
   for(const [id,b] of bots)if(!g.enemies.some(e=>e.id===id)){
    botLayer.remove(b);
    b.traverse(obj=>{
-    if(obj.geometry)obj.geometry.dispose();
+    if(obj.geometry&&!sharedRobotGeometries.has(obj.geometry))obj.geometry.dispose();
     if(obj.material&&!sharedRobotMaterials.has(obj.material))obj.material.dispose();
    });
    bots.delete(id);
@@ -170,6 +228,16 @@ export function createReboteArt(T,scene){
    group.position.set(p.pos.x,p.pos.y,p.pos.z);
    group.rotation.z+=dt*3;
    const m=group.userData;
+   m.trail.visible=p.type!=='fake'&&p.age>.08;
+   m.trail.material.color.setHex(p.returning?0x4dfff0:0xffa066);
+   m.trail.material.opacity=p.returning?.36:.16;
+   m.trail.position.set(0,0,0);
+   const velocity=new T.Vector3(p.velocity.x,p.velocity.y,p.velocity.z);
+   // Align the short plume behind each moving sphere in 3D world coordinates.
+   m.trail.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),velocity.clone().normalize().negate());
+   m.trail.scale.set(p.radius*.9,.5+p.speed*.055,p.radius*.9);
+   m.trail.position.addScaledVector(velocity.clone().normalize(),-.20);
+   m.shine.material.opacity=p.returning?.78:.55;
    m.material.color.setHex(p.returning?0x65ffe7:p.type==='pesada'?0xffcd67:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0x9c80e9:0xff693b);
    m.shell.material.color.setHex(p.returning?0x7cfff5:0xff7939);
    m.halo.rotation.y+=dt*4.7;
@@ -198,14 +266,17 @@ export function createReboteArt(T,scene){
   }
  }
  function effect(e){
-  if(e.type==='return'){const p=shots.get(e.id);if(p)spark(p.position,e.grade==='PERFECTO'?0x6dfff1:0x50b8ff,e.grade==='PERFECTO'?28:12,.5,e.grade==='PERFECTO'?1.4:1)}
-  if(e.type==='enemy-hit'||e.type==='enemy-down')spark({x:e.x,y:1.4,z:e.z},e.type==='enemy-down'?0xff7343:0x7effec,e.type==='enemy-down'?49:19,.8,1.6);
+  if(e.type==='return'){const p=shots.get(e.id);if(p)spark(p.position,e.grade==='PERFECTO'?0x6dfff1:0x50b8ff,e.grade==='PERFECTO'?19:10,.5,e.grade==='PERFECTO'?1.4:1)}
+  if(e.type==='enemy-hit'||e.type==='enemy-down')spark({x:e.x,y:1.4,z:e.z},e.type==='enemy-down'?0xff7343:0x7effec,e.type==='enemy-down'?28:13,.8,1.6);
   if(e.type==='damage')spark({x:0,y:1.4,z:0},0xff3f58,23,.38,1.4);
   if(e.type==='legend')spark({x:0,y:1.45,z:-1},0xdfffff,60,1.1,2.2);
  }
  function dispose(){
   scene.remove(root);
-  root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&!Object.values({dark,steel,edge,blue,orange,red}).includes(o.material))o.material.dispose()});
+  root.traverse(o=>{if(o.geometry&&!sharedRobotGeometries.has(o.geometry))o.geometry.dispose();
+   if(o.material&&!sharedRobotMaterials.has(o.material))o.material.dispose()});
+  for(const g of sharedRobotGeometries)g.dispose();
+  for(const m of sharedRobotMaterials)m.dispose();
  }
  return {root,plane,update,effect,dispose,setSize(v){plane.userData.size=Math.max(.7,Math.min(1.45,v))},getRobotCount(){return bots.size},getShotCount(){return shots.size}};
 }
