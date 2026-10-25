@@ -36,6 +36,14 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 .details summary{font-weight:800;cursor:pointer}.details input{width:100%}
 #overlay{position:fixed;inset:0;display:none;pointer-events:none;z-index:10;overflow:hidden;background:transparent}
 #tiles,#rtSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#tiles{opacity:0}#rtSvg{z-index:2}
+#fxCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:12;pointer-events:none}
+#holdHud{display:none;position:absolute;z-index:13;left:16%;right:16%;bottom:clamp(180px,27vh,275px);pointer-events:none;text-align:center;border:2px solid #edffffa0;border-radius:15px;padding:9px 14px;background:#05172cdb;box-shadow:0 0 26px #65ffe94c}
+#holdText{font-size:17px;color:white;font-weight:1000;text-shadow:0 0 12px #6bf8ff;letter-spacing:1px}
+#holdTrack{height:10px;border:1px solid #f8ffff91;border-radius:16px;overflow:hidden;margin-top:7px;background:#18334f}
+#holdFill{height:100%;width:0;background:linear-gradient(90deg,#4cff85,#eaffff,#ffd34c);box-shadow:0 0 18px #66ffff;transition:width .075s linear}
+#holdCount{font-size:11px;margin-top:4px;color:#d8fff4;font-weight:900}
+.hudRow .streak{border-color:#ffe27e!important;box-shadow:0 0 16px #ffd15c8c,inset 0 0 13px #ffda8a2c;animation:comboGlow .65s ease-in-out infinite alternate}
+@keyframes comboGlow{from{filter:brightness(1)}to{filter:brightness(1.35)}}
 #gameCanvas{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:auto;touch-action:none}
 #reticle{position:absolute;left:50%;top:50%;width:28px;height:28px;border:3px solid var(--cyan);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 18px #69ffe7}
 #touchpad{position:absolute;left:0;right:0;top:20%;bottom:31%;display:none;pointer-events:auto;touch-action:none;z-index:6}
@@ -109,7 +117,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <p id="precheck">📱 Para jugar en AR abrí este enlace <b>directamente en Chrome Android</b>, no dentro de ChatGPT o WhatsApp (menú ⋮ → Abrir en Chrome). Requiere ARCore y un piso despejado; la demo 2D funciona sin AR. Ajustá la pista entre 0,8 y 1,28 m. No corras ni saltes: se sigue el <b>celular</b>, no tus pies.</p>
 </div></main>
 <div id="overlay">
-<svg id="tiles"></svg><svg id="rtSvg"></svg><canvas id="gameCanvas"></canvas>
+<svg id="tiles"></svg><svg id="rtSvg"></svg><canvas id="gameCanvas"></canvas><canvas id="fxCanvas" aria-hidden="true"></canvas>
 <div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Apuntá a una superficie real</div></div>
 <div id="reticle"></div><div id="mock"></div><button id="support"></button>
 <div id="calibrate">☝ DESLIZÁ · 🤏 ACHICÁ/AGRANDÁ · ↻ GIRÁ</div><div id="fallback"></div>
@@ -120,6 +128,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <div id="hud"><div class="hudRow"><div>PUNTOS<strong id="score">0</strong></div><div>COMBO<strong id="combo">×0</strong></div><div>ENERGÍA<strong id="energy">55%</strong></div><div>TIEMPO<strong id="clock">00:00</strong></div></div>
 <div id="progress"><div id="progressFill"></div></div><div id="forecast"></div></div>
 <div id="where">📍 VOS · CENTRO</div><div id="toast" aria-live="polite"></div>
+<div id="holdHud" aria-live="off"><div id="holdText">🎸 ¡MANTENÉ TU COLOR!</div><div id="holdTrack"><div id="holdFill"></div></div><div id="holdCount">SEGUÍ AHÍ…</div></div>
 <div id="prepare"><div id="calPanel"><div id="calTitle">👣 ¿SOBRE CUÁL COLOR ESTÁS?</div><div id="calHint">Elegí el círculo de tu posición real. Después mantené quieto el teléfono 1 segundo.</div>
 <div id="pickLanes"><button data-lane="0" style="--lane:#4cff85" aria-label="Carril verde">1</button><button data-lane="1" style="--lane:#ff5274" aria-label="Carril rojo">2</button><button data-lane="2" style="--lane:#ffd34c" aria-label="Carril amarillo">3</button><button data-lane="3" style="--lane:#438eff" aria-label="Carril azul">4</button></div>
 <div id="calProgress"><div id="calFill"></div></div></div>
@@ -144,11 +153,12 @@ window.addEventListener('unhandledrejection',function(e){
 });
 </script>
 <script defer src="/ritmo-engine.js?v=12"></script>
-<script defer src="/ritmo-core.js?v=12"></script>
+<script defer src="/ritmo-core.js?v=15"></script>
 <script defer src="/ritmo-catalog.js?v=12"></script>
 <script defer src="/ritmo-licensed.js?v=12"></script>
 <script defer src="/ritmo-despacito.js?v=12"></script>
-<script defer src="/ritmo-audio.js?v=12"></script>
-<script defer src="/ritmo-art.js?v=12"></script>
-<script defer src="/ritmo-runtime.js?v=12"></script>
+<script defer src="/ritmo-audio.js?v=15"></script>
+<script defer src="/ritmo-art.js?v=15"></script>
+<script defer src="/ritmo-fx.js?v=15"></script>
+<script defer src="/ritmo-runtime.js?v=15"></script>
 </body></html>
