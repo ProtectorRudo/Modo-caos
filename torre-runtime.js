@@ -3,7 +3,7 @@ import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
 const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
-let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null;
+let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,stableBodies=[],collapseSeconds=0,collapseReason=null;
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
@@ -14,7 +14,7 @@ function startPhysics(){
  world=new RAPIER.World({x:0,y:-9.81,z:0});world.timestep=1/60;world.integrationParameters.maxVelocityIterations=8;world.integrationParameters.maxPositionIterations=3;queue=new RAPIER.EventQueue(true);
  const floor=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.039,0));
  world.createCollider(RAPIER.ColliderDesc.cuboid(1.25,.079,.36).setFriction(.98).setRestitution(.035),floor);
- states=[];nextId=1;packRound=0;stock=[];selectedIndex=-1;trayTouch=null;twist=null;playPointers.clear();random=G.rng((Date.now()>>>0)^0x524f334);settleTime=0;stillTime=0;lastTop=0;top=0;hi=0;steps=0;acc=0;frames=[];replaying=false;art.reset();updateHUD();
+ states=[];nextId=1;packRound=0;stock=[];selectedIndex=-1;trayTouch=null;twist=null;playPointers.clear();stableBodies=[];collapseSeconds=0;collapseReason=null;random=G.rng((Date.now()>>>0)^0x524f334);settleTime=0;stillTime=0;lastTop=0;top=0;hi=0;steps=0;acc=0;frames=[];replaying=false;art.reset();updateHUD();
 }
 function updateLanding(){
  if(!active||!world)return;
@@ -120,7 +120,7 @@ function drop(){
  }
  if(!attached){world.removeRigidBody(body);showText('No se pudo cargar esa figura');return}
  const id=nextId++;states.push({id,shape,body});if(stock[selectedIndex])stock[selectedIndex].used=true;art.releaseActive();art.startBlock(id,shape);renderPack();
- active=null;lastTop=top;settleTime=0;stillTime=0;frames=[];phaseTo('settling');showText('EQUILIBRANDO...',700);
+ active=null;lastTop=top;settleTime=0;stillTime=0;collapseSeconds=0;collapseReason=null;frames=[];phaseTo('settling');showText('EQUILIBRANDO...',700);
  soundFX(370,.04,.11,'triangle');vibe(9);
 }
 function soundFX(freq,duration,amp=.11,type='sine'){
@@ -149,7 +149,7 @@ function readStates(){
   const b=s.body,p=b.translation(),q=b.rotation(),angle=2*Math.atan2(q.z,q.w);
   const bounds=G.bounds(s.shape,angle);const pieceTop=p.y+bounds.maxY*BLOCK;
   max=Math.max(max,pieceTop);
-  art.sync(s.id,p.x,p.y,angle);pieces.push({id:s.id,x:p.x,y:p.y,top:pieceTop,angle});
+  art.sync(s.id,p.x,p.y,angle);pieces.push({id:s.id,x:p.x,y:p.y,top:pieceTop,minY:p.y+bounds.minY*BLOCK,angle});
  }
  top=Math.max(0,max-.14);
  return pieces;
@@ -161,25 +161,61 @@ function physicsStep(){
  if(!world||paused||replaying)return;
  world.step(queue);steps++;collisionAudio();
  const pieces=readStates();
- if(phase==='settling'){
-  settleTime+=1/60;
-  frames.push(pieces.map(p=>({id:p.id,x:p.x,y:p.y,angle:p.angle})));if(frames.length>180)frames.shift();
+ if((phase==='playing'||phase==='settling')&&pieces.length){
+  // Remember the *actual* simulation immediately before failure for slow replay,
+  // including collapse occurring AFTER the next piece has already appeared.
+  frames.push(pieces.map(p=>({id:p.id,x:p.x,y:p.y,angle:p.angle})));
+  if(frames.length>210)frames.shift();
   const latest=states.at(-1);
-  const fast=states.some(s=>{const v=s.body.linvel(),a=s.body.angvel();return Math.hypot(v.x,v.y)>.24||Math.abs(a.z)>.45});
-  stillTime=fast?0:stillTime+1/60;
-  if(settleTime>1.15&&G.collapsed(pieces,lastTop,latest.id)){fail();return}
-  if(settleTime>1.2&&(stillTime>.5||settleTime>5.5)){
-   if(G.collapsed(pieces,lastTop,latest.id)){fail();return}
-   hi=Math.max(hi,top);saveRecord();updateHUD();
-   if(G.score(top)>=100&&Math.floor(G.score(top)/100)>Math.floor(G.score(lastTop)/100)){soundFX(860,.25,.1);showText('¡'+G.score(top)+' CM! ALTURA IMPARABLE',1100)}
-   makeActive();
+  if(phase==='settling')settleTime+=1/60;
+  const reading=G.diagnoseCollapse(pieces,lastTop,latest.id,stableBodies);
+  const canEvaluate=phase==='playing'||settleTime>.8;
+  if(reading.failed&&canEvaluate){
+   collapseReason=reading.reason;
+   collapseSeconds+=1/60;
+  }else{
+   collapseSeconds=Math.max(0,collapseSeconds-2/60);
+   if(!collapseSeconds)collapseReason=null;
+  }
+  // A 0.7 second grace period lets shaky but viable stacks recover; scattered
+  // solids or a genuinely toppled previous foundation stay failed.
+  if(collapseSeconds>.7){fail(collapseReason);return}
+  if(phase==='settling'){
+   const fast=states.some(s=>{
+    const v=s.body.linvel(),w=s.body.angvel();
+    return Math.hypot(v.x,v.y)>.24||Math.abs(w.z)>.45;
+   });
+   stillTime=fast?0:stillTime+1/60;
+   if(settleTime>1.2&&(stillTime>.55||settleTime>5.5)){
+    // Never hand out another piece while a collapse is still in progress.
+    if(reading.failed||collapseSeconds>.07){
+     if(settleTime>9){fail(collapseReason||reading.reason||'estructura_inestable')}
+     return;
+    }
+    const previousStableHeight=lastTop;
+    lastTop=top;
+    stableBodies=pieces.map(p=>({id:p.id,x:p.x,y:p.y,angle:p.angle}));
+    hi=Math.max(hi,top);saveRecord();updateHUD();
+    if(G.score(top)>=100&&Math.floor(G.score(top)/100)>Math.floor(G.score(previousStableHeight)/100)){
+     soundFX(860,.25,.1);showText('¡'+G.score(top)+' CM! ALTURA IMPARABLE',1100);
+    }
+    makeActive();
+   }
   }
  }
  if(steps%6===0)updateHUD();
 }
-function fail(){
- top=lastTop;saveRecord();phaseTo('replay');replayFrames=frames.slice(-90);replayTime=0;replaying=true;showText('¡SE VIENE ABAJO!',1800);soundFX(90,.32,.17,'sawtooth');vibe(45);
- if(!replayFrames.length){endReplay();return}
+function fail(reason='torre_derrumbada'){
+ if(phase!=='playing'&&phase!=='settling')return;
+ collapseReason=reason;
+ top=lastTop;saveRecord();
+ active=null;art.releaseActive();
+ phaseTo('replay');
+ replayFrames=frames.slice(-110);
+ replayTime=0;replaying=true;
+ showText('¡TORRE DERRUMBADA!',1800);
+ soundFX(90,.32,.17,'sawtooth');vibe(45);
+ if(!replayFrames.length)endReplay();
 }
 function endReplay(){replaying=false;phaseTo('finished');const pts=G.score(hi);$('finalHeight').textContent=pts+' cm';$('finalPieces').textContent=states.length;$('finalRecord').textContent=record+' cm';$('resultTitle').textContent=pts>=record&&pts>0?'¡NUEVO RÉCORD!':'TORRE DERRUMBADA';updateHUD()}
 function finish(title){saveRecord();phaseTo('finished');$('finalHeight').textContent=G.score(hi)+' cm';$('finalPieces').textContent=states.length;$('finalRecord').textContent=record+' cm';$('resultTitle').textContent=title}
