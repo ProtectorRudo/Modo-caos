@@ -60,6 +60,23 @@ const server=http.createServer((req,res)=>{
  await page.goto('http://127.0.0.1:'+server.address().port+'/rebote.html',{waitUntil:'load'});
  await page.waitForFunction(()=>!!__ReboteDebug,null,{timeout:30000});
  assert.equal(await page.evaluate(()=>__ReboteDebug.clearAlpha),0,'AR framebuffer must preserve transparent camera passthrough');
+ // Permission rejection is an expected real-world failure, not a silent click.
+ await page.evaluate(()=>{
+  window.__XRRequest= navigator.xr.requestSession;
+  navigator.xr.requestSession=()=>Promise.reject(new DOMException('Camara denegada','NotAllowedError'));
+ });
+ await page.locator('#startAR').click();
+ await page.waitForFunction(()=>!document.querySelector('#arProblem').hidden,null,{timeout:4000});
+ assert.match(await page.locator('#arProblemTitle').innerText(),/FALTA PERMISO/);
+ assert.equal(await page.evaluate(()=>__ReboteDebug.stage),'home','denied camera leaves menu usable');
+ // Pending system permission must show visible progress and a cancel route.
+ await page.evaluate(()=>{navigator.xr.requestSession=()=>new Promise(()=>{})});
+ await page.locator('#startAR').click();
+ await page.waitForFunction(()=>__ReboteDebug.stage==='connecting',null,{timeout:2000});
+ assert(await page.locator('#arConnecting').isVisible(),'loading UI is visible while permission is pending');
+ await page.locator('#cancelStartAR').click();
+ await page.waitForFunction(()=>__ReboteDebug.stage==='home',null,{timeout:2000});
+ await page.evaluate(()=>{navigator.xr.requestSession=window.__XRRequest});
  await page.locator('#startAR').click();
  await page.waitForFunction(()=>__ReboteDebug.stage==='edit',null,{timeout:7500});
  assert(await page.locator('#editbar').isVisible(),'AR edit controls visible');
