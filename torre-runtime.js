@@ -76,10 +76,10 @@ function startPhysics(){
  if(modeId==='heavy'){
   // Rigid beam constrained to rotate around Z, with gravity, impacts and a
   // weak real spring torque in physicsStep. This is not a scripted tilt effect.
-  tiltBody=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,.039,0).setAngularDamping(2.4));
+  tiltBody=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,.039,0).setAngularDamping(.8));
   tiltBody.setEnabledTranslations(false,false,false,true);
   tiltBody.setEnabledRotations(false,false,true,true);
-  world.createCollider(RAPIER.ColliderDesc.cuboid(1.18,.079,.36).setDensity(165).setFriction(.91).setRestitution(.01),tiltBody);
+  world.createCollider(RAPIER.ColliderDesc.cuboid(1.18,.079,.36).setDensity(8).setFriction(.91).setRestitution(.01),tiltBody);
   baseHalf=1.18;art.setBoardHalf(baseHalf);
  }else{
   baseBody=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.039,0));
@@ -330,7 +330,7 @@ function physicsStep(){
  if(modeId==='heavy'&&tiltBody){
   const angle=2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w);
   const velocity=tiltBody.angvel().z;
-  tiltBody.addTorque({x:0,y:0,z:-2.8*angle-.9*velocity},true);
+  tiltBody.addTorque({x:0,y:0,z:-3.8*angle-1.15*velocity},true);
  }
  world.step(queue);steps++;collisionAudio();
  if(tiltBody){
@@ -640,8 +640,13 @@ function renderARSpatial(frame,time){
   return Number.isFinite(nx)&&Number.isFinite(ny)?{x:(nx+1)*width*.5,y:(1-ny)*height*.5}:null;
  }
  const map=coords=>coords.map(p=>project(...p));
+ function boardProject(coords){
+  const a=tiltBody?2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w):0;
+  const c=Math.cos(a),q=Math.sin(a);
+  return map(coords.map(([x,y,z])=>[x*c-(y-.039)*q,x*q+(y-.039)*c+.039,z]));
+ }
  const fmt=p=>p.x.toFixed(1)+','+p.y.toFixed(1);
- const topPlane=map([[-baseHalf,.145,-.36],[baseHalf,.145,-.36],[baseHalf,.145,.36],[-baseHalf,.145,.36]]);
+ const topPlane=boardProject([[-baseHalf,.145,-.36],[baseHalf,.145,-.36],[baseHalf,.145,.36],[-baseHalf,.145,.36]]);
  const center=project(0,.16,0);
  const controlsTop=phase==='placing'?ui.arControls.getBoundingClientRect().top:height;
  const safeBottom=Math.max(175,Math.min(height-20,controlsTop-16));
@@ -684,12 +689,12 @@ function renderARSpatial(frame,time){
   return '<'+tag+' points="'+points.map(fmt).join(' ')+'" fill="'+(fill||'none')+
    '" stroke="'+stroke+'" stroke-width="'+sw+'" opacity="'+alpha+'" stroke-linejoin="round"/>';
  }
- shapes.push(poly(map([[-baseHalf,-.01,.36],[baseHalf,-.01,.36],[baseHalf,.145,.36],[-baseHalf,.145,.36]]),'#07546c','#74fff1',4,.75));
+ shapes.push(poly(boardProject([[-baseHalf,-.01,.36],[baseHalf,-.01,.36],[baseHalf,.145,.36],[-baseHalf,.145,.36]]),'#07546c','#74fff1',4,.75));
  shapes.push(poly(topPlane,'#00d8ca','#aafff6',5,.75));
  for(const x of [-.8,-.4,0,.4,.8].map(t=>t*baseHalf))
-  shapes.push(poly(map([[x,.149,-.35],[x,.149,.35]]),null,'#b8fff5',1.6,.92,false));
+  shapes.push(poly(boardProject([[x,.149,-.35],[x,.149,.35]]),null,'#b8fff5',1.6,.92,false));
  for(const z of [-.24,0,.24])
-  shapes.push(poly(map([[-baseHalf*.99,.149,z],[baseHalf*.99,.149,z]]),null,'#b8fff5',1.6,.92,false));
+  shapes.push(poly(boardProject([[-baseHalf*.99,.149,z],[baseHalf*.99,.149,z]]),null,'#b8fff5',1.6,.92,false));
  function piece(shape,x,y,angle,alpha=1){
   const front=DEPTH*.5,back=-front,color=XR_COLORS[shape.tone%XR_COLORS.length];
   for(const polygon of shape.parts){
@@ -755,7 +760,7 @@ function renderARSpatial(frame,time){
  const html=[tile(topPlane,'#00ffe2',.6)];
  for(let i=0;i<4;i++)html.push(edge(topPlane[i],topPlane[(i+1)%4]));
  for(const x of [-.4,0,.4].map(t=>t*baseHalf)){
-  const v=map([[x,.153,-.36],[x,.153,.36]]);
+  const v=boardProject([[x,.153,-.36],[x,.153,.36]]);
   html.push(edge(v[0],v[1],'#c0fff7',2));
  }
  if(phase==='placing'){
