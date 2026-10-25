@@ -36,4 +36,17 @@ assert(hold,'Debe existir al menos una sostenida');
 C.start(g);for(let i=0;i<g.notes.length&&g.notes[i].id<hold.id;i++){const n=g.notes[i];C.setPosition(g,n.lane,n.at);C.tick(g,n.at+.3)}
 C.setPosition(g,hold.lane,hold.at);C.tick(g,hold.at);assert(g.holdActive,'La nota se mantiene');
 C.tick(g,hold.at+hold.hold+.02);assert.equal(hold.status,'PERFECTO');
-console.log('OK: 36 mapas deterministas, dificultad, movimientos, aciertos, fallos, pausa, fin y sostenidas');
+
+for(const path of ['correct','skip-motion']){
+ const s=C.make('neon','caos',.32);C.start(s);
+ const slide=s.notes.find(n=>n.type==='slide');assert(slide,'Faltan notas deslizantes');
+ for(const n of s.notes.slice(0,slide.id)){C.setPosition(s,n.lane,n.at);C.tick(s,n.at)}
+ const st=slide.at-slide.slideDuration;
+ C.setPosition(s,path==='correct'?slide.fromLane:slide.lane,st);C.tick(s,st);
+ C.setPosition(s,path==='correct'?(slide.fromLane+slide.lane)/2:slide.lane,st+slide.slideDuration*.5);C.tick(s,st+slide.slideDuration*.5);
+ C.setPosition(s,slide.lane,slide.at);C.tick(s,slide.at);C.tick(s,slide.at+.16);
+ assert.equal(slide.status,path==='correct'?'PERFECTO':'FALLO','Validación del deslizamiento');
+}
+assert(C.chart('neon','caos',.32).notes.some(n=>n.type==='caos'),'Notas CAOS');
+console.log('OK: 36 mapas, distancias, aciertos, fallos, sostenidas, slides, notas CAOS, pausa y fin');
+
