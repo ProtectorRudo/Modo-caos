@@ -143,6 +143,14 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 #demolitionRoundBar{width:100%;height:6px;display:block;accent-color:#5af7ca}
 #overlay[data-mode="demolition"] #modeStatus{max-width:94vw;font-size:10px}
 @media(max-height:690px){#demolitionRoundHud{top:calc(max(15px,env(safe-area-inset-top)) + 107px);padding:4px 8px}}
+
+/* Clear, readable round scoring without covering pieces or accepting taps. */
+#demolitionRoundSummary{position:absolute;top:41%;left:50%;transform:translate(-50%,-50%);z-index:19;min-width:min(305px,82vw);max-width:90vw;padding:15px 18px;border-radius:20px;border:2px solid #ffdf84;background:linear-gradient(155deg,#0b2336f2,#14354af2);box-shadow:0 0 42px #0009,0 0 30px #41f9cf66;color:white;text-align:center;pointer-events:none;display:grid;gap:5px}
+#demolitionRoundSummary[hidden]{display:none!important}
+#demolitionRoundSummary strong{font-size:clamp(27px,8vw,43px);color:#ffe187;letter-spacing:.4px;text-shadow:0 2px 12px #0008}
+#demolitionRoundSummary .round-summary-title{font-size:12px;color:#ccfff2;font-weight:1000;letter-spacing:1.1px}
+#demolitionRoundSummary .round-summary-detail{font-size:12px;color:#d5e6ed;font-weight:850}
+#overlay[data-mode="demolition"] #notice{top:34%;font-size:13px}
 </style></head>
 <body>
 <canvas id="arena" aria-label="Escenario tridimensional de Torre Caos"></canvas>
@@ -168,7 +176,7 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
  <canvas id="copyCanvas" width="320" height="274" role="img" aria-label="Imagen de la estructura que tenés que copiar"></canvas>
  <div class="copyRefFooter"><span>CONSTRUILA APARTE</span><strong id="copyProgress">0/3</strong></div>
  <div id="copyInstruction">Mirá la imagen y armala en tu pista</div>
-</div><div id="modeStatus" hidden></div><div id="demolitionRoundHud" hidden><span id="demolitionRoundLabel">RONDA 1/10 · CASTILLO LOCO</span><progress id="demolitionRoundBar" max="10" value="0" aria-label="Rondas completadas"></progress></div><div id="notice" role="status" aria-live="polite"></div>
+</div><div id="modeStatus" hidden></div><div id="demolitionRoundHud" hidden><span id="demolitionRoundLabel">RONDA 1/10 · CASTILLO LOCO</span><progress id="demolitionRoundBar" max="10" value="0" aria-label="Rondas completadas"></progress></div><div id="demolitionRoundSummary" role="status" aria-live="polite" hidden><span class="round-summary-title" id="demolitionSummaryTitle">RONDA COMPLETADA</span><strong id="demolitionSummaryPoints">+0 PTS</strong><span class="round-summary-detail" id="demolitionSummaryDetail">¡BUEN DERRUMBE!</span></div><div id="notice" role="status" aria-live="polite"></div>
 <canvas id="mini" width="155" height="244" aria-label="Vista auxiliar de torre"></canvas><button id="miniBtn">AMPLIAR VISTA</button>
 <div id="tip" hidden>TOCÁ = 90° · DOS DEDOS = GIRAR LIBRE · ARRASTRÁ Y SOLTÁ</div>
 <div id="pieceDock" aria-label="Piezas disponibles" hidden>

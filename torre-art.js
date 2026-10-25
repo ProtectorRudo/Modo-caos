@@ -59,7 +59,12 @@ export class TorreArt{
    this.target.add(figure);
   }
  }
- setDemolitionStyle(enabled){this.demolition=!!enabled;this.clearBlockHighlight()}
+ setDemolitionStyle(enabled){this.demolition=!!enabled;this.clearBlockHighlight();
+  // The board is purely decorative. Its old upper rim (.145 m) obscured
+  // the real first row resting on the physics floor (.118 m).
+  // Lower ONLY the rendered board; never move Rapier bodies or the AR anchor.
+  this.stand.position.y=this.demolition?-.04:0;
+ }
  clearBlockHighlight(){
   if(this.selectedBlock!==null){
    const m=this.objects.get(this.selectedBlock);
