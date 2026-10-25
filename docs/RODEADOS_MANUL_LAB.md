@@ -35,3 +35,13 @@ Si se desea sustituir permanentemente a los robots de producción, hace falta di
 ## Pruebas que NO sustituyen un móvil real
 
 `tests/rodeados-manul-preview.test.cjs` prueba en Chromium móvil simulado importación real de archivos de glTF binario sintético y ZIP estilo Sketchfab, reemplazo por instancias GLTFLoader, disparos, ammo infinita y retorno al modelo original. El GLB sintético del test **NO es Robot M.A.N.U.L.**. Las pruebas físicas y visuales del asset real continúan pendientes.
+
+## LAB V13 — persistencia local, orientación y presupuesto Android (25/10/2026)
+
+- El ZIP original de Sketchfab o el GLB que el usuario elija se guarda por defecto **solo en IndexedDB del navegador del celular**; no se envía a GitHub, Supabase, Vercel ni a un servidor. «Recordar en este celular» permite desactivar el guardado antes de importar.
+- La siguiente visita restaura el archivo local automáticamente y activa otra vez el adaptador visual. «Restaurar robots y borrar modelo guardado» vacía la caché y regresa al render procedural incluso durante una partida.
+- Selector 0°, 90°, 180° y 270° para corregir orientación frontal del rig sin recalibrar la cámara, reiniciar las posiciones, ni tocar el cálculo de rayos de disparo. Es **solo visual**.
+- Límite móvil de **4 personajes importados animados simultáneos**; robots adicionales usan los modelos originales y permanecen visibles y vulnerables. Se conservan posiciones, puntajes por cabeza y reglas de sala.
+- El lector comprueba 55 MB comprimidos, 140 MB descomprimidos y como máximo 160 archivos para prevenir paquetes abusivos o demasiado pesados. Se mantiene reducción de texturas a 1024 px.
+- `tests/rodeados-manul-preview.test.cjs` comprueba carga ZIP glTF + BIN y GLB, recarga completa de página desde IndexedDB sin volver a seleccionar el archivo, selector de orientación, cuatro clones simultáneos, fallback de otros cuatro enemigos, borrado local y vuelta al render normal.
+- **No se dispone del asset auténtico M.A.N.U.L.** porque Sketchfab requiere descarga autenticada. Pruebas automatizadas utilizan geometría legal sintética, no la apariencia real del modelo. Para publicar como arte predeterminado se requiere el archivo real y prueba física Android AR.
