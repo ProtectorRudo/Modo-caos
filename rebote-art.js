@@ -102,13 +102,27 @@ export function createReboteArt(T,scene){
  }
  function buildRobot(e){
   const bot=new T.Group();botLayer.add(bot);
+  const duelColors=[0x54f0db,0xffb453,0xd98fff,0x5c9aff,0xff704e,0xffd76b];
+  const tierColor=e.duel?duelColors[e.duelLevel%duelColors.length]:0x49cacc;
   // Separate ground footprint gives robots contact with the actual detected floor.
   const base=new T.Group();bot.add(base);
   const pad=new T.Mesh(new T.CircleGeometry(.43,32),new T.MeshBasicMaterial({color:0x142d3c,transparent:true,opacity:.31,depthWrite:false}));
   pad.rotation.x=-Math.PI/2;pad.position.y=.013;base.add(pad);
-  const padRing=new T.Mesh(new T.TorusGeometry(.39,.009,5,48),new T.MeshBasicMaterial({color:0x49cacc,transparent:true,opacity:.53,depthWrite:false}));
+  const padRing=new T.Mesh(new T.TorusGeometry(.39,.009,5,48),new T.MeshBasicMaterial({color:tierColor,transparent:true,opacity:.70,depthWrite:false}));
   padRing.rotation.x=-Math.PI/2;padRing.position.y=.023;base.add(padRing);
   const mech=new T.Group();bot.add(mech);
+  if(e.duel){
+   // Distinct tier identity without downloading heavy GLB skins: different halo
+   // and shoulder insignias, still anchored to the physical floor.
+   const accent=new T.MeshBasicMaterial({color:tierColor,transparent:true,opacity:.92,depthWrite:false});
+   for(const sx of [-1,1]){
+    const stripe=new T.Mesh(new T.BoxGeometry(.095,.036,.02),accent);
+    stripe.position.set(sx*.46,1.57,.24);mech.add(stripe);
+   }
+   const tierHalo=new T.Mesh(new T.TorusGeometry(.41,.013,6,48),accent);
+   tierHalo.rotation.x=-Math.PI/2;tierHalo.position.y=.028;
+   base.add(tierHalo);
+  }
   // Feet and articulated legs — 1.7m human-sized silhouette instead of block toy.
   const legs=[];
   for(const sign of [-1,1]){
@@ -331,6 +345,8 @@ export function createReboteArt(T,scene){
   }
  }
  function effect(e){
+  if(e.type==='duel-intro')spark({x:e.x,y:1.35,z:e.z},[0x54f0db,0xffb453,0xd98fff,0x5c9aff,0xff704e,0xffd76b][e.level]||0x5bffe1,23,.72,1.2);
+  if(e.type==='duel-ko')spark({x:e.x||0,y:1.3,z:e.z||-2.3},0xffd674,34,.65,1.5);
   if(e.type==='return'){
    const at={x:e.x??0,y:e.y??1.5,z:e.z??0};
    shockwave(at,e.grade);
