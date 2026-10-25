@@ -1,7 +1,7 @@
 name: REBOTE MORTAL — quality gate
 on:
   push:
-    branches: ['feat/rebote-mortal-ar', main]
+    branches: ['feat/rebote-mortal-ar', 'fix/rebote-finalizacion-v2', main]
     paths: ['rebote*', 'tests/rebote*', '.github/workflows/rebote-tests.yml', 'index.html']
   pull_request:
     paths: ['rebote*', 'tests/rebote*', '.github/workflows/rebote-tests.yml']
