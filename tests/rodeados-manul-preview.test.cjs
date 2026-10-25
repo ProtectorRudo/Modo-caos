@@ -108,12 +108,8 @@ const server=http.createServer((req,res)=>{
   await page.locator('#pause').tap();
   // Force eight visually distinct enemies while paused; test quality
   // fallback budget does NOT remove enemies or suppress hitboxes.
-  await page.evaluate(()=>{
-   const g=__RodeadosDebug.game,base=g.enemies[0];
-   for(let i=0;i<8;i++)g.enemies.push({...base,id:900+i,x:(i%4-1.5)*1.15,z:-2.0-(i>3?.5:0),age:1.5,portal:0});
-  });
-  await page.waitForFunction(()=>__RodeadosManulPreview.actorStatus.robots>=8,null,{timeout:3500});
-  const budget=await page.evaluate(()=>__RodeadosManulPreview.actorStatus);
+  const budget=await page.evaluate(()=>__RodeadosManulPreview.testVisualBudget(8));
+
   assert.equal(budget.external,4,'only 4 premium animated models can render on mobile: '+JSON.stringify(budget));
   assert(budget.fallback>=4,'remaining enemies use fast original visuals rather than becoming invisible');
   await page.locator('#manulFallback').evaluate(el=>el.click());
