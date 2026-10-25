@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=15';
+import {createRodeadosArt} from './rodeados-art.js?v=16';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
@@ -15,7 +15,11 @@ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(inner
 $('world').appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xbbfcff,0x142c46,2));
 const key=new THREE.DirectionalLight(0xfff0ce,2.2);key.position.set(-2.5,5,1.8);scene.add(key);
-const cool=new THREE.PointLight(0x44fce0,1.7,7);cool.position.set(1,2,-1);scene.add(cool);
+const cool=new THREE.PointLight(0x44fce0,1.25,7);cool.position.set(1,2,-1);scene.add(cool);
+// Dynamic virtual warning light: reacts to attacks and explosions, never
+// alters the actual camera feed, AR anchor, floor geometry or calibration.
+const alertLamp=new THREE.PointLight(0xff6538,0,3.9,2);
+alertLamp.position.set(0,1.15,0);scene.add(alertLamp);
 if(!UX)throw Error('RODEADOS: falta el radar 360');
 const art=createRodeadosArt(THREE,scene,camera);
  // No file picker in the consumer experience. Internal asset QA remains
