@@ -104,3 +104,10 @@ Para cubrir teléfonos donde incluso el segundo lienzo WebGL no llegue a mostrar
 - Victoria tras seis KOs; entre rivales hay una pausa de transición de unos dos segundos, se borran ataques pendientes, aparece un nuevo robot con insignia propia y no se reinicia ni la cámara ni el anclaje AR. Barra de salud por rival, número 1/6–6/6, frases de entrada, premio de KO y récord separado.
 - Duración máxima de duelos: 210 s; tres vidas conservadas entre rivales; sin carreras, saltos ni rastreo corporal, usando el teléfono como control.
 - Pruebas: seis muertes reales mediante colisión barrida y transición automática, límite de un enemigo/una pelota, habilidad progresiva, timeouts y regresiones de Modo Clásico, Chromium 2D y XR simulado. Prueba física Android pendiente.
+
+## V11 — Sincronización del rebote y controles táctiles (25/10/2026)
+
+- Motivo: en Android una presión durante el acercamiento podía perderse por una ventana de 1,18 m y un límite de puntería lateral de 27 cm. Se amplió la tolerancia de captura a 1,38 m y la desviación a 37 cm (ajustada por distancia). El nivel PERFECTO sigue exigiendo puntería precisa.
+- Buffer por proyectil: cuando la pelota real está cerca (máximo 1,83 m), se aproxima y está en la mira, un toque ligeramente anticipado se almacena hasta 190–280 ms y se ejecuta en el mismo proyectil cuando entra en ventana. No rebota balones lejanos, señuelos, enemigos nuevos ni ataques fuera de la mira; una presión equivale a un intento.
+- Botón DEVOLVER conservado y una zona táctil invisible desde el 38% de la pantalla hasta abajo: dedo/pulgar pueden tocar cualquier lugar libre de ese sector. PAUSA y ajustes conservan sus controles. El evento pointerdown reacciona sin la demora del click; se suprime el click duplicado. Al registrar el toque anticipado se confirma con vibración breve y texto.
+- Tests automáticos: input buffer, simulación a 90 Hz, no falsos positivos, misma pelota, conteo de intentos, pequeño desplazamiento lateral, zona de toque en Chromium Android emulado, XR sintético y regresiones.

@@ -72,6 +72,13 @@ body.duelMode #radar{top:calc(242px + env(safe-area-inset-top))}
 
 #touch{position:absolute;inset:10% 0 20%;touch-action:none;pointer-events:none}
 .edit #touch{pointer-events:auto}
+#tapZone{position:absolute;top:38%;bottom:0;left:0;right:0;z-index:2;display:none;
+ pointer-events:auto;touch-action:manipulation;background:transparent;
+ -webkit-user-select:none;user-select:none}
+#tapHint{position:absolute;bottom:calc(102px + env(safe-area-inset-bottom));left:0;right:0;
+ text-align:center;font-size:10px;font-weight:900;letter-spacing:1.6px;color:#c4fff1;
+ text-shadow:0 2px 6px #001b;pointer-events:none;opacity:.75}
+#tapZone:active{background:linear-gradient(transparent 65%,#50fde915)}
 #hud{position:absolute;top:max(9px,env(safe-area-inset-top));left:10px;right:10px;display:none;justify-content:space-between;align-items:center;gap:6px;text-align:center;text-shadow:0 2px 10px #001}
 .stat{background:#071d29a8;backdrop-filter:blur(9px);border:1px solid #8dfef43a;border-radius:11px;padding:5px 8px;min-width:62px}
 .stat label{font-weight:850;font-size:9px;color:#b3dfe7;letter-spacing:1px;display:block}
@@ -109,8 +116,10 @@ body.duelMode #radar{top:calc(242px + env(safe-area-inset-top))}
 #radarYou{position:absolute;left:calc(50% - 4px);top:calc(50% - 4px);width:8px;height:8px;border-radius:50%;
  background:#62ffec;box-shadow:0 0 8px #77fff5;z-index:4}
 #cue{position:absolute;bottom:calc(117px + env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;font-size:clamp(12px,3.5vw,16px);font-weight:900;color:#effffa;text-shadow:0 2px 9px #000;letter-spacing:.02em}
-#controls{position:absolute;bottom:calc(19px + env(safe-area-inset-bottom));left:12px;right:12px;display:none;justify-content:center;align-items:center;gap:12px}
-#returnBtn{width:min(65vw,265px);height:78px;border-radius:21px;background:linear-gradient(135deg,#d4fff7,#62eadd 68%,#2fb7bd);color:#06383c;box-shadow:0 4px 0 #137b83,0 8px 25px #1cfce044;border:1px solid #d6fffd;font-size:23px;letter-spacing:1px;backdrop-filter:blur(12px)}
+#controls{position:absolute;bottom:calc(19px + env(safe-area-inset-bottom));left:12px;right:12px;display:none;
+ justify-content:center;align-items:center;gap:12px;z-index:4;pointer-events:none}
+#controls button{pointer-events:auto}
+#returnBtn{width:min(66vw,265px);height:76px;border-radius:21px;background:linear-gradient(135deg,#d4fff7,#62eadd 68%,#2fb7bd);color:#06383c;box-shadow:0 4px 0 #137b83,0 8px 25px #1cfce044;border:1px solid #d6fffd;font-size:23px;letter-spacing:1px;backdrop-filter:blur(12px)}
 #returnBtn.hot{background:linear-gradient(135deg,#fff5b6,#ffe072 74%,#ffaa5a);box-shadow:0 5px 23px #ffda75a0}
 #pauseBtn{width:44px;height:48px;padding:0;font-size:20px;border-radius:13px}
 #editbar{position:absolute;bottom:calc(17px + env(safe-area-inset-bottom));left:12px;right:12px;display:none;flex-direction:column;align-items:stretch;gap:9px}
@@ -120,7 +129,7 @@ body.duelMode #radar{top:calc(242px + env(safe-area-inset-top))}
 #readybar button{min-height:58px;font-size:19px}
 #message{position:absolute;top:46%;left:12px;right:12px;text-align:center;color:#dcfff7;text-shadow:0 3px 15px black;font-size:23px;font-weight:1000;pointer-events:none}
 #phase{position:absolute;top:141px;left:11%;right:11%;text-align:center;font-size:10px;letter-spacing:2px;color:#e6e3ff;font-weight:950}
-#settings{position:absolute;right:12px;top:calc(166px + env(safe-area-inset-top));display:flex;gap:6px}
+#settings{position:absolute;right:12px;top:calc(166px + env(safe-area-inset-top));display:flex;gap:6px;z-index:4}
 #settings button{min-height:38px;border-radius:11px;padding:4px 10px;font-size:16px;background:#0d3249ac;color:#eaffff}
 #result{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#03121fe0;z-index:11;padding:20px;pointer-events:auto}
 .resultCard{width:min(100%,410px);border:1px solid #5ffde0;background:linear-gradient(147deg,#14465b,#071c31);border-radius:24px;box-shadow:0 16px 80px #000c;text-align:center;padding:24px}
@@ -164,6 +173,8 @@ body.duelMode #radar{top:calc(242px + env(safe-area-inset-top))}
 <button id="cancelStartAR" class="secondary" type="button">← VOLVER AL MENÚ</button>
 </div><div id="screenFx" aria-hidden="true"></div>
 <div id="touch" aria-label="Mover, girar o ajustar la pista con gestos"></div>
+<div id="tapZone" role="button" aria-label="Tocá la zona inferior para devolver la pelota" tabindex="0">
+<span id="tapHint">↯ TOCÁ CUALQUIER PARTE DE ABAJO</span></div>
 <div id="hud"><div class="stat"><label>PUNTOS</label><strong id="score">0</strong></div><div class="stat"><label>ESCUDO</label><strong id="lives">♥♥♥</strong></div><div class="stat"><label>COMBO</label><strong id="combo">×0</strong></div><div class="stat"><label>TIEMPO</label><strong id="clock">88</strong></div></div>
 <div id="duelHud" aria-live="polite"><div class="duelProgress" id="duelStage">RIVAL 1 DE 6</div><strong id="duelName">CHISPA · EL APRENDIZ</strong><div id="duelTrack"><div id="duelHealth"></div></div></div>
 <div id="status">BUSCANDO PISO…</div><div id="notice"></div><div id="phase"></div>
@@ -173,7 +184,7 @@ body.duelMode #radar{top:calc(242px + env(safe-area-inset-top))}
 <div id="settings"><button id="sound" aria-label="Silenciar sonido">🔊</button><button id="center" style="display:none" aria-label="Recentrar">⌖</button></div>
 <div id="editbar"><div class="row"><button id="minus" class="secondary">－ PEQUEÑA</button><button id="plus" class="secondary">＋ GRANDE</button><button id="turn" class="secondary">↻ GIRAR</button></div><button id="fix">📍 FIJAR ARENA</button><button id="exit" class="secondary">← SALIR</button></div>
 <div id="readybar"><button id="begin">⚡ ¡EMPEZAR!</button><button id="adjust" class="secondary">⚙ AJUSTAR ARENA</button></div>
-<div id="controls"><button id="returnBtn">DEVOLVER</button><button id="pauseBtn" class="secondary" aria-label="Pausar">Ⅱ</button></div>
+<div id="controls"><button id="returnBtn">↯ DEVOLVER</button><button id="pauseBtn" class="secondary" aria-label="Pausar">Ⅱ</button></div>
 <div id="result"><div class="resultCard"><div class="eyebrow">MODO CAOS · RESULTADO</div><h2 id="outcome">MISIÓN COMPLETADA</h2><p id="summary"></p><div id="stats"></div><button id="rematch">⚡ REVANCHA</button><button id="share" class="secondary">COMPARTIR PUNTUACIÓN</button><button id="quit" class="secondary">← MENÚ DE JUEGOS</button></div></div>
 </div></section>
 <script>
@@ -207,5 +218,5 @@ body.duelMode #radar{top:calc(242px + env(safe-area-inset-top))}
  });
 })();
 </script>
-<script src="./rebote-core.js?v=10"></script><script type="module" src="./rebote-runtime.js?v=10"></script>
+<script src="./rebote-core.js?v=11"></script><script type="module" src="./rebote-runtime.js?v=11"></script>
 </body></html>

@@ -52,7 +52,7 @@ const server=http.createServer((req,res)=>{
  assert(await page.locator('#startAR').isVisible());
  assert.equal(await page.locator('script[src^="./rebote-core.js"]').count(),1,'core URL relative for external HTTPS mirrors');
  assert.equal(await page.locator('script[src^="./rebote-runtime.js"]').count(),1,'WebXR runtime URL relative for CDN and Pages');
- assert.equal(await page.locator('script[src="./rebote-runtime.js?v=10"]').count(),1,'duel edition V10 is loaded');
+ assert.equal(await page.locator('script[src="./rebote-runtime.js?v=11"]').count(),1,'responsive mobile V11 loaded');
 
  assert.equal(await page.locator('a[href="https://modo-caos-eta.vercel.app/"]').count(),1,'fallback play links back to original arcade menu');
  // An embedded Android WebView may not expose navigator.xr at all.
@@ -67,6 +67,16 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__ReboteDebug.game.elapsed>.15,null,{timeout:12000});
  assert.equal(await page.locator('#returnBtn').isVisible(),true);
  assert.equal(await page.locator('#reticle').isVisible(),true);
+ assert(await page.locator('#tapZone').isVisible(),'large thumb-friendly return zone exists');
+ assert(await page.evaluate(()=>__ReboteDebug.tapZoneVisible),'zone is active during game only');
+ const attemptsBeforeZone=await page.evaluate(()=>__ReboteDebug.returnAttempts);
+ await page.locator('#tapZone').tap({position:{x:26,y:24}});
+ assert.equal(await page.evaluate(()=>__ReboteDebug.returnAttempts),attemptsBeforeZone+1,'one tap anywhere low on screen produces one attempt');
+ await page.waitForTimeout(185); // intentionally outside the anti-double-tap cooldown
+ const attemptsBeforeButton=await page.evaluate(()=>__ReboteDebug.returnAttempts);
+ await page.locator('#returnBtn').tap();
+ assert.equal(await page.evaluate(()=>__ReboteDebug.returnAttempts),attemptsBeforeButton+1,'dedicated button still works without double-fire');
+
  assert(await page.locator('#duelHud').isVisible(),'duel HUD visible during gameplay');
  assert.equal(await page.locator('#duelStage').innerText(),'RIVAL 1 DE 6','duel title on screen');
  assert.match(await page.locator('#duelName').innerText(),/CHISPA/);

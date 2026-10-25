@@ -28,6 +28,7 @@ function make(opts={}){
   enemiesKilled:0,shotIndex:0,nextShot:2.25,projectiles:[],delayed:[],enemies:[],effects:[],
   eye:V(0,1.55,.05),aim:V(0,0,-1),enemyId:0,projectileId:0,
   protection:0,lastResult:'',reason:'',bossSpawned:false,bossDefeated:false,stats:{missed:0,grazed:0},lastShotAt:-100,
+  bufferedShot:null,bufferedHits:0,
   duelLevel:0,duelWins:0,nextDuelAt:null,duelChampion:false};
 }
 function begin(g){
@@ -141,30 +142,54 @@ function sweptPoint(a,b,c){const ab=sub(b,a),t=clamp(dot(sub(c,a),ab)/Math.max(1
 function targetPoint(e){return V(e.x,1.54,e.z)}
 function quality(g,p){
  const delta=sub(p.pos,g.eye),distance=len(delta);
- if(distance>1.18)return {ok:false,reason:'ESPERÁ',distance};
- if(distance<.19)return {ok:false,reason:'MUY TARDE',distance};
+ if(distance>1.38)return {ok:false,reason:'ESPERÁ',distance};
+ if(distance<.16)return {ok:false,reason:'MUY TARDE',distance};
  const aimDistance=sweptPoint(g.eye,add(g.eye,mul(g.aim,Math.max(.25,distance)+.25)),p.pos);
- if(aimDistance>Math.max(.27,distance*.15))return {ok:false,reason:'APUNTÁ A LA ESFERA',distance,aimDistance};
- const perfect=distance>=.42&&distance<=.74&&aimDistance<.23;
- const graze=distance<.28||distance>1.02||aimDistance>.235;
+ if(aimDistance>Math.max(.37,distance*.21))return {ok:false,reason:'APUNTÁ A LA ESFERA',distance,aimDistance};
+ const perfect=distance>=.42&&distance<=.74&&aimDistance<.20;
+ const graze=distance<.29||distance>1.12||aimDistance>.28;
  return {ok:true,grade:perfect?'PERFECTO':graze?'ROCE':'BUENO',distance,aimDistance};
 }
-function returnShot(g){
+function returnShot(g,fromBuffer=false){
  if(g.state!=='playing'||g.paused)return {ok:false,reason:'NO DISPONIBLE'};
- if(g.elapsed-g.lastShotAt<.18)return {ok:false,reason:'ESPERÁ'};
- g.lastShotAt=g.elapsed;g.attempts++;
- const inbound=g.projectiles.filter(p=>!p.dead&&!p.returning&&p.type!=='fake');
+ if(!fromBuffer){
+  if(g.elapsed-g.lastShotAt<.13)return {ok:false,reason:'ESPERÁ'};
+  g.lastShotAt=g.elapsed;g.attempts++;
+  g.bufferedShot=null; // A fresh tap replaces an earlier queued attempt.
+ }
+ const inbound=g.projectiles.filter(p=>!p.dead&&!p.returning&&p.type!=='fake'&&
+   (!fromBuffer||p.id===g.bufferedShot?.id));
  let best=null,bestResult=null;
  for(const p of inbound){
    const q=quality(g,p);
-   if(!best||q.ok&&!bestResult.ok||q.ok===bestResult.ok&&q.distance<bestResult.distance){best=p;bestResult=q}
+   if(!best||(q.ok&&!bestResult.ok)||(q.ok===bestResult.ok&&q.distance<bestResult.distance)){
+    best=p;bestResult=q;
+   }
  }
- if(!best){g.lastResult='SIN ESFERA';return {ok:false,reason:'SIN ESFERA'}}
+ if(!best){
+  g.bufferedShot=null;g.lastResult='SIN ESFERA';return {ok:false,reason:'SIN ESFERA'};
+ }
  if(!bestResult.ok){
+  // Short input buffer offsets 60–200ms Android tap/render latency. It can only
+  // lock onto a REAL approaching projectile, already near the aim ray; one press
+  // never auto-parries a later or different ball.
+  const delta=sub(best.pos,g.eye),toward=dot(best.velocity,norm(sub(g.eye,best.pos)));
+  const aimed=sweptPoint(g.eye,add(g.eye,mul(g.aim,Math.max(1.4,len(delta)+.2))),best.pos);
+  if(!fromBuffer&&bestResult.reason==='ESPERÁ'&&bestResult.distance<=1.83&&
+     aimed<=.46&&toward>.3){
+   const lead=clamp((bestResult.distance-1.30)/Math.max(.5,toward),0,.28);
+   g.bufferedShot={id:best.id,until:g.elapsed+Math.max(.19,lead+.07)};
+   g.lastResult='CARGANDO REBOTE';
+   g.effects.push({type:'queued',t:g.elapsed,id:best.id});
+   return {ok:false,queued:true,reason:'CARGANDO REBOTE'};
+  }
+  if(fromBuffer){g.bufferedShot=null;return {ok:false,reason:bestResult.reason}}
   g.lastResult=bestResult.reason;
   g.effects.push({type:'early',t:g.elapsed,reason:bestResult.reason});
   return {ok:false,reason:bestResult.reason};
  }
+ if(fromBuffer)g.bufferedHits++;
+ g.bufferedShot=null;
  const grade=bestResult.grade;
  const target=g.enemies.find(e=>e.id===best.targetId&&e.alive)||activeEnemy(g);
  best.returning=true;best.age=0;best.prev=best.pos;best.bend=0;best.hasDouble=false;
@@ -277,6 +302,10 @@ function step(g,dt){
    if(enemy)p.velocity=mul(norm(sub(targetPoint(enemy),p.pos)),p.speed);
   }
   p.pos=add(p.pos,mul(p.velocity,dt));
+  if(g.bufferedShot?.id===p.id&&g.elapsed>g.bufferedShot.until)g.bufferedShot=null;
+  if(g.bufferedShot?.id===p.id&&!p.returning&&quality(g,p).ok){
+   returnShot(g,true);
+  }
   if(p.type==='fake'){if(p.age>2.8)p.dead=true;continue}
   if(p.returning){
    const e=g.enemies.find(v=>v.id===p.targetEnemy&&v.alive);
@@ -288,6 +317,8 @@ function step(g,dt){
   }
  }
  g.projectiles=g.projectiles.filter(p=>!p.dead);
+ if(g.bufferedShot&&!g.projectiles.some(p=>p.id===g.bufferedShot.id&&!p.returning))
+   g.bufferedShot=null;
  g.enemies=g.enemies.filter(e=>e.alive||g.elapsed-e.hitTime<1.15);
  g.effects=g.effects.filter(e=>g.elapsed-e.t<2.3);
 }
@@ -300,7 +331,8 @@ function snapshot(g){return {state:g.state,phase:PHASES[g.phase],remaining:Math.
   rival:g.mode==='duelo'?duelConfig(g).name:null,transition:g.mode==='duelo'&&g.nextDuelAt!==null,
   elapsed:g.elapsed,score:g.score,lives:g.lives,combo:g.combo,bestCombo:g.bestCombo,
   perfect:g.perfect,returns:g.returns,accuracy:g.returns?Math.round(g.perfect*100/g.returns):0,
-  kills:g.enemiesKilled,victory:g.victory,reason:g.reason}}
+  kills:g.enemiesKilled,victory:g.victory,reason:g.reason,
+  bufferedHits:g.bufferedHits,buffered:!!g.bufferedShot}}
 const api=Object.freeze({make,begin,tick,setView,returnShot,quality,launch,spawnEnemy,phaseAt,sweptPoint,snapshot,laneAt,ATTACK_LANES,
  STEP,DURATION,DUEL_DURATION,DUEL_RIVALS,PHASES,TYPES,V,add,sub,mul,len,norm,clamp});
 root.ReboteCore=api;
