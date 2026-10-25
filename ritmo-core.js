@@ -87,6 +87,7 @@ function resolve(g,n,rating){
   const points=Math.round(base*multiplier(g.combo)*(n.type==='caos'?2:n.type==='special'?1.6:1));
   g.score+=points;g.energy=clamp(g.energy+(rating==='PERFECTO'?4:2),0,100);
  }
+ n.awarded=g.score-previousScore;
  if(g.slideActive?.id===n.id)g.slideActive=null;
  g.events.push({seq:++g.eventSeq,type:'judgement',rating,note:n.id,lane:n.lane,combo:g.combo,score:g.score,points:g.score-previousScore,noteType:n.type,special:n.type==='caos'});
  if(g.events.length>24)g.events.shift();
@@ -120,7 +121,7 @@ function tick(g,time){
    g.holdActive=null;g.cursor++;
   }else if(g.elapsed>=n.at+n.hold){
    resolve(g,n,'PERFECTO');
-   g.events.push({seq:++g.eventSeq,type:'hold_complete',lane:n.lane,note:n.id,combo:g.combo});
+   g.events.push({seq:++g.eventSeq,type:'hold_complete',lane:n.lane,note:n.id,combo:g.combo,points:n.awarded});
    g.holdActive=null;g.cursor++;
   }
  }
