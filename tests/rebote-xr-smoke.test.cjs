@@ -22,6 +22,9 @@ const server=http.createServer((req,res)=>{
   window.__simPhone={x:0,y:1.56,z:-1.0};window.__simLostTracking=false;window.__mockFrameActive=false;window.__simDrawCalls=0;
   const draw=WebGLRenderingContext.prototype.drawArrays;
   WebGLRenderingContext.prototype.drawArrays=function(...args){window.__simDrawCalls++;return draw.apply(this,args)};
+  const drawElements=WebGLRenderingContext.prototype.drawElements;
+  WebGLRenderingContext.prototype.drawElements=function(...args){window.__simDrawCalls++;return drawElements.apply(this,args)};
+  if(window.WebGL2RenderingContext){const d2=WebGL2RenderingContext.prototype.drawElements;WebGL2RenderingContext.prototype.drawElements=function(...args){window.__simDrawCalls++;return d2.apply(this,args)}}
   WebGLRenderingContext.prototype.makeXRCompatible=async()=>{};
   if(window.WebGL2RenderingContext)WebGL2RenderingContext.prototype.makeXRCompatible=async()=>{};
   const floor={transform:{matrix:matrix(0,0,-2.1),position:{x:0,y:0,z:-2.1},orientation:ori}};
