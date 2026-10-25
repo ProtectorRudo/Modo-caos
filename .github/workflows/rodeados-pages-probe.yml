@@ -33,7 +33,7 @@ jobs:
           LAB_HTTP=$(curl -sSL -m 15 -o /tmp/manul-lab.html -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-manul.html?v=13")
           echo "MANUL_LAB_HTTP=$LAB_HTTP"
           test "$LAB_HTTP" = "200"
-          grep -q "location.replace('./rodeados.html?v=14')" /tmp/manul-lab.html
+          grep -q "location.replace('./rodeados.html?v=15')" /tmp/manul-lab.html
           ! grep -q 'id="manulFile"' /tmp/rodeados-mirror.html
           grep -q 'ANDROIDES TÁCTICOS 3D' /tmp/rodeados-mirror.html
           grep -q 'BAMEN' /tmp/rodeados-mirror.html
@@ -52,7 +52,7 @@ jobs:
           grep -q 'id="manulFile"' /tmp/manul-lab.html
           grep -q 'Robot M.A.N.U.L.' /tmp/manul-lab.html
           grep -q 'Andrei Milin' /tmp/manul-lab.html
-          grep -q 'rodeados-runtime.js?v=14' /tmp/manul-lab.html
+          grep -q 'rodeados-runtime.js?v=15' /tmp/manul-lab.html
           grep -q 'id="manulRemember"' /tmp/manul-lab.html
           grep -q 'id="manulFacing"' /tmp/manul-lab.html
           MANUL_JS_HTTP=$(curl -sSL -m 15 -o /tmp/manul-lab.js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-manul.js")
@@ -61,6 +61,9 @@ jobs:
           grep -q 'installManulPreview' /tmp/manul-lab.js
           grep -q 'loadZip(file,THREE)' /tmp/manul-lab.js
           grep -q 'SkeletonUtils.js' /tmp/manul-lab.js
+          grep -q 'const UPRIGHT_CLIPS=' /tmp/manul-lab.js
+          grep -q "idle:\['idle','ready_idle','aim_idle'\]" /tmp/manul-lab.js
+          echo 'V15 PUBLICADO: androides de frente, caminar erguidos y acercarse hasta distancia justa'
           grep -q 'modo-caos-manul-local' /tmp/manul-lab.js
           grep -q "const MAX_ARCHIVE=55" /tmp/manul-lab.js
           grep -q 'testVisualBudget' /tmp/manul-lab.js
@@ -77,8 +80,8 @@ jobs:
           grep -o 'id="reload"' /tmp/rodeados-mirror.html || true
           grep -q 'RODEADOS 360' /tmp/rodeados-mirror.html
           grep -q 'id="botGuide"' /tmp/rodeados-mirror.html
-          grep -q 'rodeados-runtime.js?v=14' /tmp/rodeados-mirror.html
-          grep -q 'rodeados-core.js?v=11' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-runtime.js?v=15' /tmp/rodeados-mirror.html
+          grep -q 'rodeados-core.js?v=15' /tmp/rodeados-mirror.html
           grep -q '∞  BALAS' /tmp/rodeados-mirror.html
           ! grep -q 'id="reload"' /tmp/rodeados-mirror.html
           grep -q 'id="bomb"' /tmp/rodeados-mirror.html
@@ -101,7 +104,7 @@ jobs:
           grep -q 'art.setFloorDamage(game,' /tmp/rodeados-published-runtime.js
           grep -q 'HEADSHOT LETAL' /tmp/rodeados-published-runtime.js
           grep -q "drawShot(packet,preHit" /tmp/rodeados-published-runtime.js
-          grep -q "rodeados-art.js?v=14" /tmp/rodeados-published-runtime.js
+          grep -q "rodeados-art.js?v=15" /tmp/rodeados-published-runtime.js
           grep -q 'lastMenaceAt' /tmp/rodeados-published-runtime.js
           grep -q "MUNICIÓN ILIMITADA" /tmp/rodeados-published-runtime.js
           echo 'V10: DISPAROS INFINITOS SIN RECARGA Y TENSIÓN ROBÓTICA PUBLICADOS'
@@ -113,6 +116,7 @@ jobs:
           curl -fsSL -m 12 "https://protectorrudo.github.io/Modo-caos/rodeados-core.js" -o /tmp/rodeados-v6-core.js
           grep -q 'SAFE_DISTANCE=2.45' /tmp/rodeados-v6-core.js
           grep -q 'infiniteAmmo:true' /tmp/rodeados-v6-core.js
+          grep -q 'speed:.62,range:2.54' /tmp/rodeados-v6-core.js
           grep -q 'function markFloorDamage(g,x,z,radius,amount)' /tmp/rodeados-v6-core.js
           grep -q 'headshotStreak' /tmp/rodeados-v6-core.js
           grep -q 'const precision=head?165' /tmp/rodeados-v6-core.js
