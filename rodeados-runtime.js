@@ -740,6 +740,15 @@ function tickGame(dt,t){
   }
  }
  art.effect(game,fxShown);art.drawBombs(game);art.updateSparks(dt);
+ const blastAt=game.fx.findLast?.(f=>f.type==='bombBlast')?.t??-100;
+ const blastAge=game.elapsed-blastAt,damageAge=game.elapsed-game.lastDamage;
+ const burst=blastAge>=0&&blastAge<.65?Math.pow(1-blastAge/.65,2)*1.65:0;
+ const danger=damageAge>=0&&damageAge<.85?Math.pow(1-damageAge/.85,1.5)*1.3:0;
+ const warning=Math.min(2.15,Math.max(burst,danger));
+ alertLamp.intensity=warning;
+ cool.intensity=1.25+warning*.17;
+ art.root.updateMatrixWorld(true);
+ alertLamp.position.copy(art.root.localToWorld(new THREE.Vector3(game.player.x,1.05,game.player.z)));
  if(online?.isHost)sendSnapshot();
  if(game.lastDamage>0&&game.elapsed-game.lastDamage<.13){vib(38)}
  if(t-lastHud>110){lastHud=t;updateHud()}
