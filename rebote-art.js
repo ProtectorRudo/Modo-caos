@@ -20,6 +20,11 @@ export function createReboteArt(T,scene){
  }
  const center=new T.Mesh(new T.CylinderGeometry(.24,.3,.035,8),mat(0x103a4a,.7,.34,0x149cba,.2));
  center.position.y=.07;plane.add(center);
+ const youMarker=new T.Group();root.add(youMarker);
+ const yourRing=new T.Mesh(new T.TorusGeometry(.135,.012,8,40),new T.MeshBasicMaterial({color:0x65ffe1,transparent:true,opacity:.84,depthWrite:false}));
+ yourRing.rotation.x=-Math.PI/2;yourRing.position.y=.115;youMarker.add(yourRing);
+ const yourDot=new T.Mesh(new T.CircleGeometry(.045,20),new T.MeshBasicMaterial({color:0xc4fff2,transparent:true,opacity:.9,depthWrite:false}));
+ yourDot.rotation.x=-Math.PI/2;yourDot.position.y=.118;youMarker.add(yourDot);
  const botLayer=new T.Group();root.add(botLayer);
  const shotLayer=new T.Group();root.add(shotLayer);
  const fxLayer=new T.Group();root.add(fxLayer);
@@ -84,6 +89,9 @@ export function createReboteArt(T,scene){
   plane.visible=preview||g.state==='playing'||g.state==='ready';
   const pulse=.85+.15*Math.sin(time*3);
   ringMat.opacity=pulse;center.rotation.y=time*.24;
+  youMarker.visible=g.state==='ready'||g.state==='playing';
+  if(g.eye&&youMarker.visible){youMarker.position.set(g.eye.x,0,g.eye.z);yourRing.scale.setScalar(1+.10*Math.sin(time*5));}
+  yourRing.material.opacity=.70+.25*pulse;
   plane.scale.setScalar(plane.userData.size||1);
   for(const e of g.enemies){
    let b=bots.get(e.id);if(!b){b=buildRobot(e);bots.set(e.id,b)}

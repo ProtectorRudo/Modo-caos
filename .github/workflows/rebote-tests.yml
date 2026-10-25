@@ -1,7 +1,7 @@
 name: REBOTE MORTAL — quality gate
 on:
   push:
-    branches: ['feat/rebote-mortal-ar', main]
+    branches: ['feat/rebote-mortal-ar', 'fix/rebote-finalizacion-v2', main]
     paths: ['rebote*', 'tests/rebote*', '.github/workflows/rebote-tests.yml', 'index.html']
   pull_request:
     paths: ['rebote*', 'tests/rebote*', '.github/workflows/rebote-tests.yml']
@@ -30,3 +30,4 @@ jobs:
       - run: npm install --ignore-scripts --no-save playwright@1.56.0
       - run: npx playwright install --with-deps chromium
       - run: node tests/rebote-browser.test.cjs
+      - run: node tests/rebote-xr-smoke.test.cjs
