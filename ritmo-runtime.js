@@ -77,8 +77,8 @@ function motion(t,dt,x){
  if(prevX!==null&&Math.abs(x-prevX)>.38){reference.x+=x-prevX;prevX=x;return}
  prevX=x;
  const target=clamp(reference.selected+(x-reference.x)/reference.worldWidth,0,4);
- const smooth=1-Math.exp(-dt/.085);
- filtered+=clamp(target-filtered,-Math.max(.25,dt*10),Math.max(.25,dt*10))*smooth;
+ const smooth=1-Math.exp(-dt/.055);
+ filtered+=clamp((target-filtered)*smooth,-Math.max(.14,dt*10),Math.max(.14,dt*10));
  // Histeresis pequeña: no alternar constantemente al cruzar un borde.
  if(filtered>lane+.56&&lane<4)lane++;else if(filtered<lane-.56&&lane>0)lane--;
  const safe=clamp(filtered,lane-.48,lane+.48);
