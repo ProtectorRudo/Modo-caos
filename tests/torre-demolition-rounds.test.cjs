@@ -30,4 +30,10 @@ for(let i=1;i<=220;i++){
  assert.deepEqual(deck.map(f=>f.tier),[1,1,2,2,2,3,3,3,4,4]);
  variedFirst.add(deck[0].id);
 }
-assert.ok(variedFirst.size>=6,'round one must rotat...[truncated]
+assert.ok(variedFirst.size>=6,'round one must rotate between silhouettes');
+assert.equal(D.roundPoints(0,3),60,'every extraction earns points');
+assert.equal(D.roundPoints(2,3),310,'chain combo rewarded');
+assert.equal(D.roundPoints(4,1),570);
+assert.equal(D.timeBonus(13.1,3),28);
+assert.equal(D.timeBonus(13.1,2),0,'no free time bonus unless all three moves');
+console.log('Torre demolition campaign: 40 authored physically supported architectures, 10 varied rounds, difficulty and chain points PASS');
