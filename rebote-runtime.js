@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createReboteArt} from './rebote-art.js?v=8';
-import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=8';
+import {createReboteArt} from './rebote-art.js?v=9';
+import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=9';
 /* REBOTE MORTAL · WebXR immersive-ar con Hit Test y anclaje opcional.
    La matriz AR no depende del HUD. El "jugador" es la posición del TELÉFONO, nunca pies/cuerpo. */
 const $=id=>document.getElementById(id),G=globalThis.ReboteCore;
@@ -49,6 +49,7 @@ function ui(){
  $('controls').style.display=stage==='playing'?'flex':'none';
  $('reticle').style.display=stage==='playing'?'block':'none';
  $('direction').style.display=stage==='playing'?'flex':'none';
+ $('radar').style.display=stage==='playing'?'block':'none';
  $('center').style.display=!demo&&['ready','playing','paused'].includes(stage)?'block':'none';
  $('result').style.display=stage==='finished'?'flex':'none';
  $('begin').textContent=stage==='paused'?'▶ CONTINUAR':'⚡ ¡EMPEZAR!';
@@ -81,8 +82,14 @@ function soundtrack(){
  else if(game.phase>=2)sound(680,.023,'triangle',.006);
 }
 function audioEvent(e){
- if(e.type==='launch')sound(360,.16,'sawtooth',.043);
+ if(e.type==='launch'){
+  const pitch=e.lane?.includes('ALTA')?530:e.lane?.includes('BAJA')?220:360;
+  sound(pitch,.17,'sawtooth',.035);
+ }
  if(e.type==='return'){
+  // Clear two-tone boing / ricochet, not a generic hit beep.
+  sound(e.grade==='PERFECTO'?710:470,.16,'sine',.10);
+  setTimeout(()=>sound(e.grade==='PERFECTO'?450:300,.12,'triangle',.045),55);
   if(e.grade==='PERFECTO'){flash('perfect');sound(1050,.23,'triangle',.11);setTimeout(()=>sound(1450,.21,'triangle',.065),75);vibration([32,15,43]);status('✦ PERFECTO · +'+e.points)}
   else{sound(e.grade==='ROCE'?310:650,.17,'triangle',.08);vibration(38);status(e.grade+' · +'+e.points)}
  }
@@ -123,6 +130,34 @@ function results(){
  $('stats').innerHTML=[['PUNTOS',s.score.toLocaleString('es-AR')],['DEVOLUCIONES',s.returns],['PERFECTOS',s.perfect],['MEJOR COMBO','×'+s.bestCombo],['ROBOTS',s.kills],['PRECISIÓN',s.accuracy+'%']].map(row=>'<div><b>'+row[1]+'</b><span>'+row[0]+'</span></div>').join('');
  sound(s.victory?950:235,.6,'triangle',.1);
 }
+// Camera-relative radar. The world stays anchored; only this 2D compass rotates.
+function updateRadar(){
+ const botLayer=$('radarBots'),ball=$('radarBall');
+ const dx=game.aim.x,dz=game.aim.z,length=Math.hypot(dx,dz);
+ const fw=length>.07?{x:dx/length,z:dz/length}:{x:0,z:-1};
+ const rightLength=Math.hypot(viewRight.x,viewRight.z);
+ const right=rightLength>.07?{x:viewRight.x/rightLength,z:viewRight.z/rightLength}:{x:-fw.z,z:fw.x};
+ const project=(p)=>{
+  const x=p.x-game.eye.x,z=p.z-game.eye.z;
+  const lateral=x*right.x+z*right.z;
+  const forward=x*fw.x+z*fw.z;
+  return {x:clamp(lateral*12,-31,31),y:clamp(-forward*12,-31,31),behind:forward<-.25};
+ };
+ const enemies=game.enemies.filter(e=>e.alive).slice(0,6);
+ botLayer.innerHTML=enemies.map(e=>{
+  const v=project(e);
+  return '<i class="radarBot'+(e.boss?' boss':'')+(v.behind?' behind':'')+
+   '" style="transform:translate('+v.x.toFixed(1)+'px,'+v.y.toFixed(1)+'px)"></i>';
+ }).join('');
+ const inbound=game.projectiles.filter(p=>!p.dead&&!p.returning&&p.type!=='fake');
+ if(inbound.length){
+  const p=inbound.reduce((a,b)=>!a||G.len(G.sub(b.pos,game.eye))<G.len(G.sub(a.pos,game.eye))?b:a,null);
+  const v=project(p.pos);
+  ball.style.display='block';
+  ball.style.transform='translate('+v.x.toFixed(1)+'px,'+v.y.toFixed(1)+'px)';
+  ball.classList.toggle('behind',v.behind);
+ }else ball.style.display='none';
+}
 function updateHud(){
  const s=G.snapshot(game);
  $('score').textContent=s.score.toLocaleString('es-AR');
@@ -130,6 +165,7 @@ function updateHud(){
  $('combo').textContent='×'+s.combo;
  $('clock').textContent=s.remaining;
  $('phase').textContent='FASE '+(game.phase+1)+' / 5 · '+s.phase;
+ if(stage==='playing')updateRadar();
 }
 function yawFromPose(pose){
  if(!pose)return 0;
@@ -326,7 +362,11 @@ function aimFeedback(t){
  else if(q.reason==='APUNTÁ A LA ESFERA'){ret.classList.add('aim');cue.textContent='🎯 SEGUÍ LA FLECHA · CENTRÁ LA MIRA'}
  else if(dist<.31){ret.classList.add('aim');cue.textContent='¡MUY TARDE! · PREPARATE'}
  else if(dist<1.5){ret.classList.add('aim');cue.textContent='ENERGÍA CARGÁNDOSE · ¡ESPERÁ!'}
- else cue.textContent=p.type==='veloz'?'⚡ VELOZ · SEGUÍ LA ESFERA':p.type==='pesada'?'🟡 PESADA · TENÉS TIEMPO':'ESFERA EN CAMINO · APUNTÁ Y ESPERÁ';
+ else{
+  const lane=p.lane&&p.lane!=='CENTRO'?p.lane+' · ':'';
+  cue.textContent=p.type==='veloz'?'⚡ '+lane+'VELOCIDAD':
+   p.type==='pesada'?'🟡 '+lane+'PESADA':lane+'PELOTA EN CAMINO · SEGUÍ LA MIRA';
+ }
 }
 function onReturn(){
  if(stage!=='playing'||game.paused)return;
@@ -610,4 +650,4 @@ window.addEventListener('resize',()=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
 if(window.__reboteEarlyTap)window.ReboteBoot?.show('MOTOR LISTO','Ahora tocá otra vez JUGAR EN REALIDAD AUMENTADA para abrir la cámara.');
 else window.ReboteBoot?.clear();
-globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError},get floorStable(){return floorStable},get floorSamples(){return floorSamples.length},get calibrationRms(){return calibrationRms},get previewYaw(){return previewYaw}};
+globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError},get radarVisible(){return $('radar').style.display==='block'},get floorStable(){return floorStable},get floorSamples(){return floorSamples.length},get calibrationRms(){return calibrationRms},get previewYaw(){return previewYaw}};
