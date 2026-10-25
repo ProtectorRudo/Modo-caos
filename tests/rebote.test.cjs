@@ -123,3 +123,83 @@ test('DEVOLVER genera ricochet físico con punto de contacto para animación',()
  G.tick(g,.14);
  assert(ball.pos.z<original.z,'la pelota realmente regresa por el espacio 3D');
 });
+
+test('modo DUELO inicia con un solo rival y conserva el clásico original',()=>{
+ const d=G.make({seed:51,mode:'duelo'}),c=G.make({seed:51,mode:'clasico'});
+ assert.equal(d.mode,'duelo');assert.equal(c.mode,'clasico');
+ assert.equal(G.DUEL_RIVALS.length,6,'seis rivales jugables');
+ assert.equal(G.begin(d),true);assert.equal(G.begin(c),true);
+ assert.equal(d.enemies.filter(e=>e.alive).length,1);
+ assert.equal(d.enemies[0].name,'CHISPA');
+ assert.equal(d.enemies[0].health,2);
+ assert.equal(G.snapshot(d).duelTotal,6);
+ assert.equal(G.snapshot(d).rival,'CHISPA');
+ assert.equal(G.snapshot(c).mode,'clasico');
+ assert.equal(G.snapshot(c).remaining,G.DURATION);
+ for(let i=1;i<G.DUEL_RIVALS.length;i++){
+  assert(G.DUEL_RIVALS[i].speed>G.DUEL_RIVALS[i-1].speed,'cada rival tira más rápido');
+  assert(G.DUEL_RIVALS[i].interval<G.DUEL_RIVALS[i-1].interval,'cada rival ataca con mayor frecuencia');
+ }
+});
+test('seis victorias duelos en orden sin dos enemigos simultáneos ni reset de vida/posición',()=>{
+ const g=G.make({mode:'duelo',seed:2026});G.begin(g);
+ g.protection=999;
+ const pos=G.V(.14,1.55,.45),dir=G.V(0,0,-1);
+ G.setView(g,pos,dir);
+ for(let level=0;level<6;level++){
+  const cfg=G.DUEL_RIVALS[level],e=g.enemies.find(x=>x.alive);
+  assert(e,'rival presente en nivel '+level);
+  assert.equal(e.name,cfg.name);
+  assert.equal(e.health,cfg.hp);
+  assert.equal(g.duelLevel,level);
+  assert.equal(g.enemies.filter(x=>x.alive).length,1);
+  g.nextShot=Infinity;g.projectiles=[];g.delayed=[];
+  for(let n=0;n<12&&e.alive;n++){
+   // Test the same swept 3D collision the returning player projectile uses.
+   // The champion's parry has real cooldown; don't confuse defense with death.
+   if(e.boss&&Math.sin(g.elapsed*1.75)>.79){g.elapsed+=.40;continue}
+   const ball={id:3000+level*20+n,type:'normal',pos:G.V(e.x,1.54,e.z+.64),
+    prev:G.V(e.x,1.54,e.z+.64),velocity:G.V(0,0,-20),speed:20,
+    radius:.215,age:0,returning:true,dead:false,targetId:e.id,targetEnemy:e.id,grade:'PERFECTO'};
+   g.projectiles=[ball];G.tick(g,.06);
+  }
+  assert.equal(e.alive,false,'el robot de nivel '+level+' es derrotado con pelotas reales');
+  assert.equal(g.duelWins,level+1);
+  assert.equal(g.projectiles.filter(x=>!x.dead&&!x.returning).length,0,'sin proyectiles huérfanos');
+  if(level<5){
+   assert.equal(g.nextDuelAt!==null,true,'se anuncia una transición después del KO');
+   assert.equal(g.enemies.filter(x=>x.alive).length,0,'el robot viejo desaparece');
+   g.elapsed=g.nextDuelAt-.03;G.tick(g,.06);
+   assert.equal(g.duelLevel,level+1,'progresión automática de rival');
+   assert.equal(g.enemies.filter(x=>x.alive).length,1,'solo entra el siguiente rival');
+   assert.equal(g.nextDuelAt,null,'transición limpiada');
+   assert.equal(g.lives,3,'misma partida conserva vidas');
+   assert.equal(g.eye.x,pos.x,'AR conserva posición del usuario');
+  }
+ }
+ assert.equal(g.state,'finished');assert.equal(g.victory,true);
+ assert.equal(g.reason,'seis_rivales');assert.equal(G.snapshot(g).duelWins,6);
+});
+test('ningún duelo lanza múltiples pelotas reales simultáneas, aun en niveles altos',()=>{
+ const g=G.make({mode:'duelo'});G.begin(g);
+ for(let level=0;level<6;level++){
+  g.duelLevel=level;g.projectiles=[];
+  let types=G.DUEL_RIVALS[level].types;
+  for(const type of types){
+   g.projectiles=[];
+   assert(G.launch(g,type),'puede disparar '+type);
+   assert.equal(G.launch(g,'normal'),false,'solo una pelota real simultánea');
+   assert.equal(g.projectiles.filter(p=>!p.returning&&p.type!=='fake').length,1);
+  }
+ }
+});
+test('tiempo y derrota en duelos; el clásico mantiene sus fases y sus 88 segundos',()=>{
+ const d=G.make({mode:'duelo'});G.begin(d);
+ assert.equal(G.snapshot(d).remaining,G.DUEL_DURATION);
+ d.elapsed=G.DUEL_DURATION-.03;G.tick(d,.1);
+ assert.equal(d.state,'finished');assert.equal(d.reason,'tiempo');assert.equal(d.victory,false);
+ const c=G.make({mode:'clasico'});G.begin(c);
+ assert.equal(G.snapshot(c).remaining,88);
+ c.protection=999;c.elapsed=44.97;G.tick(c,.08);
+ assert.equal(c.phase,3,'el juego clásico continúa con fases cronometradas');
+});

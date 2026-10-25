@@ -96,3 +96,11 @@ Para cubrir teléfonos donde incluso el segundo lienzo WebGL no llegue a mostrar
 - Rebote visible: núcleo esférico texturizado proceduralmente con paneles de pelota, giro rápido, reflejo y estela. DEVOLVER invierte la dirección, impulsa el proyectil hacia el robot, aplica arco visual elástico y genera dos ondas 3D + partículas + sonido boing. La física/barrrido mantiene sus colisiones exactas.
 - Los mechs giran su visor hacia el teléfono rastreado, aunque el usuario se mueva alrededor. Radar compacto en pantalla indica VOS, robots (y jefe) y pelota entrante con referencia relativa a la cámara; no mueve el mundo 3D ni sustituye el AR.
 - Se mantiene la calibración de V8, la progresión de cinco fases, los combos, los modos demo y la protección al perder tracking. Pruebas automáticas verifican variedad, límites seguros, retorno real, orientaciones y radar; cámara ARCore física requiere nueva prueba del jugador.
+
+## V10 — Duelo de Campeones 1 vs 1 (25/10/2026)
+
+- Modo **DUELO 1 VS 1** elegible en pantalla inicial junto a **CAOS CLÁSICO**, que mantiene sus fases y duración previas.
+- Seis rivales consecutivos: CHISPA (tutorial centro), RAYO (cambios laterales), PIXEL (señuelos), VECTOR (altura/diagonales), TURBO (ritmo/pesadas) y NÉMESIS (campeón con escudo de parry). Cada uno aumenta velocidad y frecuencia, varía la movilidad y usa una tabla propia de tipos/carriles. Un único robot vivo y a lo sumo una pelota entrante real a la vez; los señuelos no provocan daño.
+- Victoria tras seis KOs; entre rivales hay una pausa de transición de unos dos segundos, se borran ataques pendientes, aparece un nuevo robot con insignia propia y no se reinicia ni la cámara ni el anclaje AR. Barra de salud por rival, número 1/6–6/6, frases de entrada, premio de KO y récord separado.
+- Duración máxima de duelos: 210 s; tres vidas conservadas entre rivales; sin carreras, saltos ni rastreo corporal, usando el teléfono como control.
+- Pruebas: seis muertes reales mediante colisión barrida y transición automática, límite de un enemigo/una pelota, habilidad progresiva, timeouts y regresiones de Modo Clásico, Chromium 2D y XR simulado. Prueba física Android pendiente.
