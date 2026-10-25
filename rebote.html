@@ -28,6 +28,13 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 #world canvas{display:block;width:100%!important;height:100%!important}
 #overlay{position:absolute;inset:0;z-index:6;pointer-events:none;user-select:none;-webkit-user-select:none}
 #overlay button{pointer-events:auto}
+#screenFx{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:0}
+#screenFx.perfect{animation:rebPerfect .28s ease-out both}
+#screenFx.damage{animation:rebDamage .49s ease-out both}
+@keyframes rebPerfect{0%{opacity:.45;background:radial-gradient(circle at 50% 50%,#dfffff65,transparent 64%)}100%{opacity:0}}
+@keyframes rebDamage{0%{opacity:.5;background:radial-gradient(circle,transparent 39%,#f4164cc7)}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){#screenFx.perfect,#screenFx.damage{animation-duration:.02s}}
+
 #touch{position:absolute;inset:10% 0 20%;touch-action:none;pointer-events:none}
 .edit #touch{pointer-events:auto}
 #hud{position:absolute;top:max(14px,env(safe-area-inset-top));left:10px;right:10px;display:none;justify-content:space-between;align-items:center;gap:6px;text-align:center;text-shadow:0 2px 10px #001}
@@ -36,7 +43,7 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 .stat strong{display:block;font-size:22px;font-variant-numeric:tabular-nums}
 #status{position:absolute;top:90px;left:14px;right:14px;text-align:center;font-weight:1000;text-shadow:0 3px 11px black;font-size:clamp(13px,3.6vw,18px);letter-spacing:1px;pointer-events:none}
 #notice{position:absolute;top:132px;left:14px;right:14px;text-align:center;color:#baffec;font-weight:800;font-size:13px;text-shadow:0 2px 8px #000;pointer-events:none}
-#reticle{position:absolute;left:50%;top:47%;width:48px;height:48px;transform:translate(-50%,-50%);border:2px solid #cfffff;border-radius:50%;box-shadow:0 0 12px #68ffff70;display:none;pointer-events:none}
+#reticle{position:absolute;left:50%;top:50%;width:48px;height:48px;transform:translate(-50%,-50%);border:2px solid #cfffff;border-radius:50%;box-shadow:0 0 12px #68ffff70;display:none;pointer-events:none}
 #reticle:before,#reticle:after{content:'';position:absolute;left:50%;top:50%;background:#dfffff;transform:translate(-50%,-50%)}
 #reticle:before{width:16px;height:2px}#reticle:after{width:2px;height:16px}
 #reticle.aim{border-color:#ffee7b;box-shadow:0 0 22px #ffd85a}
@@ -74,7 +81,7 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 <div id="record">🏆 RÉCORD: 0</div><div id="support">AR: Chrome Android compatible con ARCore · cámara y superficie despejada.</div>
 <p id="safe">Jugá en un lugar despejado. No corras: el teléfono sigue al teléfono, no tus pies.</p>
 </main></section>
-<section id="arena"><div id="world"></div><div id="overlay">
+<section id="arena"><div id="world"></div><div id="overlay"><div id="screenFx" aria-hidden="true"></div>
 <div id="touch" aria-label="Mover, girar o ajustar la pista con gestos"></div>
 <div id="hud"><div class="stat"><label>PUNTOS</label><strong id="score">0</strong></div><div class="stat"><label>ESCUDO</label><strong id="lives">♥♥♥</strong></div><div class="stat"><label>COMBO</label><strong id="combo">×0</strong></div><div class="stat"><label>TIEMPO</label><strong id="clock">88</strong></div></div>
 <div id="status">BUSCANDO PISO…</div><div id="notice"></div><div id="phase"></div>
