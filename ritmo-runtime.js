@@ -24,7 +24,9 @@ if(licensed.length){
  for(const item of licensed){
   const option=document.createElement('option');option.value=item.id;option.textContent='🎧 '+item.title;group.appendChild(option);
  }
- E('song').appendChild(group);
+ // Licensed hit becomes the first selection as soon as its validated audio is integrated.
+ E('song').insertBefore(group,E('song').firstChild);
+ E('song').value=licensed[0].id;
 }
 E('song').onchange=updateBest;E('difficulty').onchange=updateBest;updateBest();
 E('latency').oninput=()=>{E('latencyValue').textContent=E('latency').value+' ms'};
