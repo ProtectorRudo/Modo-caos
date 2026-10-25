@@ -49,5 +49,5 @@ for(const path of ['correct','skip-motion']){
  assert.equal(slide.status,path==='correct'?'PERFECTO':'FALLO','Validación del deslizamiento');
 }
 assert(C.chart('neon','caos',.32).notes.some(n=>n.type==='caos'),'Notas CAOS');
-console.log('OK: 108 mapas (9 canciones x 4 dificultades x 3 anchos), distancias, aciertos, fallos, sostenidas, slides, notas CAOS, pausa y fin');
+console.log('OK: 132 mapas (11 canciones x 4 dificultades x 3 anchos), distancias, aciertos, fallos, sostenidas, slides, notas CAOS, pausa y fin');
 
