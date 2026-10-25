@@ -734,6 +734,7 @@ const XR_COLORS=['#37d9c5','#ffc15b','#6b98ff','#fc6a8b','#af82ff','#ff8656','#a
 let lastARPaint=0, projectedFloor=false, xrRenderFailures=0;
 
 function clearARProjection(){
+ xrDemolitionFaces=[];
  ui.xrScene.replaceChildren();
  ui.xrPaint.replaceChildren();
  const canvas=ui.xrDraw,ctx=canvas.getContext('2d');
@@ -753,8 +754,8 @@ function renderARSpatial(frame,time){
  function project(x,y,z){
   vv.set(x,y,z,1).applyMatrix4(world).applyMatrix4(vp);
   if(!Number.isFinite(vv.w)||vv.w<=.035)return null;
-  const nx=vv.x/vv.w,ny=vv.y/vv.w;
-  return Number.isFinite(nx)&&Number.isFinite(ny)?{x:(nx+1)*width*.5,y:(1-ny)*height*.5}:null;
+  const nx=vv.x/vv.w,ny=vv.y/vv.w,nz=vv.z/vv.w;
+  return Number.isFinite(nx)&&Number.isFinite(ny)&&Number.isFinite(nz)?{x:(nx+1)*width*.5,y:(1-ny)*height*.5,depth:nz}:null;
  }
  const map=coords=>coords.map(p=>project(...p));
  function boardProject(coords){
@@ -792,7 +793,7 @@ function renderARSpatial(frame,time){
  }
  const inView=topPlane.every(Boolean)&&center&&center.x>12&&center.x<width-12&&
   center.y>105&&center.y<safeBottom-12&&clippedArea(topPlane)>Math.max(650,width*1.5);
- if(!inView){
+ if(!inView&&phase==='placing'){
   clearARProjection();
   if(phase==='placing')ui.xrState.textContent=topPlane.every(Boolean)?
    'PISO DETECTADO · ALEJÁ LA PISTA DEL PANEL INFERIOR':'BUSCANDO UN ESPACIO LIBRE…';
@@ -812,23 +813,40 @@ function renderARSpatial(frame,time){
   shapes.push(poly(boardProject([[x,.149,-.35],[x,.149,.35]]),null,'#b8fff5',1.6,.92,false));
  for(const z of [-.24,0,.24])
   shapes.push(poly(boardProject([[-baseHalf*.99,.149,z],[baseHalf*.99,.149,z]]),null,'#b8fff5',1.6,.92,false));
- function piece(shape,x,y,angle,alpha=1){
-  const front=DEPTH*.5,back=-front,color=XR_COLORS[shape.tone%XR_COLORS.length];
+ // Touch regions are reprojected every XR frame from the world-anchored
+ // bodies. They remain correct as the person walks around the real tower.
+ xrDemolitionFaces=[];
+ function piece(shape,x,y,angle,alpha=1,id=null){
+  const front=DEPTH*.5,back=-front;
+  const demolition=id!==null&&modeId==='demolition';
+  const color=demolition?D.color(id):XR_COLORS[shape.tone%XR_COLORS.length];
+  const selected=demolition&&id===demolitionHighlight;
+  const surface=selected?'#fff9cb':color;
+  const register=(poly)=>{
+   if(!demolition||phase!=='playing'||poly.length<3||!poly.every(p=>p&&p.depth>-1&&p.depth<1.02))return;
+   xrDemolitionFaces.push({id,polygon:poly,depth:poly.reduce((v,p)=>v+p.depth,0)/poly.length});
+  };
   for(const polygon of shape.parts){
    const v=G.rotated(polygon,angle).map(([u,v])=>[x+u*BLOCK,y+v*BLOCK]);
-   shapes.push(poly(map(v.map(([u,v])=>[u,v,back])),'#153456',color,1,alpha*.7));
+   const rear=map(v.map(([u,v])=>[u,v,back]));
+   const face=map(v.map(([u,v])=>[u,v,front]));
+   shapes.push(poly(rear,demolition?'#16334a':'#153456',surface,1,alpha*.83));
+   register(rear);
    for(let i=0;i<v.length;i++){
     const k=(i+1)%v.length;
-    shapes.push(poly(map([[v[i][0],v[i][1],back],[v[k][0],v[k][1],back],
-      [v[k][0],v[k][1],front],[v[i][0],v[i][1],front]]),color,'#04192a',1,alpha*.72));
+    const side=map([[v[i][0],v[i][1],back],[v[k][0],v[k][1],back],
+      [v[k][0],v[k][1],front],[v[i][0],v[i][1],front]]);
+    shapes.push(poly(side,demolition?surface:color,'#06192d',1.4,alpha*(demolition?.87:.72)));
+    register(side);
    }
-   shapes.push(poly(map(v.map(([u,v])=>[u,v,front])),color,'#ffffff',2.4,alpha));
+   shapes.push(poly(face,surface,demolition?'#e9fffb':'#ffffff',demolition?3:2.4,alpha));
+   register(face);
   }
  }
  if(phase==='placing'&&!editing)piece(G.SHAPES[0],0,.145+BLOCK*.5,0,.95);
  else{
-  const all=states.map(item=>{const p=item.body.translation(),q=item.body.rotation();return {shape:item.shape,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}}).sort((a,b)=>b.y-a.y);
-  for(const it of all)piece(it.shape,it.x,it.y,it.angle,.93);
+  const all=states.map(item=>{const p=item.body.translation(),q=item.body.rotation();return {id:item.id,shape:item.shape,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}}).sort((a,b)=>b.y-a.y);
+  for(const it of all)piece(it.shape,it.x,it.y,it.angle,modeId==='demolition'?.99:.93,it.id);
   if(active)piece(active.shape,active.x,active.y,active.angle,.92);
  }
  // WebXR camera compositor fallback #1: canvas2d DOM-overlay
@@ -853,14 +871,14 @@ function renderARSpatial(frame,time){
  ui.xrScene.setAttribute('viewBox','0 0 '+width+' '+height);
  ui.xrScene.innerHTML=shapes.join('');
  // Fallback #3: native HTML divs, same compositor as already-visible interface text.
- function tile(points,color,opacity){
+ function tile(points,color,opacity,kind=''){
   if(points.some(p=>!p))return '';
   const lx=Math.min(...points.map(p=>p.x)),ty=Math.min(...points.map(p=>p.y));
   const rx=Math.max(...points.map(p=>p.x)),by=Math.max(...points.map(p=>p.y));
   if(rx-lx<1||by-ty<1)return '';
   const clip=points.map(p=>(p.x-lx).toFixed(1)+'px '+(p.y-ty).toFixed(1)+'px').join(',');
-  return '<div class="tile" style="left:'+lx.toFixed(1)+'px;top:'+ty.toFixed(1)+'px;width:'+(rx-lx).toFixed(1)+
-   'px;height:'+(by-ty).toFixed(1)+'px;background:'+color+';opacity:'+opacity+
+  return '<div class="tile '+kind+'" style="left:'+lx.toFixed(1)+'px;top:'+ty.toFixed(1)+'px;width:'+(rx-lx).toFixed(1)+
+   'px;height:'+(by-ty).toFixed(1)+'px;background:'+(kind==='demolition-face'?'linear-gradient(145deg,#ffffff77 0%,'+color+' 38%,#071e39dd 145%)':color)+';opacity:'+opacity+
    ';clip-path:polygon('+clip+')"></div>';
  }
  function edge(a,b,color='#73ffe5',thickness=4){
@@ -886,7 +904,9 @@ function renderARSpatial(frame,time){
    const p=it.body.translation(),q=it.body.rotation(),angle=2*Math.atan2(q.z,q.w);
    for(const polygon of it.shape.parts){
     const points=map(G.rotated(polygon,angle).map(([u,v])=>[p.x+u*BLOCK,p.y+v*BLOCK,DEPTH*.5]));
-    html.push(tile(points,XR_COLORS[it.shape.tone%XR_COLORS.length],.86));
+    const demolition=modeId==='demolition',color=demolition?D.color(it.id):XR_COLORS[it.shape.tone%XR_COLORS.length];
+    html.push(tile(points,it.id===demolitionHighlight?'#ffffff':color,demolition?.96:.86,demolition?'demolition-face':''));
+    if(demolition&&points.every(Boolean))for(let k=0;k<points.length;k++)html.push(edge(points[k],points[(k+1)%points.length],'#ecfffe',2));
    }
   }
   if(active)for(const polygon of active.shape.parts){
