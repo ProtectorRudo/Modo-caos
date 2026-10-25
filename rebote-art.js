@@ -64,6 +64,20 @@ export function createReboteArt(T,scene){
    (body.userData.legs??=[]).push(leg);
   }
   const belt=box(body,edge,[0,.97,.18],[.62,.1,.18]);belt.rotation.z=.05;
+  if(e.boss){
+   const shield=new T.Mesh(new T.IcosahedronGeometry(1.13,1),new T.MeshBasicMaterial({
+    color:0x3be8ff,transparent:true,opacity:.29,depthWrite:false,side:T.DoubleSide,wireframe:true
+   }));
+   shield.position.set(0,1.25,0);shield.scale.set(1,1.14,.72);shield.visible=false;
+   body.add(shield);body.userData.shieldMesh=shield;
+   // Separate heavy armor plates, progressively lost during the boss battle.
+   body.userData.armorPanels=[];
+   for(const side of [-1,1]){
+    const panel=box(body,edge,[side*.46,1.47,.11],[.19,.56,.32]);
+    panel.rotation.z=side*.18;
+    body.userData.armorPanels.push(panel);
+   }
+  }
   body.userData.visor=visor;body.userData.head=head;body.userData.torso=torso;body.userData.reactor=reactor;
   return body;
  }
@@ -104,6 +118,12 @@ export function createReboteArt(T,scene){
    b.userData.legs.forEach((l,i)=>l.rotation.x=Math.sin(time*1.2+i*Math.PI)*.075);
    b.userData.torso.rotation.z=Math.sin(time*1.6+e.phase)*.02;
    const dmg=Math.max(0,1-e.health/e.maxHealth);
+   if(b.userData.shieldMesh){
+    b.userData.shieldMesh.visible=e.alive&&!!e.shield;
+    b.userData.shieldMesh.rotation.y=time*.75;
+    b.userData.shieldMesh.material.opacity=.21+.10*Math.sin(time*9);
+   }
+   if(b.userData.armorPanels)b.userData.armorPanels.forEach((panel,i)=>{panel.visible=dmg<(i===0?.40:.72)});
    b.userData.visor.material=dmg>.48?red:blue;
    b.userData.reactor.material=dmg>.48?orange:blue;
    const hit=g.elapsed-e.hitTime<.26;
