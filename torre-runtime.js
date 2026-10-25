@@ -87,6 +87,7 @@ function startPhysics(){
  }
  if(modeId==='copy')art.setTarget(M.TARGET,G.SHAPES);
  $('pieceDock').dataset.demolition=String(modeId==='demolition');
+ $('pieceDock').dataset.five=String(modeId==='five');
  $('mini').dataset.copy=String(modeId==='copy');
  updateHUD();modeHUD();
 }
@@ -144,6 +145,9 @@ function renderPack(){
 function nextPack(){
  if(modeId==='copy'){
   stock=[G.SHAPES[0],G.SHAPES[0],G.SHAPES[1]].map(shape=>({shape,used:false}));
+ }else if(modeId==='five'){
+  // Exactly five known pieces, not an endless replenishing random shelf.
+  stock=[G.SHAPES[0],G.SHAPES[1],G.SHAPES[2],G.SHAPES[5],G.SHAPES[6]].map(shape=>({shape,used:false}));
  }else{
   stock=G.makePack(packRound++,random).map(shape=>({shape,used:false}));
  }
@@ -164,7 +168,7 @@ function makeActive(){
  if(modeId==='demolition')return;
  if(states.length>=M.get(modeId).limit){challengeCompleted('limit');return}
  if(!stock.length||stock.every(s=>s.used)){
-  if(modeId==='copy'&&stock.length){challengeCompleted('limit');return}
+  if((modeId==='copy'||modeId==='five')&&stock.length){challengeCompleted('limit');return}
   nextPack();
  }
  selectedIndex=-1;active=null;
