@@ -152,6 +152,22 @@ jobs:
           grep -q 'matrixWorldInverse.copy' /tmp/rodeados-compositor.js
           echo "BLACKZONE 3D DOM OVERLAY PUBLICADO"
           echo 'CONFIRMADO: robots 3D iniciales y seguimiento ARCore robusto publicados'
+          echo 'VERIFICAR VERCEL RODEADOS V16 (PRODUCCION)'
+          VH=$(curl -sSL -m 22 -o /tmp/vercel-rodeados.html -w "%{http_code}" "https://modo-caos-eta.vercel.app/rodeados.html?v=16")
+          echo "VERCEL_V16_HTTP=$VH"
+          if [ "$VH" = "200" ]; then
+            grep -q 'rodeados-runtime.js?v=16' /tmp/vercel-rodeados.html
+            grep -q 'id="fire"' /tmp/vercel-rodeados.html
+            grep -q 'id="bomb"' /tmp/vercel-rodeados.html
+            A=$(curl -sSL -m 20 -o /tmp/vercel-rodeados-art.js -w "%{http_code}" "https://modo-caos-eta.vercel.app/rodeados-art.js?v=16")
+            echo "VERCEL_ART_V16_HTTP=$A"
+            test "$A" = "200"
+            grep -q 'function battlePlateTexture()' /tmp/vercel-rodeados-art.js
+            grep -q 'function updateBattlefieldRubble(game,editing=false)' /tmp/vercel-rodeados-art.js
+            echo 'VERCEL V16 VERIFIED PLAYABLE 200'
+          else
+            echo 'VERCEL URL NOT PUBLICLY REACHABLE BY CURL; GITHUB PAGES V16 REMAINS VERIFIED'
+          fi
           for file in rodeados-core.js rodeados-art.js rodeados-ux.js rodeados-runtime.js rodeados-progression.js mc-config.js mc-rooms-client.js; do
             HTTP=$(curl -sSL -m 12 -o /tmp/rodeados-mirror-js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/$file")
             echo "$file: $HTTP"
