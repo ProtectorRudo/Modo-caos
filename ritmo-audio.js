@@ -178,9 +178,24 @@
   }
   function localStatus(){return analysis;}
 
+  // Short, gentle auditory confirmations mixed with the soundtrack.
+  function feedback(kind,lane=1,combo=0){
+   if(!ctx||ctx.state!=='running'||mute||ended)return;
+   if(kind==='FALLO')return; // don't punish the ears
+   const notes=[523.25,587.33,659.25,783.99];
+   const base=notes[Math.max(0,Math.min(3,lane))];
+   const time=ctx.currentTime+.008;
+   if(kind==='HOLD_START'){
+    oscillator(base*.5,time,.12,'sine',.025);
+    return;
+   }
+   const bright=kind==='HOLD_COMPLETE'||combo>=10;
+   oscillator(base*(bright?2:1),time,bright?.22:.13,'sine',bright?.055:.038);
+   if(bright)oscillator(base*3,time+.04,.20,'triangle',.026);
+  }
   function volume(v){mute=!!v;if(gain)gain.gain.value=mute?0:.25}
   function state(){return {muted:mute,playing:!!timer&&!ended,started:startAt,track}}
-  return {init,preload,start,now,pause,resume,stop,volume,state,loadLocal,localStatus};
+  return {init,preload,start,now,pause,resume,stop,volume,state,feedback,loadLocal,localStatus};
  }
  root.RitmoAudio={create};
 })(window);
