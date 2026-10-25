@@ -41,3 +41,4 @@ jobs:
       - run: node tests/rodeados-xr-smoke.test.cjs
       - run: node tests/rodeados-manul-preview.test.cjs
       - run: node tests/rodeados-auto-robots.test.cjs
+      - run: RODEADOS_REAL_ASSET=1 node tests/rodeados-auto-robots.test.cjs
