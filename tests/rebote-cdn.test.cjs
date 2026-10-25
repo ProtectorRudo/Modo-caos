@@ -20,6 +20,7 @@ async function verifyFile([name,mime,mark1,mark2]){
    const resp=await fetch(url,{signal:AbortSignal.timeout(16000),headers:{'User-Agent':'ModoCaos-Rebote-CDN-Verification'}});
    const text=await resp.text();
    const type=resp.headers.get('content-type')||'';
+   if(name==='rebote.html')console.log('CDN HEADERS CSP',resp.headers.get('content-security-policy'),'XFO',resp.headers.get('x-frame-options'),'CORP',resp.headers.get('cross-origin-resource-policy'));
    if(resp.ok&&type.includes(mime)&&text.includes(mark1)&&text.includes(mark2)){
     console.log('PASS',name,resp.status,type,text.length);
     return;
