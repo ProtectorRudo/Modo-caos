@@ -1,0 +1,38 @@
+name: REBOTE MORTAL · espejo HTTPS independiente de Vercel
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'rebote.html'
+      - 'rebote-runtime.js'
+      - 'rebote-art.js'
+      - 'rebote-core.js'
+      - 'rodeados-ar-compositor.js'
+      - 'tests/rebote-cdn.test.cjs'
+      - '.github/workflows/rebote-cdn.yml'
+  pull_request:
+    paths:
+      - 'rebote.html'
+      - 'rebote-runtime.js'
+      - 'rebote-art.js'
+      - 'rebote-core.js'
+      - 'rodeados-ar-compositor.js'
+      - 'tests/rebote-cdn.test.cjs'
+      - '.github/workflows/rebote-cdn.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: Verify playable assets at CDN HTTPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Verify exact-commit mirror through public CDN
+        env:
+          REBOTE_CDN_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node tests/rebote-cdn.test.cjs
