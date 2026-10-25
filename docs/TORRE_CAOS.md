@@ -66,3 +66,21 @@ El usuario pidió conservar la esencia de **Tumble/Tumble VR**: dejar de recibir
 **Pruebas ejecutadas en preview local aislada de Chromium + Rapier, 390×844:** 4 piezas visibles y reconocibles; selección de triángulo; rotación continua de 0,5997 rad con giro táctil simulado de dos dedos; retirar los dedos deja 0 piezas colocadas y conserva la orientación; posterior arrastre coloca el triángulo y consume únicamente su casillero; la siguiente pieza queda seleccionada y la bandeja muestra 3 disponibles. Arrastre directo desde tarjeta comprobado preservando el mismo elemento durante el gesto y pasando a física; plataforma rectangular obtiene 20 cm tras asentarse (se comprobó estado durante 5,4 s). Sin errores JS. **Prueba de gestos automatizada de navegador, no test físico de dos dedos en el móvil**.
 
 Sin cambios en `engine.js`, otros juegos, Supabase ni proyecto Vercel original.
+
+## Corrección del derrumbe real — 25/10/2026
+
+Bug confirmado con captura: varias piezas dispersas sobre el piso y Torre Caos seguía ofreciendo otra. Causa: el motor sólo comprobaba fallos durante el estado `settling`, priorizaba la última pieza o una caída de altura mayor de ~24 cm y no detectaba un montón de piezas apoyadas en la base si quedaba alguna pieza vertical.
+
+- `torre-core.js`: nueva función pura `diagnoseCollapse(items, stableHeight, latestId, reference)`. Criterios sobre **cuerpos Rapier reales**: pieza vieja o nueva fuera de pista, pérdida sustancial de altura previamente estable, tres o más piezas tocando el suelo de una construcción dispersa, dispersión horizontal y desplazamiento/rotación de soportes previamente estabilizados.
+- `torre-runtime.js`: monitoriza **toda la torre** a 60 Hz tanto al asentar como **entre turnos**, luego de aparecer la próxima pieza; evalúa `minY` del cuerpo con sus verdaderos polígonos y posiciones/ángulos. Gracia acumulada de 0,7 segundos para no perder por una oscilación que se recupera; al reconocer el derrumbe deja de ofrecer piezas, libera la activa, reproduce los frames registrados y muestra fin de partida.
+- Se actualiza correctamente el estado de altura estable y snapshots por pieza tras cada colocación exitosa. Replay acotado por reloj real a 4 s máximo aun con FPS bajo.
+- Resultado: el encabezado siempre dice `TORRE DERRUMBADA` y el aviso de récord se muestra por separado si efectivamente supera el récord previo a la partida. No se concede récord por altura momentánea de una pieza que luego cayó.
+- `tests/torre.test.cjs` cubre caso equivalente a la captura, torre de cuatro elementos estables, bamboleo leve, pérdida de soporte, pieza anterior fuera de pista y pérdida de altura.
+
+**Pruebas ejecutadas** en el entorno aislado de navegador Chromium + Rapier y geometría física real:
+- Tres bloques centrados apilados (~92 cm): aceptados y juego continúa.
+- Tres bloques colocados en posiciones 0, +0,9, −0,9 m sobre la base: `piezas_desparramadas` detectado tras 0,7 s de persistencia, transición `settling → replay → finished`, mensaje `TORRE DERRUMBADA` y resultado visible. No recibe otro bloque.
+- Un ligero impulso aplicado a una torre estable no generó un falso derrumbe y la torre siguió jugable.
+- Prueba dirigida entre turnos: al desplazar físicamente un antiguo cuerpo fuera de pista mientras ya había aparecido el siguiente, el monitor detectó `pieza_fuera` aun en fase `playing`. Inyección de QA usada solamente para forzar el escenario extremo, no código de producción.
+- Pruebas de Node: geometría, packs y todas las nuevas detecciones OK; `tests/torre-rapier.test.mjs` validó 14 formas + apilamiento; cero errores de página.
+- **Pendiente**: validación física de AR en el celular del usuario. No afirmar prueba real Android/ARCore.
