@@ -379,6 +379,7 @@ function removeDemolitionBlock(id){
  return true;
 }
 function scoreDemolition(){
+ if(phase==='intermission'||phase==='finished')return;
  const score=M.demolitionScore(demolitionStart,readSnapshot(),demolitionRemoved);
  demolitionRoundFallen=Math.max(demolitionRoundFallen,score.fallen);
  demolitionRoundPoints=Math.max(demolitionRoundPoints,D.roundPoints(score.fallen,demolitionRemoved.length));
@@ -504,7 +505,7 @@ function physicsStep(){
    }
   }
   if(steps%6===0){
-   if(removals>0)scoreDemolition();
+   if(removals>0&&(phase==='playing'||phase==='settling'))scoreDemolition();
    updateHUD();
   }
   return;
