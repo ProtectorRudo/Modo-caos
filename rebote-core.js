@@ -60,7 +60,7 @@ function launch(g,type=typeAt(g),target=activeEnemy(g)){
    radius:type==='pesada'?.22:.17,age:0,returning:false,dead:false,targetId:target.id,
    bend:type==='curva'?.22:0,curvePhase:random(g)*6.28,hit:false,warning:0.50,hasDouble:type==='doble'};
  g.projectiles.push(p);
- if(type==='doble')g.delayed.push({at:g.elapsed+1.12,type:'normal',targetId:target.id});
+ if(type==='doble')g.delayed.push({at:g.elapsed+.90,created:g.elapsed,type:'normal',targetId:target.id});
  if(type==='fantasma'){
   const fake={...p,id:++g.projectileId,type:'fake',pos:add(origin,V(.32,0,0)),prev:add(origin,V(.32,0,0)),radius:.125,hasDouble:false};
   g.projectiles.push(fake);
@@ -155,8 +155,9 @@ function step(g,dt){
  }
  for(const d of [...g.delayed])if(g.elapsed>=d.at){
   const enemy=g.enemies.find(e=>e.id===d.targetId&&e.alive)||activeEnemy(g);
-  if(enemy&&g.projectiles.filter(p=>!p.dead&&!p.returning&&p.type!=='fake').length<2)launch(g,d.type,enemy);
-  g.delayed.splice(g.delayed.indexOf(d),1);
+  const success=enemy&&g.projectiles.filter(p=>!p.dead&&!p.returning&&p.type!=='fake').length<2&&launch(g,d.type,enemy);
+  if(success||!enemy||g.elapsed-d.created>3.5)g.delayed.splice(g.delayed.indexOf(d),1);
+  else d.at=g.elapsed+.19;
  }
  if(g.elapsed>=g.nextShot){
    if(!activeEnemy(g))spawnEnemy(g,g.phase===4);
