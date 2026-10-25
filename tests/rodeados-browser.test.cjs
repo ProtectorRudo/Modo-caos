@@ -21,9 +21,11 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>!!globalThis.__RodeadosDebug,null,{timeout:25000});
  assert.equal((await page.locator('h1').innerText()).replace(/\s+/g,' ').trim(),'RODEADOS 360°');
  await page.locator('#startDemo').click();
- await page.waitForTimeout(650);
+ await page.waitForFunction(()=>globalThis.__RodeadosDebug.stage==='playing',null,{timeout:7000});
+ // SwiftShader/WebGL screenshot workers can render a frame much slower than a
+ // real mobile GPU. Wait for SIMULATED time, never guess 650ms of wall time.
+ await page.waitForFunction(()=>globalThis.__RodeadosDebug.game.elapsed>.32,null,{timeout:7500});
  assert.equal(await page.evaluate(()=>globalThis.__RodeadosDebug.stage),'playing');
- assert.ok((await page.evaluate(()=>globalThis.__RodeadosDebug.game.elapsed))>.3,'clock advances');
  assert(await page.locator('canvas').count()>0,'Three.js created renderer');
  assert(await page.locator('#fire').isVisible(),'shoot visible');
  const floorStart=await page.evaluate(()=>globalThis.__RodeadosDebug.floorRendering);
