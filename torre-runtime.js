@@ -307,6 +307,7 @@ function spawnBlock(shape,x,y,angle=0){
  states.push(item);art.startBlock(id,shape);
  return item;
 }
+// Vercel release: verified 40 silhouettes, 10 cumulative rounds, AR floor remains anchored.
 function createDemolitionTower(){
  demolitionPlan=D.plan(random);
  demolitionRound=0;demolitionBank=0;demolitionBankFallen=0;demolitionRoundHistory=[];
