@@ -52,7 +52,7 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
   const chaos=(seq>25&&seq%29===28),special=(seq%17===16),hold=(seq>4&&seq%13===9);
   const slide=(seq>8&&seq%19===12&&difficulty!=='facil'&&fromLane!==lane);
   let type=chaos?'caos':special?'special':hold?'hold':slide?'slide':'simple';
-  const holdTime=hold?Math.min(.64,spacing*beat*.42):0;
+  const holdTime=type==='hold'?Math.min(.80,Math.max(.48,spacing*beat*.49)):0;
   notes.push({id:seq,lane,fromLane,at:when,type,hold:holdTime,slideDuration:slide?Math.min(.73,dt*.72):0,beat:beatIndex,
     pitch:noteEvent&&Number.isFinite(noteEvent.pitch)?noteEvent.pitch:song.lead[(Math.floor(beatIndex/2)+song.beat)%song.lead.length],status:'pending'});
   lastAt=when;beatIndex+=targetEvents.length?gapBeats:spacing;
@@ -88,11 +88,11 @@ function resolve(g,n,rating){
  }
  if(g.slideActive?.id===n.id)g.slideActive=null;
  g.events.push({seq:++g.eventSeq,type:'judgement',rating,note:n.id,lane:n.lane,combo:g.combo,score:g.score,special:n.type==='caos'});
- if(g.events.length>18)g.events.shift();
+ if(g.events.length>24)g.events.shift();
 }
 function tick(g,time){
- if(g.state!=='playing'||g.paused)return;
- if(!Number.isFinite(time))return;
+ if(g.state!=='playing'||g.paused||!Number.isFinite(time))return;
+ const previous=g.elapsed;
  g.elapsed=Math.max(g.elapsed,clamp(time,0,g.duration+.5));
  const slideNote=g.notes[g.cursor];
  if(slideNote?.type==='slide'&&slideNote.status==='pending'&&g.elapsed>=slideNote.at-slideNote.slideDuration-.045&&g.elapsed<=slideNote.at+.24){
@@ -100,31 +100,58 @@ function tick(g,time){
   if(Math.abs(g.offset-slideNote.fromLane)<.52)g.slideActive.seenSource=true;
   if(Math.abs(g.offset-slideNote.fromLane)>.55)g.slideActive.moved=true;
  }
+ // HOLD = staying on the color. Never requires a finger press or re-entering.
+ // AR phone tracking oscillates around lane borders, so allow a brief dropout,
+ // even when one frame arrives late. Do not punish single-frame jitter.
  if(g.holdActive){
-  const n=g.holdActive;
-  if(g.lane!==n.lane){resolve(g,n,'FALLO');g.holdActive=null;g.cursor++}
-  else if(g.elapsed>=n.at+n.hold){resolve(g,n,'PERFECTO');g.holdActive=null;g.cursor++}
+  const h=g.holdActive,n=h.note;
+  const inside=Math.abs(g.offset-n.lane)<.70;
+  const dt=Math.max(0,g.elapsed-previous);
+  if(inside)h.awaySince=null;
+  else{
+   if(h.awaySince===null)h.awaySince=g.elapsed;
+   h.offSeconds+=Math.min(dt,.09);
+  }
+  h.progress=clamp((g.elapsed-n.at)/Math.max(.01,n.hold),0,1);
+  const goneTooLong=(h.awaySince!==null&&g.elapsed-h.awaySince>.24)||h.offSeconds>.34;
+  if(goneTooLong){
+   resolve(g,n,'FALLO');g.events.push({seq:++g.eventSeq,type:'hold_break',lane:n.lane,note:n.id});
+   g.holdActive=null;g.cursor++;
+  }else if(g.elapsed>=n.at+n.hold){
+   resolve(g,n,'PERFECTO');
+   g.events.push({seq:++g.eventSeq,type:'hold_complete',lane:n.lane,note:n.id,combo:g.combo});
+   g.holdActive=null;g.cursor++;
+  }
  }
  while(g.cursor<g.notes.length){
   const n=g.notes[g.cursor];
   if(n.status!=='pending'){g.cursor++;continue}
   const delta=g.elapsed-n.at;
-  if(delta<-.055)break;
-  if(delta>.24){resolve(g,n,'FALLO');g.cursor++;continue}
+  const hold=n.type==='hold';
+  // Entering the correct lane up to 200 ms BEFORE the sustained head is valid.
+  if(delta<(hold?-.20:-.055))break;
+  if(delta>(hold?.36:.24)){resolve(g,n,'FALLO');g.cursor++;continue}
   if(g.holdActive)break;
   if(g.lane===n.lane){
    if(n.type==='slide'&&(!g.slideActive?.seenSource||!g.slideActive?.moved)){
     if(delta>.12){resolve(g,n,'FALLO');g.cursor++;continue}
     break;
    }
-   if(n.type==='hold'){g.holdActive=n;break}
+   if(hold){
+    g.holdActive={id:n.id,note:n,startedAt:g.elapsed,awaySince:null,offSeconds:0,progress:clamp(delta/Math.max(n.hold,.01),0,1)};
+    g.events.push({seq:++g.eventSeq,type:'hold_start',lane:n.lane,note:n.id,hold:n.hold});
+    if(g.events.length>24)g.events.splice(0,g.events.length-24);
+    break;
+   }
    const centered=Math.abs(g.offset-n.lane);
    const rating=centered<.21&&Math.abs(delta)<.085?'PERFECTO':centered<.32&&Math.abs(delta)<.17?'GENIAL':'BIEN';
    resolve(g,n,rating);g.cursor++;continue;
   }
   break;
  }
- if(g.elapsed>=g.duration&&g.cursor>=g.notes.length){g.state='finished';g.events.push({seq:++g.eventSeq,type:'finish'});}
+ if(g.elapsed>=g.duration&&g.cursor>=g.notes.length){
+  g.state='finished';g.events.push({seq:++g.eventSeq,type:'finish'});
+ }
 }
 function accuracy(g){return g.judged?Math.round((g.perfect+g.great*.7+g.good*.4)/g.judged*100):0}
 function ranking(g){const a=accuracy(g);return a>=96?'LEYENDA DEL RITMO':a>=85?'ESTRELLA':a>=70?'ARTISTA':a>=50?'PROMESA':'¡SEGUÍ EL RITMO!'}
