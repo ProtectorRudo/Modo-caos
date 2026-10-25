@@ -26,7 +26,7 @@ export class TorreArt{
   key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=13;key.shadow.camera.bottom=-6;key.shadow.bias=-.0003;this.scene.add(key);
   const fill=new THREE.DirectionalLight(0x52d1ff,1.8);fill.position.set(4,2,-2);this.scene.add(fill);
   this.materials=PALETTE.map(c=>new THREE.MeshStandardMaterial({color:c,metalness:.3,roughness:.29,emissive:c,emissiveIntensity:.045}));
-  this.objects=new Map();this.active=null;this.shadowGhost=null;this.effects=[];this.ar=false;this.stand=new THREE.Group();this.group.add(this.stand);
+  this.target=new THREE.Group();this.group.add(this.target);this.boardHalf=1.25;this.boardAngle=0;this.objects=new Map();this.active=null;this.shadowGhost=null;this.effects=[];this.ar=false;this.stand=new THREE.Group();this.group.add(this.stand);
   const baseMat=new THREE.MeshStandardMaterial({color:0x14283e,metalness:.53,roughness:.33});
   const sideMat=new THREE.MeshStandardMaterial({color:0x07121e,metalness:.48,roughness:.4});
   const plate=new THREE.Mesh(new THREE.BoxGeometry(2.5,.15,.72),[baseMat,baseMat,baseMat,sideMat,baseMat,baseMat]);plate.position.y=.037;plate.receiveShadow=true;this.stand.add(plate);
@@ -41,6 +41,27 @@ export class TorreArt{
   this.temp=new THREE.Vector3();this.clock=0;this._sizeHeight=0;
   addEventListener('resize',()=>this.resize());
  }
+ setBoardHalf(half){this.boardHalf=half;this.stand.scale.x=half/1.25}
+ setTilt(angle){this.boardAngle=angle;this.stand.rotation.z=angle}
+ setTarget(targets,shapes){
+  for(const n of [...this.target.children]){this.target.remove(n);n.traverse?.(c=>{c.geometry?.dispose?.();c.material?.dispose?.()})}
+  if(!targets?.length)return;
+  const lineMaterial=new THREE.LineBasicMaterial({color:0xffdc8b,transparent:true,opacity:.85,depthTest:false});
+  for(const t of targets){
+   const shape=shapes.find(s=>s.id===t.shape);if(!shape)continue;
+   const figure=new THREE.Group();figure.position.set(t.x,t.y,-.18);figure.rotation.z=t.angle;
+   for(const part of shape.parts){
+    const mesh=shapeMesh(part,new THREE.MeshBasicMaterial({visible:false}));
+    const edges=new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),lineMaterial.clone());
+    mesh.geometry.dispose();mesh.material.dispose();figure.add(edges);
+   }
+   this.target.add(figure);
+  }
+ }
+ removeBlock(id){
+  const mesh=this.objects.get(id);if(!mesh)return;
+  this.group.remove(mesh);mesh.traverse(n=>{if(n.isMesh)n.geometry.dispose()});mesh.userData.material?.dispose();this.objects.delete(id);
+ }
  resize(){this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight)}
  model(shape,transparent=false){
   const mat=this.materials[shape.tone%this.materials.length].clone();
@@ -54,7 +75,7 @@ export class TorreArt{
  moveActive(x,y,angle){if(!this.active)return;this.active.position.set(x,y,0);this.active.rotation.z=angle;this.ghost.position.x=x;this.ghost.scale.x=1.1}
  setGhostLanding(x,y){this.ghost.position.set(x,Math.max(.145,y+.012),0);this.ghost.visible=!!this.active}
  releaseActive(){if(!this.active)return;this.group.remove(this.active);this.active.traverse(n=>{if(n.isMesh)n.geometry.dispose()});this.active.userData.material.dispose();this.active=null;this.ghost.visible=false}
- reset(){for(const ob of this.objects.values()){this.group.remove(ob);ob.traverse(n=>{if(n.isMesh)n.geometry.dispose()});ob.userData.material?.dispose()}this.objects.clear();this.releaseActive();for(const e of this.effects){this.group.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose()}this.effects=[]}
+ reset(){this.setTarget([],[]);this.setBoardHalf(1.25);this.setTilt(0);for(const ob of this.objects.values()){this.group.remove(ob);ob.traverse(n=>{if(n.isMesh)n.geometry.dispose()});ob.userData.material?.dispose()}this.objects.clear();this.releaseActive();for(const e of this.effects){this.group.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose()}this.effects=[]}
  sync(id,x,y,rotation){const m=this.objects.get(id);if(!m)return;m.position.set(x,y,0);m.rotation.set(0,0,rotation)}
  impact(x,y,intensity=1){if(this.effects.length>28)return;const geo=new THREE.TorusGeometry(.075, .007+Math.min(.012,intensity*.003),5,24),mat=new THREE.MeshBasicMaterial({color:intensity>3?0xffc78c:0x89fff2,transparent:true,opacity:.75,depthWrite:false});
   const ring=new THREE.Mesh(geo,mat);ring.position.set(x,Math.max(.145,y),.17);this.group.add(ring);this.effects.push({mesh:ring,life:0})}
