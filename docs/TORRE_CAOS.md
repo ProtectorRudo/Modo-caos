@@ -33,3 +33,19 @@
 - Tamaño inicial de escenario en AR: escala 0,48 (plataforma aprox. 1,2 m de ancho), regulable con dedos de 0,30 a 1,15. La guía de caída usa ray cast real de Rapier, solo como sombra visual, sin corregir la física. Al reubicar una pista en AR se conservan piezas y estado de simulación.
 - El selector AR se habilita solamente si `navigator.xr.isSessionSupported('immersive-ar')` confirma soporte, no por la presencia de `navigator.xr`.
 - Las geometrías de mallas Three.js se liberan al reintentar para reducir consumo de memoria.
+
+## Corrección AR: plataforma invisible (24/10/2026)
+
+Problema reproducido visualmente por captura de Android: WebXR habilitaba **FIJAR** aun sin verse la geometría de la base 3D. La geometría del preview se renderizaba únicamente con Three.js; una sesión AR puede detectar un hit test sin que una malla sea visible en la composición WebGL.
+
+Corrección aislada en `torre.html` y `torre-runtime.js`:
+
+- Añadido `#xrScene` (SVG en DOM Overlay) para dibujar en el mundo real la base, guías y geometrías visibles a partir de `frame.getViewerPose(ref)`, `view.projectionMatrix` y matriz inversa de la cámara. Multiplica las coordenadas físicas **de la misma escena Three.js**, no ancla el dibujo a la pantalla.
+- Se verifica la proyección dentro del viewport antes de habilitar `FIJAR` y se comunica con un texto discreto si el objetivo está fuera de cuadro.
+- `#mini` y `#miniBtn` se esconden durante la calibración (anteriormente el CSS usaba un selector descendiente incorrecto: los elementos eran hermanos del stage).
+- Si WebGL XR resulta invisible en algún Android, la capa SVG proyectada mantiene visibles plataforma y sólidos, como ruta de compatibilidad; no reemplaza el motor de física.
+- Sin cambios en los motores de Color Rush, Ball Rush, Territorio X, Muro Rush, ni en Supabase.
+
+Prueba ejecutada en Chromium con frame WebXR simulado (cámara 390×844, proyección perspectiva local, base en punto `hit-test`): geometría SVG proyectada sobre el piso, cambio de coordenadas al mover la cámara, plataforma visible y botón FIJAR habilitado solamente cuando está en cuadro, minivista escondida, cero errores JS. Prueba separada con cámara mirando fuera de cuadro: cero polígonos, FIJAR deshabilitado. Regresión demo 3D: coloca una pieza y altura computada, cero errores.
+
+**Limitación**: pruebas simuladas del fotograma de XR y del navegador, no prueba física de ARCore en el teléfono de la captura. Se requiere feedback visual del usuario después de desplegar la corrección.
