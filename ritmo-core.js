@@ -24,13 +24,14 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
   const phrase=Math.floor(beatIndex/4),desired=song.lead[(phrase+Math.floor(rand()*3))%song.lead.length]%5;
   // Preference for melody movement, without ever requesting impossible physical transitions.
   options.sort((a,b)=>Math.abs(a-desired)-Math.abs(b-desired));
+  const fromLane=lane;
   lane=rand()<.67?options[0]:options[Math.floor(rand()*options.length)];
   const seq=notes.length;
-  const special=(seq%17===16),hold=(seq>4&&seq%13===9);
-  const slide=(seq>8&&seq%19===12&&difficulty!=='facil');
-  let type=special?'special':hold?'hold':slide?'slide':'simple';
+  const chaos=(seq>25&&seq%29===28),special=(seq%17===16),hold=(seq>4&&seq%13===9);
+  const slide=(seq>8&&seq%19===12&&difficulty!=='facil'&&fromLane!==lane);
+  let type=chaos?'caos':special?'special':hold?'hold':slide?'slide':'simple';
   const holdTime=hold?Math.min(.64,spacing*beat*.42):0;
-  notes.push({id:seq,lane,at:when,type,hold:holdTime,beat:beatIndex,
+  notes.push({id:seq,lane,fromLane,at:when,type,hold:holdTime,slideDuration:slide?Math.min(.73,dt*.72):0,beat:beatIndex,
     pitch:song.lead[(Math.floor(beatIndex/2)+song.beat)%song.lead.length],status:'pending'});
   lastAt=when;beatIndex+=spacing;
   if(difficulty==='caos'&&seq%17===14)beatIndex+=.25;
@@ -40,7 +41,7 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
 function make(songId='neon',difficulty='normal',laneWidth=.31){
  const c=chart(songId,difficulty,laneWidth);
  return {...c,state:'ready',elapsed:0,cursor:0,lane:2,offset:0,score:0,combo:0,bestCombo:0,perfect:0,great:0,good:0,miss:0,
- energy:55,events:[],judged:0,holdActive:null,enteredAt:0,lastLane:2,paused:false};
+ energy:55,events:[],judged:0,holdActive:null,slideActive:null,enteredAt:0,lastLane:2,paused:false};
 }
 function reset(g){Object.assign(g,make(g.songId,g.difficulty,g.laneWidth));return g}
 function start(g){if(g.state!=='ready')return false;g.state='playing';return true}
@@ -60,16 +61,23 @@ function resolve(g,n,rating){
   if(rating==='PERFECTO')g.perfect++;
   else if(rating==='GENIAL')g.great++;else g.good++;
   const base=rating==='PERFECTO'?1000:rating==='GENIAL'?700:400;
-  const points=Math.round(base*multiplier(g.combo)*(n.type==='special'?1.6:1));
+  const points=Math.round(base*multiplier(g.combo)*(n.type==='caos'?2:n.type==='special'?1.6:1));
   g.score+=points;g.energy=clamp(g.energy+(rating==='PERFECTO'?4:2),0,100);
  }
- g.events.push({type:'judgement',rating,note:n.id,lane:n.lane,combo:g.combo,score:g.score});
+ if(g.slideActive?.id===n.id)g.slideActive=null;
+ g.events.push({type:'judgement',rating,note:n.id,lane:n.lane,combo:g.combo,score:g.score,special:n.type==='caos'});
  if(g.events.length>18)g.events.shift();
 }
 function tick(g,time){
  if(g.state!=='playing'||g.paused)return;
  if(!Number.isFinite(time))return;
  g.elapsed=Math.max(g.elapsed,clamp(time,0,g.duration+.5));
+ const slideNote=g.notes[g.cursor];
+ if(slideNote?.type==='slide'&&slideNote.status==='pending'&&g.elapsed>=slideNote.at-slideNote.slideDuration-.045&&g.elapsed<=slideNote.at+.24){
+  if(!g.slideActive||g.slideActive.id!==slideNote.id)g.slideActive={id:slideNote.id,seenSource:false,moved:false};
+  if(Math.abs(g.offset-slideNote.fromLane)<.52)g.slideActive.seenSource=true;
+  if(Math.abs(g.offset-slideNote.fromLane)>.55)g.slideActive.moved=true;
+ }
  if(g.holdActive){
   const n=g.holdActive;
   if(g.lane!==n.lane){resolve(g,n,'FALLO');g.holdActive=null;g.cursor++}
@@ -83,6 +91,10 @@ function tick(g,time){
   if(delta>.24){resolve(g,n,'FALLO');g.cursor++;continue}
   if(g.holdActive)break;
   if(g.lane===n.lane){
+   if(n.type==='slide'&&(!g.slideActive?.seenSource||!g.slideActive?.moved)){
+    if(delta>.12){resolve(g,n,'FALLO');g.cursor++;continue}
+    break;
+   }
    if(n.type==='hold'){g.holdActive=n;break}
    const centered=Math.abs(g.offset-n.lane);
    const rating=centered<.21&&Math.abs(delta)<.085?'PERFECTO':centered<.32&&Math.abs(delta)<.17?'GENIAL':'BIEN';
