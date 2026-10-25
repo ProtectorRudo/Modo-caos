@@ -46,12 +46,21 @@ test('jefe final aparece, puede recibir daños y se alcanza victoria',()=>{
  const g=G.make();G.begin(g);g.elapsed=61.99;g.nextShot=999;g.projectiles=[];
  step(g,.07);const boss=g.enemies.find(e=>e.boss);
  assert(boss&&g.bossSpawned,'boss is real entity');
- boss.health=1;
+ boss.health=1;g.elapsed=63.49;
  const p={id:90,type:'normal',pos:G.V(boss.x,1.54,boss.z+.9),prev:G.V(boss.x,1.54,boss.z+.9),
   velocity:G.V(0,0,-5),speed:5,radius:.2,age:0,returning:true,dead:false,targetId:boss.id,
   targetEnemy:boss.id,grade:'PERFECTO'};
  g.projectiles=[p];step(g,.4);
  assert.equal(g.victory,true);assert.equal(g.state,'finished');
+});
+test('ataques especiales dobles y señuelos nunca dañan sin proyectil real',()=>{
+ const g=G.make();G.begin(g);g.projectiles=[];G.launch(g,'doble');
+ assert.equal(g.delayed.length,1);
+ step(g,2.10);assert(g.shotIndex>=2,'el segundo lanzamiento no desaparece por congestión');
+ const h=G.make();G.begin(h);h.projectiles=[];G.launch(h,'fantasma');
+ const fake=h.projectiles.find(p=>p.type==='fake');assert(fake,'fantasma identificable');
+ h.projectiles=[fake];h.nextShot=999;fake.pos=G.V(h.eye.x,h.eye.y,h.eye.z-.31);
+ fake.velocity=G.V(0,0,8);step(h,.10);assert.equal(h.lives,3);
 });
 test('revancha crea partida sin reaprovechar estados anteriores',()=>{
  const a=G.make(),b=G.make();G.begin(a);a.score=1299;
