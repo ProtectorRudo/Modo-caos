@@ -1,6 +1,6 @@
 'use strict';
-/* Catálogo: melodías de composiciones de dominio público, interpretadas por síntesis original.
-   Éxitos comerciales: únicamente selección LOCAL (archivo elegido por el jugador, nunca enviado). */
+/* Catálogo: nuevas interpretaciones sintetizadas de composiciones tradicionales / dominio público.
+   Referencias comerciales no son reproducción ni autorización: NO se activan sin licencias. */
 (function(root){
 const SONGS=root.RitmoCore.SONGS;
 function phrase(notes,unit=1){let t=0;return notes.map(([m,d])=>{const a={at:t,midi:m,length:d*unit};t+=d*unit;return a})}
@@ -34,13 +34,28 @@ const happy=[[60,.75],[60,.25],[62,1],[60,1],[65,1],[64,2],
 [60,.75],[60,.25],[62,1],[60,1],[67,1],[65,2],
 [60,.75],[60,.25],[72,1],[69,1],[65,1],[64,1],[62,2],
 [70,.75],[70,.25],[69,1],[65,1],[67,1],[65,2]];
+
+// Material tradicional: melodías reescritas como MIDI para una interpretación nueva del navegador.
+// No se reutilizan grabaciones, samples, arreglos ajenos ni voces de artistas.
+const cucaracha=[
+[67,.5],[67,.5],[67,.5],[72,1],[76,1],[67,.5],[67,.5],[67,.5],[72,1],[76,1],
+[72,1],[72,1],[71,1],[71,1],[69,1],[69,1],[67,2],
+[67,.5],[67,.5],[67,.5],[71,1],[74,1],[67,.5],[67,.5],[67,.5],[71,1],[74,1],
+[77,1],[76,1],[74,1],[72,1],[71,1],[69,1],[67,2]];
+const saints=[
+[60,1],[64,1],[65,1],[67,2],[60,1],[64,1],[65,1],[67,2],
+[60,1],[64,1],[65,1],[67,1],[64,1],[60,1],[64,1],[62,2],
+[64,1],[64,1],[62,1],[60,2],[60,1],[64,1],[67,1],[67,2],
+[67,1],[65,1],[64,1],[65,1],[67,1],[64,1],[60,2]];
 const classics=[
  ['alegria',{title:'ODA A LA ALEGRÍA · BEETHOVEN',genre:'Clásico remix',bpm:110,bars:32,bass:48,scale:[0,2,4,5,7],lead:[0,2,4,5,7],beat:3,publicDomain:true,melody:phrase(joy),instrument:'brass'}],
  ['elise',{title:'PARA ELISA · BEETHOVEN',genre:'Clásico remix',bpm:118,bars:36,bass:45,scale:[0,3,4,7,9],lead:[0,3,4,7,9],beat:4,publicDomain:true,melody:phrase(elise),instrument:'keys'}],
  ['jingle',{title:'JINGLE BELLS · REMIX',genre:'Clásico popular',bpm:126,bars:36,bass:48,scale:[0,2,4,5,7],lead:[0,2,4,5,7],beat:5,publicDomain:true,melody:phrase(jingle),instrument:'brass'}],
  ['twinkle',{title:'ESTRELLITA ¿DÓNDE ESTÁS? · REMIX',genre:'Pop familiar',bpm:116,bars:32,bass:48,scale:[0,2,4,5,7,9],lead:[0,2,4,5,7],beat:11,publicDomain:true,melody:phrase(twinkle),instrument:'keys'}],
  ['frere',{title:'FRÈRE JACQUES · REMIX',genre:'Dance familiar',bpm:120,bars:32,bass:48,scale:[0,2,4,5,7,9],lead:[0,2,4,5,7],beat:12,publicDomain:true,melody:phrase(frere),instrument:'brass'}],
- ['cumple',{title:'CUMPLEAÑOS FELIZ · REMIX',genre:'Fiesta',bpm:104,bars:28,bass:48,scale:[0,2,4,5,7,9],lead:[0,2,4,5,7],beat:13,publicDomain:true,melody:phrase(happy),instrument:'brass'}]
+ ['cumple',{title:'CUMPLEAÑOS FELIZ · REMIX',genre:'Fiesta',bpm:104,bars:28,bass:48,scale:[0,2,4,5,7,9],lead:[0,2,4,5,7],beat:13,publicDomain:true,melody:phrase(happy),instrument:'brass'}],
+ ['cucaracha',{title:'LA CUCARACHA · FIESTA LATINA',genre:'Latino tradicional · nueva interpretación',bpm:120,bars:34,bass:48,scale:[0,2,4,5,7,9],lead:[0,2,4,5,7],beat:14,publicDomain:true,melody:phrase(cucaracha),instrument:'brass'}],
+ ['saints',{title:'WHEN THE SAINTS · JAZZ REMIX',genre:'Jazz popular · nueva interpretación',bpm:126,bars:36,bass:48,scale:[0,2,4,5,7],lead:[0,2,4,5,7],beat:15,publicDomain:true,melody:phrase(saints),instrument:'brass'}]
 ];
 for(const [id,config] of classics)SONGS[id]=config;
 const modern=[
