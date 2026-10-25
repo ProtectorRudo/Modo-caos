@@ -3,7 +3,7 @@ import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
 const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
-let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,stableBodies=[],collapseSeconds=0,collapseReason=null;
+let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,stableBodies=[],collapseSeconds=0,collapseReason=null,startingRecord=0;
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
@@ -217,7 +217,7 @@ function fail(reason='torre_derrumbada'){
  soundFX(90,.32,.17,'sawtooth');vibe(45);
  if(!replayFrames.length)endReplay();
 }
-function endReplay(){replaying=false;phaseTo('finished');const pts=G.score(hi);$('finalHeight').textContent=pts+' cm';$('finalPieces').textContent=states.length;$('finalRecord').textContent=record+' cm';$('resultTitle').textContent=pts>=record&&pts>0?'¡NUEVO RÉCORD!':'TORRE DERRUMBADA';updateHUD()}
+function endReplay(){replaying=false;phaseTo('finished');const pts=G.score(hi);$('finalHeight').textContent=pts+' cm';$('finalPieces').textContent=states.length;$('finalRecord').textContent=record+' cm';$('resultTitle').textContent='TORRE DERRUMBADA';$('resultNote').textContent=pts>startingRecord?'🏆 ¡NUEVO RÉCORD PERSONAL!':'¿Te animás a superar tu torre?';updateHUD()}
 function finish(title){saveRecord();phaseTo('finished');$('finalHeight').textContent=G.score(hi)+' cm';$('finalPieces').textContent=states.length;$('finalRecord').textContent=record+' cm';$('resultTitle').textContent=title}
 function paintReplay(dt){
  replayTime+=dt*.61;const i=Math.min(replayFrames.length-1,Math.floor(replayTime*60));
@@ -225,7 +225,7 @@ function paintReplay(dt){
  if(i>=replayFrames.length-1||replayTime>3){endReplay()}
 }
 function newGame(){
- editing=false;paused=false;startPhysics();ui.results.hidden=true;makeActive();$('introRecord').textContent='RÉCORD: '+record+' CM';
+ startingRecord=record;editing=false;paused=false;startPhysics();ui.results.hidden=true;makeActive();$('introRecord').textContent='RÉCORD: '+record+' CM';
 }
 function tick(time,frame){
  const dt=Math.min(.05,Math.max(0,(time-lastTime)/1000||.016));lastTime=time;
