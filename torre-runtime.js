@@ -45,9 +45,10 @@ function readSnapshot(){
  return states.map(s=>{const p=s.body.translation(),q=s.body.rotation();return {id:s.id,shape:s.shape.id,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}})
 }
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
-function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
+function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing'||modeId==='demolition';ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
 function updateHUD(){
- ui.hudHeight.textContent=G.score(phase==='settling'?lastTop:top).toString();
+ $('hudHeightLabel').textContent=modeId==='demolition'?'PUNTOS':'ALTURA';
+ ui.hudHeight.textContent=modeId==='demolition'?demolitionPoints.toString():G.score(phase==='settling'?lastTop:top).toString();
  ui.hudPieces.textContent=states.length.toString();
  ui.hudRecord.textContent=modeId==='infinite'?Math.max(record,G.score(top)).toString():modeBest().toString();
  modeHUD();
@@ -471,11 +472,11 @@ function newGame(){
  modeHUD();
 }
 function tick(time,frame){
- const dt=Math.min(.05,Math.max(0,(time-lastTime)/1000||.016));lastTime=time;
+ const wallDt=Math.min(.25,Math.max(0,(time-lastTime)/1000||.016));const dt=Math.min(.05,wallDt);lastTime=time;
  if(session&&frame)xrFrame(time,frame);
  if((phase==='playing'||phase==='settling')&&!paused){
   if(M.get(modeId).seconds){
-   clockRemaining=Math.max(0,clockRemaining-dt);
+   clockRemaining=Math.max(0,clockRemaining-wallDt);
    if(clockRemaining<=0&&phase==='playing'){challengeCompleted('time')}
    else if(steps%8===0)modeHUD();
   }
