@@ -15,7 +15,7 @@ h1{font-size:clamp(45px,12vw,72px);letter-spacing:-3px;line-height:1;margin:8px 
 h1 span{background:linear-gradient(95deg,#4cff85,#ff5274,#ffd34c,#438eff,#ff9b38);color:transparent;background-clip:text;-webkit-background-clip:text}
 .intro{margin:8px auto 15px;color:#ccdeef;font-size:13px;max-width:410px}
 .hero{position:relative;width:100%;height:185px;border:1px solid #547eb4;border-radius:22px;overflow:hidden;background:radial-gradient(ellipse at bottom,#1c5a75,#101a3c 58%,#121029)}
-.stage{position:absolute;left:12%;right:12%;top:-18%;height:133%;transform:perspective(270px) rotateX(45deg);display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.stage{position:absolute;left:12%;right:12%;top:-18%;height:133%;transform:perspective(270px) rotateX(45deg);display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
 .stage i{border:2px solid var(--c);background:linear-gradient(0deg,transparent,#ffffff15);box-shadow:0 0 20px var(--c)}
 .stage i:before{content:'●';position:absolute;bottom:10%;color:var(--c);font-size:31px;filter:drop-shadow(0 0 10px var(--c))}
 .stage i:nth-child(1){--c:#4cff85}.stage i:nth-child(2){--c:#ff5274}.stage i:nth-child(3){--c:#ffd34c}.stage i:nth-child(4){--c:#438eff}.stage i:nth-child(5){--c:#ff9b38}
@@ -35,7 +35,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 .details{padding:10px;text-align:left;background:#0b1e37;border:1px solid #2d5570;border-radius:13px;margin-top:9px;font-size:11px;color:#c4dbe6}
 .details summary{font-weight:800;cursor:pointer}.details input{width:100%}
 #overlay{position:fixed;inset:0;display:none;pointer-events:none;z-index:10;overflow:hidden;background:transparent}
-#tiles,#rtSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#tiles{opacity:.055}#rtSvg{z-index:2}
+#tiles,#rtSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#tiles{opacity:0}#rtSvg{z-index:2}
 #gameCanvas{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:auto;touch-action:none}
 #reticle{position:absolute;left:50%;top:50%;width:28px;height:28px;border:3px solid var(--cyan);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 18px #69ffe7}
 #touchpad{position:absolute;left:0;right:0;top:20%;bottom:31%;display:none;pointer-events:auto;touch-action:none;z-index:6}
@@ -62,7 +62,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 #calPanel{border-radius:15px;border:1px solid #4e9eb0;background:#091d37ee;padding:11px;text-align:center;margin-bottom:8px}
 #calTitle{font-weight:1000;font-size:13px}#calHint{font-size:10px;color:#bad7e8;margin:5px}
 #pickLanes{display:flex;justify-content:center;gap:8px;margin:10px 0}
-#pickLanes button{border:2px solid #ffffff65;border-radius:50%;background:var(--lane);min-height:0;padding:0;width:38px;height:38px;color:#082137;font-weight:1000}
+#pickLanes button{border:2px solid #ffffff99;border-radius:50%;background:var(--lane);min-height:0;padding:0;width:clamp(48px,13vw,62px);height:clamp(48px,13vw,62px);color:#082137;font-weight:1000;font-size:18px}
 #pickLanes button.selected{border:4px solid white;box-shadow:0 0 17px var(--lane);transform:scale(1.07)}
 #calProgress{width:100%;height:5px;background:#26465b;border-radius:10px;overflow:hidden}
 #calFill{height:100%;background:var(--cyan);width:0}
@@ -84,44 +84,50 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <div class="kicker">MODO CAOS · JUEGOS CON TU CUERPO</div>
 <h1>RITMO <span>CAOS</span></h1>
 <p class="intro">🎸 Las notas vienen hacia vos. <b>Vos sos el joystick:</b> movete de costado hasta el color justo cuando suene.</p>
-<div class="hero"><div class="stage"><i></i><i></i><i></i><i></i><i></i></div><strong>EL ESCENARIO ES TU CASA</strong></div>
-<div class="features"><b>🎼 6 CANCIONES INCLUIDAS</b><b>🟢 5 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
-<div class="config"><label>CANCIÓN<select id="song"><option value="neon">⚡ Neón sin freno</option><option value="fuego">🎸 Fuego en el escenario</option><option value="solar">☀️ Solar latino</option><optgroup label="FAMOSAS · LISTAS PARA JUGAR"><option value="alegria">🎻 Oda a la Alegría · Beethoven</option><option value="elise">🎹 Para Elisa · Beethoven</option><option value="jingle">🎄 Jingle Bells · Remix</option></optgroup><optgroup label="HITS COMERCIALES · TU PROPIO AUDIO"><option value="despacito">💃 Despacito · Luis Fonsi (audio local)</option><option value="blinding">🌃 Blinding Lights · The Weeknd (audio local)</option><option value="levitating">🪩 Levitating · Dua Lipa (audio local)</option><option value="titi">🔥 Tití Me Preguntó · Bad Bunny (audio local)</option><option value="provenza">🌴 Provenza · Karol G (audio local)</option></optgroup></select></label>
+<div class="hero"><div class="stage"><i></i><i></i><i></i><i></i></div><strong>EL ESCENARIO ES TU CASA</strong></div>
+<div class="features"><b>🎼 9 TEMAS INCLUIDOS</b><b>🟢 4 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
+<div class="config"><label>CANCIÓN<select id="song"><option value="neon">⚡ Neón sin freno</option><option value="fuego">🎸 Fuego en el escenario</option><option value="solar">☀️ Solar latino</option><optgroup label="MELODÍAS CONOCIDAS · INCLUIDAS">
+<option value="alegria">🎻 Oda a la Alegría · Beethoven</option>
+<option value="elise">🎹 Para Elisa · Beethoven</option>
+<option value="jingle">🎄 Jingle Bells · Remix</option>
+<option value="twinkle">⭐ Estrellita ¿dónde estás? · Remix</option>
+<option value="frere">🎶 Frère Jacques · Remix</option>
+<option value="cumple">🎂 Cumpleaños Feliz · Remix</option>
+</optgroup></select></label>
 <label>DIFICULTAD<select id="difficulty"><option value="facil">Fácil · 3 carriles</option><option value="normal" selected>Normal · 5 carriles</option><option value="dificil">Difícil</option><option value="caos">MODO CAOS</option></select></label></div>
-<div id="localPanel"><label for="localFile">🎧 CARGAR AUDIO DESDE TU CELULAR (NO SE SUBE A INTERNET)</label><span>Los éxitos modernos requieren una grabación que tengas permiso de utilizar. Seleccioná tu archivo y sincronizaremos el ritmo en el dispositivo. Puede requerir ajustar el desfase.</span><input id="localFile" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac"><div id="fileStatus">Elegí tu archivo de audio antes de jugar.</div><label for="beatOffset" style="margin-top:10px">🎚 AJUSTE DEL INICIO DEL PULSO <b id="beatOffsetLabel">0 ms</b></label><input type="range" id="beatOffset" min="-1000" max="1000" step="20" value="0"></div>
 <button id="enter">📷 JUGAR EN REALIDAD AUMENTADA</button>
 <button id="demo" class="alt">🎮 PROBAR DEMO 2D (SIN SEGUIMIENTO FÍSICO)</button>
 <div id="bestIntro">RÉCORD PERSONAL · —</div>
 <details class="details"><summary>🎚 Ajuste fino de sincronización</summary>
 <p>Si las notas llegan antes o después del sonido, ajustá la compensación. Predeterminado: 0 ms.</p>
 <label>Latencia: <span id="latencyValue">0 ms</span><input id="latency" type="range" min="-300" max="300" value="0" step="10"></label></details>
-<p id="precheck">Chrome Android + ARCore · Suelo despejado y seco · Adaptá el tamaño de la pista a tu habitación. No corras ni saltes: se sigue la posición del <b>celular</b>, no tus pies.</p>
+<p id="precheck">Chrome Android + ARCore · Suelo despejado y seco · Adaptá el tamaño de la pista a tu habitación. Ajustá la pista a un ancho aproximado de 0,8 a 1,28 m. No corras ni saltes: se sigue la posición del <b>celular</b>, no tus pies.</p>
 </div></main>
 <div id="overlay">
 <svg id="tiles"></svg><svg id="rtSvg"></svg><canvas id="gameCanvas"></canvas>
 <div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Apuntá a una superficie real</div></div>
 <div id="reticle"></div><div id="mock"></div><button id="support"></button>
-<div id="calibrate">☝ DESLIZÁ · 🤏 PELLIZCÁ PARA AJUSTAR · 🔄 GIRÁ CON DOS DEDOS</div><div id="fallback"></div>
-<div id="touchpad"></div><div id="toolbar"><button id="minus">−</button><button id="size" disabled>1,60 m</button><button id="plus">+</button><button id="rotate">↻</button></div>
+<div id="calibrate">☝ DESLIZÁ · 🤏 ACHICÁ/AGRANDÁ · ↻ GIRÁ</div><div id="fallback"></div>
+<div id="touchpad"></div><div id="toolbar"><button id="minus">−</button><button id="size" disabled>1,00 m</button><button id="plus">+</button><button id="rotate">↻</button></div>
 <div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
-<button id="lock" disabled>📍 FIJAR PISTA</button>
+<button id="lock" disabled>📍 FIJAR LOS 4 CARRILES</button>
 <div id="topActions"><button id="exit">← MENÚ</button><button id="gamePause">Ⅱ PAUSA</button><button id="sound">🔊</button></div>
 <div id="hud"><div class="hudRow"><div>PUNTOS<strong id="score">0</strong></div><div>COMBO<strong id="combo">×0</strong></div><div>ENERGÍA<strong id="energy">55%</strong></div><div>TIEMPO<strong id="clock">00:00</strong></div></div>
 <div id="progress"><div id="progressFill"></div></div><div id="forecast"></div></div>
 <div id="where">📍 VOS · CENTRO</div><div id="toast" aria-live="polite"></div>
-<div id="prepare"><div id="calPanel"><div id="calTitle">👣 MARCÁ TU CARRIL INICIAL</div><div id="calHint">Parate en el color donde estás. Tocá ese círculo y mantené quieto el celular un segundo.</div>
-<div id="pickLanes"><button data-lane="0" style="--lane:#4cff85" aria-label="Carril verde">1</button><button data-lane="1" style="--lane:#ff5274" aria-label="Carril rojo">2</button><button data-lane="2" style="--lane:#ffd34c" aria-label="Carril amarillo" class="selected">3</button><button data-lane="3" style="--lane:#438eff" aria-label="Carril azul">4</button><button data-lane="4" style="--lane:#ff9b38" aria-label="Carril naranja">5</button></div>
+<div id="prepare"><div id="calPanel"><div id="calTitle">👣 ¿SOBRE CUÁL COLOR ESTÁS?</div><div id="calHint">Elegí el círculo de tu posición real. Después mantené quieto el teléfono 1 segundo.</div>
+<div id="pickLanes"><button data-lane="0" style="--lane:#4cff85" aria-label="Carril verde">1</button><button data-lane="1" style="--lane:#ff5274" aria-label="Carril rojo">2</button><button data-lane="2" style="--lane:#ffd34c" aria-label="Carril amarillo">3</button><button data-lane="3" style="--lane:#438eff" aria-label="Carril azul">4</button></div>
 <div id="calProgress"><div id="calFill"></div></div></div>
-<button id="rtStart" disabled>CALIBRANDO POSICIÓN…</button><button id="rtRecenter" class="alt">🎯 RECENTRAR SIN MOVER LA PISTA</button></div>
+<button id="rtStart" disabled>CALIBRANDO POSICIÓN…</button><button id="rtRecenter" class="alt">🎯 VOLVER A MARCAR MI POSICIÓN</button></div>
 <div id="demoControls"><button id="left" aria-label="Ir a la izquierda">◀</button><button id="right" aria-label="Ir a la derecha">▶</button></div>
 <div id="result"><div class="card"><div class="kicker">EL ESCENARIO TE APLAUDE</div><h2 id="resultTitle">¡GRAN SHOW!</h2>
 <div class="rank" id="resultRank"></div><p id="resultStats"></p>
 <button id="retry">↻ REVANCHA</button><button id="share" class="alt">↗ COMPARTIR RESULTADO</button><button id="finishExit" class="alt">← VOLVER AL ARCADE</button></div></div>
 </div>
-<script defer src="/engine.js?v=ritmo1"></script>
-<script defer src="/ritmo-core.js?v=2"></script>
-<script defer src="/ritmo-catalog.js?v=2"></script>
-<script defer src="/ritmo-audio.js?v=2"></script>
-<script defer src="/ritmo-art.js?v=1"></script>
-<script defer src="/ritmo-runtime.js?v=2"></script>
+<script defer src="/engine.js?v=ritmo4"></script>
+<script defer src="/ritmo-core.js?v=4"></script>
+<script defer src="/ritmo-catalog.js?v=4"></script>
+<script defer src="/ritmo-audio.js?v=4"></script>
+<script defer src="/ritmo-art.js?v=4"></script>
+<script defer src="/ritmo-runtime.js?v=4"></script>
 </body></html>
