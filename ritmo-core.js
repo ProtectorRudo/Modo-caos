@@ -12,12 +12,28 @@ function random(seed){let s=seed>>>0;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;retur
 function chart(songId='neon',difficulty='normal',laneWidth=.31){
  const song=SONGS[songId]||SONGS.neon,rand=random((song.beat+1)*972641+song.bpm);
  const active=difficulty==='facil'?[1,2,3]:[0,1,2,3,4];
- const beat=60/song.bpm,duration=song.bars*4*beat;
+ const beat=60/song.bpm,phase=Number(song.phaseSeconds)||0,duration=Math.min(Number(song.clipDuration)||Infinity,song.bars*4*beat+phase);
+ const melodyEvents=[];
+ if(song.publicDomain&&Array.isArray(song.melody)&&song.melody.length){
+  const cycle=song.melody.reduce((sum,n)=>sum+n.length,0);
+  for(let repeat=0;repeat*cycle<song.bars*4;repeat++)for(const n of song.melody){
+   const pos=n.at+repeat*cycle;
+   if(pos>=4&&pos<song.bars*4-3)melodyEvents.push({beat:pos,pitch:n.midi});
+  }
+ }
  const notes=[];let lane=2,lastAt=0;
  const spacing={facil:2.5,normal:2,dificil:1.5,caos:1.25}[difficulty]||2;
- let beatIndex=4;
+ let beatIndex=4,eventCursor=0;
+ const gapBeats={facil:2.5,normal:1.55,dificil:1.10,caos:.78}[difficulty]||1.55;
  while(beatIndex<song.bars*4-3){
-  let when=beatIndex*beat,dt=when-lastAt;
+  let noteEvent=null;
+  if(melodyEvents.length){
+   while(eventCursor<melodyEvents.length&&melodyEvents[eventCursor].beat<beatIndex-.001)eventCursor++;
+   if(eventCursor>=melodyEvents.length)break;
+   noteEvent=melodyEvents[eventCursor++];beatIndex=noteEvent.beat;
+  }
+  let when=phase+beatIndex*beat,dt=when-lastAt;
+  if(when>=duration-.6)break;
   let maxHops=Math.max(0,Math.floor((dt*.70-.12)/laneWidth));
   const possible=active.filter(c=>Math.abs(c-lane)<=maxHops);
   const options=possible.length?possible:[lane];
@@ -32,9 +48,9 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
   let type=chaos?'caos':special?'special':hold?'hold':slide?'slide':'simple';
   const holdTime=hold?Math.min(.64,spacing*beat*.42):0;
   notes.push({id:seq,lane,fromLane,at:when,type,hold:holdTime,slideDuration:slide?Math.min(.73,dt*.72):0,beat:beatIndex,
-    pitch:song.lead[(Math.floor(beatIndex/2)+song.beat)%song.lead.length],status:'pending'});
-  lastAt=when;beatIndex+=spacing;
-  if(difficulty==='caos'&&seq%17===14)beatIndex+=.25;
+    pitch:noteEvent?noteEvent.pitch:song.lead[(Math.floor(beatIndex/2)+song.beat)%song.lead.length],status:'pending'});
+  lastAt=when;beatIndex+=melodyEvents.length?gapBeats:spacing;
+  if(difficulty==='caos'&&seq%17===14&&!melodyEvents.length)beatIndex+=.25;
  }
  return {songId,song,difficulty,notes,duration,beat,laneWidth,active};
 }
