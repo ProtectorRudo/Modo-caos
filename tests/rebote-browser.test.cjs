@@ -18,6 +18,13 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>!!globalThis.__ReboteDebug,null,{timeout:35000});
  assert.match(await page.title(),/REBOTE MORTAL/);
  assert(await page.locator('#startAR').isVisible());
+ // An embedded Android WebView may not expose navigator.xr at all.
+ await page.evaluate(()=>Object.defineProperty(navigator,'xr',{configurable:true,value:undefined}));
+ await page.locator('#startAR').click();
+ assert(await page.locator('#arProblem').isVisible(),'unsupported AR must show a prominent explanation');
+ assert.match(await page.locator('#arProblemTitle').innerText(),/NO PUEDE ABRIR LA CÁMARA AR/);
+ assert(await page.locator('#copyArLink').isVisible(),'one-tap Chrome link assistance exists');
+ assert.equal(await page.evaluate(()=>__ReboteDebug.stage),'home','unsupported AR does not hide the menu');
  await page.locator('#startDemo').click();
  await page.waitForFunction(()=>__ReboteDebug.stage==='playing',null,{timeout:11000});
  await page.waitForFunction(()=>__ReboteDebug.game.elapsed>.15,null,{timeout:12000});

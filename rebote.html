@@ -22,6 +22,18 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 .actions{display:grid;gap:10px;margin:0 auto;max-width:365px}.actions button{min-height:60px;font-size:15px}
 #support{font-size:12px;line-height:1.45;color:#bad4db;margin:15px auto;max-width:400px}
 #record{font-size:12px;font-weight:950;color:#f5db8d;margin:9px}
+[hidden]{display:none!important}
+#arProblem{margin:14px auto 9px;padding:16px 13px;text-align:left;max-width:400px;background:#14344cf5;border:1px solid #f4b969;border-radius:15px;box-shadow:0 8px 30px #0009}
+#arProblem strong{display:block;color:#ffe4a5;font-size:15px;margin-bottom:5px}
+#arProblem p{font-size:13px;line-height:1.5;color:#edfbff;margin:6px 0 11px}
+#arProblem .mini{font-size:11px;line-height:1.4;color:#c5dfea;overflow-wrap:anywhere}
+#arProblem button{min-height:42px;display:block;margin:9px 0 0;width:100%;font-size:12px}
+#arConnecting{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:8;background:linear-gradient(#06111bdf,#071b2adf);text-align:center;padding:28px;pointer-events:auto}
+#arConnecting .spin{width:52px;height:52px;border:4px solid #ffffff26;border-top-color:#58ffe4;border-radius:50%;animation:turnSpin 1s linear infinite}
+#arConnecting strong{font-size:22px;letter-spacing:.04em}
+#arConnecting p{color:#badde8;font-size:14px;max-width:340px;line-height:1.5;margin:0 0 9px}
+#arConnecting button{width:min(100%,280px)}
+@keyframes turnSpin{to{transform:rotate(360deg)}}
 #safe{font-size:11px;color:#9fbdc9;margin:15px auto}
 #arena{display:none;position:absolute;inset:0;overflow:hidden}
 #world{position:absolute;inset:0}
@@ -85,10 +97,23 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 <p class="lead">¡Devolvé el ataque o preparate para perder!</p>
 <p class="sub">Apuntá con el teléfono a las esferas. Cuando estén cerca, tocá <b>DEVOLVER</b>. Acumulá perfectos y derrotá al jefe final.</p>
 <div class="actions"><button id="startAR">📷 JUGAR EN REALIDAD AUMENTADA</button><button id="startDemo" class="secondary">🎮 ENTRENAMIENTO 3D · SIN AR</button><a class="secondary" href="/" style="padding:13px;border-radius:13px">← MENÚ MODO CAOS</a></div>
+<aside id="arProblem" role="alert" aria-live="assertive" hidden>
+<strong id="arProblemTitle">NO SE PUDO ABRIR LA CÁMARA AR</strong>
+<p id="arProblemText">Probá abrir este juego directamente en Chrome para Android.</p>
+<p class="mini">Si estás dentro de ChatGPT u otra aplicación, usá el menú del enlace y elegí «Abrir en Chrome» o «Abrir en navegador».</p>
+<button id="copyArLink" type="button" class="secondary">📋 COPIAR ENLACE PARA CHROME</button>
+<p class="mini" id="arCopyState"></p>
+</aside>
 <div id="record">🏆 RÉCORD: 0</div><div id="support">AR: Chrome Android compatible con ARCore · cámara y superficie despejada.</div>
 <p id="safe">Jugá en un lugar despejado. No corras: el teléfono sigue al teléfono, no tus pies.</p>
 </main></section>
-<section id="arena"><div id="world"></div><div id="overlay"><div id="screenFx" aria-hidden="true"></div>
+<section id="arena"><div id="world"></div><div id="overlay">
+<div id="arConnecting" aria-live="polite">
+<div class="spin" aria-hidden="true"></div>
+<strong id="arConnectingTitle">ABRIENDO REALIDAD AUMENTADA</strong>
+<p id="arConnectingHelp">Si Chrome solicita acceso a la cámara o al seguimiento, tocá Permitir.</p>
+<button id="cancelStartAR" class="secondary" type="button">← VOLVER AL MENÚ</button>
+</div><div id="screenFx" aria-hidden="true"></div>
 <div id="touch" aria-label="Mover, girar o ajustar la pista con gestos"></div>
 <div id="hud"><div class="stat"><label>PUNTOS</label><strong id="score">0</strong></div><div class="stat"><label>ESCUDO</label><strong id="lives">♥♥♥</strong></div><div class="stat"><label>COMBO</label><strong id="combo">×0</strong></div><div class="stat"><label>TIEMPO</label><strong id="clock">88</strong></div></div>
 <div id="status">BUSCANDO PISO…</div><div id="notice"></div><div id="phase"></div>
@@ -99,5 +124,36 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 <div id="controls"><button id="returnBtn">DEVOLVER</button><button id="pauseBtn" class="secondary" aria-label="Pausar">Ⅱ</button></div>
 <div id="result"><div class="resultCard"><div class="eyebrow">MODO CAOS · RESULTADO</div><h2 id="outcome">MISIÓN COMPLETADA</h2><p id="summary"></p><div id="stats"></div><button id="rematch">⚡ REVANCHA</button><button id="share" class="secondary">COMPARTIR PUNTUACIÓN</button><button id="quit" class="secondary">← MENÚ DE JUEGOS</button></div></div>
 </div></section>
-<script src="/rebote-core.js?v=4"></script><script type="module" src="/rebote-runtime.js?v=4"></script>
+<script>
+(function(){
+ const box=document.getElementById('arProblem');
+ const show=(title,detail)=>{
+  document.getElementById('arProblemTitle').textContent=title;
+  document.getElementById('arProblemText').textContent=detail;
+  box.hidden=false;
+ };
+ window.ReboteBoot={show,clear(){box.hidden=true}};
+ document.getElementById('copyArLink').addEventListener('click',async()=>{
+  const url=location.origin+'/rebote.html';
+  try{
+   await navigator.clipboard.writeText(url);
+   document.getElementById('arCopyState').textContent='✅ Enlace copiado. Pegalo en Chrome.';
+  }catch(_){
+   document.getElementById('arCopyState').textContent='Copiá esta dirección y pegala en Chrome: '+url;
+  }
+ });
+ document.getElementById('startAR').addEventListener('click',()=>{
+  if(window.__ReboteDebug)return;
+  window.__reboteEarlyTap=true;
+  show('CARGANDO MOTOR AR…','Se están preparando los gráficos. Si el botón sigue sin responder, revisá tu conexión.');
+  setTimeout(()=>{
+   if(!window.__ReboteDebug)show('EL MOTOR DEL JUEGO NO CARGÓ','Puede fallar la conexión al motor 3D o el navegador integrado. Abrí este enlace en Chrome.');
+  },3500);
+ },true);
+ window.addEventListener('error',e=>{
+  if(!window.__ReboteDebug)show('NO SE PUDO CARGAR EL JUEGO','Error al iniciar los gráficos: '+(e.message||'archivo o módulo bloqueado')+'. Probá Chrome.');
+ });
+})();
+</script>
+<script src="/rebote-core.js?v=5"></script><script type="module" src="/rebote-runtime.js?v=5"></script>
 </body></html>

@@ -60,3 +60,11 @@ Nuevo minijuego aislado en \`rebote.html\`, \`rebote-core.js\`, \`rebote-art.js\
 - Selección de amenaza por tiempo de aproximación, ignorando señuelos que nunca hacen daño.
 - Reutilización de geometrías 3D de proyectiles y liberación de materiales al desaparecer robots y esferas; disminuye presión sobre GPU y memoria en partidas repetidas.
 - Pruebas Chromium en demo y WebXR simulado para verificar retícula, medidor y orientación lateral. No reemplazan prueba en móvil real.
+
+## Corrección de botón JUGAR EN AR — 25/10/2026
+
+Incidente reportado desde teléfono: al pulsar `JUGAR EN REALIDAD AUMENTADA`, no había ninguna reacción aparente. La implementación anterior actualizaba solo un texto pequeño si `navigator.xr` no estaba disponible; además no mostraba el estado mientras Chrome solicitaba la sesión y la carga de módulos podía dejar el botón sin manejador.
+
+Corrección: `rebote.html` incorpora diagnóstico independiente del módulo 3D, estado de carga prominente, error de permisos/incompatibilidad, ayuda para abrir en Chrome Android y copiar enlace. `rebote-runtime.js` crea la sesión *sin perder el gesto de usuario* antes de actualizar estado, muestra `ABRIENDO CÁMARA AR`, habilita VOLVER en solicitudes pendientes y distingue fallos `NotAllowedError`, `SecurityError`, `NotSupportedError`, `InvalidStateError` y ausencia de WebXR; protege contra respuestas de sesiones canceladas.
+
+Pruebas Chromium ampliadas: navegador sin `navigator.xr`, rechazo de permisos, solicitud pendiente con cancelación, inicio AR sintético, hit test/calibración/retorno, regreso al entrenamiento y rutas. **No hay validación física Android/ARCore**: pedir abrir enlace directamente con Chrome y comprobar permisos y servicios de Google Play para RA.
