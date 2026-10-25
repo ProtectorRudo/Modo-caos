@@ -113,6 +113,21 @@
    }
    analysis={beatPhase:bestPhase,confidence:max?best/max:0,duration:decoded.duration,bpm:SONGS[name].bpm,filename:file.name};
    SONGS[name].phaseSeconds=bestPhase;
+   // Detectar acentos del archivo, y no inventar notas completamente ajenas a lo que suena.
+   const accents=[];
+   for(let beatIndex=4;beatIndex<SONGS[name].bars*4-3;beatIndex++){
+    const at=bestPhase+beatIndex*beat;
+    if(at+1>=Math.min(decoded.duration,45))break;
+    const idx=Math.round(at/step);
+    let strength=0;
+    for(let d=-4;d<=4;d++){const j=idx+d;if(j>=0&&j<count)strength=Math.max(strength,onset[j])}
+    accents.push({beat:beatIndex,strength});
+   }
+   const ranked=accents.map(a=>a.strength).sort((a,b)=>a-b);
+   const cutoff=ranked[Math.floor(ranked.length*.60)]||0;
+   SONGS[name].rhythmBeats=accents.filter(a=>a.strength>=cutoff&&a.strength>max*.009).map(a=>a.beat);
+   if(SONGS[name].rhythmBeats.length<12)SONGS[name].rhythmBeats=null;
+   analysis.rhythmAccents=SONGS[name].rhythmBeats?.length||0;
    SONGS[name].clipDuration=Math.min(decoded.duration-.25,SONGS[name].bars*4*beat+bestPhase);
    return analysis;
   }
