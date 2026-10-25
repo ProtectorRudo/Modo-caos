@@ -278,8 +278,19 @@ $('share').onclick=async()=>{
  if(navigator.share){try{await navigator.share({text:txt})}catch(_){}}
  else if(navigator.clipboard){try{await navigator.clipboard.writeText(txt);toast('RESULTADO COPIADO',2)}catch(_){}}
 };
-$('returnBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();onReturn()});
-$('returnBtn').addEventListener('click',e=>{e.preventDefault();onReturn()});
+let pointerReturnClickUntil=0;
+$('returnBtn').addEventListener('pointerdown',e=>{
+ if(!e.isPrimary)return;
+ e.preventDefault();e.stopPropagation();
+ // Android dispatches click AFTER pointerdown. Handle the touch immediately, once.
+ pointerReturnClickUntil=performance.now()+650;
+ onReturn();
+});
+$('returnBtn').addEventListener('click',e=>{
+ e.preventDefault();
+ // Keep keyboard/assistive-tech click usable; suppress only the pointer-generated click.
+ if(performance.now()>=pointerReturnClickUntil)onReturn();
+});
 $('overlay').addEventListener('beforexrselect',e=>e.preventDefault());
 $('touch').addEventListener('pointerdown',e=>{
  if(stage!=='edit')return;
@@ -343,4 +354,4 @@ if(window.isSecureContext&&navigator.xr)navigator.xr.isSessionSupported('immersi
 try{$('record').textContent='🏆 RÉCORD: '+(Number(localStorage.getItem('mc-rebote-record'))||0).toLocaleString('es-AR')}catch(_){}
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
-globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get scale(){return arenaScale}};
+globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get returnAttempts(){return game.attempts},get scale(){return arenaScale}};

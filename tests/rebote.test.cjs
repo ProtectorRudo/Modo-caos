@@ -66,3 +66,27 @@ test('revancha crea partida sin reaprovechar estados anteriores',()=>{
  const a=G.make(),b=G.make();G.begin(a);a.score=1299;
  assert.equal(b.score,0);assert.equal(b.state,'ready');assert.equal(G.snapshot(b).lives,3);
 });
+
+test('escudo temporal consume proyectiles extra sin acumular daño diferido',()=>{
+ const g=G.make({seed:30});G.begin(g);g.nextShot=999;g.projectiles=[];
+ const ball=id=>({id,type:'normal',pos:G.V(0,1.55,-.6),prev:G.V(0,1.55,-.6),
+  velocity:G.V(0,0,24),speed:24,radius:.17,age:0,returning:false,dead:false,targetId:0});
+ g.projectiles=[ball(1),ball(2),ball(3)];
+ step(g,.2);
+ assert.equal(g.lives,2,'one shield lost regardless of concurrent hits');
+ assert.equal(g.projectiles.length,0,'all blocked projectiles are consumed and cannot hit later');
+ step(g,1.1);
+ assert.equal(g.lives,2,'no latent hit after invulnerability');
+});
+
+test('escudo del jefe se anuncia en core durante las ventanas de bloqueo',()=>{
+ const g=G.make({seed:42});G.begin(g);
+ g.elapsed=61.99;g.projectiles=[];g.nextShot=999;g.protection=100;
+ step(g,.07);
+ const boss=g.enemies.find(e=>e.boss);
+ assert(boss,'boss spawns after final phase starts');
+ for(let i=0;i<16;i++){
+  step(g,.25);
+  assert.equal(boss.shield,Math.sin(g.elapsed*1.75)>.80,'visual shield matches actual parry window');
+ }
+});

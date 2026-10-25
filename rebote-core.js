@@ -114,8 +114,9 @@ function returnShot(g){
  return {ok:true,grade,points,combo:g.combo,distance:bestResult.distance};
 }
 function damage(g,p){
- if(g.elapsed<g.protection)return;
- p.dead=true;g.lives=Math.max(0,g.lives-1);g.combo=0;g.perfectStreak=0;g.protection=g.elapsed+.85;
+ // A blocked hit still consumes its projectile; it must not collide again.
+ p.dead=true;
+ if(g.elapsed<g.protection)return;g.lives=Math.max(0,g.lives-1);g.combo=0;g.perfectStreak=0;g.protection=g.elapsed+.85;
  g.stats.missed++;g.effects.push({type:'damage',t:g.elapsed,lives:g.lives});
  if(!g.lives)finish(g,false,'sin_vidas');
 }
@@ -150,8 +151,9 @@ function step(g,dt){
  }}
  if(g.mode==='supervivencia'&&g.elapsed>DURATION){g.phase=4}
  if(g.elapsed>=DURATION&&g.mode!=='supervivencia'){finish(g,g.bossDefeated,'tiempo');return}
- for(const e of g.enemies)if(e.alive&&!e.boss){
-   e.x=e.homeX+Math.sin(g.elapsed*.65+e.phase)*Math.min(.48,.11+g.phase*.095);
+ for(const e of g.enemies)if(e.alive){
+  if(e.boss)e.shield=Math.sin(g.elapsed*1.75)>.80;
+  else e.x=e.homeX+Math.sin(g.elapsed*.65+e.phase)*Math.min(.48,.11+g.phase*.095);
  }
  for(const d of [...g.delayed])if(g.elapsed>=d.at){
   const enemy=g.enemies.find(e=>e.id===d.targetId&&e.alive)||activeEnemy(g);
