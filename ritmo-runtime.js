@@ -28,7 +28,27 @@ if(licensed.length){
  E('song').insertBefore(group,E('song').firstChild);
  E('song').value=licensed[0].id;
 }
-E('song').onchange=updateBest;E('difficulty').onchange=updateBest;updateBest();
+let audioStatusToken=0;
+async function checkMusic(){
+ const token=++audioStatusToken,id=song(),status=E('audioStatus');
+ if(!G.SONGS[id]?.licensedRecording){
+  status.textContent='✅ Canción lista para jugar · No tenés que cargar archivos.';
+  return;
+ }
+ status.textContent='🎵 Preparando '+G.SONGS[id].title+'…';
+ try{
+  await audio.preload(id);
+  if(token===audioStatusToken)status.textContent='✅ '+G.SONGS[id].title+' · AUDIO LISTO PARA JUGAR.';
+ }catch(err){
+  if(token===audioStatusToken){
+   status.textContent='⚠️ No se pudo preparar la canción: '+String(err?.message||err).slice(0,130)+'. Probá actualizar o elegir otro tema.';
+   status.style.borderColor='#ff9c85';
+  }
+ }
+}
+E('song').onchange=()=>{updateBest();checkMusic()};
+E('difficulty').onchange=updateBest;updateBest();
+checkMusic();
 E('latency').oninput=()=>{E('latencyValue').textContent=E('latency').value+' ms'};
 
 function notify(s,duration=1100){E('toast').textContent=s;E('toast').style.opacity=1;toastUntil=performance.now()+duration}
