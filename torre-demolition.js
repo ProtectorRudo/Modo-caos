@@ -63,7 +63,7 @@ function figureParts(family,v){
    if(v%2)put('cubo',0,H+(v>=2?.1672:.171)+.38);
    if(v===3)put('cubo',.29,H+.1672+.38);break;
  case 2: // HAMMER: overhanging head balances over an offset handle.
-   stack(-.24,['pil']);put('techo',-.07,H);
+   stack(v>=2?-.08:-.24,['pil']);put('techo',-.07,H);
    put('peso',-.48,H+.1672);put('cubo',.33,H+.1672);
    if(v>=1)put('cubo',-.5,H+.1672+.38);
    if(v>=2)put('peso',.27,H+.1672+.38);
@@ -75,12 +75,12 @@ function figureParts(family,v){
    if(v===3)put('cubo',0,FLOOR+.4636+.1672);break;
  case 4: // DOUBLE ARCH: centre support carries two independently loaded bridges.
    stack(-.75,['pil']);stack(0,['pil']);stack(.75,['pil']);
-   put('viga',-.375,H);put('viga',.375,H);
-   put('cubo',v%2?-.5:-.25,bridgeTop);
-   put('cubo',v%2?.25:.5,bridgeTop);
-   if(v>=1)put('cubo',-.34,bridgeTop+.38);
-   if(v>=2)put('peso',.33,bridgeTop+.38);
-   if(v===3)put('cubo',.37,bridgeTop+.76);break;
+   put('plano',-.47,H);put('plano',.47,H);
+   put('cubo',v%2?-.5:-.25,planeTop);
+   put('cubo',v%2?.25:.5,planeTop);
+   if(v>=1)put('cubo',-.34,planeTop+.38);
+   if(v>=2)put('peso',.33,planeTop+.38);
+   if(v===3)put('cubo',.37,planeTop+.76);break;
  case 5: // GATEWAY: two columns, a lintel and an asymmetrical castle turret.
    stack(-.47,['soporte','cubo']);stack(.47,['soporte','cubo']);
    const gateTop=FLOOR+.4636+.38;
@@ -92,7 +92,7 @@ function figureParts(family,v){
    stack(-.22,['pil']);put('techo',-.10,H);
    stack(-.53,v>1?['peso','cubo']:['peso'],H+.1672);
    stack(.31,v%2?['cubo','cubo']:['cubo'],H+.1672);
-   if(v>=1)put('cubo',-.53,H+.1672+.76);
+   if(v===1)put('cubo',-.53,H+.1672+.38);
    if(v===3)put('peso',.28,H+.1672+.76);break;
  case 7: // TWO FLOORS: delicate pillared bridge supports a second skybridge.
    stack(-.38,['pil']);stack(.38,['pil']);put('viga',0,H);
@@ -107,13 +107,13 @@ function figureParts(family,v){
    stack(-.34,['soporte'],H+.1672);
    const upper=H+.1672+.4636;
    put('plano',-.26,upper);
-   stack(v%2?-.48:-.17,v>=2?['peso','cubo']:['peso'],upper+.1824);
+   stack(v%2?-.48:-.36,v>=2?['peso','cubo']:['peso'],upper+.1824);
    if(v>=1)put('cubo',.33,H+.1672);
    if(v===3)put('cubo',.12,upper+.1824);break;
  case 9: // CHAIN / CASTLE: three pillars with one bridging roof per bay.
    stack(-.69,['soporte']);stack(0,['soporte']);stack(.69,['soporte']);
    const cap=FLOOR+.4636;
-   put('plano',-.345,cap);put('plano',.345,cap);
+   put('plano',-.47,cap);put('plano',.47,cap);
    stack(v%2?-.41:-.29,['peso'],cap+.1824);
    stack(v%2?.23:.42,['cubo'],cap+.1824);
    if(v>=1)put('cubo',0,cap+.1824);
