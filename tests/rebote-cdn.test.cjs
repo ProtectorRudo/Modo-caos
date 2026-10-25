@@ -6,7 +6,7 @@ const sha=process.env.REBOTE_CDN_SHA;
 assert.match(sha||'',/^[a-f0-9]{40}$/,'GitHub SHA required');
 const base='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/'+sha+'/';
 const files=[
- ['rebote.html','text/html','REBOTE MORTAL','./rebote-runtime.js?v=8'],
+ ['rebote.html','text/html','REBOTE MORTAL','./rebote-runtime.js?v=9'],
  ['rebote-core.js','javascript','ReboteCore','function launch'],
  ['rebote-runtime.js','javascript','createRodeadosArCompositor','placementSvg'],
  ['rebote-art.js','javascript','createReboteArt','placementCue'],
