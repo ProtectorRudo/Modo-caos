@@ -29,3 +29,11 @@ Nuevo minijuego aislado en \`rebote.html\`, \`rebote-core.js\`, \`rebote-art.js\
 4. Fallar deliberadamente por mal apuntado y por tiempo anticipado, comprobar el motivo.
 5. Derrota y REVANCHA sin fijar pista; RECENTRAR no debe mover la referencia espacial.
 6. Comprobar golpes especiales y jefe final. Probar pantalla vertical, sonido apagado, reanudación y tracking intermitente.
+
+## Cierre técnico v2 (25/10/2026)
+
+- Se agregó un marcador espacial discreto para indicar la posición del teléfono (`VOS`), destellos controlados para impactos perfectos/escudo dañado, una pista de ritmo electrónico sintetizada y degradación automática de densidad de píxeles en entrenamiento 3D si los FPS caen.
+- La retícula gráfica se centra exactamente en la línea visual utilizada para calcular el rayo 3D, evitando discrepancias entre lo apuntado y lo golpeado.
+- Se sumó `tests/rebote-xr-smoke.test.cjs`: prueba sintética en Chromium que simula `XRFrame`, hit-test, anclaje, cambios de escala, FIJAR, calibración de un segundo, botón DEVOLVER, desplazamiento realista del teléfono sin mover la arena, RECENTRAR y pérdida/retorno de tracking.
+- El flujo pasó en GitHub Actions. **Advertencia:** WebXR sintético no verifica la cámara real ni ARCore de Android; esa prueba queda explícitamente pendiente para certificar al juego como premium en dispositivos físicos.
+- No se modificaron las tablas de Supabase, Auth ni el multijugador. Seguimiento de `main` por Vercel debe verificarse antes de anunciar enlace definitivo.
