@@ -30,19 +30,28 @@ jobs:
           echo "MIRROR_HTTP=$HTTP"
           test "$HTTP" = "200"
           echo "CHECK M.A.N.U.L. ISOLATED LAB"
-          LAB_HTTP=$(curl -sSL -m 15 -o /tmp/manul-lab.html -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-manul.html?v=12")
+          LAB_HTTP=$(curl -sSL -m 15 -o /tmp/manul-lab.html -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-manul.html?v=13")
           echo "MANUL_LAB_HTTP=$LAB_HTTP"
           test "$LAB_HTTP" = "200"
           grep -q 'id="manulFile"' /tmp/manul-lab.html
           grep -q 'Robot M.A.N.U.L.' /tmp/manul-lab.html
           grep -q 'Andrei Milin' /tmp/manul-lab.html
-          grep -q 'rodeados-runtime.js?v=12' /tmp/manul-lab.html
+          grep -q 'rodeados-runtime.js?v=13' /tmp/manul-lab.html
+          grep -q 'id="manulRemember"' /tmp/manul-lab.html
+          grep -q 'id="manulFacing"' /tmp/manul-lab.html
           MANUL_JS_HTTP=$(curl -sSL -m 15 -o /tmp/manul-lab.js -w "%{http_code}" "https://protectorrudo.github.io/Modo-caos/rodeados-manul.js")
           echo "MANUL_MODULE_HTTP=$MANUL_JS_HTTP"
           test "$MANUL_JS_HTTP" = "200"
           grep -q 'installManulPreview' /tmp/manul-lab.js
           grep -q 'loadZip(file,THREE)' /tmp/manul-lab.js
           grep -q 'SkeletonUtils.js' /tmp/manul-lab.js
+          grep -q 'modo-caos-manul-local' /tmp/manul-lab.js
+          grep -q "const MAX_ARCHIVE=55" /tmp/manul-lab.js
+          grep -q 'testVisualBudget' /tmp/manul-lab.js
+          grep -q 'IndexedDB' /tmp/manul-lab.js
+          curl -fsSL -m 15 "https://protectorrudo.github.io/Modo-caos/rodeados-art.js" -o /tmp/rodeados-live-art.js
+          grep -q 'const MAX_EXTERNAL_ROBOTS=4' /tmp/rodeados-live-art.js
+          echo 'LAB V13: MODELO LOCAL PERSISTENTE, GIRO Y LÍMITE MÓVIL VERIFICADOS'
           echo "LAB M.A.N.U.L. PUBLICADO SIN ALTERAR VERSION ESTABLE"
           echo "PUBLIC VERSION TOKENS:"
           grep -oE 'rodeados-(core|runtime).js\\?v=[0-9]+' /tmp/rodeados-mirror.html || true
