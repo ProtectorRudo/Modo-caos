@@ -183,7 +183,7 @@ function onEvents(){
    try{navigator.vibrate?.(20)}catch(_){}
    try{audio.feedback?.('HOLD_START',ev.lane,game.combo)}catch(_){}
   }else if(ev.type==='hold_complete'){
-   fx?.burst(ev.lane,art.spot?.(ev.lane),'HOLD',ev.combo);
+   fx?.burst(ev.lane,art.spot?.(ev.lane),'HOLD',ev.combo,ev.points);
    try{audio.feedback?.('HOLD_COMPLETE',ev.lane,ev.combo)}catch(_){}
    try{navigator.vibrate?.([30,24,45])}catch(_){}
    notify('🌟 ¡SOSTENIDA PERFECTA! + PUNTOS',920);
@@ -193,7 +193,7 @@ function onEvents(){
    const msg=ev.rating==='PERFECTO'?'✨ PERFECTO':ev.rating==='GENIAL'?'⚡ GENIAL':ev.rating==='BIEN'?'✓ BIEN':'✕ FALLO';
    const note=game.notes[ev.note];
    // Complete sustains get their own large effect and audio chord.
-   if(note?.type!=='hold')fx?.burst(ev.lane,art.spot?.(ev.lane),ev.rating,ev.combo);
+   if(note?.type!=='hold')fx?.burst(ev.lane,art.spot?.(ev.lane),ev.rating,ev.combo,ev.points);
    if(ev.rating!=='FALLO'){
     if(note?.type!=='hold'){
      notify(msg,470);
