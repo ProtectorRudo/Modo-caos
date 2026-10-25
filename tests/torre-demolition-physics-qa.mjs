@@ -1,4 +1,4 @@
-import R from '@dimforge/rapier3d-compat';
+import R from '../node_modules/@dimforge/rapier3d-compat/rapier.es.js';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const D=require('../torre-demolition.js'),G=require('../torre-core.js');
