@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createReboteArt} from './rebote-art.js?v=9';
-import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=9';
+import {createReboteArt} from './rebote-art.js?v=10';
+import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=10';
 /* REBOTE MORTAL · WebXR immersive-ar con Hit Test y anclaje opcional.
    La matriz AR no depende del HUD. El "jugador" es la posición del TELÉFONO, nunca pies/cuerpo. */
 const $=id=>document.getElementById(id),G=globalThis.ReboteCore;
@@ -31,7 +31,8 @@ function openArWorld(){
  return true;
 }
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
-let game=G.make(),stage='home',demo=false,session=null,space=null,hitSource=null,anchor=null,anchorDelta=null;
+let selectedMode='duelo';
+let game=G.make({mode:selectedMode}),stage='home',demo=false,session=null,space=null,hitSource=null,anchor=null,anchorDelta=null;
 let latestHit=null,pendingAnchorHit=null,lastFrame=null,trackedEye=null,calStart=0,samples=[],calibrated=false,calibrationMotion=null;
 let fixed=false,previewPosition=V(),previewYaw=0,move=V(),yaw=0,arenaScale=1,fixPending=false;
 let floorSamples=[],floorStable=false,placementWarmup=0,previewInitialized=false,calibrationRms=0;
@@ -40,6 +41,8 @@ let viewRight=G.V(1,0,0),viewUp=G.V(0,1,0);
 let effectsSeen=new WeakSet(),audioCtx=null,sounds=true,beeped=new Set(),pausedForTracking=false,beatAt=0,qualityFrames=0,qualityCost=0;
 const fingers=new Map();let gesture=null,toastEnd=0,phaseAt=-1,resultShown=false;
 function ui(){
+ document.body.classList.toggle('duelMode',game.mode==='duelo'&&['ready','playing','paused','finished'].includes(stage));
+ $('duelHud').style.display=game.mode==='duelo'&&['ready','playing','paused'].includes(stage)?'block':'none';
  $('home').style.display=stage==='home'?'flex':'none';
  $('arena').style.display=stage==='home'?'none':'block';
  $('overlay').classList.toggle('edit',stage==='search'||stage==='edit');
@@ -82,6 +85,17 @@ function soundtrack(){
  else if(game.phase>=2)sound(680,.023,'triangle',.006);
 }
 function audioEvent(e){
+ if(e.type==='duel-intro'){
+  sound(450+e.level*68,.24,'triangle',.075);
+  status('🥊 RIVAL '+(e.level+1)+' / 6 · '+e.name);
+  toast(e.hint,2.9);
+ }
+ if(e.type==='duel-ko'){
+  sound(860,.18,'triangle',.09);
+  setTimeout(()=>sound(1180,.22,'triangle',.075),125);
+  status('🏆 RIVAL '+(e.level+1)+' DERROTADO');
+  vibration([36,60,65]);toast('¡BIEN! · SE VIENE UNO MÁS DIFÍCIL',2);
+ }
  if(e.type==='launch'){
   const pitch=e.lane?.includes('ALTA')?530:e.lane?.includes('BAJA')?220:360;
   sound(pitch,.17,'sawtooth',.035);
@@ -104,7 +118,7 @@ function audioEvent(e){
  if(e.type==='defeat'){sound(170,.5,'triangle',.13)}
 }
 function resetGame(reuse){
- game=G.make({seed:Math.floor(Math.random()*4294967295),mode:'clasico'});
+ game=G.make({seed:Math.floor(Math.random()*4294967295),mode:selectedMode});
  effectsSeen=new WeakSet();beeped.clear();resultShown=false;phaseAt=-1;trackingAt=0;pausedForTracking=false;beatAt=0;
  if(reuse){G.setView(game,game.eye,game.aim)}
 }
@@ -117,16 +131,23 @@ function startRound(){
   game.paused=false;pausedForTracking=false;setStage('playing');status('¡DEVOLVÉ LOS ATAQUES!');return
  }
  if(stage!=='ready'||!calibrated)return;
- G.begin(game);setStage('playing');$('cue').textContent='APUNTÁ. ESPERÁ. ¡DEVOLVÉ!';
- status('⚡ ¡APUNTÁ A LA ESFERA!');sound(800,.23,'triangle',.08);
+ G.begin(game);setStage('playing');
+ $('cue').textContent=game.mode==='duelo'?'UN RIVAL A LA VEZ · ¡DEVOLVÉ SUS ATAQUES!':'APUNTÁ. ESPERÁ. ¡DEVOLVÉ!';
+ status(game.mode==='duelo'?'🥊 DUELO 1 DE 6 · CHISPA':'⚡ ¡APUNTÁ A LA ESFERA!');
+ sound(800,.23,'triangle',.08);
 }
 function results(){
  if(resultShown)return;resultShown=true;setStage('finished');
- let old=0;try{old=Number(localStorage.getItem('mc-rebote-record'))||0}catch(_){}
- if(game.score>old)try{localStorage.setItem('mc-rebote-record',String(game.score))}catch(_){}
+ const recordKey=game.mode==='duelo'?'mc-rebote-duelo-record':'mc-rebote-record';
+ let old=0;try{old=Number(localStorage.getItem(recordKey))||0}catch(_){}
+ if(game.score>old)try{localStorage.setItem(recordKey,String(game.score))}catch(_){} 
  const s=G.snapshot(game);
- $('outcome').textContent=s.victory?'🏆 ¡JEFE DERROTADO!':'💥 ¡FIN DEL COMBATE!';
- $('summary').textContent=(s.score>old?'✨ NUEVO RÉCORD · ':'')+'FASE '+(game.phase+1)+' · '+Math.ceil(game.elapsed)+' SEGUNDOS';
+ $('outcome').textContent=game.mode==='duelo'?
+   (s.victory?'🏆 ¡SOS EL CAMPEÓN!':'💥 ¡FIN DEL DUELO!'):
+   (s.victory?'🏆 ¡JEFE DERROTADO!':'💥 ¡FIN DEL COMBATE!');
+ $('summary').textContent=(s.score>old?'✨ NUEVO RÉCORD · ':'')+
+  (game.mode==='duelo'?s.duelWins+' DE 6 RIVALES DERROTADOS':'FASE '+(game.phase+1))+
+  ' · '+Math.ceil(game.elapsed)+' SEGUNDOS';
  $('stats').innerHTML=[['PUNTOS',s.score.toLocaleString('es-AR')],['DEVOLUCIONES',s.returns],['PERFECTOS',s.perfect],['MEJOR COMBO','×'+s.bestCombo],['ROBOTS',s.kills],['PRECISIÓN',s.accuracy+'%']].map(row=>'<div><b>'+row[1]+'</b><span>'+row[0]+'</span></div>').join('');
  sound(s.victory?950:235,.6,'triangle',.1);
 }
@@ -164,7 +185,15 @@ function updateHud(){
  $('lives').textContent='♥'.repeat(s.lives)+'♡'.repeat(3-s.lives);
  $('combo').textContent='×'+s.combo;
  $('clock').textContent=s.remaining;
- $('phase').textContent='FASE '+(game.phase+1)+' / 5 · '+s.phase;
+ if(game.mode==='duelo'){
+  const cfg=G.DUEL_RIVALS[game.duelLevel];
+  const rival=game.enemies.find(e=>e.alive&&e.duel);
+  $('phase').textContent=s.transition?'✓ VICTORIA · ENTRA EL SIGUIENTE':
+   'UN ROBOT A LA VEZ · '+(s.duelWins)+' DERROTADOS';
+  $('duelStage').textContent='RIVAL '+(game.duelLevel+1)+' DE '+s.duelTotal;
+  $('duelName').textContent=cfg.name+' · '+cfg.title;
+  $('duelHealth').style.width=((rival?Math.max(0,rival.health/rival.maxHealth):0)*100).toFixed(1)+'%';
+ }else $('phase').textContent='FASE '+(game.phase+1)+' / 5 · '+s.phase;
  if(stage==='playing')updateRadar();
 }
 function yawFromPose(pose){
@@ -337,7 +366,7 @@ function aimFeedback(t){
  const ret=$('reticle'),cue=$('cue'),button=$('returnBtn'),gauge=$('strikeGauge');
  ret.className='';button.classList.remove('hot');
  for(const id of ['leftArrow','rightArrow','upArrow','downArrow'])$(id).style.opacity='0';
- if(!p){gauge.style.display='none';cue.textContent='PREPARATE · EL ROBOT ESTÁ CARGANDO';return}
+ if(!p){gauge.style.display='none';cue.textContent=game.mode==='duelo'&&game.nextDuelAt!==null?'¡KO! · ENTRA EL SIGUIENTE RIVAL':'PREPARATE · EL ROBOT ESTÁ CARGANDO';return}
  const diff=G.sub(p.pos,game.eye),dist=G.len(diff),q=G.quality(game,p);
  const unit=G.norm(diff);
  const forward=unit.x*game.aim.x+unit.y*game.aim.y+unit.z*game.aim.z;
@@ -524,6 +553,20 @@ renderer.domElement.addEventListener('pointermove',e=>{
 document.addEventListener('keydown',e=>{
  if(!demo)return;if(e.code==='Space'){e.preventDefault();onReturn()}if(e.code==='Escape')pause();
 });
+function chooseMode(mode){
+ if(stage!=='home')return;
+ selectedMode=mode==='clasico'?'clasico':'duelo';
+ game=G.make({mode:selectedMode});
+ $('selectDuel').classList.toggle('selected',selectedMode==='duelo');
+ $('selectClassic').classList.toggle('selected',selectedMode==='clasico');
+ $('selectDuel').setAttribute('aria-pressed',String(selectedMode==='duelo'));
+ $('selectClassic').setAttribute('aria-pressed',String(selectedMode==='clasico'));
+ $('support').textContent=selectedMode==='duelo'?
+  '🏆 6 rivales en fila. Uno a la vez, cada vez más inteligentes.':
+  '⚡ Clásico: rondas de 88 segundos, combos y jefe final.';
+}
+$('selectDuel').onclick=()=>chooseMode('duelo');
+$('selectClassic').onclick=()=>chooseMode('clasico');
 $('startDemo').onclick=()=>{
  demo=true;resetGame();calibrated=true;fixed=true;art.root.position.set(0,0,0);art.root.quaternion.identity();art.setSize(1);
  demoYaw=0;demoPitch=0;game.eye=G.V(0,1.61,1.2);setStage('ready');startRound();
@@ -650,4 +693,4 @@ window.addEventListener('resize',()=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
 if(window.__reboteEarlyTap)window.ReboteBoot?.show('MOTOR LISTO','Ahora tocá otra vez JUGAR EN REALIDAD AUMENTADA para abrir la cámara.');
 else window.ReboteBoot?.clear();
-globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError},get radarVisible(){return $('radar').style.display==='block'},get robotFacingDot(){return art.getRobotFacingDot(game.eye)},get texturedBalls(){return art.getTexturedBalls()},get ricochetRipples(){return art.getRicochetRipples()},get floorStable(){return floorStable},get floorSamples(){return floorSamples.length},get calibrationRms(){return calibrationRms},get previewYaw(){return previewYaw}};
+globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError},get radarVisible(){return $('radar').style.display==='block'},get robotFacingDot(){return art.getRobotFacingDot(game.eye)},get selectedMode(){return selectedMode},get duelEnemies(){return game.enemies.filter(e=>e.alive&&e.duel).length},get texturedBalls(){return art.getTexturedBalls()},get ricochetRipples(){return art.getRicochetRipples()},get floorStable(){return floorStable},get floorSamples(){return floorSamples.length},get calibrationRms(){return calibrationRms},get previewYaw(){return previewYaw}};
