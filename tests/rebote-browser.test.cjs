@@ -22,6 +22,19 @@ const server=http.createServer((req,res)=>{
  const cdnSha=process.env.REBOTE_CDN_SHA;
  const remote=cdnSha?'https://rawcdn.githack.com/ProtectorRudo/Modo-caos/'+cdnSha+'/rebote.html':null;
  await page.goto(remote||'http://127.0.0.1:'+server.address().port+'/rebote.html',{waitUntil:'load',timeout:45000});
+ if(remote&&(await page.title()).includes('External Content Notice')){
+  console.log('EXTERNAL HOST NOTICE',JSON.stringify({
+   links:await page.locator('a').evaluateAll(els=>els.map(a=>({text:a.textContent?.trim(),href:a.href}))).catch(()=>[]),
+   buttons:await page.locator('button').allTextContents().catch(()=>[])
+  }));
+  const proceed=page.getByRole('link',{name:/open the page/i});
+  if(await proceed.count())await proceed.first().click();
+  else{
+   const proceedButton=page.getByRole('button',{name:/open the page/i});
+   if(await proceedButton.count())await proceedButton.first().click();
+  }
+ }
+
  try{await page.waitForFunction(()=>!!globalThis.__ReboteDebug,null,{timeout:18000})}
  catch(e){
   console.error('BOOT DIAGNOSTICS',JSON.stringify({
