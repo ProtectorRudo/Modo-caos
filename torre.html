@@ -98,6 +98,9 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 #pieceDock[data-demolition="true"]{padding-top:7px}
 #mini[data-copy="true"]{border:2px solid #ffd27b}
 @media(max-height:735px){#modeDeck{gap:5px;margin:4px 0}.modeChoice{min-height:54px;padding:6px 9px}#home:has(#modeDeck) .hero{display:none}}
+#pieceDock[data-five="true"] #pieceSlots{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+#pieceDock[data-five="true"] #pieceSlots .piecePick{min-height:72px;padding:2px}
+#pieceDock[data-five="true"] #pieceSlots .piecePick span{font-size:8px}
 </style></head>
 <body>
 <canvas id="arena" aria-label="Escenario tridimensional de Torre Caos"></canvas>
