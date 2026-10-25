@@ -14,7 +14,9 @@ const server=http.createServer((req,res)=>{
  browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--disable-web-security']});
  const page=await browser.newPage({viewport:{width:393,height:850},isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',err=>errors.push(err.message));
- await page.goto('http://127.0.0.1:'+server.address().port+'/rebote.html',{waitUntil:'load'});
+ const cdnSha=process.env.REBOTE_CDN_SHA;
+ const remote=cdnSha?'https://rawcdn.githack.com/ProtectorRudo/Modo-caos/'+cdnSha+'/rebote.html':null;
+ await page.goto(remote||'http://127.0.0.1:'+server.address().port+'/rebote.html',{waitUntil:'load',timeout:45000});
  await page.waitForFunction(()=>!!globalThis.__ReboteDebug,null,{timeout:35000});
  assert.match(await page.title(),/REBOTE MORTAL/);
  assert(await page.locator('#startAR').isVisible());
