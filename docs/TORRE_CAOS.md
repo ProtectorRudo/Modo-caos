@@ -1,0 +1,86 @@
+# Torre Caos — minijuego 3D/AR
+
+## Rutas y arquitectura
+- `/torre.html`: pantalla móvil y HUD; `/torre-core.js`: 14 formas y progresión sin dependencias; `/torre-art.js`: mallas extruidas Three.js, sombras y vista auxiliar; `/torre-runtime.js`: simulación, controles, WebXR y audio.
+- Rapier 3D Compat 0.17.3 (WASM integrado) y Three.js 0.167.1 desde jsDelivr CDN versionado (requiere conectividad). No se cambia `engine.js`, el mundo 3D AR propio reutiliza el patrón hit test / `local` / anclaje y añade colisiones verticales que el engine de baldosas no tiene.
+- Integración en `index.html`. Sin cambios a Supabase, salas ni al despliegue original `color-rush-ar-demo`.
+- Estado: modo Torre Infinita individual; VERSUS, MURO IMPOSIBLE, CAOS EXTREMO y CONSTRUCCIÓN PERFECTA se mantienen pendientes, no simulados como funcionales.
+
+## Mecánica
+- Tap sobre el área libre: gira la pieza 90°.
+- Arrastrar horizontalmente y soltar: liberación, Rapier aplica gravedad, masa, rozamiento, inercia y contactos. No hay snapping.
+- Plano de construcción X/Y; Z y rotaciones X/Y bloqueados, manteniendo cuerpos físicos sólidos 3D (colisionadores hull convexos o compuestos por partes para L/T/Z).
+- Tiempo de asentamiento / fallo después de perder pieza, salirse de la plataforma o caer la altura que ya estaba estable. No hay terremotos ni trampas.
+- Altura máxima estable y récord local en centímetros, repetición breve del estado de cuerpos registrado en cada fotograma físico.
+- Pequeños impactos: sonidos sintetizados en función de la velocidad de colisión y háptica opcional.
+- Visor lateral auxiliar ampliable, útil para torres altas.
+
+## Flujo AR
+1. Chrome Android + ARCore + contexto HTTPS + soporte `immersive-ar`, `hit-test` y `dom-overlay`.
+2. Detectar suelo físico, mostrar plataforma, arrastrar para recolocar, pellizcar para escalar/girar.
+3. Fijar plataforma; crear `XRAnchor` si se ofrece, o conservar posición `local`.
+4. Piezas ancladas al mundo AR; el teléfono es cámara, no detector de pies. No caminar mientras se juega.
+5. Reubicar desde HUD cuando sea necesario (comienza otra partida).
+6. Si no hay AR, botón de **JUGAR EN 3D** accesible desde PC/Android.
+
+## Pruebas
+- `node tests/torre.test.cjs` valida cantidad y área de polígonos, orden de aprendizaje, aleatoriedad semillada, rotación, puntos y derrumbes. **Ejecutado, OK**.
+- `npm install --no-save @dimforge/rapier3d-compat@0.17.3` y `node tests/torre-rapier.test.mjs`: **ejecutado, OK** en Linux Node 24, pruebas numéricas de las 14 figuras físicas, colisionadores compuestos, no penetración del piso, restricciones de plano X/Y y estabilidad de un segundo bloque sobre un cubo. No sustituye a Android real.
+- Se probó en **Chromium headless** (390×844 px, WebGL SwiftShader, Playwright) la carga del módulo, botón 3D, entrada a la partida, soltado, retorno a pieza nueva, giro por tap, pausa/reanudación, sonido/vibración y visor auxiliar: cero errores de página/console. Es navegador de escritorio simulado, **NO es prueba física AR Android**.
+- Queda pendiente prueba en dos modelos de teléfono Android ARCore y prueba del encuadre de una torre alta. La AR real no se pudo simular de forma equivalente.
+- Validar que `/torre.html`, `/torre-core.js`, `/torre-art.js`, `/torre-runtime.js` se sirven con HTTP 200 en preview y que no se alteraron archivos de otros juegos.
+- No mezclar código 3D nuevo en `engine.js` global.
+- Tamaño inicial de escenario en AR: escala 0,48 (plataforma aprox. 1,2 m de ancho), regulable con dedos de 0,30 a 1,15. La guía de caída usa ray cast real de Rapier, solo como sombra visual, sin corregir la física. Al reubicar una pista en AR se conservan piezas y estado de simulación.
+- El selector AR se habilita solamente si `navigator.xr.isSessionSupported('immersive-ar')` confirma soporte, no por la presencia de `navigator.xr`.
+- Las geometrías de mallas Three.js se liberan al reintentar para reducir consumo de memoria.
+
+## Corrección AR: plataforma invisible (24/10/2026)
+
+Problema reproducido visualmente por captura de Android: WebXR habilitaba **FIJAR** aun sin verse la geometría de la base 3D. La geometría del preview se renderizaba únicamente con Three.js; una sesión AR puede detectar un hit test sin que una malla sea visible en la composición WebGL.
+
+Corrección aislada en `torre.html` y `torre-runtime.js`:
+
+- Añadido `#xrScene` (SVG en DOM Overlay) para dibujar en el mundo real la base, guías y geometrías visibles a partir de `frame.getViewerPose(ref)`, `view.projectionMatrix` y matriz inversa de la cámara. Multiplica las coordenadas físicas **de la misma escena Three.js**, no ancla el dibujo a la pantalla.
+- Se verifica la proyección dentro del viewport antes de habilitar `FIJAR` y se comunica con un texto discreto si el objetivo está fuera de cuadro.
+- `#mini` y `#miniBtn` se esconden durante la calibración (anteriormente el CSS usaba un selector descendiente incorrecto: los elementos eran hermanos del stage).
+- Si WebGL XR resulta invisible en algún Android, la capa SVG proyectada mantiene visibles plataforma y sólidos, como ruta de compatibilidad; no reemplaza el motor de física.
+- Sin cambios en los motores de Color Rush, Ball Rush, Territorio X, Muro Rush, ni en Supabase.
+
+Prueba ejecutada en Chromium con frame WebXR simulado (cámara 390×844, proyección perspectiva local, base en punto `hit-test`): geometría SVG proyectada sobre el piso, cambio de coordenadas al mover la cámara, plataforma visible y botón FIJAR habilitado solamente cuando está en cuadro, minivista escondida, cero errores JS. Prueba separada con cámara mirando fuera de cuadro: cero polígonos, FIJAR deshabilitado. Regresión demo 3D: coloca una pieza y altura computada, cero errores.
+
+**Limitación**: pruebas simuladas del fotograma de XR y del navegador, no prueba física de ARCore en el teléfono de la captura. Se requiere feedback visual del usuario después de desplegar la corrección.
+
+
+## Cambio de jugabilidad solicitado: elección libre de piezas (25/10/2026)
+
+El usuario pidió conservar la esencia de **Tumble/Tumble VR**: dejar de recibir bloques desconocidos uno tras otro, **ver las figuras antes de usarlas, elegir cualquiera de las disponibles y poder orientarla con los dedos**. Esta indicación posterior actualiza el comportamiento inicialmente previsto en el punto 2 del prompt, que contemplaba aparición secuencial.
+
+- **Bandeja de cuatro piezas visibles** con siluetas y nombres. La partida inicia con cubo, plataforma rectangular, triángulo y trapecio. La siguiente bandeja se presenta al usar las cuatro, sin imponer su orden de uso. Packs posteriores combinan formas más difíciles y variedad determinada por `TorreCore.makePack(round,rng)`.
+- Elegir cualquier pieza por toque. Cambiar de opinión antes de colocarla no consume ninguna.
+- Arrastrar la pieza directamente desde la bandeja al campo también sirve para colocarla. Los nodos DOM del inventario se preservan para mantener captura del gesto durante el arrastre.
+- Con la pieza seleccionada: **toque rápido = giro exacto de 90°**; **dos dedos sobre la zona de construcción = giro angular libre**, proporcional al giro de los dedos y con normalización estable cuando cruza ±180°. Soltar ambos dedos tras un giro **no libera** el bloque accidentalmente: se coloca después con un arrastre y soltado de un dedo.
+- Deslizamiento de un dedo y soltado = mover la pieza en horizontal y liberarla a la física real. Sin fijación mágica de piezas, sin reajustes de estabilidad.
+- La simulación continúa restringida al plano vertical XY establecido en el prompt original; no se afirma control de orientación sobre los tres ejes 3D.
+- Bandeja compacta en la parte inferior, sin ocupar la vista principal de la torre, activa también en modo AR con su DOM Overlay.
+
+**Pruebas ejecutadas en preview local aislada de Chromium + Rapier, 390×844:** 4 piezas visibles y reconocibles; selección de triángulo; rotación continua de 0,5997 rad con giro táctil simulado de dos dedos; retirar los dedos deja 0 piezas colocadas y conserva la orientación; posterior arrastre coloca el triángulo y consume únicamente su casillero; la siguiente pieza queda seleccionada y la bandeja muestra 3 disponibles. Arrastre directo desde tarjeta comprobado preservando el mismo elemento durante el gesto y pasando a física; plataforma rectangular obtiene 20 cm tras asentarse (se comprobó estado durante 5,4 s). Sin errores JS. **Prueba de gestos automatizada de navegador, no test físico de dos dedos en el móvil**.
+
+Sin cambios en `engine.js`, otros juegos, Supabase ni proyecto Vercel original.
+
+## Corrección del derrumbe real — 25/10/2026
+
+Bug confirmado con captura: varias piezas dispersas sobre el piso y Torre Caos seguía ofreciendo otra. Causa: el motor sólo comprobaba fallos durante el estado `settling`, priorizaba la última pieza o una caída de altura mayor de ~24 cm y no detectaba un montón de piezas apoyadas en la base si quedaba alguna pieza vertical.
+
+- `torre-core.js`: nueva función pura `diagnoseCollapse(items, stableHeight, latestId, reference)`. Criterios sobre **cuerpos Rapier reales**: pieza vieja o nueva fuera de pista, pérdida sustancial de altura previamente estable, tres o más piezas tocando el suelo de una construcción dispersa, dispersión horizontal y desplazamiento/rotación de soportes previamente estabilizados.
+- `torre-runtime.js`: monitoriza **toda la torre** a 60 Hz tanto al asentar como **entre turnos**, luego de aparecer la próxima pieza; evalúa `minY` del cuerpo con sus verdaderos polígonos y posiciones/ángulos. Gracia acumulada de 0,7 segundos para no perder por una oscilación que se recupera; al reconocer el derrumbe deja de ofrecer piezas, libera la activa, reproduce los frames registrados y muestra fin de partida.
+- Se actualiza correctamente el estado de altura estable y snapshots por pieza tras cada colocación exitosa. Replay acotado por reloj real a 4 s máximo aun con FPS bajo.
+- Resultado: el encabezado siempre dice `TORRE DERRUMBADA` y el aviso de récord se muestra por separado si efectivamente supera el récord previo a la partida. No se concede récord por altura momentánea de una pieza que luego cayó.
+- `tests/torre.test.cjs` cubre caso equivalente a la captura, torre de cuatro elementos estables, bamboleo leve, pérdida de soporte, pieza anterior fuera de pista y pérdida de altura.
+
+**Pruebas ejecutadas** en el entorno aislado de navegador Chromium + Rapier y geometría física real:
+- Tres bloques centrados apilados (~92 cm): aceptados y juego continúa.
+- Tres bloques colocados en posiciones 0, +0,9, −0,9 m sobre la base: `piezas_desparramadas` detectado tras 0,7 s de persistencia, transición `settling → replay → finished`, mensaje `TORRE DERRUMBADA` y resultado visible. No recibe otro bloque.
+- Un ligero impulso aplicado a una torre estable no generó un falso derrumbe y la torre siguió jugable.
+- Prueba dirigida entre turnos: al desplazar físicamente un antiguo cuerpo fuera de pista mientras ya había aparecido el siguiente, el monitor detectó `pieza_fuera` aun en fase `playing`. Inyección de QA usada solamente para forzar el escenario extremo, no código de producción.
+- Pruebas de Node: geometría, packs y todas las nuevas detecciones OK; `tests/torre-rapier.test.mjs` validó 14 formas + apilamiento; cero errores de página.
+- **Pendiente**: validación física de AR en el celular del usuario. No afirmar prueba real Android/ARCore.
