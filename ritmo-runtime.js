@@ -3,7 +3,8 @@
 (function(){
 const E=id=>document.getElementById(id),G=window.RitmoCore,A=window.RitmoArt,audio=window.RitmoAudio.create();
 if(!G||!A)throw Error('Ritmo Caos requiere core y art');
-const art=A.create(E('rtSvg'),E('gameCanvas')),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const art=A.create(E('rtSvg'),E('gameCanvas')),fx=window.RitmoFx?.create(E('fxCanvas')),
+ clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 window.modoCaosCustomArena=true;
 window.modoCaosGestureConfig={min:.20,max:.32,step:.015,label:s=>(s*4).toFixed(2)+' m'};
 try{boardSize=.25;tiles.fill(0);colors[0]='#09182e';rgb[0]=[.025,.055,.11];E('size').textContent='1,00 m'}catch(_){}
@@ -150,9 +151,9 @@ function togglePause(){
 E('gamePause').onclick=togglePause;
 E('sound').onclick=()=>{muted=!muted;audio.volume(muted);E('sound').textContent=muted?'🔇':'🔊'};
 E('rtRecenter').onclick=chooseLane;
-E('exit').onclick=()=>{audio.stop();try{sess?.end()}catch(_){}location.href='/'};
+E('exit').onclick=()=>{E('holdHud').style.display='none';audio.stop();try{sess?.end()}catch(_){}location.href='/'};
 E('lock').addEventListener('click',()=>{if(typeof stage!=='undefined'&&stage==='fixed')fixed()});
-E('edit').addEventListener('click',()=>{locked=false;calibrated=false;sampling=false;running=false;audio.stop();E('prepare').style.display='none';E('hud').style.display='none';E('head').style.display='block'});
+E('edit').addEventListener('click',()=>{locked=false;calibrated=false;sampling=false;running=false;E('holdHud').style.display='none';fx?.reset();audio.stop();E('prepare').style.display='none';E('hud').style.display='none';E('head').style.display='block'});
 function showHUD(t=0){
  if(!game)return;
  E('score').textContent=game.score.toLocaleString('es-AR');E('combo').textContent='×'+game.combo;
@@ -161,20 +162,54 @@ function showHUD(t=0){
  E('progressFill').style.width=clamp(game.elapsed/game.duration*100,0,100)+'%';
  const forecast=game.notes.filter(n=>n.status==='pending'&&n.at>=game.elapsed-.1).slice(0,5);
  E('forecast').innerHTML=forecast.map(n=>'<i style="background:'+G.COLORS[n.lane]+'"></i>').join('');
+ const hold=game.holdActive,holder=E('holdHud');
+ holder.style.display=running&&!game.paused&&hold?'block':'none';
+ if(hold){
+  const progress=Math.max(0,Math.min(100,Math.round(hold.progress*100)));
+  E('holdFill').style.width=progress+'%';
+  E('holdText').textContent='🎸 ¡MANTENÉ '+['VERDE','ROJO','AMARILLO','AZUL'][hold.note.lane]+'!';
+  E('holdCount').textContent=progress+'% · NO CAMBIES DE CARRIL';
+  holder.style.borderColor=G.COLORS[hold.note.lane];
+ }
+ E('combo').parentElement?.classList.toggle('streak',game.combo>=10);
  setWhere();
 }
 function onEvents(){
  for(const ev of game.events){
   if((ev.seq||0)<=lastEventCount)continue;
   lastEventCount=ev.seq;
-  if(ev.type==='judgement'){
+  if(ev.type==='hold_start'){
+   notify('🎸 ¡MANTENÉ ESE COLOR!',520);
+   try{navigator.vibrate?.(20)}catch(_){}
+   try{audio.feedback?.('HOLD_START',ev.lane,game.combo)}catch(_){}
+  }else if(ev.type==='hold_complete'){
+   fx?.burst(ev.lane,art.spot?.(ev.lane),'HOLD',ev.combo);
+   try{audio.feedback?.('HOLD_COMPLETE',ev.lane,ev.combo)}catch(_){}
+   try{navigator.vibrate?.([30,24,45])}catch(_){}
+   notify('🌟 ¡SOSTENIDA PERFECTA! + PUNTOS',920);
+  }else if(ev.type==='hold_break'){
+   notify('↻ MANTENÉ TU COLOR MÁS TIEMPO',740);
+  }else if(ev.type==='judgement'){
    const msg=ev.rating==='PERFECTO'?'✨ PERFECTO':ev.rating==='GENIAL'?'⚡ GENIAL':ev.rating==='BIEN'?'✓ BIEN':'✕ FALLO';
-   if(ev.rating!=='FALLO'){notify(msg,360);try{navigator.vibrate?.(ev.rating==='PERFECTO'?24:12)}catch(_){}
-    for(const n of [10,20,30,50])if(game.combo>=n&&!playedMilestones.has(n)){playedMilestones.add(n);notify('🔥 COMBO '+n+' · ¡ESCENARIO ENCENDIDO!',1000)}
-   }else notify(msg,420);
+   const note=game.notes[ev.note];
+   // Complete sustains get their own large effect and audio chord.
+   if(note?.type!=='hold')fx?.burst(ev.lane,art.spot?.(ev.lane),ev.rating,ev.combo);
+   if(ev.rating!=='FALLO'){
+    if(note?.type!=='hold'){
+     notify(msg,470);
+     try{audio.feedback?.(ev.rating,ev.lane,ev.combo)}catch(_){}
+     try{navigator.vibrate?.(ev.rating==='PERFECTO'?[12,12,28]:15)}catch(_){}
+    }
+    for(const n of [10,20,30,50]){
+     if(game.combo>=n&&!playedMilestones.has(n)){
+      playedMilestones.add(n);fx?.celebrate(n);
+      notify('🔥 COMBO '+n+' · ¡EL ESCENARIO EXPLOTA!',1000);
+      try{navigator.vibrate?.([30,25,30])}catch(_){}
+     }
+    }
+   }else if(note?.type!=='hold')notify(msg,440);
   }
  }
-
 }
 async function begin(){
  if(ending)return;
@@ -184,13 +219,14 @@ async function begin(){
  G.setPosition(game,demo?demoLane:selected,0);G.start(game);game.paused=true;
  E('result').style.display='none';E('hud').style.display='block';E('gamePause').style.display='block';E('where').style.display='block';
  E('head').style.display='none';E('rtStart').disabled=true;
- running=true;manualPause=false;lost=false;lastEventCount=0;playedMilestones.clear();
+ running=true;manualPause=false;lost=false;lastEventCount=0;playedMilestones.clear();fx?.reset();
+ E('holdHud').style.display='none';
  if(!demo){E('prepare').style.display='none';if(reference){reference.selected=selected;reference.worldWidth=boardSize}filtered=selected;lane=selected;}
  notify('♫ PREPARANDO LA CANCIÓN',1400);
  try{
   await audio.start(song());audio.volume(muted);game.paused=false;
  }catch(e){
-  audio.stop();running=false;game.state='ready';game.paused=false;
+  audio.stop();running=false;game.state='ready';game.paused=false;E('holdHud').style.display='none';
   const detail=String(e?.message||e||'No se pudo reproducir el audio').slice(0,240);
   notify('⚠️ ERROR AL INICIAR LA CANCIÓN',2300);
   E('rtStart').disabled=false;E('gamePause').style.display='none';
@@ -213,7 +249,7 @@ async function begin(){
 E('rtStart').onclick=()=>{if(running&&game.paused&&!lost&&calibrated){manualPause=false;game.paused=false;audio.resume();showPrepare(false)}
  else begin()};
 function conclude(){
- if(ending)return;ending=true;running=false;audio.stop();
+ if(ending)return;ending=true;running=false;audio.stop();E('holdHud').style.display='none';fx?.celebrate(game.bestCombo);
  try{const key=recordKey();if(game.score>best){best=game.score;localStorage.setItem(key,String(best))}}catch(_){}
  E('resultTitle').textContent=G.accuracy(game)>93?'🏆 ¡SHOW PERFECTO!':'¡FIN DEL CONCIERTO!';
  E('resultRank').textContent=G.ranking(game);
@@ -238,7 +274,7 @@ function loop(t){
   G.setPosition(game,demoLane,game.elapsed);G.tick(game,audio.now()+Number(E('latency').value)/1000);
   onEvents();if(game.state==='finished')conclude();
  }
- art.demo(game);if(t-hudLast>130){hudLast=t;showHUD(t)}hideToast(t);
+ art.demo(game);fx?.frame(t);if(t-hudLast>90){hudLast=t;showHUD(t)}hideToast(t);
 }
 function demoStart(){
  demo=true;demoLane=1;E('home').style.display='none';E('overlay').style.display='block';E('gameCanvas').style.display='block';E('rtSvg').style.display='none';
@@ -267,6 +303,7 @@ window.modoCaosXRFrame=function(t,frame,W){
   onEvents();if(game.state==='finished')conclude();
  }
  if(t-drawLast>33){drawLast=t;art.ar(frame,W,locked?game:null,boardSize)}
+ fx?.frame(t);
  if(t-hudLast>120){hudLast=t;if(locked)showHUD(t);hideToast(t)}
 };
 setInterval(()=>{if(!demo&&running&&!sampling&&!lost&&performance.now()-lastTrack>1350){lost=true;pause(true);notify('📡 SEGUIMIENTO PERDIDO · EN PAUSA',1600)}},400);
