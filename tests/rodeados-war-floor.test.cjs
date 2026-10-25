@@ -23,7 +23,7 @@ test('damage accumulates on impacted cells but never changes positions/physics',
 });
 test('enemy attack both reduces health and scars the square at player position',()=>{
  const g=G.create({seed:5,arena:2.6});G.begin(g);g.spawnClock=500;
- const e=bot('basic',1,0,-2.60);e.attackCD=0;g.enemies=[e];
+ const e=bot('basic',1,0,-2.50);e.attackCD=0;g.enemies=[e];
  G.advance(g,.05);
  assert(g.lives<100);assert(g.floorDamage[12]>0);
  assert(g.floorHeat[12]>=0);
