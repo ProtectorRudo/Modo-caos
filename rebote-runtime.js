@@ -34,6 +34,7 @@ const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 let game=G.make(),stage='home',demo=false,session=null,space=null,hitSource=null,anchor=null,anchorDelta=null;
 let latestHit=null,pendingAnchorHit=null,lastFrame=null,trackedEye=null,calStart=0,samples=[],calibrated=false,calibrationMotion=null;
 let fixed=false,previewPosition=V(),previewYaw=0,move=V(),yaw=0,arenaScale=1,fixPending=false;
+let floorSamples=[],floorStable=false,placementWarmup=0,previewInitialized=false,calibrationRms=0;
 let timePrev=0,hudPrev=0,demoYaw=0,demoPitch=0,lastAim=null,lastAimAt=0,trackingAt=0;
 let viewRight=G.V(1,0,0),viewUp=G.V(0,1,0);
 let effectsSeen=new WeakSet(),audioCtx=null,sounds=true,beeped=new Set(),pausedForTracking=false,beatAt=0,qualityFrames=0,qualityCost=0;
@@ -52,7 +53,7 @@ function ui(){
  $('result').style.display=stage==='finished'?'flex':'none';
  $('begin').textContent=stage==='paused'?'▶ CONTINUAR':'⚡ ¡EMPEZAR!';
  $('begin').disabled=stage==='paused'&&pausedForTracking&&(!lastAim||performance.now()-lastAimAt>550);
- $('fix').disabled=!latestHit;
+ $('fix').disabled=!latestHit||!floorStable||!arCompositor||lastComposited===0;
  $('arConnecting').style.display=stage==='connecting'?'flex':'none';
 }
 function setStage(next){stage=next;ui()}
@@ -196,38 +197,59 @@ function drawPlacementOutline(frame){
  if(center){$('placementCross').setAttribute('cx',center[0]);$('placementCross').setAttribute('cy',center[1])}
  svg.style.display=border||d||center?'block':'none';
 }
-function updatePreview(frame){
- const h=checkHit(frame);
- if(h){
-  latestHit=h.h;
-  const pos=h.pose.transform.position;
-  previewPosition.set(pos.x,pos.y,pos.z);
-  const viewer=currentViewer(frame);
-  previewYaw=yawFromPose(viewer);
+function stableFloor(hit,viewer,t){
+ const p=hit?.pose?.transform?.position;
+ if(!p||![p.x,p.y,p.z].every(Number.isFinite))return false;
+ if(!viewer?.transform?.position||viewer.emulatedPosition===true)return false;
+ const eye=viewer.transform.position,horizontal=Math.hypot(p.x-eye.x,p.z-eye.z);
+ if(horizontal>.05&&horizontal<4.5&&Math.abs(eye.y-p.y)>.55&&Math.abs(eye.y-p.y)<2.4){
+  if(floorSamples.length&&Math.abs(p.y-floorSamples[floorSamples.length-1].y)>.22){
+   floorSamples=[];placementWarmup=t;
+  }
+  floorSamples.push({x:p.x,y:p.y,z:p.z});
+  if(floorSamples.length>24)floorSamples.shift();
  }
- if(!latestHit)return;
+ const ys=floorSamples.map(q=>q.y).sort((x,y)=>x-y);
+ const median=ys.length?ys[Math.floor(ys.length/2)]:0;
+ floorStable=ys.length>=8&&ys[ys.length-1]-ys[0]<.10&&t-placementWarmup>=220;
+ if(!floorStable)return false;
+ const first=!previewInitialized,desiredYaw=yawFromPose(viewer);
+ if(first){previewYaw=desiredYaw;previewInitialized=true}
+ else previewYaw+=clamp(Math.atan2(Math.sin(desiredYaw-previewYaw),Math.cos(desiredYaw-previewYaw)),-.07,.07);
+ const facing=V(0,0,-.78).applyAxisAngle(V(0,1,0),previewYaw);
+ const target=V(eye.x+facing.x,median,eye.z+facing.z);
+ if(first||previewPosition.distanceTo(target)>1.65)previewPosition.copy(target);
+ else previewPosition.lerp(target,.17);
+ return true;
+}
+function updatePreview(frame){
+ const h=checkHit(frame),viewer=currentViewer(frame);
+ if(h){latestHit=h.h;stableFloor(h,viewer,performance.now())}
+ if(!floorStable||!latestHit){
+  $('fix').disabled=true;
+  if(stage==='search')status('🔎 ESCANEÁ EL PISO · MOVÉ LA CÁMARA DESPACIO');
+  return;
+ }
  const q=new THREE.Quaternion().setFromAxisAngle(V(0,1,0),previewYaw+yaw);
  const offset=move.clone().applyQuaternion(q);
  art.root.position.copy(previewPosition).add(offset);
- // Lift the 3D placement target just above ARCore's estimated floor.
- art.root.position.y+=.035;
- art.root.quaternion.copy(q);
+ art.root.position.y+=.035;art.root.quaternion.copy(q);
  art.setSize(arenaScale);
  if(stage==='search')setStage('edit');
- $('fix').disabled=false;
+ $('fix').disabled=!arCompositor||lastComposited===0;
 }
 function fixArena(){
- if(stage!=='edit'||!latestHit||!arCompositor||arCompositor.drawCalls===0){
-  toast('ESPERÁ: LA ARENA 3D TODAVÍA NO SE VE',2);return;
+ if(stage!=='edit'||!floorStable||!latestHit||!arCompositor||lastComposited===0){
+  toast('ESPERÁ A QUE LA PISTA SE VEA ESTABLE',2);return;
  }
  fixed=true;fixPending=true;pendingAnchorHit=latestHit;latestHit=null;
  setStage('calibrate');calStart=0;samples=[];calibrationMotion=null;
- status('📍 ARENA FIJADA');$('message').textContent='SOSTENÉ EL TELÉFONO QUIETO · CALIBRANDO';
+ status('📍 ARENA FIJADA · CALIBRANDO');$('message').textContent='MANTENÉ EL TELÉFONO QUIETO UN SEGUNDO';
  vibration(40);
 }
 function startCalibration(){
  if(demo){calibrated=true;setStage('ready');return}
- calStart=0;samples=[];calibrationMotion=null;calibrated=false;
+ calStart=0;samples=[];calibrationMotion=null;calibrationRms=0;calibrated=false;
  game.paused=true;setStage('calibrate');
  status('CALIBRANDO POSICIÓN DEL TELÉFONO');
  $('message').textContent='MANTENÉ EL TELÉFONO QUIETO UN SEGUNDO';
@@ -235,12 +257,14 @@ function startCalibration(){
 function calibrate(t,pose){
  if(!pose?.transform?.position||pose.emulatedPosition===true){calStart=0;samples=[];return}
  const {x,y,z}=pose.transform.position,p=V(x,y,z);
- if(calibrationMotion&&calibrationMotion.distanceTo(p)>.13){calStart=0;samples=[]}
+ if(calibrationMotion&&calibrationMotion.distanceTo(p)>.06){calStart=0;samples=[]}
  calibrationMotion=p;
  if(!calStart)calStart=t;
  samples.push(p);if(samples.length>100)samples.shift();
  if(t-calStart<1000||samples.length<12)return;
  const avg=samples.reduce((a,b)=>a.add(b),V()).multiplyScalar(1/samples.length);
+ calibrationRms=Math.sqrt(samples.reduce((sum,sample)=>sum+sample.distanceToSquared(avg),0)/samples.length);
+ if(calibrationRms>.045){calStart=0;samples=[];status('📱 QUIETO UN SEGUNDO PARA CALIBRAR');return}
  art.root.updateMatrixWorld(true);
  const local=art.root.worldToLocal(avg);
  game.eye=G.V(local.x,local.y,local.z);
@@ -376,7 +400,7 @@ function animate(t,frame){
     arFrames++;
     lastComposited=arCompositor.drawCalls;
     if(['search','edit'].includes(stage)){
-     $('fix').disabled=!latestHit||lastComposited===0;
+     $('fix').disabled=!latestHit||!floorStable||lastComposited===0;
      if(lastComposited>0&&stage==='edit')status('✅ ARENA EN EL PISO · AJUSTÁ Y FIJÁ');
     }
    }else{
@@ -399,7 +423,9 @@ $('minus').onclick=()=>editSize(-.1);$('plus').onclick=()=>editSize(.1);
 $('turn').onclick=()=>{if(stage==='edit')yaw+=Math.PI/12};
 $('fix').onclick=fixArena;
 $('begin').onclick=startRound;
-$('adjust').onclick=()=>{if(demo)return;game.paused=true;fixed=false;anchor?.delete?.();anchor=null;anchorDelta=null;latestHit=null;setStage('search');status('AJUSTÁ EL PISO');$('message').textContent=''};
+$('adjust').onclick=()=>{if(demo)return;game.paused=true;fixed=false;anchor?.delete?.();anchor=null;anchorDelta=null;latestHit=null;
+ floorSamples=[];floorStable=false;placementWarmup=performance.now();previewInitialized=false;
+ setStage('search');status('AJUSTÁ EL PISO');$('message').textContent=''};
 $('pauseBtn').onclick=pause;
 $('center').onclick=()=>{if(stage==='playing')pause();if(!demo)startCalibration()};
 $('sound').onclick=()=>{sounds=!sounds;$('sound').textContent=sounds?'🔊':'🔇'};
@@ -547,7 +573,8 @@ async function startXR(){
   if(ticket!==xrStartVersion){resetXRSession(s);return}
   openArWorld();
   resetGame();fixed=false;calibrated=false;latestHit=null;
-  arenaScale=1;move.set(0,0,0);yaw=0;
+  floorSamples=[];floorStable=false;placementWarmup=performance.now();previewInitialized=false;
+  arenaScale=.86;move.set(0,0,0);yaw=0;
   setStage('search');status('BUSCÁ EL PISO CON LA CÁMARA');$('message').textContent='';
   $('startAR').disabled=false;
  }catch(err){
@@ -583,4 +610,4 @@ window.addEventListener('resize',()=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
 if(window.__reboteEarlyTap)window.ReboteBoot?.show('MOTOR LISTO','Ahora tocá otra vez JUGAR EN REALIDAD AUMENTADA para abrir la cámara.');
 else window.ReboteBoot?.clear();
-globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError}};
+globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError},get floorStable(){return floorStable},get floorSamples(){return floorSamples.length},get calibrationRms(){return calibrationRms},get previewYaw(){return previewYaw}};
