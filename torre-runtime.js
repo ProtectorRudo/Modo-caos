@@ -498,7 +498,7 @@ function drawMini(){
  ctx.strokeStyle='#84f7e8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(-baseHalf),Y(.14));ctx.lineTo(X(baseHalf),Y(.14));ctx.stroke();
  if(modeId==='copy'){
   ctx.save();ctx.strokeStyle='#ffe1a1';ctx.lineWidth=2.5;ctx.setLineDash([5,3]);
-  for(const t of currentTarget)
+  for(const t of currentTarget){
    const shape=G.SHAPES.find(sh=>sh.id===t.shape);
    for(const poly of shape.parts){
     ctx.beginPath();
@@ -730,7 +730,7 @@ function renderARSpatial(frame,time){
  }
  if(phase==='placing'&&!editing)piece(G.SHAPES[0],0,.145+BLOCK*.5,0,.95);
  else{
-  if(modeId==='copy')for(const t of currentTarget)
+  if(modeId==='copy')for(const t of currentTarget){
    const shape=G.SHAPES.find(s=>s.id===t.shape);
    if(shape)piece(shape,t.x,t.y,t.angle,.20);
   }
