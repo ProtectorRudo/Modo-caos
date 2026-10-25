@@ -72,6 +72,7 @@ const server=http.createServer((req,res)=>{
  const attemptsBeforeZone=await page.evaluate(()=>__ReboteDebug.returnAttempts);
  await page.locator('#tapZone').tap({position:{x:26,y:24}});
  assert.equal(await page.evaluate(()=>__ReboteDebug.returnAttempts),attemptsBeforeZone+1,'one tap anywhere low on screen produces one attempt');
+ await page.waitForTimeout(185); // intentionally outside the anti-double-tap cooldown
  const attemptsBeforeButton=await page.evaluate(()=>__ReboteDebug.returnAttempts);
  await page.locator('#returnBtn').tap();
  assert.equal(await page.evaluate(()=>__ReboteDebug.returnAttempts),attemptsBeforeButton+1,'dedicated button still works without double-fire');
