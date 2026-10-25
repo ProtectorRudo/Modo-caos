@@ -31,15 +31,40 @@ const TARGET_NAMES=['PUENTE','TÓTEM','PIRÁMIDE'];
 function get(id){return MODES[id]||MODES.infinite}
 function boardHalfWidth(mode,placed){return mode==='balance'?Math.max(.42,1.05-Math.floor(Math.max(0,placed)/2)*.135):1.25}
 function angleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b))}
+// Match the player's construction AGAINST a separate reference drawing.
+// Translation on the platform is permitted: it's the relative geometry that
+// matters, not whether somebody places the structure at our sample X origin.
+// Nothing here moves, snaps, or changes any Rapier body.
 function matchTarget(bodies,target=TARGET){
- if(bodies.length!==target.length)return {won:false,matched:0,total:target.length};
- let remaining=bodies.map(b=>({...b}));
- let count=0;
- for(const t of target){
-  const idx=remaining.findIndex(b=>b.shape===t.shape&&Math.abs(b.x-t.x)<.20&&Math.abs(b.y-t.y)<.16&&Math.abs(angleDelta(b.angle,t.angle))<.36);
-  if(idx>=0){count++;remaining.splice(idx,1)}
+ const total=target.length;
+ if(!Array.isArray(bodies)||!total)return {won:false,matched:0,total};
+ const source=bodies.filter(b=>b&&Number.isFinite(b.x)&&Number.isFinite(b.y)&&Number.isFinite(b.angle));
+ const offsets=[0];
+ for(const piece of source)for(const guide of target){
+  if(piece.shape===guide.shape){
+   const dx=piece.x-guide.x;
+   if(Math.abs(dx)<=.94)offsets.push(dx);
+  }
  }
- return {won:count===target.length,matched:count,total:target.length};
+ let best=0;
+ for(const dx of offsets){
+  const used=new Set();
+  function count(index){
+   if(index>=source.length)return 0;
+   const b=source[index];let max=count(index+1);
+   for(let i=0;i<total;i++){
+    const t=target[i];
+    if(used.has(i)||b.shape!==t.shape)continue;
+    if(Math.abs(b.x-(t.x+dx))>.17||Math.abs(b.y-t.y)>.16)continue;
+    if(Math.abs(angleDelta(b.angle,t.angle))>.36)continue;
+    used.add(i);max=Math.max(max,1+count(index+1));used.delete(i);
+   }
+   return max;
+  }
+  best=Math.max(best,count(0));
+  if(best===total)break;
+ }
+ return {won:source.length===total&&best===total,matched:best,total};
 }
 function demolitionScore(original,current,removedIds){
  let fallen=0;
