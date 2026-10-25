@@ -5,7 +5,7 @@
  function create(){
   let ctx=null,timer=null,startAt=0,nextBeat=0,nextMelody=0,melodyQueue=[],sourceNodes=new Set(),gain=null,mute=false,track='neon',ended=false;
   let personalBuffer=null,personalSong=null,personalSource=null,analysis=null;
-  const licensedBuffers=new Map();
+  const licensedBuffers=new Map(),licensedLoading=new Map();
   function init(){ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();if(!gain){gain=ctx.createGain();gain.gain.value=mute?0:.25;gain.connect(ctx.destination)}return ctx}
   function oscillator(freq,start,dur,wave='sine',vol=.14,slide=null){
    const o=ctx.createOscillator(),g=ctx.createGain();o.type=wave;o.frequency.setValueAtTime(freq,start);
@@ -59,7 +59,7 @@
     oscillator(frequency,startAt+m.beat*beat,Math.min(1.2,m.duration*beat*.84),song.instrument==='brass'?'sawtooth':'triangle',song.instrument==='brass'?.049:.095);
    }
   }
-  async function preload(name){
+  async function fetchLicensed(name){
    const song=SONGS[name];
    if(!song?.licensedRecording)return true;
    if(licensedBuffers.has(name))return true;
@@ -87,6 +87,13 @@
     throw Error('La duración de la grabación y las notas no coinciden');
    licensedBuffers.set(name,decoded);
    return true;
+  }
+  async function preload(name){
+   if(licensedBuffers.has(name))return true;
+   if(licensedLoading.has(name))return licensedLoading.get(name);
+   const pending=fetchLicensed(name);
+   licensedLoading.set(name,pending);
+   try{return await pending}finally{licensedLoading.delete(name)}
   }
   async function start(name='neon'){
    stop();track=SONGS[name]?name:'neon';init();ended=false;
