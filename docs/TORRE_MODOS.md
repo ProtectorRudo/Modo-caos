@@ -95,3 +95,16 @@ Cambio solicitado tras probar el modo de extracción directa: antes solo había 
 
 **Pendiente de verificar físicamente:** FPS, hit test y tamaño en un dispositivo Android compatible con ARCore; los resultados del navegador de pruebas no sustituyen esa prueba.
 
+
+
+## 25/10/2026 — Demolición estratégica V2: 40 estructuras y derrumbes reales
+
+**Motivo:** las 40 figuras anteriores eran variaciones de paredes verticales de cubos; el jugador pedía puentes, voladizos, arcos y estructuras estratégicas cuyos apoyos provocaran reacciones en cadena.
+
+**Rediseño:** sustituido el catálogo de perfiles de columnas por 40 arquitecturas diferentes, agrupadas en diez familias: arco, hongo, martillo, balancín, arco doble, puerta/castillo, grúa, puente de dos plantas, balcón zigzag y castillos enlazados. Las cuatro variantes de cada familia añaden alturas, masas, contrapesos y apoyos diferentes. Incluye seis tipos de piezas con sólidos convexos propios: pilar, viga, techo largo, pasarela, contrapeso y soporte. Todas utilizan cuerpos Rapier y colisionadores 3D reales, no animaciones fingidas. Los otros cinco modos no cambian.
+
+**Reglas:** diez rondas escogidas de 40 figuras sin repetir, tres extracciones y 32 segundos por figura, puntaje acumulado, transición automática sin recalibrar y toque directo del cubo o viga elegida sobre la pista AR.
+
+**QA ejecutada:** en el simulador de Rapier, 40/40 estables tras 245 pasos; probadas hasta cinco extracciones estratégicas por escenario y 40/40 con algún bloque cuyo retiro hace caer al menos otras dos piezas tras 210 pasos. Ejemplos: arco 2, hongo 3, martillo 3, doble portal 4, puente de dos pisos 5. Test: tests/torre-demolition-physics-qa.mjs (requiere dependencia npm @dimforge/rapier3d-compat@0.17.3). Tests puramente geométricos y core OK. Playwright móvil 390×844 completó 10/10 rondas con 10 figuras distintas, puntaje acumulado, reinicio y cero errores JavaScript. Otros cinco modos 5/5 sin regresiones de colocación.
+
+**Pendiente:** comprobar manualmente la ergonomía del toque XR y las perspectivas de las nuevas formas en un Android ARCore real.
