@@ -37,3 +37,11 @@ Nuevo minijuego aislado en \`rebote.html\`, \`rebote-core.js\`, \`rebote-art.js\
 - Se sumó `tests/rebote-xr-smoke.test.cjs`: prueba sintética en Chromium que simula `XRFrame`, hit-test, anclaje, cambios de escala, FIJAR, calibración de un segundo, botón DEVOLVER, desplazamiento realista del teléfono sin mover la arena, RECENTRAR y pérdida/retorno de tracking.
 - El flujo pasó en GitHub Actions. **Advertencia:** WebXR sintético no verifica la cámara real ni ARCore de Android; esa prueba queda explícitamente pendiente para certificar al juego como premium en dispositivos físicos.
 - No se modificaron las tablas de Supabase, Auth ni el multijugador. Seguimiento de `main` por Vercel debe verificarse antes de anunciar enlace definitivo.
+
+### QA de tactilidad y jefe (25/10, actualización)
+
+- Evento `pointerdown` de DEVOLVER inmediato y **un único intento por toque**; el evento `click` posterior no repite la acción, pero la accesibilidad por teclado conserva `click`.
+- Cualquier esfera que choque durante el escudo temporal del jugador queda consumida: jamás puede volver a producir daño retardado.
+- El jefe final muestra un escudo 3D únicamente en su intervalo real de bloqueo (basado en el mismo estado físico del core). Sus placas de armadura se pierden progresivamente según la vida restante.
+- Tests de unidad y prueba sintética XR ampliados para cubrir estas condiciones. Sin alterar juegos anteriores ni bases de datos compartidas.
+- **Release:** Vercel limitó la cuota diaria de nuevas compilaciones. No afirmar que esta revisión es pública hasta verificar que el despliegue resuelve exactamente el commit actualizado. La prueba física ARCore queda pendiente, incluso cuando el QA sintético sea verde.
