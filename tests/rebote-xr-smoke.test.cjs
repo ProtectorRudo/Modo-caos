@@ -80,6 +80,11 @@ const server=http.createServer((req,res)=>{
  await page.locator('#startAR').click();
  await page.waitForFunction(()=>__ReboteDebug.stage==='edit',null,{timeout:7500});
  assert(await page.locator('#editbar').isVisible(),'AR edit controls visible');
+ await page.waitForFunction(()=>__ReboteDebug.arFrames>3&&__ReboteDebug.arDrawCalls>0,null,{timeout:9000});
+ assert.equal(await page.locator('#arWorldOverlay canvas').count(),1,'independent WebGL canvas INSIDE the XR DOM overlay');
+ assert(await page.locator('#arWorldOverlay canvas').isVisible(),'AR world canvas must be visible, not an offscreen native-only buffer');
+ assert(await page.evaluate(()=>__ReboteDebug.arCanvas),'composited world canvas remains connected');
+ assert.equal(await page.locator('#fix').isDisabled(),false,'fix placement only after visible renderer emitted draw calls');
  const a=await page.evaluate(()=>({scale:__ReboteDebug.scale,root:__ReboteDebug.root}));
  await page.locator('#plus').click();
  assert((await page.evaluate(()=>__ReboteDebug.scale))>a.scale,'scale edited');
@@ -98,6 +103,7 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__ReboteDebug.renderedRobots>0,null,{timeout:5000});
  assert(await page.locator('#returnBtn').isVisible(),'return button active in real XR overlay');
  assert(await page.evaluate(()=>__simDrawCalls)>0,'3D is rendered in AR XR frames');
+ assert(await page.evaluate(()=>__ReboteDebug.arDrawCalls)>0,'visible XR DOM overlay draws world geometry independently');
  assert(await page.evaluate(()=>__ReboteDebug.tracking),'active XRFrame samples reliable phone ray');
  const beforeTap=await page.evaluate(()=>__ReboteDebug.returnAttempts);
  await page.locator('#returnBtn').tap();

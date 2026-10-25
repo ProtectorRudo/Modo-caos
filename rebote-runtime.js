@@ -1,5 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createReboteArt} from './rebote-art.js?v=5';
+import {createReboteArt} from './rebote-art.js?v=6';
+import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=6';
 /* REBOTE MORTAL · WebXR immersive-ar con Hit Test y anclaje opcional.
    La matriz AR no depende del HUD. El "jugador" es la posición del TELÉFONO, nunca pies/cuerpo. */
 const $=id=>document.getElementById(id),G=globalThis.ReboteCore;
@@ -17,6 +18,18 @@ scene.add(new THREE.HemisphereLight(0xc4f8ff,0x123447,2.5));
 const sun=new THREE.DirectionalLight(0xdfffff,2.15);sun.position.set(-2,5,1);scene.add(sun);
 const redLight=new THREE.PointLight(0xff785a,2.3,8);redLight.position.set(0,2,-2.5);scene.add(redLight);
 const art=createReboteArt(THREE,scene);
+const nativeXRScene=new THREE.Scene(); // Android ARCore can omit native framebuffer geometry.
+let arCompositor=null,arFrames=0,lastComposited=0,arRenderError='';
+function closeArWorld(){
+ arCompositor?.dispose();arCompositor=null;arFrames=0;lastComposited=0;arRenderError='';
+ $('arWorldOverlay').style.display='none';
+}
+function openArWorld(){
+ closeArWorld();
+ arCompositor=createRodeadosArCompositor(THREE,$('arWorldOverlay'),1.15);
+ $('arWorldOverlay').style.display='block';
+ return true;
+}
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 let game=G.make(),stage='home',demo=false,session=null,space=null,hitSource=null,anchor=null,anchorDelta=null;
 let latestHit=null,pendingAnchorHit=null,lastFrame=null,trackedEye=null,calStart=0,samples=[],calibrated=false,calibrationMotion=null;
@@ -146,13 +159,18 @@ function updatePreview(frame){
  if(!latestHit)return;
  const q=new THREE.Quaternion().setFromAxisAngle(V(0,1,0),previewYaw+yaw);
  const offset=move.clone().applyQuaternion(q);
- art.root.position.copy(previewPosition).add(offset);art.root.quaternion.copy(q);
+ art.root.position.copy(previewPosition).add(offset);
+ // Lift the 3D placement target just above ARCore's estimated floor.
+ art.root.position.y+=.035;
+ art.root.quaternion.copy(q);
  art.setSize(arenaScale);
  if(stage==='search')setStage('edit');
  $('fix').disabled=false;
 }
 function fixArena(){
- if(stage!=='edit'||!latestHit)return;
+ if(stage!=='edit'||!latestHit||!arCompositor||arCompositor.drawCalls===0){
+  toast('ESPERÁ: LA ARENA 3D TODAVÍA NO SE VE',2);return;
+ }
  fixed=true;fixPending=true;pendingAnchorHit=latestHit;latestHit=null;
  setStage('calibrate');calStart=0;samples=[];calibrationMotion=null;
  status('📍 ARENA FIJADA');$('message').textContent='SOSTENÉ EL TELÉFONO QUIETO · CALIBRANDO';
@@ -297,7 +315,33 @@ function animate(t,frame){
  }}
  if(t-hudPrev>80){hudPrev=t;updateHud();aimFeedback(t)}
  if(t>toastEnd)$('notice').textContent='';
- if(stage!=='home')renderer.render(scene,camera);
+ if(session){
+  // Mirrors the working RODEADOS 360 path: native XR renders a transparent,
+  // empty scene; anchored Three.js geometry uses the actual XR eye matrices
+  // in a transparent canvas INSIDE the XR DOM overlay.
+  renderer.render(nativeXRScene,camera);
+  if(arCompositor){
+   const ok=arCompositor.render(scene,renderer.xr.getCamera(camera));
+   if(ok){
+    arFrames++;
+    lastComposited=arCompositor.drawCalls;
+    if(['search','edit'].includes(stage)){
+     $('fix').disabled=!latestHit||lastComposited===0;
+     if(lastComposited>0&&stage==='edit')status('✅ ARENA EN EL PISO · AJUSTÁ Y FIJÁ');
+    }
+   }else{
+    arRenderError=arCompositor.error||'NO SE PUDO DIBUJAR EL ESCENARIO 3D';
+    if(['search','edit'].includes(stage)){
+     $('fix').disabled=true;
+     status('⚠ ERROR AL MOSTRAR LA ARENA');
+     $('notice').textContent=arRenderError;
+    }else if(stage==='playing'){
+     game.paused=true;pausedForTracking=true;setStage('paused');
+     status('⚠ ERROR DE GRÁFICOS AR · RECENTRÁ');
+    }
+   }
+  }
+ }else if(stage!=='home')renderer.render(scene,camera);
 }
 renderer.setAnimationLoop(animate);
 function editSize(delta){if(stage!=='edit')return;arenaScale=clamp(arenaScale+delta,.7,1.45);art.setSize(arenaScale)}
@@ -434,6 +478,7 @@ async function startXR(){
   s.addEventListener('end',()=>{
    if(session!==s)return;
    ++xrStartVersion;
+   closeArWorld();
    session=null;hitSource?.cancel?.();hitSource=null;
    anchor?.delete?.();anchor=null;anchorDelta=null;
    fixed=false;calibrated=false;lastAim=null;latestHit=null;
@@ -450,6 +495,7 @@ async function startXR(){
   const viewer=await s.requestReferenceSpace('viewer');
   hitSource=await s.requestHitTestSource({space:viewer});
   if(ticket!==xrStartVersion){resetXRSession(s);return}
+  openArWorld();
   resetGame();fixed=false;calibrated=false;latestHit=null;
   arenaScale=1;move.set(0,0,0);yaw=0;
   setStage('search');status('BUSCÁ EL PISO CON LA CÁMARA');$('message').textContent='';
@@ -460,6 +506,7 @@ async function startXR(){
   ++xrStartVersion;
   const active=session||created;
   session=null;hitSource?.cancel?.();hitSource=null;
+  closeArWorld();
   resetXRSession(active);
   fixed=false;calibrated=false;lastAim=null;
   setStage('home');arStartError(err);
@@ -471,7 +518,7 @@ $('startAR').addEventListener('click',startXR);
 $('cancelStartAR').addEventListener('click',()=>{
  if(stage!=='connecting')return;
  ++xrStartVersion;
- const s=session;session=null;resetXRSession(s);
+ const s=session;session=null;closeArWorld();resetXRSession(s);
  setStage('home');$('startAR').disabled=false;
  window.ReboteBoot?.show('AR CANCELADA','Podés reintentar desde Chrome Android o elegir el modo de entrenamiento 3D.');
 });
@@ -479,8 +526,11 @@ if(window.isSecureContext&&navigator.xr)navigator.xr.isSessionSupported('immersi
  if(stage==='home'&&$('arProblem').hidden)$('support').textContent=ok?'✅ AR DETECTADA · Buscá un piso despejado para fijar la arena.':'⚠ Este dispositivo no admite WebXR immersive-ar. Podés usar Entrenamiento 3D.';
 }).catch(()=>{});
 try{$('record').textContent='🏆 RÉCORD: '+(Number(localStorage.getItem('mc-rebote-record'))||0).toLocaleString('es-AR')}catch(_){}
-window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+window.addEventListener('resize',()=>{
+ camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);arCompositor?.resize(innerWidth,innerHeight);
+});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
 if(window.__reboteEarlyTap)window.ReboteBoot?.show('MOTOR LISTO','Ahora tocá otra vez JUGAR EN REALIDAD AUMENTADA para abrir la cámara.');
 else window.ReboteBoot?.clear();
-globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale}};
+globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError}};

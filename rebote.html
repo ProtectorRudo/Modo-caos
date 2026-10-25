@@ -38,6 +38,9 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 #arena{display:none;position:absolute;inset:0;overflow:hidden}
 #world{position:absolute;inset:0}
 #world canvas{display:block;width:100%!important;height:100%!important}
+#arWorldOverlay{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;display:none}
+#arWorldOverlay canvas{display:block;width:100%!important;height:100%!important;background:transparent!important;pointer-events:none}
+#overlay #arWorldOverlay{z-index:0}
 #overlay{position:absolute;inset:0;z-index:6;pointer-events:none;user-select:none;-webkit-user-select:none}
 #overlay button{pointer-events:auto}
 #screenFx{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:0}
@@ -108,6 +111,7 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 <p id="safe">Jugá en un lugar despejado. No corras: el teléfono sigue al teléfono, no tus pies.</p>
 </main></section>
 <section id="arena"><div id="world"></div><div id="overlay">
+<div id="arWorldOverlay" aria-hidden="true"></div>
 <div id="arConnecting" aria-live="polite">
 <div class="spin" aria-hidden="true"></div>
 <strong id="arConnectingTitle">ABRIENDO REALIDAD AUMENTADA</strong>
@@ -155,5 +159,5 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
  });
 })();
 </script>
-<script src="/rebote-core.js?v=5"></script><script type="module" src="/rebote-runtime.js?v=5"></script>
+<script src="/rebote-core.js?v=6"></script><script type="module" src="/rebote-runtime.js?v=6"></script>
 </body></html>

@@ -68,3 +68,11 @@ Incidente reportado desde teléfono: al pulsar `JUGAR EN REALIDAD AUMENTADA`, no
 Corrección: `rebote.html` incorpora diagnóstico independiente del módulo 3D, estado de carga prominente, error de permisos/incompatibilidad, ayuda para abrir en Chrome Android y copiar enlace. `rebote-runtime.js` crea la sesión *sin perder el gesto de usuario* antes de actualizar estado, muestra `ABRIENDO CÁMARA AR`, habilita VOLVER en solicitudes pendientes y distingue fallos `NotAllowedError`, `SecurityError`, `NotSupportedError`, `InvalidStateError` y ausencia de WebXR; protege contra respuestas de sesiones canceladas.
 
 Pruebas Chromium ampliadas: navegador sin `navigator.xr`, rechazo de permisos, solicitud pendiente con cancelación, inicio AR sintético, hit test/calibración/retorno, regreso al entrenamiento y rutas. **No hay validación física Android/ARCore**: pedir abrir enlace directamente con Chrome y comprobar permisos y servicios de Google Play para RA.
+
+## Corrección arena invisible AR (25/10/2026)
+
+Reporte Android REAL: Hit Test y menú de fijación aparecían, pero ni pista ni objetos eran visibles, incluso después de fijar. Causa probable: el framebuffer nativo de WebXR no compone la escena Three.js en Chrome Android/ARCore (el éxito de render simulado no garantiza visibilidad física). 
+
+Solución: reutilizar el compositor WebGL transparente de Rodeados 360 dentro de DOM Overlay nativa, con matrices de cámara XR reales. El framebuffer nativo queda transparente y la escena 3D se dibuja en el overlay con coordenadas espaciales del piso, sin fijar nada a pantalla. Pista 3D altamente contrastada: disco oscuro sólido, grid cian, cuatro balizas y columna central alta con rombo amarillo durante edición. La escena se dibuja con colores sin dependencia de iluminación. Bloquear FIJAR hasta comprobar llamadas GPU positivas y mostrar error si compositor falla. Render 3D sigue anclado al hit-test y las balizas se ocultan después de fijar.
+
+Nueva prueba automatizada verifica canvas visible *dentro* del DOM Overlay, render con draw calls, habilitación de fijación, AR y regresión. **Sigue pendiente validación de visibilidad física en Android/ARCore**, que solo puede hacerse con teléfono real, no atribuir éxito basado en simulación.
