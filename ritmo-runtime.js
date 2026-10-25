@@ -16,7 +16,16 @@ function recordKey(){return 'ritmo-caos-'+song()+'-'+diff()}
 function updateBest(){try{best=Number(localStorage.getItem(recordKey())||0)}catch(_){best=0}
  E('bestIntro').textContent='🏆 RÉCORD: '+best.toLocaleString('es-AR')+' PUNTOS'}
 
-// All tracks shown in the picker are immediately playable. Never ask the player to upload music.
+// Sólo se agregan canciones comerciales cuando el operador cargó permiso de master,
+// sincronización de composición, grabación en nuestro servidor y mapa de notas exacto.
+const licensed=window.RitmoLicensed?.available?.()||[];
+if(licensed.length){
+ const group=document.createElement('optgroup');group.label='ÉXITOS AUTORIZADOS · AUDIO INCLUIDO';
+ for(const item of licensed){
+  const option=document.createElement('option');option.value=item.id;option.textContent='🎧 '+item.title;group.appendChild(option);
+ }
+ E('song').appendChild(group);
+}
 E('song').onchange=updateBest;E('difficulty').onchange=updateBest;updateBest();
 E('latency').oninput=()=>{E('latencyValue').textContent=E('latency').value+' ms'};
 
@@ -147,12 +156,21 @@ async function begin(){
  if(!demo&&(!locked||!calibrated)){notify('PRIMERO CALIBRÁ LA PISTA');return}
  const w=demo?.25:boardSize;
  game=G.make(song(),diff(),w);
- G.setPosition(game,demo?demoLane:selected,0);G.start(game);
+ G.setPosition(game,demo?demoLane:selected,0);G.start(game);game.paused=true;
  E('result').style.display='none';E('hud').style.display='block';E('gamePause').style.display='block';E('where').style.display='block';
  E('head').style.display='none';E('rtStart').disabled=true;
  running=true;manualPause=false;lost=false;lastEventCount=0;playedMilestones.clear();
  if(!demo){E('prepare').style.display='none';if(reference){reference.selected=selected;reference.worldWidth=boardSize}filtered=selected;lane=selected;}
- try{await audio.start(song());audio.volume(muted)}catch(e){running=false;notify('EL AUDIO NO PUDO INICIAR');E('rtStart').disabled=false;return}
+ notify('♫ PREPARANDO LA CANCIÓN',1400);
+ try{
+  await audio.start(song());audio.volume(muted);game.paused=false;
+ }catch(e){
+  running=false;game.state='ready';game.paused=false;
+  notify('NO SE PUDO CARGAR LA CANCIÓN',2600);
+  E('rtStart').disabled=false;
+  if(!demo)showPrepare(true);
+  return;
+ }
  notify('🎸 ¡A MOVERSE!',1200);
 }
 E('rtStart').onclick=()=>{if(running&&game.paused&&!lost&&calibrated){manualPause=false;game.paused=false;audio.resume();showPrepare(false)}
