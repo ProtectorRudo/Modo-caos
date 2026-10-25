@@ -105,7 +105,7 @@ root.CuadranteArt=function(T){
    const stride=2;for(let i=0;i<trail.length;i++){let h=history[(i+1)*stride];trail[i].visible=!!h&&s.phase==='playing';if(h)trail[i].position.set(...h)}
    for(const q of shards){if(q.life>0){q.life-=dt;q.mesh.position.addScaledVector(q.v,dt);q.mesh.material.opacity=Math.max(0,q.life/.45);q.mesh.visible=true}else q.mesh.visible=false}
    const active=new Set();
-   for(const o of root.CuadranteCore.geometry(s)){
+   for(const o of window.CuadranteCore.geometry(s)){
     active.add(o.id);let mesh=obstacleMap.get(o.id);
     if(!mesh){
      const g=new T.Group(),body=box(o.w,o.h,o.d,material(0x27333e,.8,.21)),edges=edgeBox(o.w+.011,o.h+.011,o.d+.011,s.duel>2?O:C,g);
