@@ -9,12 +9,35 @@ try{boardSize=.32;tiles.fill(0);colors[0]='#09182e';rgb[0]=[.025,.055,.11];E('si
 let game=G.make(),demo=false,locked=false,calibrated=false,sampling=false,selected=2,reference=null,
 samples=[],sampleStart=0,filtered=2,lane=2,prevX=null,lastTrack=0,lost=false,
 running=false,manualPause=false,calPaused=false,ending=false,rafLast=0,hudLast=0,drawLast=0,demoLane=2,
-gestureStart=null,best=0,muted=false,toastUntil=0,lastEventCount=0,playedMilestones=new Set();
+gestureStart=null,best=0,muted=false,toastUntil=0,lastEventCount=0,playedMilestones=new Set(),localReadyFor=null;
 function song(){return E('song').value}function diff(){return E('difficulty').value}
 function recordKey(){return 'ritmo-caos-'+song()+'-'+diff()}
 function updateBest(){try{best=Number(localStorage.getItem(recordKey())||0)}catch(_){best=0}
  E('bestIntro').textContent='🏆 RÉCORD: '+best.toLocaleString('es-AR')+' PUNTOS'}
-E('song').onchange=E('difficulty').onchange=updateBest;updateBest();
+
+function localSelected(){return !!G.SONGS[song()]?.requiresFile}
+function refreshMusic(){
+ updateBest();
+ E('localPanel').style.display=localSelected()?'block':'none';
+ E('enter').disabled=localSelected()&&localReadyFor!==song();
+ E('demo').disabled=localSelected()&&localReadyFor!==song();
+ E('enter').textContent=localSelected()?'📷 JUGAR CON TU CANCIÓN EN AR':'📷 JUGAR EN REALIDAD AUMENTADA';
+ E('fileStatus').textContent=localReadyFor===song()?'✅ AUDIO LISTO · '+(audio.localStatus()?.filename||'ARCHIVO LOCAL'):'Seleccioná primero el audio de esta canción (no se envía ni guarda en el servidor).';
+}
+E('song').onchange=refreshMusic;E('difficulty').onchange=updateBest;
+E('localFile').addEventListener('change',async()=>{
+ const file=E('localFile').files?.[0];if(!file)return;
+ E('fileStatus').textContent='🎚 Analizando el pulso musical en tu celular…';
+ E('enter').disabled=true;E('demo').disabled=true;
+ try{
+  const result=await audio.loadLocal(file,song());
+  localReadyFor=song();
+  E('fileStatus').textContent='✅ '+file.name+' · '+result.bpm+' BPM · pulso estimado a '+Math.round(result.beatPhase*1000)+' ms. Ajustable si fuera necesario.';
+ }catch(e){localReadyFor=null;E('fileStatus').textContent='⚠️ '+(e.message||'No se pudo leer el audio.')}
+ refreshMusic();
+});
+refreshMusic();
+
 E('latency').oninput=()=>{E('latencyValue').textContent=E('latency').value+' ms'};
 function notify(s,duration=1100){E('toast').textContent=s;E('toast').style.opacity=1;toastUntil=performance.now()+duration}
 function hideToast(t){if(t>toastUntil)E('toast').style.opacity=0}
@@ -126,6 +149,7 @@ function onEvents(){
 }
 async function begin(){
  if(ending)return;
+ if(localSelected()&&localReadyFor!==song()){notify('FALTA ELEGIR EL AUDIO DE ESA CANCIÓN',1800);return}
  if(!demo&&(!locked||!calibrated)){notify('PRIMERO CALIBRÁ LA PISTA');return}
  const w=demo?.30:boardSize;
  game=G.make(song(),diff(),w);
@@ -137,7 +161,7 @@ async function begin(){
  try{await audio.start(song());audio.volume(muted)}catch(e){running=false;notify('EL AUDIO NO PUDO INICIAR');E('rtStart').disabled=false;return}
  notify('🎸 ¡A MOVERSE!',1200);
 }
-E('rtStart').onclick=()=>{if(running&&game.paused){manualPause=false;game.paused=false;audio.resume();showPrepare(false)}
+E('rtStart').onclick=()=>{if(running&&game.paused&&!lost){manualPause=false;game.paused=false;audio.resume();showPrepare(false)}
  else begin()};
 function conclude(){
  if(ending)return;ending=true;running=false;audio.stop();
@@ -173,7 +197,7 @@ function demoStart(){
  E('head').style.display='none';E('prepare').style.display='none';E('lock').style.display='none';
  E('exit').style.display='block';ending=false;begin();
 }
-E('demo').onclick=demoStart;
+E('demo').onclick=()=>{if(localSelected()&&localReadyFor!==song()){E('fileStatus').textContent='Seleccioná primero tu archivo de audio.';return}demoStart()};
 const moveDemo=d=>{if(!demo||!running||game.paused)return;demoLane=clamp(demoLane+d,0,4);G.setPosition(game,demoLane,game.elapsed)};
 E('left').onclick=()=>moveDemo(-1);E('right').onclick=()=>moveDemo(1);
 window.addEventListener('keydown',e=>{if(!demo)return;if(e.key==='ArrowLeft'||e.key==='a'){e.preventDefault();moveDemo(-1)}
