@@ -104,15 +104,27 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 
 /* The blueprint is a genuine, independent 2D reference image.
    It is never positioned in AR world coordinates or on the player's platform. */
-#copyReference{position:absolute;top:calc(max(15px,env(safe-area-inset-top)) + 128px);right:12px;z-index:14;pointer-events:none;width:min(47vw,190px);background:linear-gradient(155deg,#12344df2,#091b30f5);border:2px solid #ffd78f;border-radius:19px;box-shadow:0 8px 28px #000a,0 0 19px #ffbf6240;overflow:hidden;padding:10px 8px 9px;display:flex;flex-direction:column;gap:4px}
+/* Compact by default: reference remains readable without covering the AR scene.
+   Expand only on demand; minimizing does not reset the puzzle. */
+#copyReference{position:absolute;top:calc(max(15px,env(safe-area-inset-top)) + 128px);right:9px;z-index:14;pointer-events:auto;touch-action:manipulation;width:min(30vw,124px);background:linear-gradient(155deg,#12344df2,#091b30f5);border:1.5px solid #ffd78f;border-radius:13px;box-shadow:0 4px 13px #0008;overflow:hidden;padding:5px 6px;display:flex;flex-direction:column;gap:2px;transition:width .16s ease;user-select:none}
 #copyReference[hidden]{display:none!important}
-#copyReference .copyRefHeader{font-size:10px;letter-spacing:1.5px;font-weight:1000;text-align:center;color:#ffe6ac}
-#copyReference .copyRefTitle{text-align:center;font-size:17px;letter-spacing:.8px;font-weight:1000;color:#fff}
-#copyCanvas{display:block;width:100%;height:auto;aspect-ratio:320/274;border-radius:10px;background:#10253a}
-#copyReference .copyRefFooter{display:flex;align-items:center;justify-content:space-between;gap:5px;border-top:1px solid #ffffff28;padding-top:6px;color:#c7e3ea;font-size:9px;font-weight:950}
+#copyReference .copyRefTop{display:flex;align-items:center;justify-content:space-between;gap:2px;min-height:24px}
+#copyReference .copyRefHeader{font-size:9px;letter-spacing:.4px;font-weight:1000;text-align:left;color:#ffe6ac;line-height:1.2}
+#copyExpand{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;min-height:30px;margin:0;padding:0;border:1px solid #77c1c8;border-radius:9px;color:#e7fff8;background:#17485e;font-size:18px;font-weight:900;line-height:1;touch-action:manipulation}
+#copyExpand:focus-visible{outline:2px solid #8affee;outline-offset:2px}
+#copyReference .copyRefTitle{text-align:center;font-size:12px;letter-spacing:.6px;font-weight:1000;color:#fff;line-height:1.1}
+#copyCanvas{display:block;width:100%;height:auto;aspect-ratio:320/274;border-radius:6px;background:#10253a;pointer-events:none}
+#copyReference .copyRefFooter{display:flex;align-items:center;justify-content:center;gap:4px;border-top:1px solid #ffffff25;padding-top:2px;color:#c7e3ea;font-size:9px;font-weight:950}
 #copyProgress{color:#87ffe2;font-size:12px;font-variant-numeric:tabular-nums}
-#copyInstruction{font-size:9px;font-weight:800;text-align:center;line-height:1.4;color:#bee5ef}
-#copyReference[data-perfect="true"]{border-color:#65ffbd;box-shadow:0 0 25px #4bffbc88}
+#copyReference .copyRefFooter span,#copyInstruction{display:none}
+#copyReference[data-expanded="true"]{width:min(67vw,268px);border-width:2px;border-radius:17px;padding:9px 10px 10px;gap:6px;box-shadow:0 8px 28px #000a,0 0 16px #ffbf6233}
+#copyReference[data-expanded="true"] .copyRefHeader{font-size:11px;letter-spacing:1px}
+#copyReference[data-expanded="true"] .copyRefTitle{font-size:17px}
+#copyReference[data-expanded="true"] .copyRefFooter{justify-content:space-between;padding-top:5px}
+#copyReference[data-expanded="true"] .copyRefFooter span{display:inline}
+#copyReference[data-expanded="true"] #copyInstruction{display:block;font-size:10px;font-weight:800;text-align:center;line-height:1.4;color:#bee5ef}
+#copyReference[data-perfect="true"]{border-color:#65ffbd;box-shadow:0 0 18px #4bffbc55}
+@media(max-height:710px){#copyReference{top:calc(max(15px,env(safe-area-inset-top)) + 113px);width:min(28vw,110px);padding:4px 5px}#copyReference[data-expanded="true"]{width:min(65vw,246px)}}
 #overlay[data-mode="copy"] #mini,#overlay[data-mode="copy"] #miniBtn{display:none!important}
 #overlay[data-mode="copy"] #tip{font-size:10px;bottom:157px}
 @media(max-height:710px){#copyReference{top:calc(max(15px,env(safe-area-inset-top)) + 111px);width:min(42vw,167px);padding:7px}#copyReference .copyRefTitle{font-size:14px}#copyReference .copyRefHeader{font-size:9px}}
@@ -135,8 +147,8 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 <div id="setup" hidden>UBICÁ LA PLATAFORMA SOBRE EL PISO REAL</div>
 <div id="hud" hidden><div class="stat"><small id="hudHeightLabel">ALTURA</small><b id="height">0</b><small>CM</small></div><div class="stat"><small>RÉCORD</small><b id="recordHud">0</b><small>CM</small></div><div class="stat"><small>PIEZAS</small><b id="pieces">0</b></div><button id="recenter" aria-label="Reubicar plataforma" title="Reubicar plataforma">◎</button><button id="pause" aria-label="Pausa" title="Pausar">Ⅱ</button></div>
 <div id="blockName" hidden>CUBO</div>
-<div id="copyReference" aria-label="Imagen de referencia del rompecabezas, separada de tu plataforma" hidden>
- <div class="copyRefHeader">🧩 FIGURA OBJETIVO</div>
+<div id="copyReference" aria-label="Imagen de referencia del rompecabezas, separada de tu plataforma" data-expanded="false" hidden>
+ <div class="copyRefTop"><span class="copyRefHeader">🧩 OBJETIVO</span><button id="copyExpand" type="button" aria-label="Ampliar imagen de referencia" aria-expanded="false" title="Ampliar figura">⤢</button></div>
  <div class="copyRefTitle" id="copyTitle">PUENTE</div>
  <canvas id="copyCanvas" width="320" height="274" role="img" aria-label="Imagen de la estructura que tenés que copiar"></canvas>
  <div class="copyRefFooter"><span>CONSTRUILA APARTE</span><strong id="copyProgress">0/3</strong></div>
