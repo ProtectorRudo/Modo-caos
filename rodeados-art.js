@@ -266,6 +266,9 @@ export function createRodeadosArt(THREE,scene,camera){
   marker.material.color.set(editing?0xeaffcb:0x63ffc2);
  }
  function setFloorDamage(game,editing=false){
+  battlefieldEditing=editing;
+  battlefieldCorners.visible=!editing;
+  ashCloud.visible=!editing;
   for(let i=0;i<25;i++){
    const damage=game?.floorDamage?.[i]||0;
    const time=game?.floorHeat?.[i]??-100;
