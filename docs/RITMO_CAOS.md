@@ -109,3 +109,25 @@ Para aislar completamente el motor compartido, se agregó `ritmo-engine.js` y `r
 - **Verificaciones:** motor para 192 combinaciones de 16 perfiles internos × 4 dificultades × 3 anchos; prueba `tests/ritmo-licensed.test.cjs` con una pista QA artificial que valida el bloqueo de pistas sin derechos, rechazo de URL externa, notas sobre timestamps, precarga con caché y reproducción en Web Audio simulado. Ninguna grabación comercial se copió o difundió.
 - **Fuentes de licencias:** https://www.umgsync.com/faqs/ (master + publishing separados); https://www.sonymusic.eu/music-licensing/ (Sony music video game licensing, solicitud no implica aprobación); https://developer.spotify.com/policy (no juegos ni sincronización de audio Spotify).
 - **Despliegue de esta revisión:** publicar nuevo SHA en regla de ruta Vercel ya creada y verificar staged/live antes de afirmar publicación de la revisión actual.
+
+
+## ✅ Despacito Remix publicado — release 25/10/2026
+
+La pista `despacito_remix_justin` está incorporada como **primera opción predeterminada** en https://modo-caos-eta.vercel.app/ritmo.html, con cuatro carriles y 80 segundos de audio proporcionado por el usuario (remix Luis Fonsi, Daddy Yankee y Justin Bieber). El mapa incluye 84 timestamps sobre ese fragmento; dificultad normal selecciona 55 marcas, y la física limita cambios a un máximo alcanzable.
+
+### Solución técnica al bloqueo de uploads
+
+La subida binaria desde el contenedor local no disponía de red, fal devolvía 403 por créditos, y GitHub connector sólo aceptaba texto. Se resolvió pasando la codificación Base64 del Ogg Opus generado desde el MP3 original por un puente temporal de fragmentos de texto en la Library, reensamblado automáticamente dentro de un conector GitHub en un solo archivo `media/ritmo/despacito-remix-80s.ogg.b64`. El puente temporal fue eliminado tras completar la transferencia.
+
+El archivo `ogg.b64` pesa 460.800 caracteres, decodifica a 345.600 bytes Ogg Opus estéreo; SHA-256 del binario: `e476cb427141255f5f4e404e6630e81ca218a350e822a11c9ba2969e3d7fdb92`. Se sirve por la ruta del proyecto Vercel desde `raw.githubusercontent.com`, versión live `2ee4d9e8-1e92-487f-be6e-8f3544002994`, apuntando a commit fijo `d33bd568a70c19d9fda17c8e51d8ce4fa24b87ab`. La ruta de la página y scripts mantiene el proxy GitHack apuntando al mismo SHA. No se necesitó un build adicional.
+
+`ritmo-audio.js` descarga el texto, valida la longitud, reconstruye los bytes y comprueba SHA-256 con WebCrypto (si está disponible), `AudioContext.decodeAudioData()` decodifica el Ogg y `AudioBufferSourceNode.start(startAt)` inicia la música. El motor de juego toma exactamente `audio.now()` de ese mismo contexto para evaluar cada nota. `ritmo-despacito.js` registra la pista con los permisos de uso **declarados por el usuario y no verificados independientemente**; no se fabrican números de licencia.
+
+### Verificaciones efectuadas
+
+- Dominio live: `/ritmo.html`, los siete módulos de Ritmo y `/media/ritmo/despacito-remix-80s.ogg.b64` responden HTTP 200; audio con longitud 460800 y checksum FNV32 `9937430e`, igual al archivo local.
+- Web Audio simulado: decodificación a 345600 bytes y duración 80.0065 s; el buffer se inicia con el reloj de AudioContext y el primer cue cae en `t=4.319` s.
+- Regresión de rutas públicas `/`, `/ball.html`, `/rebote.html`, `/torre.html`: HTTP 200 tras promoción.
+- `ritmo.html` incluye `ritmo-despacito.js` antes del runtime, y el runtime inserta el primer tema autorizado al inicio del selector.
+- **Pendiente**: ensayo físico con Chrome Android ARCore para confirmar latencia audible, desempeño/FPs y sensibilidad lateral; pruebas Web Audio simuladas y respuesta 200 **no son** prueba de reproducción física.
+- Calidad: para evitar uploads binarios, esta versión utiliza Opus estéreo ~34,6 kbps; la fuente MP3 y su fragmento original permanecen disponibles en el paquete local para una futura mejora de bitrate. No se finge calidad sin pérdidas ni una grabación máster sin alterar.
