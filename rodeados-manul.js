@@ -207,8 +207,8 @@ export async function installManulPreview({THREE,art,notice}){
  let release=null,adapter=null,loadVersion=0,savedName=null;
  async function parseLocal(file){
   if(!file||file.size>MAX_ARCHIVE||file.size<=0)throw Error('ZIP/GLB vacío o mayor de 55 MB');
-  if(/\\.zip$/i.test(file.name))return loadZip(file,THREE);
-  if(!/\\.glb$/i.test(file.name))throw Error('Solo ZIP glTF oficial o GLB');
+  if(/\.zip$/i.test(file.name))return loadZip(file,THREE);
+  if(!/\.glb$/i.test(file.name))throw Error('Solo ZIP glTF oficial o GLB');
   const bytes=await file.arrayBuffer();
   const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(bytes,'',resolve,reject));
   return {gltf,dispose:()=>{}};
@@ -284,7 +284,7 @@ export async function installManulPreview({THREE,art,notice}){
  // do not silently fetch model content from Sketchfab or use external storage.
  try{
   const cached=await assetMemory('get');
-  if(cached?.blob&&cached?.name&&/\\.(zip|glb)$/i.test(cached.name)){
+  if(loadVersion===0&&cached?.blob&&cached?.name&&/\.(zip|glb)$/i.test(cached.name)){
    remember.checked=true;savedName=cached.name;
    const file=new File([cached.blob],cached.name,{type:cached.type||''});
    await load(file,true);
