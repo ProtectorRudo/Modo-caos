@@ -68,3 +68,19 @@ Se solicitaron nuevamente despliegues **preview** en el proyecto Vercel de Modo 
 - Spotify Web Playback SDK prohíbe sincronizar el audio con obras visuales y requiere aprobación escrita para integraciones comerciales: https://developer.spotify.com/documentation/web-playback-sdk/
 - YouTube exige reproductores embebidos visibles de 200x200 como mínimo, no ocultos ni sólo audio; tampoco permite superponer elementos sobre el reproductor: https://developers.google.com/youtube/terms/required-minimum-functionality
 - Por lo tanto, **ningún SDK de Spotify ni un reproductor oculto de YouTube** se usó para el juego. Los éxitos modernos permanecen en modo selección de archivo personal, hasta disponer de licencias específicas de sincronización y de grabación.
+
+
+## Actualización 25/10 — calibración y pista compacta de cuatro carriles
+
+**Estado de esta revisión: cambios versionados en rama feat/ritmo-caos-20261025, NO fusionados a main.** Las pruebas de lógica y simulaciones de poses se hicieron sin teléfono ARCore real; publicación del HEAD requiere preview verificada.
+
+1. **Cuatro carriles (no cinco)**: verde, rosa/rojo, amarillo y azul. Se modificaron el core, los indicadores, la vista AR, la demo 2D, los carriles permitidos por la IA de canciones y los movimientos. La validación impide generar un quinto carril.
+2. **Pista compacta**: ancho inicial 1,00 m (cuatro carriles de 0,25 m); ajuste permitido entre 0,80 y 1,28 m; el motor sigue ofreciendo gestos de desplazamiento y rotación.
+3. **Sin doble pista**: nuevo indicador opcional `window.modoCaosCustomArena=true` hace que `engine.js` no dibuje debajo su antigua cuadrícula 5x5 ni su malla WebGL para este minijuego. El comportamiento de los demás juegos permanece intacto cuando el indicador no existe.
+4. **Calibración obligatoria**: después de FIJAR se pide elegir explícitamente el carril bajo el teléfono; la partida no habilita comienzo hasta medir ≈1 s de pose estable. Eligiendo de nuevo cualquier carril se recalibra sin reiniciar la matriz/anclaje de piso.
+5. **Tracking**: posición lateral proyectada sobre el eje de la pista, histéresis, protección contra saltos y pausa si no se dispone de pose espacial. Sólo sigue al teléfono, no a pies/cuerpo.
+6. **Música de acceso inmediato**: en el menú hay **nueve piezas sin carga de archivos**: tres composiciones originales de Ritmo Caos y seis melodías de composiciones tradicionales o de dominio público en arreglos sintetizados propios: Oda a la Alegría, Para Elisa, Jingle Bells, Estrellita ¿dónde estás?, Frère Jacques y Cumpleaños Feliz. Se programan con el mismo reloj de audio que el mapa de notas.
+7. **Grabaciones de éxitos comerciales**: NO están descargadas ni publicadas. Los cinco perfiles internos de Despacito, Blinding Lights, Levitating, Tití Me Preguntó y Provenza **no aparecen en el menú** porque no contamos con derechos de sincronización y distribución de las grabaciones. La anterior opción de subir un archivo fue retirada del menú público. No se ha usado Spotify/YouTube como fuente de audio del juego.
+8. **Pruebas**: 168 variaciones deterministas (14 perfiles internos × cuatro dificultades × tres anchos), sólo cuatro índices posibles; simulación de posición y de calibración (elegir carril 2, terminar 1 s, recorrer +50 cm al carril 4 y recentrar), regresión de UI FIJAR y de ausencia del cargador de música. No equivalen a prueba física con Android.
+
+**Publicación:** el pedido manual a Vercel para el HEAD recibió HTTP 402 `api-deployments-free-per-day`; verificar si GitHub Auto Deploy alcanzó el HEAD antes de ofrecer URL como corregida. No trasladar cambios al proyecto original Color Rush ni a la base Supabase.
