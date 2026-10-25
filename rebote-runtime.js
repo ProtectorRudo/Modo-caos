@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createReboteArt} from './rebote-art.js?v=1';
+import {createReboteArt} from './rebote-art.js?v=4';
 /* REBOTE MORTAL · WebXR immersive-ar con Hit Test y anclaje opcional.
    La matriz AR no depende del HUD. El "jugador" es la posición del TELÉFONO, nunca pies/cuerpo. */
 const $=id=>document.getElementById(id),G=globalThis.ReboteCore;
