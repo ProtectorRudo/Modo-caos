@@ -1,20 +1,89 @@
 import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.3/rapier.es.js';
 import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
-const G=window.TorreCore,$=id=>document.getElementById(id);
+const G=window.TorreCore,M=window.TorreModes,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
 const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
-let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayStartAt=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,stableBodies=[],collapseSeconds=0,collapseReason=null,startingRecord=0;
+let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayStartAt=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,modeId='infinite',clockRemaining=0,baseHalf=1.25,baseBody=null,baseCollider=null,tiltBody=null,tiltFailSeconds=0,removals=0,demolitionStart=[],demolitionRemoved=[],demolitionMarks=0,demolitionPoints=0,modeOutcome='',stableBodies=[],collapseSeconds=0,collapseReason=null,startingRecord=0;
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
+function selectGameMode(id){
+ if(!M.MODES[id])return;
+ modeId=id;
+ const modeConfig=M.get(modeId);
+ document.body.dataset.torremode=modeId;
+ $('modeDescription').textContent=modeConfig.description;
+ $('modeDeck').querySelectorAll('button').forEach(btn=>{
+  const selected=btn.dataset.mode===modeId;
+  btn.classList.toggle('chosen',selected);btn.setAttribute('aria-pressed',String(selected));
+ });
+ $('introRecord').textContent=modeId==='infinite'?'RÉCORD: '+record+' CM':'DESAFÍO: '+modeConfig.short.toUpperCase();
+}
+(function modeMenu(){
+ const deck=$('modeDeck');
+ for(const id of M.MODE_ORDER){
+  const cfg=M.get(id),btn=document.createElement('button');
+  btn.type='button';btn.className='modeChoice';btn.dataset.mode=id;
+  btn.innerHTML='<span>'+cfg.icon+' '+cfg.name+'</span><small>'+cfg.short+'</small>';
+  btn.addEventListener('click',()=>selectGameMode(id));
+  deck.appendChild(btn);
+ }
+ const requested=new URLSearchParams(location.search).get('modo');
+ selectGameMode(requested&&M.MODES[requested]?requested:'infinite');
+})();
+function modeHUD(){
+ const cfg=M.get(modeId);let message=cfg.icon+' '+cfg.name.toUpperCase();
+ if(cfg.seconds)message+=' · '+Math.ceil(Math.max(0,clockRemaining))+'s';
+ if(modeId==='balance')message+=' · BASE '+Math.round(baseHalf*200)+' CM';
+ if(modeId==='heavy')message+=' · INCLINACIÓN '+Math.round(Math.abs(tiltBody?2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w):0)*180/Math.PI)+'°';
+ if(modeId==='copy')message+=' · '+M.matchTarget(readSnapshot(),G.SHAPES).matched+'/3';
+ if(modeId==='five')message+=' · '+Math.max(0,5-states.length)+' RESTANTES';
+ if(modeId==='demolition')message+=' · '+(3-removals)+' EXTRACCIONES · '+demolitionPoints+' PTS';
+ $('modeStatus').textContent=message;
+ $('modeStatus').classList.toggle('warning',(cfg.seconds&&clockRemaining<12)||(modeId==='heavy'&&Math.abs(tiltBody?2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w):0)>.27));
+}
+function readSnapshot(){
+ return states.map(s=>{const p=s.body.translation(),q=s.body.rotation();return {id:s.id,shape:s.shape.id,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}})
+}
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
-function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
+function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
 function updateHUD(){ui.hudHeight.textContent=G.score(phase==='settling'?lastTop:top).toString();ui.hudPieces.textContent=states.length.toString();ui.hudRecord.textContent=Math.max(record,G.score(top)).toString()}
+function createPlatform(width=1.25){
+ if(baseCollider)world.removeCollider(baseCollider,true);
+ baseHalf=width;
+ baseCollider=world.createCollider(RAPIER.ColliderDesc.cuboid(width,.079,.36).setFriction(.98).setRestitution(.035),baseBody);
+ art.setBoardHalf(width);
+}
 function startPhysics(){
- if(world){world.free();world=null}if(queue){queue.free();queue=null}
- world=new RAPIER.World({x:0,y:-9.81,z:0});world.timestep=1/60;world.integrationParameters.maxVelocityIterations=8;world.integrationParameters.maxPositionIterations=3;queue=new RAPIER.EventQueue(true);
- const floor=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.039,0));
- world.createCollider(RAPIER.ColliderDesc.cuboid(1.25,.079,.36).setFriction(.98).setRestitution(.035),floor);
- states=[];nextId=1;packRound=0;stock=[];selectedIndex=-1;trayTouch=null;twist=null;playPointers.clear();stableBodies=[];collapseSeconds=0;collapseReason=null;random=G.rng((Date.now()>>>0)^0x524f334);settleTime=0;stillTime=0;lastTop=0;top=0;hi=0;steps=0;acc=0;frames=[];replaying=false;art.reset();updateHUD();
+ if(world){world.free();world=null}
+ if(queue){queue.free();queue=null}
+ world=new RAPIER.World({x:0,y:-9.81,z:0});
+ world.timestep=1/60;
+ world.integrationParameters.maxVelocityIterations=8;
+ world.integrationParameters.maxPositionIterations=3;
+ queue=new RAPIER.EventQueue(true);
+ states=[];nextId=1;packRound=0;stock=[];selectedIndex=-1;trayTouch=null;twist=null;
+ playPointers.clear();stableBodies=[];collapseSeconds=0;collapseReason=null;
+ random=G.rng((Date.now()>>>0)^0x524f334);
+ settleTime=0;stillTime=0;lastTop=0;top=0;hi=0;steps=0;acc=0;frames=[];replaying=false;
+ clockRemaining=M.get(modeId).seconds;tiltFailSeconds=0;removals=0;demolitionStart=[];demolitionRemoved=[];demolitionMarks=0;demolitionPoints=0;modeOutcome='';
+ baseCollider=null;tiltBody=null;
+ art.reset();
+ if(modeId==='heavy'){
+  // Rigid beam constrained to rotate around Z, with gravity, impacts and a
+  // weak real spring torque in physicsStep. This is not a scripted tilt effect.
+  tiltBody=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,.039,0).setAngularDamping(2.4));
+  tiltBody.setEnabledTranslations(false,false,false,true);
+  tiltBody.setEnabledRotations(false,false,true,true);
+  world.createCollider(RAPIER.ColliderDesc.cuboid(1.18,.079,.36).setDensity(165).setFriction(.91).setRestitution(.01),tiltBody);
+  baseHalf=1.18;art.setBoardHalf(baseHalf);
+ }else{
+  baseBody=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.039,0));
+  createPlatform(M.boardHalfWidth(modeId,0));
+ }
+ if(modeId==='copy')art.setTarget(M.TARGET,G.SHAPES);
+ $('pieceDock').dataset.demolition=String(modeId==='demolition');
+ $('mini').dataset.copy=String(modeId==='copy');
+ updateHUD();modeHUD();
 }
 function updateLanding(){
  if(!active||!world)return;
@@ -55,7 +124,11 @@ function renderPack(){
  });
 }
 function nextPack(){
- stock=G.makePack(packRound++,random).map(shape=>({shape,used:false}));
+ if(modeId==='copy'){
+  stock=[G.SHAPES[0],G.SHAPES[0],G.SHAPES[1]].map(shape=>({shape,used:false}));
+ }else{
+  stock=G.makePack(packRound++,random).map(shape=>({shape,used:false}));
+ }
  selectedIndex=-1;
  if(packRound>1)showText('¡NUEVAS PIEZAS PARA ELEGIR!',1050);
 }
@@ -70,8 +143,11 @@ function choosePiece(i){
  soundFX(560,.045,.05);vibe(5);
 }
 function makeActive(){
- if(states.length>=65){finish('¡TORRE LEGENDARIA!');return}
- if(!stock.length||stock.every(s=>s.used))nextPack();
+ if(states.length>=M.get(modeId).limit){challengeCompleted('limit');return}
+ if(!stock.length||stock.every(s=>s.used)){
+  if(modeId==='copy'){challengeCompleted('limit');return}
+  nextPack();
+ }
  selectedIndex=-1;active=null;
  phaseTo('playing');
  choosePiece(stock.findIndex(s=>!s.used));
