@@ -79,6 +79,12 @@ const server=http.createServer((req,res)=>{
  await page.evaluate(()=>{navigator.xr.requestSession=window.__XRRequest});
  await page.locator('#startAR').click();
  await page.waitForFunction(()=>__ReboteDebug.stage==='edit',null,{timeout:7500});
+ assert.equal(await page.evaluate(()=>__ReboteDebug.floorStable),true,'fix should only unlock after stable ground samples');
+ assert((await page.evaluate(()=>__ReboteDebug.floorSamples))>=8,'floor plane is validated over multiple XR hits');
+ const initial=await page.evaluate(()=>({z:__ReboteDebug.root[2],phoneZ:__simPhone.z,yaw:__ReboteDebug.previewYaw}));
+ assert(initial.z<initial.phoneZ-.48&&initial.z>initial.phoneZ-1.3,'arena placement intentionally starts ahead of the player's camera');
+ assert(Math.abs(initial.yaw)<.2,'phone yaw defines arena orientation');
+
  assert(await page.locator('#editbar').isVisible(),'AR edit controls visible');
  await page.waitForFunction(()=>__ReboteDebug.arFrames>3&&__ReboteDebug.arDrawCalls>0,null,{timeout:9000});
  assert.equal(await page.locator('#arWorldOverlay canvas').count(),1,'independent WebGL canvas INSIDE the XR DOM overlay');
@@ -96,6 +102,10 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__ReboteDebug.stage==='calibrate',null,{timeout:3000});
  await page.waitForFunction(()=>__ReboteDebug.calibrated,null,{timeout:7500});
  assert.equal(await page.evaluate(()=>__ReboteDebug.stage),'ready','calibration completes');
+ assert((await page.evaluate(()=>__ReboteDebug.calibrationRms))<.045,'calibration accepts a steady phone, not tracking jitter');
+ const hero=await page.evaluate(()=>__ReboteDebug.game);
+ assert(hero.phase===0,'premium AR calibration preserves the initial phase');
+
  const before=await page.evaluate(()=>__ReboteDebug.root);
  await page.evaluate(()=>window.__simPhone.x=.17);
  await page.waitForTimeout(330);
@@ -104,9 +114,13 @@ const server=http.createServer((req,res)=>{
  await page.locator('#begin').click();
  await page.waitForFunction(()=>__ReboteDebug.stage==='playing',null,{timeout:2000});
  await page.waitForFunction(()=>__ReboteDebug.renderedRobots>0,null,{timeout:5000});
+ assert(await page.evaluate(()=>__ReboteDebug.arDrawCalls)>8,'rounded mech and arena contribute visible WebGL geometry');
+
  assert(await page.locator('#returnBtn').isVisible(),'return button active in real XR overlay');
  assert(await page.evaluate(()=>__simDrawCalls)>0,'3D is rendered in AR XR frames');
  assert(await page.evaluate(()=>__ReboteDebug.arDrawCalls)>0,'visible XR DOM overlay draws world geometry independently');
+ assert(await page.locator('#hud .stat').count()>=4,'compact HUD retains score, health, combo and clock');
+
  assert(await page.evaluate(()=>__ReboteDebug.tracking),'active XRFrame samples reliable phone ray');
  const beforeTap=await page.evaluate(()=>__ReboteDebug.returnAttempts);
  await page.locator('#returnBtn').tap();
