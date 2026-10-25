@@ -35,7 +35,7 @@ function create(opts={}){
   ball:{x:0,y:1.2,z:0,vx:0,vy:0,vz:0},score:[0,0],rally:0,combo:0,bestCombo:0,
   totalHits:0,bestRally:0,arcade:0,scoreServe:0,serveTimer:0,level:0,winner:null,
   modePlay:opts.modePlay==='survival'?'survival':'circuit',tick:0,events:[],warning:0,
-  wins:0,matches:0,startedAt:0,autoplay:false};
+  wins:0,matches:0,startedAt:0,autoplay:false,survivalLives:3};
  s.mode=0;return s;
 }
 function event(s,type,info){s.events.push({type,info,tick:s.tick});if(s.events.length>50)s.events.shift()}
@@ -130,6 +130,15 @@ function advance(s,dt){
 function point(s,playerWon){
  s.score[playerWon?0:1]++;s.scoreServe=playerWon?1:0;s.arcade+=playerWon?350:0;
  event(s,playerWon?'goal':'conceded',{score:[...s.score]});
+ if(s.modePlay==='survival'){
+  if(!playerWon)s.survivalLives--;
+  if(playerWon&&s.score[0]>0&&s.score[0]%4===0){
+   s.duel=Math.min(5,s.duel+1);s.level=s.duel;s.mode=profiles[s.duel].mode;
+   event(s,'nextRival',profiles[s.duel].name);
+  }
+  if(s.survivalLives<=0){s.winner='enemy';s.phase='finished';s.matches++;event(s,'matchEnd',{winner:'enemy',survival:true});return}
+  newServe(s);return
+ }
  if(s.score[0]>=5||s.score[1]>=5){
   s.winner=s.score[0]>=5?'player':'enemy';s.phase='finished';s.matches++;
   if(s.winner==='player'){s.wins++;if(s.modePlay==='circuit'&&s.duel<profiles.length-1){event(s,'duelWon',{next:s.duel+1});return}}
