@@ -78,7 +78,7 @@ jobs:
           grep -q 'art.setFloorDamage(game,' /tmp/rodeados-published-runtime.js
           grep -q 'HEADSHOT LETAL' /tmp/rodeados-published-runtime.js
           grep -q "drawShot(packet,preHit" /tmp/rodeados-published-runtime.js
-          grep -q "rodeados-art.js?v=11" /tmp/rodeados-published-runtime.js
+          grep -q "rodeados-art.js?v=13" /tmp/rodeados-published-runtime.js
           grep -q 'lastMenaceAt' /tmp/rodeados-published-runtime.js
           grep -q "MUNICIÓN ILIMITADA" /tmp/rodeados-published-runtime.js
           echo 'V10: DISPAROS INFINITOS SIN RECARGA Y TENSIÓN ROBÓTICA PUBLICADOS'
