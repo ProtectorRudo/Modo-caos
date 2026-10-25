@@ -52,3 +52,11 @@ Nuevo minijuego aislado en \`rebote.html\`, \`rebote-core.js\`, \`rebote-art.js\
 - Si el tracking WebXR se interrumpe, la partida se pausa y **no permite CONTINUAR** hasta que el teléfono recupere una muestra de posición/dirección válida. La sesión también se pausa al ocultarse desde `XRSession.visibilitychange`.
 - La prueba XR sintética exige alpha 0 y verifica que el botón de reanudar queda deshabilitado hasta recobrar tracking.
 - Este test sigue usando un XRFrame simulado. La validación física en Chrome Android + ARCore sigue siendo requisito de aceptación aparte y NO puede sustituirse por simulación.
+
+## Guiado de apuntado y pulido v4
+
+- Indicadores discretos de amenazas en los cuatro bordes, calculados con la orientación 3D real del teléfono, no con los ejes fijos del escenario. Si la esfera está detrás, se muestra aviso para girar despacio.
+- Anillo de timing unido a la retícula: amarillo mientras se aproxima la esfera y verde dentro de la ventana válida de devolución. La esfera 3D gana un halo dorado cerca del momento ideal.
+- Selección de amenaza por tiempo de aproximación, ignorando señuelos que nunca hacen daño.
+- Reutilización de geometrías 3D de proyectiles y liberación de materiales al desaparecer robots y esferas; disminuye presión sobre GPU y memoria en partidas repetidas.
+- Pruebas Chromium en demo y WebXR simulado para verificar retícula, medidor y orientación lateral. No reemplazan prueba en móvil real.
