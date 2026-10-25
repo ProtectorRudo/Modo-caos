@@ -78,3 +78,15 @@ test('escudo temporal consume proyectiles extra sin acumular daño diferido',()=
  step(g,1.1);
  assert.equal(g.lives,2,'no latent hit after invulnerability');
 });
+
+test('escudo del jefe se anuncia en core durante las ventanas de bloqueo',()=>{
+ const g=G.make({seed:42});G.begin(g);
+ g.elapsed=61.99;g.projectiles=[];g.nextShot=999;g.protection=100;
+ step(g,.07);
+ const boss=g.enemies.find(e=>e.boss);
+ assert(boss,'boss spawns after final phase starts');
+ for(let i=0;i<16;i++){
+  step(g,.25);
+  assert.equal(boss.shield,Math.sin(g.elapsed*1.75)>.80,'visual shield matches actual parry window');
+ }
+});
