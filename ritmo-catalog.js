@@ -18,10 +18,29 @@ const elise=[
 // Villancico tradicional Jingle Bells, obra de J. Pierpont (1857), partitura de dominio público.
 const jingle=[[64,1],[64,1],[64,2],[64,1],[64,1],[64,2],[64,1],[67,1],[60,1],[62,1],[64,4],
 [65,1],[65,1],[65,2],[65,1],[64,1],[64,2],[64,1],[62,1],[62,1],[64,1],[62,2],[67,2]];
+// Canciones tradicionales de dominio público (melodías originales, nunca grabaciones comerciales).
+const twinkle=[[60,1],[60,1],[67,1],[67,1],[69,1],[69,1],[67,2],
+[65,1],[65,1],[64,1],[64,1],[62,1],[62,1],[60,2],
+[67,1],[67,1],[65,1],[65,1],[64,1],[64,1],[62,2],
+[67,1],[67,1],[65,1],[65,1],[64,1],[64,1],[62,2],
+[60,1],[60,1],[67,1],[67,1],[69,1],[69,1],[67,2],
+[65,1],[65,1],[64,1],[64,1],[62,1],[62,1],[60,2]];
+const frere=[[60,1],[62,1],[64,1],[60,1],[60,1],[62,1],[64,1],[60,1],
+[64,1],[65,1],[67,2],[64,1],[65,1],[67,2],
+[67,.5],[69,.5],[67,.5],[65,.5],[64,1],[60,1],
+[67,.5],[69,.5],[67,.5],[65,.5],[64,1],[60,1],
+[60,1],[55,1],[60,2],[60,1],[55,1],[60,2]];
+const happy=[[60,.75],[60,.25],[62,1],[60,1],[65,1],[64,2],
+[60,.75],[60,.25],[62,1],[60,1],[67,1],[65,2],
+[60,.75],[60,.25],[72,1],[69,1],[65,1],[64,1],[62,2],
+[70,.75],[70,.25],[69,1],[65,1],[67,1],[65,2]];
 const classics=[
  ['alegria',{title:'ODA A LA ALEGRÍA · BEETHOVEN',genre:'Clásico remix',bpm:110,bars:32,bass:48,scale:[0,2,4,5,7],lead:[0,2,4,5,7],beat:3,publicDomain:true,melody:phrase(joy),instrument:'brass'}],
  ['elise',{title:'PARA ELISA · BEETHOVEN',genre:'Clásico remix',bpm:118,bars:36,bass:45,scale:[0,3,4,7,9],lead:[0,3,4,7,9],beat:4,publicDomain:true,melody:phrase(elise),instrument:'keys'}],
- ['jingle',{title:'JINGLE BELLS · REMIX',genre:'Clásico popular',bpm:126,bars:36,bass:48,scale:[0,2,4,5,7],lead:[0,2,4,5,7],beat:5,publicDomain:true,melody:phrase(jingle),instrument:'brass'}]
+ ['jingle',{title:'JINGLE BELLS · REMIX',genre:'Clásico popular',bpm:126,bars:36,bass:48,scale:[0,2,4,5,7],lead:[0,2,4,5,7],beat:5,publicDomain:true,melody:phrase(jingle),instrument:'brass'}],
+ ['twinkle',{title:'ESTRELLITA ¿DÓNDE ESTÁS? · REMIX',genre:'Pop familiar',bpm:116,bars:32,bass:48,scale:[0,2,4,5,7,9],lead:[0,2,4,5,7],beat:11,publicDomain:true,melody:phrase(twinkle),instrument:'keys'}],
+ ['frere',{title:'FRÈRE JACQUES · REMIX',genre:'Dance familiar',bpm:120,bars:32,bass:48,scale:[0,2,4,5,7,9],lead:[0,2,4,5,7],beat:12,publicDomain:true,melody:phrase(frere),instrument:'brass'}],
+ ['cumple',{title:'CUMPLEAÑOS FELIZ · REMIX',genre:'Fiesta',bpm:104,bars:28,bass:48,scale:[0,2,4,5,7,9],lead:[0,2,4,5,7],beat:13,publicDomain:true,melody:phrase(happy),instrument:'brass'}]
 ];
 for(const [id,config] of classics)SONGS[id]=config;
 const modern=[
