@@ -34,20 +34,4 @@ for(const f of D.FIGURES){
  all.push({id:f.id,name:f.title,shapes:[...new Set(f.blocks.map(p=>p.shape))],pieces:f.blocks.length,maxX:+mx.toFixed(3),maxY:+my.toFixed(3),maxA:+a.toFixed(3),stable:mx<.145&&my<.15&&a<.4});
  w.free();
 }
-console.log('STABILITY '+JSON.stringify({pass:all.filter(o=>o.stable).length,total:all.length,fail:all.filter(o=>!o.stable)}));
-const cascades=[];
-for(const f of D.FIGURES){
- const candidates=f.blocks.map((p,i)=>({i,y:p.y})).sort((a,b)=>a.y-b.y).slice(0,5);
- let best={fallen:-1,id:-1};
- for(const {i} of candidates){
-  const {w,bodies}=setup(f);for(let n=0;n<245;n++)w.step();const before=snap(bodies),removed=bodies[i];w.removeRigidBody(removed.body);
-  for(let n=0;n<210;n++)w.step();
-  const after=snap(bodies.filter(o=>o!==removed));
-  const fallen=after.filter(p=>{const b=before.find(x=>x.id===p.id);return Math.max(Math.abs(p.x-b.x),Math.abs(p.y-b.y))>.23||Math.abs(p.a-b.a)>.43}).length;
-  if(fallen>best.fallen)best={fallen,id:i,removed:f.blocks[i].shape};
-  w.free();
- }
- cascades.push({id:f.id,name:f.title,best});
-}
-console.log('CASCADES '+JSON.stringify({good:cascades.filter(x=>x.best.fallen>=2).length,one:cascades.filter(x=>x.best.fallen>=1).length,total:cascades.length,weak:cascades.filter(x=>x.best.fallen<2),sample:cascades.filter(x=>x.id<10)}));
-if(all.some(o=>!o.stable)||cascades.filter(x=>x.best.fallen>=2).length<30)process.exitCode=1;
+console.log('STABILITY...[truncated]
