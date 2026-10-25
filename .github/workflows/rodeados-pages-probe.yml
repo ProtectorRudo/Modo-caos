@@ -134,7 +134,7 @@ jobs:
           grep -q 'function battlePlateTexture()' /tmp/rodeados-v6-art.js
           grep -q 'function updateBattlefieldRubble(game,editing=false)' /tmp/rodeados-v6-art.js
           grep -q 'function updateBattlefieldAtmosphere(dt)' /tmp/rodeados-v6-art.js
-          grep -q 'if(f.type==='\''bombBlast'\'')blastWave' /tmp/rodeados-v6-art.js || grep -q 'blastWave(f.x,f.z,f.radius' /tmp/rodeados-v6-art.js
+          grep -q 'blastWave(f.x,f.z,f.radius' /tmp/rodeados-v6-art.js
           grep -q 'const fragmentCount=75' /tmp/rodeados-v6-art.js
           grep -q 'const ashCount=26' /tmp/rodeados-v6-art.js
           echo 'V16 PUBLICADO: PISO PBR, RESTOS DE BATALLA Y LUZ REACTIVA'
