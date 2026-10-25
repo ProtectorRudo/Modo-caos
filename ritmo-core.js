@@ -126,6 +126,9 @@ function tick(g,time){
  while(g.cursor<g.notes.length){
   const n=g.notes[g.cursor];
   if(n.status!=='pending'){g.cursor++;continue}
+  // A sustained note must stay under holdActive until its TAIL finishes;
+  // the ordinary short-tap deadline must never mark it as missed mid-hold.
+  if(g.holdActive?.id===n.id)break;
   const delta=g.elapsed-n.at;
   const hold=n.type==='hold';
   // Entering the correct lane up to 200 ms BEFORE the sustained head is valid.
