@@ -79,7 +79,7 @@ function tick(g,time){
   const n=g.notes[g.cursor];
   if(n.status!=='pending'){g.cursor++;continue}
   const delta=g.elapsed-n.at;
-  if(delta<-.11)break;
+  if(delta<-.055)break;
   if(delta>.24){resolve(g,n,'FALLO');g.cursor++;continue}
   if(g.holdActive)break;
   if(g.lane===n.lane){
