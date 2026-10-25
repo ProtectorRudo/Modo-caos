@@ -172,6 +172,10 @@ async function loadZip(file,THREE){
  const {default:JSZip}=await import(CDN_ZIP);
  const zip=await JSZip.loadAsync(await file.arrayBuffer());
  const files=Object.values(zip.files).filter(o=>!o.dir&&!o.name.startsWith('__MACOSX/'));
+ // Reject ZIP bombs before materializing large images into memory.
+ if(files.length>160)throw Error('Archivo con demasiados recursos (máximo 160)');
+ const uncompressed=files.reduce((sum,x)=>sum+Math.max(0,Number(x._data?.uncompressedSize)||0),0);
+ if(uncompressed>140*1024*1024)throw Error('ZIP descomprimido demasiado grande para Android (máximo 140 MB)');
  const entry=files.find(o=>/(^|\/)scene\.gltf$/i.test(o.name))||
   files.find(o=>/\.gltf$/i.test(o.name))||files.find(o=>/\.glb$/i.test(o.name));
  if(!entry)throw Error('El ZIP oficial no contiene scene.gltf ni ningún modelo GLB');
@@ -179,7 +183,6 @@ async function loadZip(file,THREE){
  const base=entry.name.slice(0,entry.name.lastIndexOf('/')+1);
  try{
   for(const v of files){
-   if(files.length>160)throw Error('Archivo con demasiados recursos');
    if(v===entry)continue;
    const bytes=await v.async('blob');if(bytes.size>MAX_ARCHIVE)throw Error('Textura excesiva');
    const url=URL.createObjectURL(bytes);urls.set(cleanPath(v.name),url);
