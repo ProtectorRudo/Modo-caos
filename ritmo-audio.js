@@ -90,7 +90,7 @@
    // Un estimador de pulsos localiza el desfase global frente al BPM conocido.
    // El resultado puede corregirse desde el control de sincronización.
    const channel=decoded.getChannelData(0),rate=decoded.sampleRate,step=.02;
-   const count=Math.min(Math.floor(Math.min(decoded.duration,45)/step),2200);
+   const count=Math.min(Math.floor(Math.min(decoded.duration,95)/step),4800);
    const energy=new Float32Array(count);
    let max=0;
    for(let i=0;i<count;i++){
@@ -117,7 +117,7 @@
    const accents=[];
    for(let beatIndex=4;beatIndex<SONGS[name].bars*4-3;beatIndex++){
     const at=bestPhase+beatIndex*beat;
-    if(at+1>=Math.min(decoded.duration,45))break;
+    if(at+1>=Math.min(decoded.duration,95))break;
     const idx=Math.round(at/step);
     let strength=0;
     for(let d=-4;d<=4;d++){const j=idx+d;if(j>=0&&j<count)strength=Math.max(strength,onset[j])}
