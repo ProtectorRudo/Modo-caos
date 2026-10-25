@@ -7,7 +7,7 @@
  * This is an armored tactical enemy, NOT Sketchfab M.A.N.U.L.
  */
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/loaders/GLTFLoader.js';
-import {buildAdapter} from './rodeados-manul.js?v=14';
+import {buildAdapter} from './rodeados-manul.js?v=15';
 
 const PRIMARY=new URL('./assets/rodeados/tactical-android.glb',import.meta.url).href;
 // Version-pinned mirror for redundancy if project hosting has not synchronized yet.
