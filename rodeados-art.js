@@ -499,6 +499,17 @@ export function createRodeadosArt(THREE,scene,camera){
   for(const f of game.fx||[]){const key=f.type+':'+f.id+':'+f.t;if(lastFx.has(key))continue;
    lastFx.add(key);
    if(f.type==='hit'||f.type==='destroy'){for(let i=0;i<(f.type==='destroy'?18:7);i++)addSpark({x:f.x,y:f.y,z:f.z},i%3?0xffd870:0x4cffee,.02+Math.random()*.04,.3+Math.random()*.45)}
+   if(f.type==='bombBlast')blastWave(f.x,f.z,f.radius||2.5);
+   if(f.type==='damage'&&Number.isFinite(f.x)&&Number.isFinite(f.z)){
+    // Low shockwave follows the collision tile, not the phone or camera.
+    const mat=new THREE.MeshBasicMaterial({color:0xff6c34,transparent:true,opacity:.82,
+     depthTest:false,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(1,.035,6,30),mat);
+    ring.position.set(f.x,.095,f.z);ring.rotation.x=-Math.PI/2;ring.scale.setScalar(.12);
+    root.add(ring);waves.push({mesh:ring,maxRadius:.78,age:0,ttl:.4,delay:0});
+    for(let i=0;i<11;i++)addSpark({x:f.x,y:.12,z:f.z},
+     i%3?0xf7a354:0xb4c3ba,.018+Math.random()*.025,.2+Math.random()*.3);
+   }
    if(f.type==='pulse')for(let i=0;i<18;i++){const a=Math.PI*2*i/18;addSpark({x:game.player.x+Math.sin(a)*.6,y:.15,z:game.player.z+Math.cos(a)*.6},0x6fffd8,.06,.5)}
   }
   if(lastFx.size>120){const keep=[...lastFx].slice(-50);lastFx.clear();keep.forEach(x=>lastFx.add(x))}
