@@ -15,6 +15,22 @@ assert.deepEqual(M.matchTarget(target),{won:true,matched:3,total:3});
 assert.equal(M.TARGETS.length,3);
 for(const variant of M.TARGETS)assert.equal(M.matchTarget(variant,variant).won,true);
 assert.equal(M.matchTarget(M.TARGETS[1],M.TARGETS[2]).won,false);
+
+// Copy the Figure is an independent puzzle, NOT a ghost the player overlaps:
+// any safe placement offset of the whole structure is correct.
+for(const target of M.TARGETS){
+ const shifted=target.map(p=>({...p,x:p.x+.31}));
+ assert.equal(M.matchTarget(shifted,target).won,true,'shifted built structure must be accepted');
+ assert.equal(M.matchTarget(shifted.slice(0,1),target).matched,1,'stable first piece contributes partial progress');
+ assert.equal(M.matchTarget(shifted.slice(0,1),target).won,false);
+ const wrongAngle=shifted.map((p,i)=>i===shifted.length-1?{...p,angle:p.angle+Math.PI/2}:p);
+ assert.equal(M.matchTarget(wrongAngle,target).won,false,'not enough to select correct pieces; orientation matters');
+ const wrongRelative=shifted.map((p,i)=>i===shifted.length-1?{...p,x:p.x+.55}:p);
+ assert.equal(M.matchTarget(wrongRelative,target).won,false,'relative placement should matter');
+ assert.equal(M.matchTarget([...shifted,shifted[0]],target).won,false,'extra pieces not accepted');
+}
+assert.deepEqual(M.matchTarget([]),{won:false,matched:0,total:3});
+
 assert.equal(M.matchTarget(target.slice(0,2)).won,false);
 assert.equal(M.matchTarget([...target.slice(0,2),{...target[2],x:.46}]).won,false);
 assert.equal(M.outcome('five',{height:.89,placed:5}).won,false);
