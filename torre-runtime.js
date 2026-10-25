@@ -98,6 +98,12 @@ ui.copyExpand.addEventListener('click',e=>{
  if(modeId!=='copy'||ui.copyReference.hidden)return;
  setCopyReferenceExpanded(ui.copyReference.dataset.expanded!=='true');
 });
+// Tapping anywhere on the small illustration opens the larger reference too.
+ui.copyReference.addEventListener('click',e=>{
+ if(e.target===ui.copyExpand)return;
+ if(modeId!=='copy'||ui.copyReference.hidden)return;
+ setCopyReferenceExpanded(ui.copyReference.dataset.expanded!=='true');
+});
 function modeHUD(){
  const cfg=M.get(modeId);let message=cfg.icon+' '+cfg.name.toUpperCase();
  if(cfg.seconds)message+=' · '+Math.ceil(Math.max(0,clockRemaining))+'s';
