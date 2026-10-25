@@ -87,6 +87,11 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>__ReboteDebug.returnAttempts),beforeTap+1,'one physical tap must count one return attempt');
  assert.equal(await page.locator('#status').innerText(),'SIN ESFERA','touch-generated click must not overwrite first response');
  assert.equal(await page.evaluate(()=>__ReboteDebug.stage),'playing','touch controls do not reset game');
+ await page.evaluate(()=>window.__simPhone.x=1.05);
+ await page.waitForFunction(()=>document.querySelector('#leftArrow')?.style.opacity==='1',null,{timeout:8000});
+ assert(await page.locator('#strikeGauge').isVisible(),'incoming spatial projectile charges the timing ring');
+ assert.equal(await page.locator('#rightArrow').evaluate(el=>el.style.opacity),'0','threat on camera left must not show right arrow');
+ await page.evaluate(()=>window.__simPhone.x=.17);
  await page.locator('#center').tap();
  await page.waitForFunction(()=>__ReboteDebug.stage==='ready',null,{timeout:7000});
  assert.deepEqual(await page.evaluate(()=>__ReboteDebug.root),after,'recalibration keeps arena fixed');

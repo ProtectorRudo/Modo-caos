@@ -23,6 +23,10 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__ReboteDebug.game.elapsed>.15,null,{timeout:12000});
  assert.equal(await page.locator('#returnBtn').isVisible(),true);
  assert.equal(await page.locator('#reticle').isVisible(),true);
+ assert.equal(await page.locator('#upArrow').count(),1,'vertical AR threat guidance exists');
+ assert.equal(await page.locator('#downArrow').count(),1,'low AR threat guidance exists');
+ await page.waitForFunction(()=>document.querySelector('#strikeGauge')?.style.display==='block',null,{timeout:8500});
+ assert.match(await page.locator('#strikeGauge').evaluate(el=>el.style.getPropertyValue('--charge')),/%$/,'timing meter reacts to incoming 3D shot');
  assert(await page.evaluate(()=>__ReboteDebug.renderedRobots)>0,'articulated 3D enemy appears');
  assert(await page.locator('#hud').isVisible(),'HUD active');
  await page.locator('#pauseBtn').click();
