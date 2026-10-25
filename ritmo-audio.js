@@ -66,7 +66,21 @@
    if(!song.audioUrl)throw Error('No hay grabación licenciada para este tema');
    const response=await fetch(song.audioUrl,{cache:'force-cache'});
    if(!response.ok)throw Error('El audio autorizado no está disponible ('+response.status+')');
-   const bytes=await response.arrayBuffer();
+   let bytes;
+   if(song.audioUrl.endsWith('.ogg.b64')){
+    const encoded=(await response.text()).trim();
+    if(encoded.length!==460800||!encoded.startsWith('T2dnUw'))
+     throw Error('El audio musical se recibió incompleto');
+    const raw=atob(encoded);
+    const array=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++)array[i]=raw.charCodeAt(i);
+    bytes=array.buffer;
+    if(root.crypto?.subtle){
+     const hash=Array.from(new Uint8Array(await root.crypto.subtle.digest('SHA-256',bytes)),v=>v.toString(16).padStart(2,'0')).join('');
+     if(hash!=='e476cb427141255f5f4e404e6630e81ca218a350e822a11c9ba2969e3d7fdb92')
+      throw Error('Integridad del audio musical inválida');
+    }
+   }else bytes=await response.arrayBuffer();
    const decoded=await init().decodeAudioData(bytes);
    const latest=song.noteTimes?.at(-1)||0;
    if(decoded.duration<latest+.3||decoded.duration<song.clipDuration-.5)
