@@ -457,7 +457,7 @@ function spawnOpeningEnemies(){
   e.x=eyeLocal.x+direction.x*slot.distance+sideways.x*slot.lateral;
   e.z=eyeLocal.z+direction.z*slot.distance+sideways.z*slot.lateral;
   e.angle=Math.atan2(eyeLocal.x-e.x,eyeLocal.z-e.z);
-  e.portal=0;e.age=.72;e.stun=2;e.state='stunned';
+  e.portal=0;e.age=.72;e.stun=.65;e.state='stunned';
  }
  art.drawEnemies(game);
 }
