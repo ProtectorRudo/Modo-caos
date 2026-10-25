@@ -2,6 +2,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.m
 export {THREE};
 export const BLOCK=.38, DEPTH=.22;
 const PALETTE=[0x37d9c5,0xffc15b,0x6b98ff,0xfc6a8b,0xaf82ff,0xff8656,0xa6e66b];
+const DEMOLITION_PALETTE=[0x25dbc9,0xffb347,0x755bff,0xff648f,0xa886ff,0xa8e653,0x438cff,0xff8354];
 const ink=0x061627;
 function shapeMesh(points,material){
  const p=new THREE.Shape();points.forEach(([x,y],i)=>i?p.lineTo(x*BLOCK,y*BLOCK):p.moveTo(x*BLOCK,y*BLOCK));p.closePath();
@@ -26,7 +27,7 @@ export class TorreArt{
   key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=13;key.shadow.camera.bottom=-6;key.shadow.bias=-.0003;this.scene.add(key);
   const fill=new THREE.DirectionalLight(0x52d1ff,1.8);fill.position.set(4,2,-2);this.scene.add(fill);
   this.materials=PALETTE.map(c=>new THREE.MeshStandardMaterial({color:c,metalness:.3,roughness:.29,emissive:c,emissiveIntensity:.045}));
-  this.target=new THREE.Group();this.group.add(this.target);this.boardHalf=1.25;this.boardAngle=0;this.objects=new Map();this.active=null;this.shadowGhost=null;this.effects=[];this.ar=false;this.stand=new THREE.Group();this.group.add(this.stand);
+  this.target=new THREE.Group();this.group.add(this.target);this.boardHalf=1.25;this.boardAngle=0;this.objects=new Map();this.active=null;this.demolition=false;this.selectedBlock=null;this.raycaster=new THREE.Raycaster();this.pointer=new THREE.Vector2();this.shadowGhost=null;this.effects=[];this.ar=false;this.stand=new THREE.Group();this.group.add(this.stand);
   const baseMat=new THREE.MeshStandardMaterial({color:0x14283e,metalness:.53,roughness:.33});
   const sideMat=new THREE.MeshStandardMaterial({color:0x07121e,metalness:.48,roughness:.4});
   const plate=new THREE.Mesh(new THREE.BoxGeometry(2.5,.15,.72),[baseMat,baseMat,baseMat,sideMat,baseMat,baseMat]);plate.position.y=.037;plate.receiveShadow=true;this.stand.add(plate);
@@ -58,24 +59,70 @@ export class TorreArt{
    this.target.add(figure);
   }
  }
+ setDemolitionStyle(enabled){this.demolition=!!enabled;this.clearBlockHighlight()}
+ clearBlockHighlight(){
+  if(this.selectedBlock!==null){
+   const m=this.objects.get(this.selectedBlock);
+   if(m){if(m.userData.outline)m.userData.outline.visible=false;
+    if(m.userData.material)m.userData.material.emissiveIntensity=.065}
+  }
+  this.selectedBlock=null;
+ }
+ highlightBlock(id){
+  if(id===this.selectedBlock)return;
+  this.clearBlockHighlight();
+  const m=this.objects.get(id);if(!m)return;
+  this.selectedBlock=id;
+  if(m.userData.outline)m.userData.outline.visible=true;
+  if(m.userData.material)m.userData.material.emissiveIntensity=.44;
+ }
+ pickBlockAt(x,y){
+  if(!Number.isFinite(x)||!Number.isFinite(y)||!this.objects.size)return null;
+  const xrCamera=this.renderer.xr.isPresenting?this.renderer.xr.getCamera(this.camera):this.camera;
+  const camera=xrCamera.isArrayCamera?(xrCamera.cameras[0]||this.camera):xrCamera;
+  this.pointer.set(x/innerWidth*2-1,1-y/innerHeight*2);
+  this.raycaster.setFromCamera(this.pointer,camera);
+  for(const hit of this.raycaster.intersectObjects([...this.objects.values()],true)){
+   let obj=hit.object;
+   while(obj&&!obj.userData.blockId)obj=obj.parent;
+   if(obj?.userData.blockId&&this.objects.has(obj.userData.blockId))return obj.userData.blockId;
+  }
+  return null;
+ }
  removeBlock(id){
   const mesh=this.objects.get(id);if(!mesh)return;
-  this.group.remove(mesh);mesh.traverse(n=>{if(n.isMesh)n.geometry.dispose()});mesh.userData.material?.dispose();this.objects.delete(id);
+  if(this.selectedBlock===id)this.clearBlockHighlight();this.group.remove(mesh);mesh.traverse(n=>{n.geometry?.dispose?.();if(n.isLineSegments||n.material?.isMeshBasicMaterial)n.material?.dispose?.()});mesh.userData.material?.dispose();mesh.userData.sideMaterial?.dispose();mesh.userData.trimMaterial?.dispose();this.objects.delete(id);
  }
  resize(){this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight)}
- model(shape,transparent=false){
-  const mat=this.materials[shape.tone%this.materials.length].clone();
+ model(shape,transparent=false,premiumColor=null){
+  const premium=premiumColor!==null;
+  const mat=premium?new THREE.MeshPhysicalMaterial({color:premiumColor,metalness:.16,roughness:.26,clearcoat:.95,clearcoatRoughness:.15,emissive:premiumColor,emissiveIntensity:.065}):this.materials[shape.tone%this.materials.length].clone();
   if(transparent){mat.transparent=true;mat.opacity=.83;mat.emissiveIntensity=.18;mat.depthWrite=false}
   const grp=new THREE.Group();grp.userData.material=mat;
-  for(const poly of shape.parts){const m=shapeMesh(poly,mat);m.castShadow=true;m.receiveShadow=true;grp.add(m)}
+  const side=premium?mat.clone():null;
+  if(side){side.color.multiplyScalar(.52);side.roughness=.34;grp.userData.sideMaterial=side}
+  for(const poly of shape.parts){
+   const m=shapeMesh(poly,side?[mat,side]:mat);m.castShadow=true;m.receiveShadow=true;grp.add(m);
+   if(premium)grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,17),new THREE.LineBasicMaterial({color:0xf8fffb,transparent:true,opacity:.3,depthWrite:false})));
+  }
+  if(premium&&shape.id==='cubo'){
+   const panelMat=new THREE.MeshPhysicalMaterial({color:new THREE.Color(premiumColor).lerp(new THREE.Color(0xffffff),.2),metalness:.14,roughness:.31,clearcoat:.98,clearcoatRoughness:.16});
+   grp.userData.trimMaterial=panelMat;
+   const face=new THREE.Mesh(new THREE.BoxGeometry(.315,.315,.009),panelMat);face.position.set(0,0,DEPTH*.5+.008);grp.add(face);
+   const stripe=new THREE.Mesh(new THREE.BoxGeometry(.277,.015,.011),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.44,depthWrite:false}));stripe.position.set(0,.128,DEPTH*.5+.017);grp.add(stripe);
+  }
+  if(premium){
+   const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(.404,.404,DEPTH+.036)),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.91,depthWrite:false}));
+   outline.visible=false;grp.add(outline);grp.userData.outline=outline;
+  }
   return grp;
  }
- startBlock(id,shape){const mesh=this.model(shape);this.objects.set(id,mesh);this.group.add(mesh);return mesh}
+ startBlock(id,shape){const color=this.demolition?DEMOLITION_PALETTE[(id-1)%DEMOLITION_PALETTE.length]:null;const mesh=this.model(shape,false,color);mesh.userData.blockId=id;this.objects.set(id,mesh);this.group.add(mesh);return mesh}
  setActive(shape){if(this.active){this.group.remove(this.active);this.active.traverse(n=>{if(n.isMesh)n.geometry.dispose()});this.active.userData.material.dispose()}this.active=this.model(shape,true);this.group.add(this.active);this.ghost.visible=true}
  moveActive(x,y,angle){if(!this.active)return;this.active.position.set(x,y,0);this.active.rotation.z=angle;this.ghost.position.x=x;this.ghost.scale.x=1.1}
  setGhostLanding(x,y){this.ghost.position.set(x,Math.max(.145,y+.012),0);this.ghost.visible=!!this.active}
  releaseActive(){if(!this.active)return;this.group.remove(this.active);this.active.traverse(n=>{if(n.isMesh)n.geometry.dispose()});this.active.userData.material.dispose();this.active=null;this.ghost.visible=false}
- reset(){this.setTarget([],[]);this.setBoardHalf(1.25);this.setTilt(0);for(const ob of this.objects.values()){this.group.remove(ob);ob.traverse(n=>{if(n.isMesh)n.geometry.dispose()});ob.userData.material?.dispose()}this.objects.clear();this.releaseActive();for(const e of this.effects){this.group.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose()}this.effects=[]}
+ reset(){this.clearBlockHighlight();this.setTarget([],[]);this.setBoardHalf(1.25);this.setTilt(0);for(const id of [...this.objects.keys()])this.removeBlock(id);this.demolition=false;this.releaseActive();for(const e of this.effects){this.group.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose()}this.effects=[]}
  sync(id,x,y,rotation){const m=this.objects.get(id);if(!m)return;m.position.set(x,y,0);m.rotation.set(0,0,rotation)}
  impact(x,y,intensity=1){if(this.effects.length>28)return;const geo=new THREE.TorusGeometry(.075, .007+Math.min(.012,intensity*.003),5,24),mat=new THREE.MeshBasicMaterial({color:intensity>3?0xffc78c:0x89fff2,transparent:true,opacity:.75,depthWrite:false});
   const ring=new THREE.Mesh(geo,mat);ring.position.set(x,Math.max(.145,y),.17);this.group.add(ring);this.effects.push({mesh:ring,life:0})}
