@@ -2,7 +2,7 @@ import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.
 import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,M=window.TorreModes,D=window.TorreDemolition,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
-const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),copyReference:$('copyReference'),copyExpand:$('copyExpand'),copyCanvas:$('copyCanvas'),copyProgress:$('copyProgress'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
+const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),copyReference:$('copyReference'),copyExpand:$('copyExpand'),copyCanvas:$('copyCanvas'),copyProgress:$('copyProgress'),mini:$('mini'),demoRoundHud:$('demolitionRoundHud'),demoRoundLabel:$('demolitionRoundLabel'),demoRoundBar:$('demolitionRoundBar'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
 let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayStartAt=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,modeId='infinite',targetIndex=0,currentTarget=M.TARGET,copyMatched=0,clockRemaining=0,baseHalf=1.25,baseBody=null,baseCollider=null,tiltBody=null,tiltFailSeconds=0,removals=0,demolitionStart=[],demolitionRemoved=[],demolitionMarks=0,demolitionPoints=0,demolitionPlan=[],demolitionRound=0,demolitionBank=0,demolitionBankFallen=0,demolitionRoundPoints=0,demolitionRoundFallen=0,demolitionIntermission=0,demolitionRoundHistory=[],demolitionTouch=null,demolitionHighlight=null,xrDemolitionFaces=[],modeOutcome='',stableBodies=[],collapseSeconds=0,collapseReason=null,startingRecord=0;
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
@@ -112,7 +112,12 @@ function modeHUD(){
  if(modeId==='copy')message+=' · '+M.TARGET_NAMES[targetIndex]+' · '+copyMatched+'/3';
  if(modeId==='copy'){ui.copyProgress.textContent=copyMatched+'/'+currentTarget.length;ui.copyReference.dataset.perfect=String(copyMatched===currentTarget.length)}
  if(modeId==='five')message+=' · '+Math.max(0,5-states.length)+' RESTANTES';
- if(modeId==='demolition'){const f=demolitionPlan[demolitionRound];message+=' · RONDA '+(demolitionRound+1)+'/'+D.ROUNDS+(f?' · '+f.title.toUpperCase():'')+' · '+(3-removals)+' TOQUES · '+demolitionPoints+' PTS'}
+ if(modeId==='demolition'){
+  const f=demolitionPlan[demolitionRound];
+  message+=' · RONDA '+(demolitionRound+1)+'/'+D.ROUNDS+' · '+(3-removals)+' TOQUES · '+demolitionPoints+' PTS';
+  ui.demoRoundLabel.textContent=(phase==='intermission'?'✅ ':'💥 ')+(f?f.title.toUpperCase():'¡DEMOLICIÓN!')+' · '+(demolitionRound+1)+'/'+D.ROUNDS;
+  ui.demoRoundBar.value=Math.min(D.ROUNDS,demolitionRoundHistory.length);
+ }
  $('modeStatus').textContent=message;
  $('modeStatus').classList.toggle('warning',(cfg.seconds&&clockRemaining<12)||(modeId==='heavy'&&Math.abs(tiltBody?2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w):0)>.27));
 }
@@ -120,7 +125,7 @@ function readSnapshot(){
  return states.map(s=>{const p=s.body.translation(),q=s.body.rotation();return {id:s.id,shape:s.shape.id,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}})
 }
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
-function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.overlay.dataset.mode=modeId;ui.copyReference.hidden=modeId!=='copy'||(p!=='playing'&&p!=='settling');ui.hud.hidden=!(p==='playing'||p==='settling'||p==='intermission'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home'||modeId==='copy'||modeId==='demolition';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing'||modeId==='demolition'||(modeId==='copy'&&!active);ui.tip.hidden=p!=='playing';ui.tip.textContent=modeId==='demolition'?'👆 TOCÁ UN BLOQUE PARA SACARLO':'TOCÁ = 90° · DOS DEDOS = GIRAR LIBRE · ARRASTRÁ Y SOLTÁ';ui.pieceDock.hidden=modeId==='demolition'||!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
+function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.overlay.dataset.mode=modeId;ui.copyReference.hidden=modeId!=='copy'||(p!=='playing'&&p!=='settling');ui.demoRoundHud.hidden=modeId!=='demolition'||p==='home'||p==='placing';ui.hud.hidden=!(p==='playing'||p==='settling'||p==='intermission'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home'||modeId==='copy'||modeId==='demolition';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing'||modeId==='demolition'||(modeId==='copy'&&!active);ui.tip.hidden=p!=='playing';ui.tip.textContent=modeId==='demolition'?'👆 TOCÁ UN BLOQUE PARA SACARLO':'TOCÁ = 90° · DOS DEDOS = GIRAR LIBRE · ARRASTRÁ Y SOLTÁ';ui.pieceDock.hidden=modeId==='demolition'||!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
 function updateHUD(){
  $('hudHeightLabel').textContent=modeId==='demolition'?'PUNTOS':'ALTURA';$('heightUnit').textContent=modeId==='demolition'?'PTS':'CM';$('recordUnit').textContent=modeId==='demolition'?'PTS':'CM';
  ui.hudHeight.textContent=modeId==='demolition'?demolitionPoints.toString():G.score(phase==='settling'?lastTop:top).toString();
@@ -530,7 +535,7 @@ function challengeCompleted(reason='time'){
   $('resultNote').textContent=D.ROUNDS+' TORRES · '+demolitionBankFallen+' BLOQUES DERRIBADOS'+(metric>prior?' · ¡NUEVO RÉCORD!':'');
   $('finalHeight').textContent=metric+' pts';
   $('resultMetric').textContent='PUNTOS EN '+D.ROUNDS+' RONDAS';
-  $('finalPieces').textContent=demolitionRoundHistory.reduce((n,r)=>n+r.removals,0);
+  $('finalPieces').textContent=demolitionRoundHistory.reduce((n,r)=>n+r.removals,0);$('resultPiecesLabel').textContent='EXTRACCIONES';
   $('finalRecord').textContent=modeBest()+' pts';
   soundFX(880,.28,.12,'triangle');vibe(34);
   return;
@@ -545,6 +550,7 @@ function challengeCompleted(reason='time'){
  $('resultTitle').textContent=result.title;
  $('resultNote').textContent=result.detail+(metric>prior?' · 🏆 ¡NUEVO RÉCORD!':'');
  $('finalHeight').textContent=modeId==='demolition'?metric+' pts':modeId==='copy'?metric+'/3':metric+' cm';
+ $('resultPiecesLabel').textContent='PIEZAS';
  $('resultMetric').textContent=modeId==='demolition'?'PUNTOS DE DEMOLICIÓN':modeId==='copy'?'PIEZAS EN SU SILUETA':'ALTURA ESTABLE';
  $('finalPieces').textContent=modeId==='demolition'?removals:states.length;
  $('finalRecord').textContent=modeBest()+(modeId==='demolition'?' pts':modeId==='copy'?'/3':' cm');
