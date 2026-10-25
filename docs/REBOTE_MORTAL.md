@@ -45,3 +45,10 @@ Nuevo minijuego aislado en \`rebote.html\`, \`rebote-core.js\`, \`rebote-art.js\
 - El jefe final muestra un escudo 3D únicamente en su intervalo real de bloqueo (basado en el mismo estado físico del core). Sus placas de armadura se pierden progresivamente según la vida restante.
 - Tests de unidad y prueba sintética XR ampliados para cubrir estas condiciones. Sin alterar juegos anteriores ni bases de datos compartidas.
 - **Release:** Vercel limitó la cuota diaria de nuevas compilaciones. No afirmar que esta revisión es pública hasta verificar que el despliegue resuelve exactamente el commit actualizado. La prueba física ARCore queda pendiente, incluso cuando el QA sintético sea verde.
+
+## Endurecimiento de seguimiento AR (25/10/2026)
+
+- WebGL limpia el fondo con alpha 0 para que el passthrough de cámara se componga con el contenido AR en dispositivos compatibles.
+- Si el tracking WebXR se interrumpe, la partida se pausa y **no permite CONTINUAR** hasta que el teléfono recupere una muestra de posición/dirección válida. La sesión también se pausa al ocultarse desde `XRSession.visibilitychange`.
+- La prueba XR sintética exige alpha 0 y verifica que el botón de reanudar queda deshabilitado hasta recobrar tracking.
+- Este test sigue usando un XRFrame simulado. La validación física en Chrome Android + ARCore sigue siendo requisito de aceptación aparte y NO puede sustituirse por simulación.
