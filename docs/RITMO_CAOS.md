@@ -35,7 +35,8 @@ El mapa deriva de compases y patrones melódicos deterministas; no se coloca mú
 - Sintaxis de los cuatro archivos JavaScript validada en un intérprete JavaScript.
 - Suite /tests/ritmo.test.cjs ejecutada en intérprete aislado con dependencias de asserts simuladas: **PASS**.
 - 36 combinaciones de canción, dificultad y ancho evaluadas: tiempos estrictamente crecientes, carriles válidos, límite físico de transición, nota acertada y fallada, reinicio y finalización.
-- Simulación de sostenida y pausa pasada.
+- Simulación de sostenida, pausa y trayectoria deslizante (una exitosa y otra incorrecta) pasada.
+- Simulación con poses AR del teléfono y SVG: fijación, calibración de ~1 s y desplazamiento lateral de 32 cm reconocido como cambio al carril vecino (no es prueba Android real).
 - No se ha ejecutado AR físico, pruebas reales de cámara, render de DOM overlay o audio en Chrome Android.
 - No se han comprobado todavía 60 FPS reales, calidad audible de las composiciones ni comportamiento tras interrupciones de la app.
 - No se ha implementado ni afirmado multijugador sincrónico; modo en solitario es el objetivo de esta entrega.
@@ -51,6 +52,6 @@ Se solicitó un despliegue **preview** en el proyecto Vercel de Modo Caos. El pr
 - No se usa reconocimiento de pies. El teléfono representa al jugador: debe desplazarse con él.
 - Audio generado por osciladores y percusión sintética en Web Audio. La musicalidad y producción final deben escucharse/probarse en equipo real.
 - Efectos AR en capa SVG proyectada sobre el suelo, no modelos GLB PBR. Los materiales 3D premium y el espectáculo de concierto requieren revisión visual real.
-- Las notas deslizantes se representan visualmente pero no hay todavía comprobación de trayectoria continua; la puntuación de slide usa el carril de destino, al igual que las simples. Las notas "especiales" dan puntos adicionales. Esto NO cumple por completo el requisito avanzado de slides.
+- Las notas deslizantes comprueban que el teléfono parte del carril origen y se desplaza hacia el carril destino durante la ventana musical. Las notas CAOS y especiales se puntúan con bonificación. Falta comprobar la tolerancia de estas mecánicas mediante juego físico real.
 - La calificación PERFECTO/GENIAL/BIEN utiliza posición respecto al centro y la ventana temporal de impacto, no una pulsación musical del usuario, ya que el juego es de ocupación de carril.
 - La apertura de la cámara, el Hit Test, los gestos para mover/rotar/escalar y el anclaje dependen de /engine.js sin cambios; hay que verificarlo en el dispositivo destino.
