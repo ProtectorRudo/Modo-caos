@@ -480,5 +480,6 @@ if(window.isSecureContext&&navigator.xr)navigator.xr.isSessionSupported('immersi
 try{$('record').textContent='🏆 RÉCORD: '+(Number(localStorage.getItem('mc-rebote-record'))||0).toLocaleString('es-AR')}catch(_){}
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
-window.ReboteBoot?.clear();
+if(window.__reboteEarlyTap)window.ReboteBoot?.show('MOTOR LISTO','Ahora tocá otra vez JUGAR EN REALIDAD AUMENTADA para abrir la cámara.');
+else window.ReboteBoot?.clear();
 globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale}};
