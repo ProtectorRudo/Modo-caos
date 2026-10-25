@@ -27,7 +27,9 @@ for(const [id,config] of classics)SONGS[id]=config;
 const modern=[
  ['despacito',{title:'DESPACITO · LUIS FONSI',genre:'Hit latino · archivo local',bpm:89,bars:28,bass:45,scale:[0,2,4,7,9],lead:[0,2,4,7,9],beat:6,requiresFile:true}],
  ['blinding',{title:'BLINDING LIGHTS · THE WEEKND',genre:'Hit pop · archivo local',bpm:171,bars:52,bass:48,scale:[0,2,4,7,9],lead:[0,4,7,9],beat:7,requiresFile:true}],
- ['levitating',{title:'LEVITATING · DUA LIPA',genre:'Hit pop · archivo local',bpm:103,bars:32,bass:48,scale:[0,2,4,7,9],lead:[0,2,4,7,9],beat:8,requiresFile:true}]
+ ['levitating',{title:'LEVITATING · DUA LIPA',genre:'Hit pop · archivo local',bpm:103,bars:32,bass:48,scale:[0,2,4,7,9],lead:[0,2,4,7,9],beat:8,requiresFile:true}],
+ ['titi',{title:'TITÍ ME PREGUNTÓ · BAD BUNNY',genre:'Reggaetón · archivo local',bpm:107,bars:32,bass:41,scale:[0,2,3,5,7],lead:[0,2,3,5,7],beat:9,requiresFile:true}],
+ ['provenza',{title:'PROVENZA · KAROL G',genre:'Urbano latino · archivo local',bpm:111,bars:32,bass:41,scale:[0,2,3,5,7],lead:[0,2,3,5,7],beat:10,requiresFile:true}]
 ];
 for(const [id,config] of modern)SONGS[id]=config;
 root.RitmoCatalog={classics:classics.map(([id])=>id),modern:modern.map(([id])=>id)};
