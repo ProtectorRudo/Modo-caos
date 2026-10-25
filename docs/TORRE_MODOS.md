@@ -95,3 +95,6 @@ Cambio solicitado tras probar el modo de extracción directa: antes solo había 
 
 **Pendiente de verificar físicamente:** FPS, hit test y tamaño en un dispositivo Android compatible con ARCore; los resultados del navegador de pruebas no sustituyen esa prueba.
 
+
+### Solicitud de publicación — 25/10/2026
+Esta rama reúne el código integrado en main para las diez rondas de Demolición Caótica y sirve para verificar el despliegue automático de Vercel antes de asignar el dominio habitual. No contiene alteraciones a otros minijuegos.
