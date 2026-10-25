@@ -4,68 +4,62 @@
 const E=id=>document.getElementById(id),G=window.RitmoCore,A=window.RitmoArt,audio=window.RitmoAudio.create();
 if(!G||!A)throw Error('Ritmo Caos requiere core y art');
 const art=A.create(E('rtSvg'),E('gameCanvas')),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-window.modoCaosGestureConfig={min:.22,max:.40,step:.025,label:s=>(s*5).toFixed(2)+' m'};
-try{boardSize=.32;tiles.fill(0);colors[0]='#09182e';rgb[0]=[.025,.055,.11];E('size').textContent='1,60 m'}catch(_){}
-let game=G.make(),demo=false,locked=false,calibrated=false,sampling=false,selected=2,reference=null,
-samples=[],sampleStart=0,filtered=2,lane=2,prevX=null,lastTrack=0,lost=false,
-running=false,manualPause=false,calPaused=false,ending=false,rafLast=0,hudLast=0,drawLast=0,demoLane=2,
+window.modoCaosCustomArena=true;
+window.modoCaosGestureConfig={min:.20,max:.32,step:.015,label:s=>(s*4).toFixed(2)+' m'};
+try{boardSize=.25;tiles.fill(0);colors[0]='#09182e';rgb[0]=[.025,.055,.11];E('size').textContent='1,00 m'}catch(_){}
+let game=G.make(),demo=false,locked=false,calibrated=false,sampling=false,selected=null,reference=null,
+samples=[],sampleStart=0,filtered=1,lane=1,prevX=null,lastTrack=0,lost=false,
+running=false,manualPause=false,calPaused=false,ending=false,rafLast=0,hudLast=0,drawLast=0,demoLane=1,
 gestureStart=null,best=0,muted=false,toastUntil=0,lastEventCount=0,playedMilestones=new Set(),localReadyFor=null;
 function song(){return E('song').value}function diff(){return E('difficulty').value}
 function recordKey(){return 'ritmo-caos-'+song()+'-'+diff()}
 function updateBest(){try{best=Number(localStorage.getItem(recordKey())||0)}catch(_){best=0}
  E('bestIntro').textContent='🏆 RÉCORD: '+best.toLocaleString('es-AR')+' PUNTOS'}
 
-function localSelected(){return !!G.SONGS[song()]?.requiresFile}
-function refreshMusic(){
- updateBest();
- E('localPanel').style.display=localSelected()?'block':'none';
- E('enter').disabled=localSelected()&&localReadyFor!==song();
- E('demo').disabled=localSelected()&&localReadyFor!==song();
- E('enter').textContent=localSelected()?'📷 JUGAR CON TU CANCIÓN EN AR':'📷 JUGAR EN REALIDAD AUMENTADA';
- E('fileStatus').textContent=localReadyFor===song()?'✅ AUDIO LISTO · '+(audio.localStatus()?.filename||'ARCHIVO LOCAL'):'Seleccioná primero el audio de esta canción (no se envía ni guarda en el servidor).';
-}
-E('song').onchange=refreshMusic;E('difficulty').onchange=updateBest;
-E('localFile').addEventListener('change',async()=>{
- const file=E('localFile').files?.[0];if(!file)return;
- E('fileStatus').textContent='🎚 Analizando el pulso musical en tu celular…';
- E('enter').disabled=true;E('demo').disabled=true;
- try{
-  const result=await audio.loadLocal(file,song());
-  localReadyFor=song();E('beatOffset').value='0';E('beatOffsetLabel').textContent='0 ms';
-  E('fileStatus').textContent='✅ '+file.name+' · '+result.bpm+' BPM · pulso estimado a '+Math.round(result.beatPhase*1000)+' ms. Ajustable si fuera necesario.';
- }catch(e){localReadyFor=null;E('fileStatus').textContent='⚠️ '+(e.message||'No se pudo leer el audio.')}
- refreshMusic();
-});
-refreshMusic();
-
+// All tracks shown in the picker are immediately playable. Never ask the player to upload music.
+E('song').onchange=updateBest;E('difficulty').onchange=updateBest;updateBest();
 E('latency').oninput=()=>{E('latencyValue').textContent=E('latency').value+' ms'};
-E('beatOffset').oninput=()=>{E('beatOffsetLabel').textContent=E('beatOffset').value+' ms';};
+
 function notify(s,duration=1100){E('toast').textContent=s;E('toast').style.opacity=1;toastUntil=performance.now()+duration}
 function hideToast(t){if(t>toastUntil)E('toast').style.opacity=0}
 function modeLabel(){return demo?'DEMO SIN AR':'SEGUIMIENTO DEL CELULAR'}
-function setWhere(){const idx=clamp(game.lane,0,4);
- E('where').textContent='📍 VOS · '+['VERDE','ROJO','AMARILLO','AZUL','NARANJA'][idx]+' · '+modeLabel();
+function setWhere(){const idx=clamp(game.lane,0,3);
+ E('where').textContent='📍 VOS · '+['VERDE','ROJO','AMARILLO','AZUL'][idx]+' · '+modeLabel();
  E('where').style.borderColor=G.COLORS[idx];}
 function showPrepare(isVisible){E('prepare').style.display=isVisible?'block':'none';E('where').style.display=locked||demo?'block':'none'}
-function pick(n){selected=n;
- for(const b of E('pickLanes').querySelectorAll('button'))b.classList.toggle('selected',Number(b.dataset.lane)===n);
- if(locked)calibrate();
+function pick(n){
+ if(!locked||demo||n<0||n>3)return;
+ selected=n;
+ for(const b of E('pickLanes').querySelectorAll('button'))
+  b.classList.toggle('selected',Number(b.dataset.lane)===n);
+ calibrate();
 }
 for(const b of E('pickLanes').querySelectorAll('button'))b.onclick=()=>pick(Number(b.dataset.lane));
-function calibrate(){
+function chooseLane(){
  if(demo||!locked)return;
- calPaused=running&&!manualPause; if(running){game.paused=true;audio.pause();}
+ if(running){game.paused=true;audio.pause();}
+ calibrated=false;sampling=false;reference=null;selected=null;prevX=null;samples=[];sampleStart=0;
+ for(const b of E('pickLanes').querySelectorAll('button'))b.classList.remove('selected');
+ E('calTitle').textContent='👣 ¿EN QUÉ COLOR ESTÁS?';
+ E('calHint').textContent='Elegí uno de los 4 círculos. Ese será tu punto real de partida.';
+ E('calFill').style.width='0%';E('calPanel').style.display='block';
+ E('rtStart').disabled=true;E('rtStart').textContent='PRIMERO ELEGÍ TU COLOR';
+ showPrepare(true);
+}
+function calibrate(){
+ if(demo||!locked||selected===null)return;
+ calPaused=running&&!manualPause;
+ if(running){game.paused=true;audio.pause();}
  calibrated=false;sampling=true;reference=null;samples=[];sampleStart=0;prevX=null;
  E('rtStart').disabled=true;E('rtStart').textContent='CALIBRANDO…';
- E('calTitle').textContent='📍 QUEDATE QUIETO UN SEGUNDO';
- E('calHint').textContent='Sostené el celular sobre el carril '+(selected+1)+'; el teléfono será tu referencia de movimiento.';
+ E('calTitle').textContent='📍 QUIETO 1 SEGUNDO · CARRIL '+(selected+1);
+ E('calHint').textContent='Sostené quieto el celular donde estás. No muevas la pista.';
  E('calFill').style.width='0%';E('calPanel').style.display='block';showPrepare(true);
 }
 function fixed(){
  if(locked||demo)return;
  locked=true;E('head').style.display='none';E('lock').style.display='none';
- E('hud').style.display='flex';E('hud').style.display='block';
- showPrepare(true);calibrate();
+ E('hud').style.display='block';showPrepare(true);chooseLane();
 }
 function position(frame,W){
  try{
@@ -100,11 +94,11 @@ function motion(t,dt,x){
  lastTrack=t;
  if(prevX!==null&&Math.abs(x-prevX)>.38){reference.x+=x-prevX;prevX=x;return}
  prevX=x;
- const target=clamp(reference.selected+(x-reference.x)/reference.worldWidth,0,4);
+ const target=clamp(reference.selected+(x-reference.x)/reference.worldWidth,0,3);
  const smooth=1-Math.exp(-dt/.055);
  filtered+=clamp((target-filtered)*smooth,-Math.max(.14,dt*10),Math.max(.14,dt*10));
  // Histeresis pequeña: no alternar constantemente al cruzar un borde.
- if(filtered>lane+.56&&lane<4)lane++;else if(filtered<lane-.56&&lane>0)lane--;
+ if(filtered>lane+.54&&lane<3)lane++;else if(filtered<lane-.56&&lane>0)lane--;
  const safe=clamp(filtered,lane-.48,lane+.48);
  G.setPosition(game,safe,game.elapsed);
 }
@@ -121,9 +115,9 @@ function togglePause(){
 }
 E('gamePause').onclick=togglePause;
 E('sound').onclick=()=>{muted=!muted;audio.volume(muted);E('sound').textContent=muted?'🔇':'🔊'};
-E('rtRecenter').onclick=calibrate;
+E('rtRecenter').onclick=chooseLane;
 E('exit').onclick=()=>{audio.stop();try{sess?.end()}catch(_){}location.href='/'};
-E('lock').addEventListener('click',()=>setTimeout(()=>{if(typeof stage!=='undefined'&&stage==='fixed')fixed()},80));
+E('lock').addEventListener('click',()=>{if(typeof stage!=='undefined'&&stage==='fixed')fixed()});
 E('edit').addEventListener('click',()=>{locked=false;calibrated=false;sampling=false;running=false;audio.stop();E('prepare').style.display='none';E('hud').style.display='none';E('head').style.display='block'});
 function showHUD(t=0){
  if(!game)return;
@@ -150,10 +144,8 @@ function onEvents(){
 }
 async function begin(){
  if(ending)return;
- if(localSelected()&&localReadyFor!==song()){notify('FALTA ELEGIR EL AUDIO DE ESA CANCIÓN',1800);return}
  if(!demo&&(!locked||!calibrated)){notify('PRIMERO CALIBRÁ LA PISTA');return}
- const w=demo?.30:boardSize;
- if(localSelected()){const data=audio.localStatus();G.SONGS[song()].phaseSeconds=Math.max(-.95,(data?.beatPhase||0)+Number(E('beatOffset').value)/1000)}
+ const w=demo?.25:boardSize;
  game=G.make(song(),diff(),w);
  G.setPosition(game,demo?demoLane:selected,0);G.start(game);
  E('result').style.display='none';E('hud').style.display='block';E('gamePause').style.display='block';E('where').style.display='block';
@@ -163,7 +155,7 @@ async function begin(){
  try{await audio.start(song());audio.volume(muted)}catch(e){running=false;notify('EL AUDIO NO PUDO INICIAR');E('rtStart').disabled=false;return}
  notify('🎸 ¡A MOVERSE!',1200);
 }
-E('rtStart').onclick=()=>{if(running&&game.paused&&!lost){manualPause=false;game.paused=false;audio.resume();showPrepare(false)}
+E('rtStart').onclick=()=>{if(running&&game.paused&&!lost&&calibrated){manualPause=false;game.paused=false;audio.resume();showPrepare(false)}
  else begin()};
 function conclude(){
  if(ending)return;ending=true;running=false;audio.stop();
@@ -175,8 +167,8 @@ function conclude(){
 }
 E('retry').onclick=()=>{
  ending=false;running=false;audio.stop();E('result').style.display='none';
- if(demo){demoLane=2;begin()}
- else {E('prepare').style.display='block';calibrate()}
+ if(demo){demoLane=1;begin()}
+ else {E('prepare').style.display='block';chooseLane()}
 };
 E('finishExit').onclick=()=>{audio.stop();try{sess?.end()}catch(_){}location.href='/'};
 E('share').onclick=async()=>{
@@ -194,13 +186,13 @@ function loop(t){
  art.demo(game);if(t-hudLast>130){hudLast=t;showHUD(t)}hideToast(t);
 }
 function demoStart(){
- demo=true;demoLane=2;E('home').style.display='none';E('overlay').style.display='block';E('gameCanvas').style.display='block';E('rtSvg').style.display='none';
+ demo=true;demoLane=1;E('home').style.display='none';E('overlay').style.display='block';E('gameCanvas').style.display='block';E('rtSvg').style.display='none';
  E('demoControls').style.display='flex';E('hud').style.display='block';E('where').style.display='block';
  E('head').style.display='none';E('prepare').style.display='none';E('lock').style.display='none';
  E('exit').style.display='block';ending=false;begin();
 }
-E('demo').onclick=()=>{if(localSelected()&&localReadyFor!==song()){E('fileStatus').textContent='Seleccioná primero tu archivo de audio.';return}demoStart()};
-const moveDemo=d=>{if(!demo||!running||game.paused)return;demoLane=clamp(demoLane+d,0,4);G.setPosition(game,demoLane,game.elapsed)};
+E('demo').onclick=demoStart;
+const moveDemo=d=>{if(!demo||!running||game.paused)return;demoLane=clamp(demoLane+d,0,3);G.setPosition(game,demoLane,game.elapsed)};
 E('left').onclick=()=>moveDemo(-1);E('right').onclick=()=>moveDemo(1);
 window.addEventListener('keydown',e=>{if(!demo)return;if(e.key==='ArrowLeft'||e.key==='a'){e.preventDefault();moveDemo(-1)}
  if(e.key==='ArrowRight'||e.key==='d'){e.preventDefault();moveDemo(1)}if(e.key===' '){e.preventDefault();togglePause()}});
