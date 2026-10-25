@@ -49,3 +49,20 @@ Corrección aislada en `torre.html` y `torre-runtime.js`:
 Prueba ejecutada en Chromium con frame WebXR simulado (cámara 390×844, proyección perspectiva local, base en punto `hit-test`): geometría SVG proyectada sobre el piso, cambio de coordenadas al mover la cámara, plataforma visible y botón FIJAR habilitado solamente cuando está en cuadro, minivista escondida, cero errores JS. Prueba separada con cámara mirando fuera de cuadro: cero polígonos, FIJAR deshabilitado. Regresión demo 3D: coloca una pieza y altura computada, cero errores.
 
 **Limitación**: pruebas simuladas del fotograma de XR y del navegador, no prueba física de ARCore en el teléfono de la captura. Se requiere feedback visual del usuario después de desplegar la corrección.
+
+
+## Cambio de jugabilidad solicitado: elección libre de piezas (25/10/2026)
+
+El usuario pidió conservar la esencia de **Tumble/Tumble VR**: dejar de recibir bloques desconocidos uno tras otro, **ver las figuras antes de usarlas, elegir cualquiera de las disponibles y poder orientarla con los dedos**. Esta indicación posterior actualiza el comportamiento inicialmente previsto en el punto 2 del prompt, que contemplaba aparición secuencial.
+
+- **Bandeja de cuatro piezas visibles** con siluetas y nombres. La partida inicia con cubo, plataforma rectangular, triángulo y trapecio. La siguiente bandeja se presenta al usar las cuatro, sin imponer su orden de uso. Packs posteriores combinan formas más difíciles y variedad determinada por `TorreCore.makePack(round,rng)`.
+- Elegir cualquier pieza por toque. Cambiar de opinión antes de colocarla no consume ninguna.
+- Arrastrar la pieza directamente desde la bandeja al campo también sirve para colocarla. Los nodos DOM del inventario se preservan para mantener captura del gesto durante el arrastre.
+- Con la pieza seleccionada: **toque rápido = giro exacto de 90°**; **dos dedos sobre la zona de construcción = giro angular libre**, proporcional al giro de los dedos y con normalización estable cuando cruza ±180°. Soltar ambos dedos tras un giro **no libera** el bloque accidentalmente: se coloca después con un arrastre y soltado de un dedo.
+- Deslizamiento de un dedo y soltado = mover la pieza en horizontal y liberarla a la física real. Sin fijación mágica de piezas, sin reajustes de estabilidad.
+- La simulación continúa restringida al plano vertical XY establecido en el prompt original; no se afirma control de orientación sobre los tres ejes 3D.
+- Bandeja compacta en la parte inferior, sin ocupar la vista principal de la torre, activa también en modo AR con su DOM Overlay.
+
+**Pruebas ejecutadas en preview local aislada de Chromium + Rapier, 390×844:** 4 piezas visibles y reconocibles; selección de triángulo; rotación continua de 0,5997 rad con giro táctil simulado de dos dedos; retirar los dedos deja 0 piezas colocadas y conserva la orientación; posterior arrastre coloca el triángulo y consume únicamente su casillero; la siguiente pieza queda seleccionada y la bandeja muestra 3 disponibles. Arrastre directo desde tarjeta comprobado preservando el mismo elemento durante el gesto y pasando a física; plataforma rectangular obtiene 20 cm tras asentarse (se comprobó estado durante 5,4 s). Sin errores JS. **Prueba de gestos automatizada de navegador, no test físico de dos dedos en el móvil**.
+
+Sin cambios en `engine.js`, otros juegos, Supabase ni proyecto Vercel original.
