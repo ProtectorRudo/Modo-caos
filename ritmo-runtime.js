@@ -135,8 +135,9 @@ function showHUD(t=0){
  setWhere();
 }
 function onEvents(){
- while(lastEventCount<game.events.length){
-  const ev=game.events[lastEventCount++];
+ for(const ev of game.events){
+  if((ev.seq||0)<=lastEventCount)continue;
+  lastEventCount=ev.seq;
   if(ev.type==='judgement'){
    const msg=ev.rating==='PERFECTO'?'✨ PERFECTO':ev.rating==='GENIAL'?'⚡ GENIAL':ev.rating==='BIEN'?'✓ BIEN':'✕ FALLO';
    if(ev.rating!=='FALLO'){notify(msg,360);try{navigator.vibrate?.(ev.rating==='PERFECTO'?24:12)}catch(_){}
@@ -144,8 +145,7 @@ function onEvents(){
    }else notify(msg,420);
   }
  }
- // events is a bounded buffer; reset index when trimming.
- if(lastEventCount>game.events.length)lastEventCount=game.events.length;
+
 }
 async function begin(){
  if(ending)return;
