@@ -31,7 +31,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 #localFile{display:block;width:100%;margin-top:7px;color:#e9ffff;font-size:12px}
 #fileStatus{font-size:11px;color:#ffe4a5;margin-top:7px}#beatOffset{width:100%}#beatOffsetLabel{color:#a7ffce}
 #precheck{color:#abc7da;font-size:11px;margin:16px 2px}
-#bestIntro{color:#fddd83;font-size:12px;font-weight:850;margin:8px}
+#audioStatus{margin:8px auto;max-width:460px;border:1px solid #52758b;background:#0b2339b9;color:#c3ecf4;font-size:11px;font-weight:800;border-radius:10px;padding:8px 10px}#bestIntro{color:#fddd83;font-size:12px;font-weight:850;margin:8px}
 .details{padding:10px;text-align:left;background:#0b1e37;border:1px solid #2d5570;border-radius:13px;margin-top:9px;font-size:11px;color:#c4dbe6}
 .details summary{font-weight:800;cursor:pointer}.details input{width:100%}
 #overlay{position:fixed;inset:0;display:none;pointer-events:none;z-index:10;overflow:hidden;background:transparent}
@@ -99,6 +99,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <label>DIFICULTAD<select id="difficulty"><option value="facil">Fácil · 2 carriles</option><option value="normal" selected>Normal · 4 carriles</option><option value="dificil">Difícil</option><option value="caos">MODO CAOS</option></select></label></div>
 <button id="enter">📷 JUGAR EN REALIDAD AUMENTADA</button>
 <button id="demo" class="alt">🎮 PROBAR DEMO 2D (SIN SEGUIMIENTO FÍSICO)</button>
+<div id="audioStatus" role="status" aria-live="polite">🎵 Comprobando el audio de Despacito…</div>
 <div id="bestIntro">RÉCORD PERSONAL · —</div>
 <details class="details"><summary>🎚 Ajuste fino de sincronización</summary>
 <p>Si las notas llegan antes o después del sonido, ajustá la compensación. Predeterminado: 0 ms.</p>
