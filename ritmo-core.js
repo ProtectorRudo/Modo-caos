@@ -57,7 +57,7 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
 function make(songId='neon',difficulty='normal',laneWidth=.31){
  const c=chart(songId,difficulty,laneWidth);
  return {...c,state:'ready',elapsed:0,cursor:0,lane:2,offset:0,score:0,combo:0,bestCombo:0,perfect:0,great:0,good:0,miss:0,
- energy:55,events:[],judged:0,holdActive:null,slideActive:null,enteredAt:0,lastLane:2,paused:false};
+ energy:55,events:[],eventSeq:0,judged:0,holdActive:null,slideActive:null,enteredAt:0,lastLane:2,paused:false};
 }
 function reset(g){Object.assign(g,make(g.songId,g.difficulty,g.laneWidth));return g}
 function start(g){if(g.state!=='ready')return false;g.state='playing';return true}
@@ -81,7 +81,7 @@ function resolve(g,n,rating){
   g.score+=points;g.energy=clamp(g.energy+(rating==='PERFECTO'?4:2),0,100);
  }
  if(g.slideActive?.id===n.id)g.slideActive=null;
- g.events.push({type:'judgement',rating,note:n.id,lane:n.lane,combo:g.combo,score:g.score,special:n.type==='caos'});
+ g.events.push({seq:++g.eventSeq,type:'judgement',rating,note:n.id,lane:n.lane,combo:g.combo,score:g.score,special:n.type==='caos'});
  if(g.events.length>18)g.events.shift();
 }
 function tick(g,time){
@@ -118,7 +118,7 @@ function tick(g,time){
   }
   break;
  }
- if(g.elapsed>=g.duration&&g.cursor>=g.notes.length){g.state='finished';g.events.push({type:'finish'});}
+ if(g.elapsed>=g.duration&&g.cursor>=g.notes.length){g.state='finished';g.events.push({seq:++g.eventSeq,type:'finish'});}
 }
 function accuracy(g){return g.judged?Math.round((g.perfect+g.great*.7+g.good*.4)/g.judged*100):0}
 function ranking(g){const a=accuracy(g);return a>=96?'LEYENDA DEL RITMO':a>=85?'ESTRELLA':a>=70?'ARTISTA':a>=50?'PROMESA':'¡SEGUÍ EL RITMO!'}
