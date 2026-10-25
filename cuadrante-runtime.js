@@ -103,6 +103,7 @@ function refreshHud(){
  $('youScore').textContent=state.score[0];$('rivalScore').textContent=state.score[1];
  $('rivalName').innerHTML='RIVAL '+(state.duel+1)+'<b>'+C.profiles[state.duel].name+'</b>';
  const n=state.combo;$('combo').style.display=n>=3?'block':'none';$('combo').textContent=n>=3?'COMBO ×'+n:'';
+ if(modePlay==='survival'&&state.phase!=='ready'&&!placing)$('labelPhase').textContent='SUPERVIVENCIA · '+state.survivalLives+' VIDAS · ARRASTRÁ PARA DEFENDER';
 }
 function handleEvents(events){
  for(const ev of events){const type=ev.type;
@@ -118,6 +119,7 @@ function handleEvents(events){
   if(type==='goal'){sound('goal');haptic([35,30,55]);note('¡PUNTO PARA VOS!',1100)}
   if(type==='conceded'){sound('conceded');haptic(70);note('PUNTO DEL RIVAL',850)}
   if(type==='launch')sound('launch');
+  if(type==='nextRival')note('¡SUBE LA DIFICULTAD! '+ev.info,1200);
  }
  if(state.phase==='finished'&&!notified){notified=true;finish()}
 }
@@ -130,9 +132,9 @@ function button(label,fn,kind){const b=document.createElement('button');b.textCo
 function modal(tag,title,desc){$('modalTag').textContent=tag;$('modalTitle').textContent=title;$('modalDesc').textContent=desc;$('modalButtons').replaceChildren();$('modalStats').textContent='';$('overlay').style.display='flex'}
 function finish(){
  rememberResult();const won=state.winner==='player';const done=state.duel===5&&won&&modePlay==='circuit';
- const text=won?(done?'¡SOS EL CAMPEÓN DEL CIRCUITO!':'RIVAL SUPERADO'):'EL RIVAL SE LLEVÓ ESTE DUELO';
- modal('CUADRANTE · '+C.profiles[state.duel].name,won?'¡VICTORIA!':'REVANCHA',text);
- $('modalStats').textContent='VOS '+state.score[0]+' — '+state.score[1]+' RIVAL · '+state.arcade+' PTS · COMBO '+state.bestCombo+' · '+state.bestRally+' REBOTES';
+ const text=modePlay==='survival'?'¡AGUANTASTE '+state.score[0]+' PUNTOS! Volvé a jugar para superar tu marca.':won?(done?'¡SOS EL CAMPEÓN DEL CIRCUITO!':'RIVAL SUPERADO'):'EL RIVAL SE LLEVÓ ESTE DUELO';
+ modal('CUADRANTE · '+C.profiles[state.duel].name,modePlay==='survival'?'FIN DE SUPERVIVENCIA':won?'¡VICTORIA!':'REVANCHA',text);
+ $('modalStats').textContent=modePlay==='survival'?('PUNTOS '+state.score[0]+' · RIVALES '+(state.duel+1)+' · COMBO '+state.bestCombo+' · '+state.arcade+' PTS'):('VOS '+state.score[0]+' — '+state.score[1]+' RIVAL · '+state.arcade+' PTS · COMBO '+state.bestCombo+' · '+state.bestRally+' REBOTES');
  if(won&&state.duel<5&&modePlay==='circuit'){button('SIGUIENTE RIVAL →',()=>{notified=false;C.next(state);$('overlay').style.display='none';note('RIVAL '+(state.duel+1)+': '+C.profiles[state.duel].name,1450)},'blue')}
  button('VOLVER A JUGAR',()=>{state=C.retry(state);notified=false;$('overlay').style.display='none';note('¡A DEFENDER!',1000)},'');
  button('MENÚ DE MODO CAOS',()=>back(),'alt');
@@ -157,21 +159,23 @@ async function back(){
 }
 async function init(mode){
  if(playing)await back();$('load').style.display='flex';initAudio();
+ let requestedXR=null;
+ if(mode==='ar'&&navigator.xr){
+  requestedXR=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['local-floor'],domOverlay:{root:document.body}});
+  requestedXR.catch(()=>{});
+ }
  try{
   await load();build();
-  if(mode==='ar')await beginAR();else enter('demo');
+  if(mode==='ar')await beginAR(requestedXR);else enter('demo');
  }catch(e){$('load').style.display='none';report(e);if(mode==='ar'){
   // Stay playable even when ARCore/immersive-ar is not available.
   try{if(!renderer)build();await fallbackCamera()}catch(err){report(err);enter('demo')}}
   else{try{await back()}catch(_){}}
  }
 }
-async function beginAR(){
- if(!navigator.xr)throw Error('WebXR no está disponible. Se abrirá modo cámara alternativo.');
- const available=await navigator.xr.isSessionSupported('immersive-ar');
- if(!available)throw Error('Este navegador no permite AR inmersiva. Se abrirá modo cámara alternativo.');
- const cfg={requiredFeatures:['hit-test'],optionalFeatures:['local-floor','dom-overlay'],domOverlay:{root:document.body}};
- session=await navigator.xr.requestSession('immersive-ar',cfg);
+async function beginAR(requestedXR){
+ if(!navigator.xr||!requestedXR)throw Error('WebXR no está disponible. Se abrirá modo cámara alternativo.');
+ session=await requestedXR;
  session.addEventListener('end',()=>{if(playing&&inputMode==='ar'&&!placing){C.pause(state);modal('AR DESCONECTADA','SE CERRÓ LA CÁMARA','Reiniciá la arena para recuperar el seguimiento espacial.');button('VOLVER AL MENÚ',back,'blue')}})
  await renderer.xr.setSession(session);
  const viewer=await session.requestReferenceSpace('viewer');
