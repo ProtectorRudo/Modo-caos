@@ -473,9 +473,24 @@ function drawMini(){
  const ctx=ui.mini.getContext('2d');const w=ui.mini.width,h=ui.mini.height;ctx.clearRect(0,0,w,h);
  const replaySnapshot=replaying?replayFrames[Math.min(replayFrames.length-1,Math.floor(replayTime*60))]:null;
  ctx.fillStyle='#0c2436dd';ctx.fillRect(0,0,w,h);
- const viewHeight=Math.max(2.6,top+.65,hi+.65);const px=Math.min(w/2.9,(h-20)/viewHeight);
+ const viewHeight=modeId==='copy'?Math.max(1.32,top+.2):Math.max(2.6,top+.65,hi+.65);const px=Math.min(w/2.9,(h-20)/viewHeight);
  const X=x=>w/2+x*px, Y=y=>h-15-(y+.04)*px;
- ctx.strokeStyle='#84f7e8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(-1.25),Y(.14));ctx.lineTo(X(1.25),Y(.14));ctx.stroke();
+ ctx.strokeStyle='#84f7e8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(-baseHalf),Y(.14));ctx.lineTo(X(baseHalf),Y(.14));ctx.stroke();
+ if(modeId==='copy'){
+  ctx.save();ctx.strokeStyle='#ffe1a1';ctx.lineWidth=2.5;ctx.setLineDash([5,3]);
+  for(const t of M.TARGET){
+   const shape=G.SHAPES.find(sh=>sh.id===t.shape);
+   for(const poly of shape.parts){
+    ctx.beginPath();
+    G.rotated(poly,t.angle).forEach(([xx,yy],i)=>{
+     const px=X(t.x+xx*BLOCK),py=Y(t.y+yy*BLOCK);
+     i?ctx.lineTo(px,py):ctx.moveTo(px,py)
+    });
+    ctx.closePath();ctx.stroke();
+   }
+  }
+  ctx.restore();
+ }
  for(const s of states){const snap=replaySnapshot?.find(b=>b.id===s.id),p=snap||s.body.translation(),q=s.body.rotation(),a=snap?snap.angle:2*Math.atan2(q.z,q.w);const c=['#34e1c1','#ffb952','#7da3ff','#ff769a','#b184ff','#ffa17a','#c3ea65'][s.shape.tone%7];
  ctx.fillStyle=c;ctx.strokeStyle='#ffffffa0';ctx.lineWidth=.85;
  for(const poly of s.shape.parts){ctx.beginPath();G.rotated(poly,a).forEach(([xx,yy],i)=>{const xxw=X(p.x+xx*BLOCK),yyw=Y(p.y+yy*BLOCK);i?ctx.lineTo(xxw,yyw):ctx.moveTo(xxw,yyw)});ctx.closePath();ctx.fill();ctx.stroke()}
@@ -626,7 +641,7 @@ function renderARSpatial(frame,time){
  }
  const map=coords=>coords.map(p=>project(...p));
  const fmt=p=>p.x.toFixed(1)+','+p.y.toFixed(1);
- const topPlane=map([[-1.25,.145,-.36],[1.25,.145,-.36],[1.25,.145,.36],[-1.25,.145,.36]]);
+ const topPlane=map([[-baseHalf,.145,-.36],[baseHalf,.145,-.36],[baseHalf,.145,.36],[-baseHalf,.145,.36]]);
  const center=project(0,.16,0);
  const controlsTop=phase==='placing'?ui.arControls.getBoundingClientRect().top:height;
  const safeBottom=Math.max(175,Math.min(height-20,controlsTop-16));
@@ -669,12 +684,12 @@ function renderARSpatial(frame,time){
   return '<'+tag+' points="'+points.map(fmt).join(' ')+'" fill="'+(fill||'none')+
    '" stroke="'+stroke+'" stroke-width="'+sw+'" opacity="'+alpha+'" stroke-linejoin="round"/>';
  }
- shapes.push(poly(map([[-1.25,-.01,.36],[1.25,-.01,.36],[1.25,.145,.36],[-1.25,.145,.36]]),'#07546c','#74fff1',4,.75));
+ shapes.push(poly(map([[-baseHalf,-.01,.36],[baseHalf,-.01,.36],[baseHalf,.145,.36],[-baseHalf,.145,.36]]),'#07546c','#74fff1',4,.75));
  shapes.push(poly(topPlane,'#00d8ca','#aafff6',5,.75));
- for(const x of [-1,-.5,0,.5,1])
+ for(const x of [-.8,-.4,0,.4,.8].map(t=>t*baseHalf))
   shapes.push(poly(map([[x,.149,-.35],[x,.149,.35]]),null,'#b8fff5',1.6,.92,false));
  for(const z of [-.24,0,.24])
-  shapes.push(poly(map([[-1.24,.149,z],[1.24,.149,z]]),null,'#b8fff5',1.6,.92,false));
+  shapes.push(poly(map([[-baseHalf*.99,.149,z],[baseHalf*.99,.149,z]]),null,'#b8fff5',1.6,.92,false));
  function piece(shape,x,y,angle,alpha=1){
   const front=DEPTH*.5,back=-front,color=XR_COLORS[shape.tone%XR_COLORS.length];
   for(const polygon of shape.parts){
@@ -690,6 +705,10 @@ function renderARSpatial(frame,time){
  }
  if(phase==='placing'&&!editing)piece(G.SHAPES[0],0,.145+BLOCK*.5,0,.95);
  else{
+  if(modeId==='copy')for(const t of M.TARGET){
+   const shape=G.SHAPES.find(s=>s.id===t.shape);
+   if(shape)piece(shape,t.x,t.y,t.angle,.20);
+  }
   const all=states.map(item=>{const p=item.body.translation(),q=item.body.rotation();return {shape:item.shape,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}}).sort((a,b)=>b.y-a.y);
   for(const it of all)piece(it.shape,it.x,it.y,it.angle,.93);
   if(active)piece(active.shape,active.x,active.y,active.angle,.92);
@@ -735,7 +754,7 @@ function renderARSpatial(frame,time){
  }
  const html=[tile(topPlane,'#00ffe2',.6)];
  for(let i=0;i<4;i++)html.push(edge(topPlane[i],topPlane[(i+1)%4]));
- for(const x of [-.5,0,.5]){
+ for(const x of [-.4,0,.4].map(t=>t*baseHalf)){
   const v=map([[x,.153,-.36],[x,.153,.36]]);
   html.push(edge(v[0],v[1],'#c0fff7',2));
  }
