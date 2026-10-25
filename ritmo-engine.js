@@ -56,7 +56,16 @@ function start(){if(isStarting)return;isStarting=true;
  $('notice').style.display='none';$('overlay').style.display='block';
  let pending;try{
  if(!window.modoCaosRuntimeReady)throw Error('El juego no terminó de cargar. Actualizá la página.');
- if(!navigator.xr)throw Error('Esta ventana no admite realidad aumentada: necesitás Chrome Android con ARCore (fuera de ChatGPT).');
+ if(!navigator.xr){
+  // A click on JUGAR is an explicit request for AR. An in-app WebView has no
+  // navigator.xr: attempt Chrome's Android intent within that same user gesture.
+  // Never pretend to provide physical tracking inside an unsupported browser.
+  const link=$('openChrome');
+  if(/android/i.test(navigator.userAgent||'')&&link?.href){
+   try{window.location.href=link.href}catch(_){}
+  }
+  throw Error('Esta ventana no admite realidad aumentada: abrilo en Chrome Android con ARCore.');
+ }
  pending=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['anchors'],domOverlay:{root:$('overlay')}});
  }catch(e){startError(e);return}Promise.resolve(pending).then(async session=>{sess=session;const canvas=document.createElement('canvas');canvas.style.cssText='position:fixed;width:1px;height:1px;opacity:0;pointer-events:none';document.body.appendChild(canvas);gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false,xrCompatible:true});if(!gl)throw Error('No se pudo crear WebGL compatible con XR.');if(gl.makeXRCompatible)await gl.makeXRCompatible();layer=new XRWebGLLayer(session,gl,{alpha:true,antialias:true,depth:true});session.updateRenderState({baseLayer:layer,depthNear:.025,depthFar:45});try{initGPU()}catch(e){frameErr='GPU: '+e.message;shader=null}ref=await session.requestReferenceSpace('local');const viewerSpace=await session.requestReferenceSpace('viewer');hitSource=await session.requestHitTestSource({space:viewerSpace});sess.addEventListener('end',()=>{stopRound();location.reload()});$('home').style.display='none';$('launchStatus').hidden=true;setStage('search');anchorState='sin anclaje';sess.requestAnimationFrame(onFrame);isStarting=false}).catch(e=>{startError(e)})}
 function startError(e){
