@@ -75,6 +75,23 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 #rightArrow{right:10px;top:46%}
 #upArrow{top:19%;left:50%;transform:translateX(-50%)}
 #downArrow{bottom:29%;left:50%;transform:translateX(-50%)}
+#radar{position:absolute;right:10px;top:calc(218px + env(safe-area-inset-top));width:89px;height:89px;border-radius:50%;
+ display:none;pointer-events:none;overflow:hidden;border:1px solid #9eece88a;background:radial-gradient(circle at center,#2c657930 0 6%,#071b2b88 64%,#061422c0 100%);
+ box-shadow:0 0 20px #0007,inset 0 0 18px #58feee19;z-index:3}
+#radar:before,#radar:after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+ width:59px;height:59px;border-radius:50%;border:1px solid #9dfef322}
+#radar:after{width:1px;height:83px;border:0;background:#9dfff321}
+#radar label{position:absolute;top:3px;left:0;right:0;text-align:center;font-size:8px;font-weight:900;letter-spacing:1.2px;color:#c5fff7}
+#radarBots{position:absolute;left:50%;top:50%;width:0;height:0}
+#radar .radarBot{position:absolute;width:7px;height:7px;left:-3px;top:-3px;background:#f9946e;border:1px solid #ffe4c7;
+ border-radius:2px;box-shadow:0 0 7px #ffad81}
+#radar .radarBot.boss{background:#ff4569;width:10px;height:10px}
+#radar .radarBot.behind{opacity:.76}
+#radarBall{position:absolute;left:calc(50% - 3px);top:calc(50% - 3px);width:7px;height:7px;border-radius:50%;
+ background:#ffe56f;box-shadow:0 0 11px 3px #ffe96f85}
+#radarBall.behind{box-shadow:0 0 14px 4px #ff5b5585}
+#radarYou{position:absolute;left:calc(50% - 4px);top:calc(50% - 4px);width:8px;height:8px;border-radius:50%;
+ background:#62ffec;box-shadow:0 0 8px #77fff5;z-index:4}
 #cue{position:absolute;bottom:calc(117px + env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;font-size:clamp(12px,3.5vw,16px);font-weight:900;color:#effffa;text-shadow:0 2px 9px #000;letter-spacing:.02em}
 #controls{position:absolute;bottom:calc(19px + env(safe-area-inset-bottom));left:12px;right:12px;display:none;justify-content:center;align-items:center;gap:12px}
 #returnBtn{width:min(65vw,265px);height:78px;border-radius:21px;background:linear-gradient(135deg,#d4fff7,#62eadd 68%,#2fb7bd);color:#06383c;box-shadow:0 4px 0 #137b83,0 8px 25px #1cfce044;border:1px solid #d6fffd;font-size:23px;letter-spacing:1px;backdrop-filter:blur(12px)}
@@ -102,7 +119,7 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 <div class="eyebrow">MODO CAOS · REFLEJOS AR</div><h1>REBOTE <span>MORTAL</span></h1>
 <div id="illustration" aria-hidden="true"><div class="arena"></div><div class="bot">🤖</div><div class="orb"></div></div>
 <p class="lead">¡Devolvé el ataque o preparate para perder!</p>
-<p class="sub">Apuntá con el teléfono a las esferas. Cuando estén cerca, tocá <b>DEVOLVER</b>. Acumulá perfectos y derrotá al jefe final.</p>
+<p class="sub">Los robots te tiran pelotas <b>arriba, abajo y a los costados</b>. Mové el celular para apuntar, esperá el momento justo y tocá <b>DEVOLVER</b>. ¡Mirá el rebote!</p>
 <div class="actions"><button id="startAR">📷 JUGAR EN REALIDAD AUMENTADA</button><button id="startDemo" class="secondary">🎮 ENTRENAMIENTO 3D · SIN AR</button><a class="secondary" href="https://modo-caos-eta.vercel.app/" style="padding:13px;border-radius:13px">← MENÚ MODO CAOS</a></div>
 <aside id="arProblem" role="alert" aria-live="assertive" hidden>
 <strong id="arProblemTitle">NO SE PUDO ABRIR LA CÁMARA AR</strong>
@@ -129,7 +146,9 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 <div id="touch" aria-label="Mover, girar o ajustar la pista con gestos"></div>
 <div id="hud"><div class="stat"><label>PUNTOS</label><strong id="score">0</strong></div><div class="stat"><label>ESCUDO</label><strong id="lives">♥♥♥</strong></div><div class="stat"><label>COMBO</label><strong id="combo">×0</strong></div><div class="stat"><label>TIEMPO</label><strong id="clock">88</strong></div></div>
 <div id="status">BUSCANDO PISO…</div><div id="notice"></div><div id="phase"></div>
-<div id="reticle"><div id="strikeGauge" aria-hidden="true"></div></div><div id="direction" aria-hidden="true"><span id="leftArrow">◀</span><span id="rightArrow">▶</span><span id="upArrow">▲</span><span id="downArrow">▼</span></div><div id="cue"></div><div id="message"></div>
+<div id="reticle"><div id="strikeGauge" aria-hidden="true"></div></div>
+<div id="radar" aria-label="Radar de robots y pelotas" role="img"><label>RADAR</label><div id="radarBots"></div><div id="radarBall"></div><div id="radarYou"></div></div>
+<div id="direction" aria-hidden="true"><span id="leftArrow">◀</span><span id="rightArrow">▶</span><span id="upArrow">▲</span><span id="downArrow">▼</span></div><div id="cue"></div><div id="message"></div>
 <div id="settings"><button id="sound" aria-label="Silenciar sonido">🔊</button><button id="center" style="display:none" aria-label="Recentrar">⌖</button></div>
 <div id="editbar"><div class="row"><button id="minus" class="secondary">－ PEQUEÑA</button><button id="plus" class="secondary">＋ GRANDE</button><button id="turn" class="secondary">↻ GIRAR</button></div><button id="fix">📍 FIJAR ARENA</button><button id="exit" class="secondary">← SALIR</button></div>
 <div id="readybar"><button id="begin">⚡ ¡EMPEZAR!</button><button id="adjust" class="secondary">⚙ AJUSTAR ARENA</button></div>
@@ -167,5 +186,5 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
  });
 })();
 </script>
-<script src="./rebote-core.js?v=8"></script><script type="module" src="./rebote-runtime.js?v=8"></script>
+<script src="./rebote-core.js?v=9"></script><script type="module" src="./rebote-runtime.js?v=9"></script>
 </body></html>
