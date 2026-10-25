@@ -31,8 +31,70 @@ export function createRodeadosArt(THREE,scene,camera){
  };
  const part=(parent,mat,p,s)=>box(parent,mat,p,s);
  const sphere=(parent,mat,p,s)=>box(parent,mat,p,s,geo.sphere);
- const warMat=Array.from({length:25},()=>new THREE.MeshBasicMaterial({
-  color:0x24343b,transparent:true,opacity:.76,depthTest:false,depthWrite:false,toneMapped:false,side:THREE.DoubleSide
+ // Baked military armor plate: one procedural PBR atlas shared by all 25
+ // world-locked cells. The AR camera remains visible through the floor.
+ // Canvas art gives scratches, vents, warning paint, rivets and bevels without
+ // requesting external textures or downloading textures at run time.
+ function battlePlateTexture(){
+  const canvas=document.createElement('canvas');canvas.width=384;canvas.height=384;
+  const c=canvas.getContext('2d');if(!c)return null;
+  let seed=0xCA05;
+  const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+  c.fillStyle='#25323a';c.fillRect(0,0,384,384);
+  const back=c.createLinearGradient(0,0,384,384);
+  back.addColorStop(0,'#45535a');back.addColorStop(.3,'#2e3c43');
+  back.addColorStop(.78,'#17232b');back.addColorStop(1,'#485254');
+  c.fillStyle=back;c.fillRect(11,11,362,362);
+  c.fillStyle='#101b23';c.fillRect(20,20,344,344);
+  const steel=c.createLinearGradient(25,20,360,370);
+  steel.addColorStop(0,'#45515a');steel.addColorStop(.2,'#34404a');
+  steel.addColorStop(.55,'#242e36');steel.addColorStop(1,'#485258');
+  c.fillStyle=steel;c.fillRect(25,25,334,334);
+  // Three-tier physical bevel gives the tile some depth without geometry.
+  c.strokeStyle='#77888d';c.lineWidth=3;c.strokeRect(25,25,334,334);
+  c.strokeStyle='#0c141b';c.lineWidth=6;c.strokeRect(33,33,318,318);
+  c.strokeStyle='#54636a';c.lineWidth=2;c.strokeRect(40,40,304,304);
+  c.strokeStyle='rgba(166,186,190,.11)';c.lineWidth=1;
+  for(let i=0;i<680;i++){
+   const x=35+random()*315,y=35+random()*315,len=3+random()*44;
+   c.beginPath();c.moveTo(x,y);c.lineTo(x+len,y-(random()-.5)*3);c.stroke();
+  }
+  for(let i=0;i<950;i++){
+   const lum=random()>.56?'rgba(182,209,209,.10)':'rgba(5,12,18,.24)';
+   c.fillStyle=lum;c.fillRect(40+random()*303,40+random()*303,1+random()*4,1+random()*2);
+  }
+  // Raised central anti-slip tread/maintenance hatch.
+  c.fillStyle='rgba(11,19,26,.77)';c.fillRect(79,145,226,94);
+  c.strokeStyle='#667b82';c.lineWidth=3;c.strokeRect(79,145,226,94);
+  c.strokeStyle='rgba(171,203,204,.25)';c.lineWidth=2;
+  for(let i=0;i<11;i++){
+   const x=90+i*19;
+   c.beginPath();c.moveTo(x,163);c.lineTo(x-8,187);c.lineTo(x+2,212);c.stroke();
+  }
+  // Orange danger chevrons look like stencilled industrial paint, not a toy.
+  c.save();c.translate(192,192);c.rotate(-Math.PI/4);
+  for(const y of [-190,190]){
+   c.fillStyle='rgba(197,121,49,.86)';c.fillRect(-68,y-8,136,16);
+   c.fillStyle='rgba(13,22,28,.85)';
+   for(let k=-3;k<4;k++)c.fillRect(k*26,y-8,11,16);
+  }
+  c.restore();
+  // Chunky dark bolt sockets with nickel highlights.
+  for(const [x,y] of [[57,57],[327,57],[57,327],[327,327]]){
+   c.fillStyle='#0c151c';c.beginPath();c.arc(x,y,10,0,Math.PI*2);c.fill();
+   c.strokeStyle='#8c9b9b';c.lineWidth=2;c.beginPath();c.arc(x,y,7,0,Math.PI*2);c.stroke();
+   c.strokeStyle='#1a2930';c.lineWidth=3;c.beginPath();c.moveTo(x-4,y+3);c.lineTo(x+4,y-3);c.stroke();
+  }
+  const map=new THREE.CanvasTexture(canvas);
+  map.colorSpace=THREE.SRGBColorSpace;
+  map.anisotropy=2;return map;
+ }
+ const warTexture=battlePlateTexture();
+ const warMat=Array.from({length:25},(_,i)=>new THREE.MeshStandardMaterial({
+  color:new THREE.Color(0xa3b4bd).multiplyScalar(.89+(i%7)*.018),
+  map:warTexture,metalness:.67,roughness:.73,side:THREE.DoubleSide,
+  transparent:true,opacity:.86,depthTest:false,depthWrite:false,
+  emissive:0x0b151a,emissiveIntensity:.13
  }));
  const warMarks=[],warBurn=[],warCracks=[],warScars=[];
  // One lightweight procedural scorch texture shared across all 25 cells.
