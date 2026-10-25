@@ -143,3 +143,17 @@ Cambios basados en captura física de Android: el robot invadía toda la pantall
 - Pruebas: `tests/rodeados-war-floor.test.cjs` cubre deterioro, topes, ataques, explosión, premio de cabeza, rachas y reinicio. Chromium 3D y WebXR simulado verifican que **25 placas reales** aparezcan en el motor WebGL en modo combate; Chromium verifica que la explosión produce manchas visibles, no solo valores en el core.
 
 **Pendiente:** verificar la estética y legibilidad del suelo con iluminación ARCore en Android real. No se modifican otros juegos.
+
+## V16 — escenario de guerra inmersivo, 25/10/2026
+
+El objetivo es reemplazar la sensación de baldosas de juguete por un campo de batalla **incrustado en el suelo real**, sin alterar el seguimiento WebXR ni inventar tracking corporal.
+
+- Durante búsqueda, ajuste de tamaño, rotación y calibración se conservan las baldosas turquesas bien visibles. Al tocar defenderme, **las 25 celdas** cambian a placas metálicas tácticas PBR con envejecimiento, remaches, rejillas, pintura de seguridad, soldaduras y rayones procedurales a partir de una sola textura `CanvasTexture` 384×384 reutilizada, sin descargas de arte externas.
+- Las 25 celdas siguen transparentes parcialmente para que la cámara muestre el entorno real. No se construyen muros que bloqueen la vista ni se modifican el suelo físico, las colisiones ni los límites de movimiento.
+- Golpes recibidos: pulso corto naranja en el lugar del impacto, chispa localizada y daños acumulados en las placas. La superficie se ennegrece, aparecen marcas calientes y quedan **escombros de metal** encima de celdas afectadas. Las cicatrices se reinician al comenzar revancha.
+- Bomba Caos: mantiene su daño en área, restaura un anillo visible de onda expansiva y las chispas, marcas térmicas y escombros cerca del estallido.
+- Ambientación: cuatro pequeños balizadores perimetrales en suelo, 26 partículas de ceniza tenue en **un único draw call de puntos**, luz de aviso cálida que reacciona al daño o la bomba. Son objetos realmente anclados al mismo `art.root` que la pista.
+- Optimización: los fragmentos se dibujan como `InstancedMesh` (75 instancias / una sola draw call) y solo se recalculan cuando cambian los niveles de deterioro, el tamaño de la pista o el modo de calibración. Un atlas compartido evita 25 cargas de textura.
+- El avatar visual riggeado de V15, los límites de clones, tiros precisos, puntuaciones de cabeza, munición infinita, EMP, Bomba Caos y radar permanecen iguales. Se mantiene el fallback visual.
+- Pruebas CI con Chromium 3D y WebXR simulado verifican 25 materiales PBR texturizados, cuatro balizadores y una sola nube de 26 puntos, calibración sin efectos decorativos, impactos y bomba con deterioro, junto a todas las pruebas anteriores.
+- **Pendiente:** observación física en un Android ARCore (luminosidad real de habitaciones, contraste y FPS). Ni las pruebas simuladas ni la navegación web certifican la sensación visual física 10/10.
