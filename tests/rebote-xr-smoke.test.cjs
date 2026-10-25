@@ -82,7 +82,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>__ReboteDebug.floorStable),true,'fix should only unlock after stable ground samples');
  assert((await page.evaluate(()=>__ReboteDebug.floorSamples))>=8,'floor plane is validated over multiple XR hits');
  const initial=await page.evaluate(()=>({z:__ReboteDebug.root[2],phoneZ:__simPhone.z,yaw:__ReboteDebug.previewYaw}));
- assert(initial.z<initial.phoneZ-.48&&initial.z>initial.phoneZ-1.3,'arena placement intentionally starts ahead of the player's camera');
+ assert(initial.z<initial.phoneZ-.48&&initial.z>initial.phoneZ-1.3,'arena placement starts ahead of the camera');
  assert(Math.abs(initial.yaw)<.2,'phone yaw defines arena orientation');
 
  assert(await page.locator('#editbar').isVisible(),'AR edit controls visible');
