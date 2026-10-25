@@ -138,6 +138,86 @@ export function createRodeadosArt(THREE,scene,camera){
    color:0xff7d45,transparent:true,opacity:0,depthTest:false,depthWrite:false,toneMapped:false}));
   deck.add(crack);warCracks.push(crack);warScars.push(-1);
  }
+ // Physical-looking rubble and electrical rim are scenery only. Instancing
+ // replaces 75 separate draw calls and never changes actual walkable surfaces.
+ let battlefieldSide=2.6,battlefieldEditing=true,activeDebris=0;
+ const fragmentCount=75;
+ const fragments=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),
+  new THREE.MeshStandardMaterial({color:0x56616a,metalness:.45,roughness:.95,
+   transparent:true,opacity:.92,depthTest:false,depthWrite:false}),fragmentCount);
+ fragments.frustumCulled=false;
+ arena.add(fragments);
+ const fragmentDummy=new THREE.Object3D();
+ const battlefieldCorners=new THREE.Group();arena.add(battlefieldCorners);
+ const nodeMat=new THREE.MeshStandardMaterial({color:0x29363e,metalness:.73,roughness:.53,
+  transparent:true,opacity:.82,depthWrite:false,depthTest:false});
+ const beaconMat=new THREE.MeshBasicMaterial({color:0xd37945,transparent:true,opacity:.63,
+  depthWrite:false,depthTest:false,toneMapped:false});
+ for(const x of [-1,1])for(const z of [-1,1]){
+  const g=new THREE.Group();battlefieldCorners.add(g);g.userData={x,z};
+  const rim=new THREE.Mesh(geo.box,nodeMat);rim.scale.set(.13,.035,.13);rim.position.y=.044;g.add(rim);
+  const signal=new THREE.Mesh(geo.box,beaconMat);signal.scale.set(.10,.010,.10);signal.position.y=.076;g.add(signal);
+  const knee=new THREE.Mesh(geo.box,nodeMat);knee.scale.set(.075,.12,.075);knee.position.y=.11;g.add(knee);
+  const eye=new THREE.Mesh(geo.box,beaconMat);eye.scale.set(.047,.018,.047);eye.position.y=.177;g.add(eye);
+ }
+ function updateBattlefieldRubble(game,editing=false){
+  let visible=0;
+  const side=(battlefieldSide||2.6)/5;
+  for(let i=0;i<25;i++){
+   const damage=editing?0:game?.floorDamage?.[i]||0;
+   for(let j=0;j<3;j++){
+    const n=i*3+j;
+    const seed=i*11+j*17;
+    const level=j===0?.31:j===1?.55:.78;
+    if(damage>level){
+     fragmentDummy.position.set(
+      (i%5-2)*side+((seed*19)%23-11)/30*side,
+      .08+j*.019,
+      (Math.floor(i/5)-2)*side+((seed*7)%19-9)/27*side);
+     fragmentDummy.rotation.set(.23+j*.2,seed*1.15,.25+j*.18);
+     const scale=side*(.10+.09*damage);
+     fragmentDummy.scale.set(scale,scale*(.65+j*.18),scale*.67);
+     visible++;
+    }else{
+     fragmentDummy.position.set(0,-20,0);
+     fragmentDummy.scale.setScalar(0);
+    }
+    fragmentDummy.updateMatrix();
+    fragments.setMatrixAt(n,fragmentDummy.matrix);
+   }
+  }
+  activeDebris=visible;
+  fragments.instanceMatrix.needsUpdate=true;
+  fragments.visible=visible>0&&!editing;
+  battlefieldCorners.visible=!editing;
+ }
+ // Ambient ash is restrained: one GPU points draw call, not CPU-heavy sprites.
+ const ashCount=26,ashGeometry=new THREE.BufferGeometry();
+ const ashPositions=new Float32Array(ashCount*3),ashBase=new Float32Array(ashCount*3);
+ for(let i=0;i<ashCount;i++){
+  const theta=(i*.61803398875%1)*Math.PI*2;
+  const radial=Math.sqrt(((i*71+17)%101)/101)*.42;
+  ashBase[i*3]=Math.cos(theta)*radial;
+  ashBase[i*3+1]=.12+((i*13)%17)/40;
+  ashBase[i*3+2]=Math.sin(theta)*radial;
+ }
+ ashGeometry.setAttribute('position',new THREE.BufferAttribute(ashPositions,3));
+ const ashCloud=new THREE.Points(ashGeometry,new THREE.PointsMaterial({
+  size:.029,color:0xd2b9a2,transparent:true,opacity:.3,sizeAttenuation:true,
+  depthTest:false,depthWrite:false}));
+ ashCloud.frustumCulled=false;arena.add(ashCloud);
+ let ashTime=0;
+ function updateBattlefieldAtmosphere(dt){
+  if(battlefieldEditing){ashCloud.visible=false;return}
+  ashCloud.visible=true;ashTime+=dt;
+  for(let i=0;i<ashCount;i++){
+   const k=i*3,base=ashBase;
+   ashPositions[k]=(base[k]+Math.sin(ashTime*.18+i*3)*.08)*battlefieldSide;
+   ashPositions[k+1]=.09+((base[k+1]+ashTime*(.07+i%3*.025))%1.2);
+   ashPositions[k+2]=(base[k+2]+Math.cos(ashTime*.15+i*2)*.06)*battlefieldSide;
+  }
+  ashGeometry.attributes.position.needsUpdate=true;
+ }
  const tiles=[],edges=[];
  const center=new THREE.Group();arena.add(center);
  for(let i=0;i<25;i++){
@@ -152,6 +232,12 @@ export function createRodeadosArt(THREE,scene,camera){
  part(compass,M.gold,[0,.06,-.14],[.048,.04,.18]);box(compass,M.cyan,[0,.07,-.27],[.07,.04,.08],geo.cone).rotation.x=-Math.PI/2;
  function setFloor(side,editing,cell=-1,player=null){
   const pitch=side/5,half=side*.5;
+  battlefieldSide=side;battlefieldEditing=editing;
+  // These four low metal marker posts are grounded on the four AR arena
+  // corners. Never place a wall in front of the physical user's camera.
+  for(const group of battlefieldCorners.children){
+   group.position.set(group.userData.x*(half-.08),0,group.userData.z*(half-.08));
+  }
   for(let i=0;i<25;i++){const tile=tiles[i];
    tile.position.set((i%5-2)*pitch,.024,(Math.floor(i/5)-2)*pitch);
    tile.scale.set(pitch*.95,.012,pitch*.95);
@@ -166,6 +252,8 @@ export function createRodeadosArt(THREE,scene,camera){
   }
   // Cyan outline in editing; restrained amber hazard boundary in live combat.
   borderMat.color.set(editing?0x65ffe6:0xd8a55c);
+  battlefieldCorners.visible=!editing;
+  ashCloud.visible=!editing;
   compass.position.set(0,.015,-half+.35);compass.visible=editing;
   center.visible=editing||!!player;
   if(player)center.position.set(player.x,.025,player.z);
@@ -181,7 +269,8 @@ export function createRodeadosArt(THREE,scene,camera){
    const step=Math.round(damage*25)/25,heat=Math.round(hot*6)/6;
    if(warScars[i]!==step+heat*10){
     warScars[i]=step+heat*10;
-    warMat[i].color.set(0x24343b).lerp(new THREE.Color(0x271514),Math.min(1,step*.95));
+    warMat[i].color.setRGB(.84+(i%7)*.014,.91,.94)
+      .lerp(new THREE.Color(0x8b6255),Math.min(1,step*.70));
     warMat[i].opacity=.76+step*.12;
     warBurn[i].material.opacity=Math.min(.7,damage*.58+heat*.12);
     warCracks[i].material.opacity=damage<.16?0:Math.min(.92,(damage-.16)*1.30+heat*.17);
@@ -191,6 +280,9 @@ export function createRodeadosArt(THREE,scene,camera){
    }
    warMarks[i].visible=!editing;
   }
+  // Armor debris remains local to original damaged tiles, even after
+  // camera moves or AR anchor recalibration. Zero extra physics/collision.
+  updateBattlefieldRubble(game,editing);
  }
  function createRobot(e){
   const kind=e.type,elite=kind==='boss'||kind==='tank',scale=e.height/1.75;
@@ -406,6 +498,7 @@ export function createRodeadosArt(THREE,scene,camera){
   if(lastFx.size>120){const keep=[...lastFx].slice(-50);lastFx.clear();keep.forEach(x=>lastFx.add(x))}
  }
  function updateSparks(dt){
+  updateBattlefieldAtmosphere(dt);
   recoil=Math.max(0,recoil-dt*6.5);
   for(let i=tracers.length-1;i>=0;i--){
    const tr=tracers[i];tr.ttl-=dt;
