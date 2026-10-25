@@ -75,7 +75,7 @@ function diagnoseCollapse(items,baseHeight=0,latestId,reference=[]){
  // A previously settled load-bearing piece has been moved radically.
  // Relative-to-baseline checks allow intentionally rotated weird shapes.
  if(reference&&reference.length){
-  let moved=0;
+  let moved=0,foundationLost=false;
   for(const prior of reference){
    const now=items.find(p=>p.id===prior.id);
    if(!now)continue;
@@ -83,8 +83,9 @@ function diagnoseCollapse(items,baseHeight=0,latestId,reference=[]){
    const slipping=Math.abs(now.x-prior.x)>.42;
    const sinking=prior.y-now.y>.26;
    if(tipping||slipping||sinking)moved++;
+   if(prior.y<.5&&tipping&&slipping)foundationLost=true;
   }
-  if(moved>=Math.max(1,Math.ceil(reference.length*.34))&&(grounded.length>=2||highest<baseHeight-.12))
+  if((foundationLost||moved>=Math.max(1,Math.ceil(reference.length*.34)))&&(grounded.length>=2||highest<baseHeight-.12))
    return {failed:true,reason:'estructura_desarmada'};
  }
  return {failed:false,reason:null};
