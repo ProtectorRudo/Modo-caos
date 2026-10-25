@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict'),path=require('node:path');
+const file=path.resolve(__dirname,'../../assets/rodeados/tactical-android.glb');
+const buffer=fs.readFileSync(file);
+assert.equal(buffer.readUInt32LE(0),0x46546c67);assert.equal(buffer.readUInt32LE(4),2);
+const size=buffer.readUInt32LE(12),json=JSON.parse(buffer.subarray(20,20+size).toString('utf8'));
+const animations=(json.animations||[]).map(a=>({name:a.name||'',channels:a.channels?.length}));
+const bones=(json.skins||[]).flatMap(s=>(s.joints||[]).map(i=>json.nodes[i]?.name||'#'+i));
+const meshCount=json.meshes?.length||0;
+const gltfRoot=(json.scenes||[]).flatMap(s=>(s.nodes||[])).map(i=>({name:json.nodes[i]?.name,rotation:json.nodes[i]?.rotation,translation:json.nodes[i]?.translation}));
+console.log('REAL TACTICAL GLB META:',JSON.stringify({size:buffer.length,meshCount,bones:bones.slice(0,90),animations,gltfRoot},null,2));
+assert(meshCount>0&&bones.length>0,'real model should be rigged');
