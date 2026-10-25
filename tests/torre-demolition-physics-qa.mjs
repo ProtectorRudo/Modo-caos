@@ -34,4 +34,34 @@ for(const f of D.FIGURES){
  all.push({id:f.id,name:f.title,shapes:[...new Set(f.blocks.map(p=>p.shape))],pieces:f.blocks.length,maxX:+mx.toFixed(3),maxY:+my.toFixed(3),maxA:+a.toFixed(3),stable:mx<.145&&my<.15&&a<.4});
  w.free();
 }
-console.log('STABILITY...[truncated]
+console.log('STABILITY '+JSON.stringify({pass:all.filter(o=>o.stable).length,total:all.length,fail:all.filter(o=>!o.stable)}));
+const outcomes=[];
+for(const f of D.FIGURES){
+ const variants=[
+  ['foundation', f.blocks.map((p,i)=>({p,i})).filter(z=>z.p.shape==='media_piedra'&&z.p.y<.4).sort((a,b)=>Math.abs(a.p.x)-Math.abs(b.p.x)).slice(0,3).map(z=>z.i)],
+  ['original_supports',f.blocks.map((p,i)=>({p,i})).filter(z=>z.p.shape==='medio_pilar'||z.p.shape==='medio_soporte'||z.p.shape==='pil'||z.p.shape==='soporte').sort((a,b)=>a.p.y-b.p.y).slice(0,3).map(z=>z.i)],
+  ['decoys',f.blocks.map((p,i)=>({p,i})).sort((a,b)=>b.p.y-a.p.y).slice(0,3).map(z=>z.i)]
+ ];
+ const row={id:f.id,count:f.blocks.length,parts:[]};
+ for(const [label,indices]of variants){
+  if(indices.length!==3)continue;
+  const {w,bodies}=setup(f);for(let n=0;n<245;n++)w.step();
+  const baseline=snap(bodies);
+  for(const i of indices){
+    w.removeRigidBody(bodies[i].body);
+    for(let n=0;n<135;n++)w.step();
+  }
+  const after=snap(bodies.filter((_,i)=>!indices.includes(i)));
+  const fallen=after.filter(p=>{const b=baseline.find(x=>x.id===p.id);return Math.max(Math.abs(p.x-b.x),Math.abs(p.y-b.y))>.16||Math.abs(p.a-b.a)>.58}).length;
+  row.parts.push({label,fallen,indices});
+  w.free();
+ }
+ outcomes.push(row);
+}
+console.log('3_MOVES '+JSON.stringify({outcomes:outcomes.map(o=>({id:o.id,count:o.count,foundation:o.parts.find(p=>p.label==='foundation')?.fallen,critical:o.parts.find(p=>p.label==='original_supports')?.fallen,decoys:o.parts.find(p=>p.label==='decoys')?.fallen}))}));
+const good=outcomes.filter(o=>o.parts.some(p=>p.fallen>=2));
+console.log('STRATEGY '+JSON.stringify({total:outcomes.length,good:good.length,flat:outcomes.filter(o=>!o.parts.some(p=>p.fallen>=2)).map(o=>o.id),complex:outcomes.filter(o=>o.count>=14).length,min:Math.min(...outcomes.map(o=>o.count)),max:Math.max(...outcomes.map(o=>o.count))}));
+const diversified=outcomes.filter(o=>o.parts.some(x=>x.label==='decoys'&&x.fallen<=2)&&o.parts.some(x=>x.label!=='decoys'&&x.fallen>=3));
+const minimum=Math.min(...outcomes.map(o=>o.count));
+console.log('ACCEPTANCE '+JSON.stringify({stable:all.filter(o=>o.stable).length,cascadeChoices:good.length,decoys:diversified.length,leastBricks:minimum}));
+if(all.some(o=>!o.stable)||good.length!==40||diversified.length<27||minimum<16)process.exitCode=1;
