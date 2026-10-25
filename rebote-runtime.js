@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createReboteArt} from './rebote-art.js?v=4';
+import {createReboteArt} from './rebote-art.js?v=5';
 /* REBOTE MORTAL · WebXR immersive-ar con Hit Test y anclaje opcional.
    La matriz AR no depende del HUD. El "jugador" es la posición del TELÉFONO, nunca pies/cuerpo. */
 const $=id=>document.getElementById(id),G=globalThis.ReboteCore;
@@ -40,6 +40,7 @@ function ui(){
  $('begin').textContent=stage==='paused'?'▶ CONTINUAR':'⚡ ¡EMPEZAR!';
  $('begin').disabled=stage==='paused'&&pausedForTracking&&(!lastAim||performance.now()-lastAimAt>550);
  $('fix').disabled=!latestHit;
+ $('arConnecting').style.display=stage==='connecting'?'flex':'none';
 }
 function setStage(next){stage=next;ui()}
 function toast(value,seconds=1.6){$('notice').textContent=value;toastEnd=performance.now()+seconds*1000}
@@ -368,36 +369,116 @@ $('startDemo').onclick=()=>{
  demoYaw=0;demoPitch=0;game.eye=G.V(0,1.61,1.2);setStage('ready');startRound();
  toast('ARRASTRÁ PARA APUNTAR · TOCÁ DEVOLVER CUANDO ESTÉ CERCA',4);
 };
+let xrStartVersion=0;
+function arStartError(error){
+ const name=error?.name||'',message=String(error?.message||error||'').slice(0,230);
+ let title='NO SE PUDO INICIAR LA CÁMARA AR';
+ let detail='Probá abrir el juego directamente en Chrome Android, con Google Play Services for AR actualizado.';
+ if(name==='NotAllowedError'||name==='SecurityError'){
+  title='FALTA PERMISO PARA REALIDAD AUMENTADA';
+  detail='Permití el acceso a cámara y movimiento del dispositivo desde Chrome, y volvé a intentar.';
+ }else if(name==='NotSupportedError'||name==='NotFoundError'){
+  title='AR NO DISPONIBLE EN ESTE NAVEGADOR';
+  detail='Necesitás Chrome en Android, un teléfono compatible con ARCore y Servicios de Google Play para RA.';
+ }else if(name==='InvalidStateError'){
+  title='YA HAY UNA SESIÓN AR ABIERTA';
+  detail='Cerrá la otra sesión de cámara y volvé a intentar desde Chrome.';
+ }else if(name==='NO_WEBXR'){
+  title='ESTE NAVEGADOR NO PUEDE ABRIR LA CÁMARA AR';
+  detail='Si abriste el juego dentro de ChatGPT, WhatsApp u otra aplicación, abrilo directamente en Chrome Android.';
+ }else if(name==='INSECURE'){
+  title='REALIDAD AUMENTADA REQUIERE HTTPS';
+  detail='Ingresá desde el enlace seguro https://modo-caos-eta.vercel.app/rebote.html';
+ }
+ window.ReboteBoot?.show(title,detail+(name==='NO_WEBXR'||name==='INSECURE'?'':' Detalle: '+(message||name||'AR no disponible')));
+ $('support').textContent=title;
+ $('startAR').disabled=false;
+}
+function resetXRSession(s){
+ if(s)try{s.end()?.catch?.(()=>{})}catch(_){}
+}
 async function startXR(){
- if(!window.isSecureContext||!navigator.xr){$('support').textContent='Sin WebXR AR. Usá Chrome Android con ARCore y HTTPS, o elegí Entrenamiento 3D.';return}
- // El gesto del botón debe crear la sesión directamente, antes del primer await.
- $('arena').style.display='block';
+ if(stage!=='home')return;
+ window.ReboteBoot?.clear();
+ if(!window.isSecureContext){arStartError({name:'INSECURE'});return}
+ if(!navigator.xr||typeof navigator.xr.requestSession!=='function'){
+  arStartError({name:'NO_WEBXR'});return;
+ }
+ const ticket=++xrStartVersion;
+ let requested,created=null;
+ // Request the session synchronously inside the click; awaiting first loses user activation.
  try{
-  const promise=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['anchors','local-floor'],domOverlay:{root:$('overlay')}});
-  const s=await promise;session=s;demo=false;
-  await renderer.xr.setSession(s);
-  space=renderer.xr.getReferenceSpace()||await s.requestReferenceSpace('local');
-  const viewer=await s.requestReferenceSpace('viewer');
-  hitSource=await s.requestHitTestSource({space:viewer});
+  requested=navigator.xr.requestSession('immersive-ar',{
+   requiredFeatures:['hit-test','dom-overlay'],
+   optionalFeatures:['anchors','local-floor'],
+   domOverlay:{root:$('overlay')}
+  });
+ }catch(err){arStartError(err);return}
+ $('arena').style.display='block';
+ setStage('connecting');$('startAR').disabled=true;
+ $('arConnectingTitle').textContent='ABRIENDO CÁMARA AR';
+ $('arConnectingHelp').textContent='Si Chrome solicita permiso de cámara o seguimiento, tocá Permitir.';
+ status('SOLICITANDO REALIDAD AUMENTADA...');
+ const watchdog=setTimeout(()=>{
+  if(ticket===xrStartVersion&&stage==='connecting'){
+   $('arConnectingTitle').textContent='ESPERANDO RESPUESTA DE LA CÁMARA';
+   $('arConnectingHelp').textContent='Comprobá si hay un permiso pendiente. Si no avanza, volvé y abrí el enlace en Chrome Android.';
+  }
+ },6500);
+ try{
+  const s=await requested;created=s;
+  if(ticket!==xrStartVersion){resetXRSession(s);return}
+  session=s;demo=false;
+  // Install cleanup before potentially failing asynchronous renderer setup.
+  s.addEventListener('end',()=>{
+   if(session!==s)return;
+   ++xrStartVersion;
+   session=null;hitSource?.cancel?.();hitSource=null;
+   anchor?.delete?.();anchor=null;anchorDelta=null;
+   fixed=false;calibrated=false;lastAim=null;latestHit=null;
+   resetGame();setStage('home');$('startAR').disabled=false;
+   window.ReboteBoot?.show('SE CERRÓ LA SESIÓN AR','Podés volver a intentarlo desde Chrome Android o jugar en Entrenamiento 3D.');
+  });
   s.addEventListener('visibilitychange',()=>{
    if(s.visibilityState!=='visible'&&stage==='playing')pause();
   });
-  s.addEventListener('end',()=>{
-   session=null;hitSource?.cancel?.();hitSource=null;anchor?.delete?.();anchor=null;anchorDelta=null;
-   fixed=false;calibrated=false;lastAim=null;latestHit=null;resetGame();setStage('home');
-  });
-  resetGame();fixed=false;calibrated=false;latestHit=null;arenaScale=1;move.set(0,0,0);yaw=0;
+  $('arConnectingTitle').textContent='PREPARANDO ESCENARIO 3D';
+  await renderer.xr.setSession(s);
+  if(ticket!==xrStartVersion){resetXRSession(s);return}
+  space=renderer.xr.getReferenceSpace()||await s.requestReferenceSpace('local');
+  const viewer=await s.requestReferenceSpace('viewer');
+  hitSource=await s.requestHitTestSource({space:viewer});
+  if(ticket!==xrStartVersion){resetXRSession(s);return}
+  resetGame();fixed=false;calibrated=false;latestHit=null;
+  arenaScale=1;move.set(0,0,0);yaw=0;
   setStage('search');status('BUSCÁ EL PISO CON LA CÁMARA');$('message').textContent='';
- }catch(e){
-  $('support').textContent='No se pudo abrir AR: '+(e?.message||e)+'. Probá el entrenamiento 3D.';
-  if(session)try{await session.end()}catch(_){}session=null;setStage('home');
+  $('startAR').disabled=false;
+ }catch(err){
+  console.warn('REBOTE: error real al iniciar WebXR',err);
+  if(ticket!==xrStartVersion)return;
+  ++xrStartVersion;
+  const active=session||created;
+  session=null;hitSource?.cancel?.();hitSource=null;
+  resetXRSession(active);
+  fixed=false;calibrated=false;lastAim=null;
+  setStage('home');arStartError(err);
+ }finally{
+  clearTimeout(watchdog);
  }
 }
 $('startAR').addEventListener('click',startXR);
+$('cancelStartAR').addEventListener('click',()=>{
+ if(stage!=='connecting')return;
+ ++xrStartVersion;
+ const s=session;session=null;resetXRSession(s);
+ setStage('home');$('startAR').disabled=false;
+ window.ReboteBoot?.show('AR CANCELADA','Podés reintentar desde Chrome Android o elegir el modo de entrenamiento 3D.');
+});
 if(window.isSecureContext&&navigator.xr)navigator.xr.isSessionSupported('immersive-ar').then(ok=>{
- $('support').textContent=ok?'✅ AR DETECTADA · Buscá un piso despejado para fijar la arena.':'⚠ Este dispositivo no admite WebXR immersive-ar. Podés usar Entrenamiento 3D.';
+ if(stage==='home'&&$('arProblem').hidden)$('support').textContent=ok?'✅ AR DETECTADA · Buscá un piso despejado para fijar la arena.':'⚠ Este dispositivo no admite WebXR immersive-ar. Podés usar Entrenamiento 3D.';
 }).catch(()=>{});
 try{$('record').textContent='🏆 RÉCORD: '+(Number(localStorage.getItem('mc-rebote-record'))||0).toLocaleString('es-AR')}catch(_){}
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
+window.ReboteBoot?.clear();
 globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale}};
