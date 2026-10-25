@@ -118,7 +118,7 @@ const server=http.createServer((req,res)=>{
 
  assert(await page.locator('#returnBtn').isVisible(),'return button active in real XR overlay');
  assert(await page.locator('#radar').isVisible(),'AR radar shows orientation information for offscreen robots');
- assert(await page.evaluate(()=>__ReboteDebug.robotFacingDot>.95,'robot faces physical tracked phone from its fixed AR position');
+ assert(await page.evaluate(()=>__ReboteDebug.robotFacingDot>.95),'robot faces physical tracked phone from its fixed AR position');
 
  assert(await page.evaluate(()=>__simDrawCalls)>0,'3D is rendered in AR XR frames');
  assert(await page.evaluate(()=>__ReboteDebug.arDrawCalls)>0,'visible XR DOM overlay draws world geometry independently');
