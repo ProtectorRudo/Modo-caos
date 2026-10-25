@@ -101,6 +101,21 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 #pieceDock[data-five="true"] #pieceSlots{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
 #pieceDock[data-five="true"] #pieceSlots .piecePick{min-height:72px;padding:2px}
 #pieceDock[data-five="true"] #pieceSlots .piecePick span{font-size:8px}
+
+/* The blueprint is a genuine, independent 2D reference image.
+   It is never positioned in AR world coordinates or on the player's platform. */
+#copyReference{position:absolute;top:calc(max(15px,env(safe-area-inset-top)) + 128px);right:12px;z-index:14;pointer-events:none;width:min(47vw,190px);background:linear-gradient(155deg,#12344df2,#091b30f5);border:2px solid #ffd78f;border-radius:19px;box-shadow:0 8px 28px #000a,0 0 19px #ffbf6240;overflow:hidden;padding:10px 8px 9px;display:flex;flex-direction:column;gap:4px}
+#copyReference[hidden]{display:none!important}
+#copyReference .copyRefHeader{font-size:10px;letter-spacing:1.5px;font-weight:1000;text-align:center;color:#ffe6ac}
+#copyReference .copyRefTitle{text-align:center;font-size:17px;letter-spacing:.8px;font-weight:1000;color:#fff}
+#copyCanvas{display:block;width:100%;height:auto;aspect-ratio:320/274;border-radius:10px;background:#10253a}
+#copyReference .copyRefFooter{display:flex;align-items:center;justify-content:space-between;gap:5px;border-top:1px solid #ffffff28;padding-top:6px;color:#c7e3ea;font-size:9px;font-weight:950}
+#copyProgress{color:#87ffe2;font-size:12px;font-variant-numeric:tabular-nums}
+#copyInstruction{font-size:9px;font-weight:800;text-align:center;line-height:1.4;color:#bee5ef}
+#copyReference[data-perfect="true"]{border-color:#65ffbd;box-shadow:0 0 25px #4bffbc88}
+#overlay[data-mode="copy"] #mini,#overlay[data-mode="copy"] #miniBtn{display:none!important}
+#overlay[data-mode="copy"] #tip{font-size:10px;bottom:157px}
+@media(max-height:710px){#copyReference{top:calc(max(15px,env(safe-area-inset-top)) + 111px);width:min(42vw,167px);padding:7px}#copyReference .copyRefTitle{font-size:14px}#copyReference .copyRefHeader{font-size:9px}}
 </style></head>
 <body>
 <canvas id="arena" aria-label="Escenario tridimensional de Torre Caos"></canvas>
@@ -119,7 +134,14 @@ h1{font-size:clamp(52px,13.4vw,78px);line-height:.9;font-weight:1000;letter-spac
 <svg id="xrScene" viewBox="0 0 400 800" aria-hidden="true" hidden></svg><canvas id="xrDraw" aria-hidden="true" hidden></canvas><div id="xrPaint" aria-hidden="true" hidden></div><div id="xrState" role="status" hidden>BUSCANDO UNA SUPERFICIE...</div><div id="gesture"></div>
 <div id="setup" hidden>UBICÁ LA PLATAFORMA SOBRE EL PISO REAL</div>
 <div id="hud" hidden><div class="stat"><small id="hudHeightLabel">ALTURA</small><b id="height">0</b><small>CM</small></div><div class="stat"><small>RÉCORD</small><b id="recordHud">0</b><small>CM</small></div><div class="stat"><small>PIEZAS</small><b id="pieces">0</b></div><button id="recenter" aria-label="Reubicar plataforma" title="Reubicar plataforma">◎</button><button id="pause" aria-label="Pausa" title="Pausar">Ⅱ</button></div>
-<div id="blockName" hidden>CUBO</div><div id="modeStatus" hidden></div><div id="notice" role="status" aria-live="polite"></div>
+<div id="blockName" hidden>CUBO</div>
+<div id="copyReference" aria-label="Imagen de referencia del rompecabezas, separada de tu plataforma" hidden>
+ <div class="copyRefHeader">🧩 FIGURA OBJETIVO</div>
+ <div class="copyRefTitle" id="copyTitle">PUENTE</div>
+ <canvas id="copyCanvas" width="320" height="274" role="img" aria-label="Imagen de la estructura que tenés que copiar"></canvas>
+ <div class="copyRefFooter"><span>CONSTRUILA APARTE</span><strong id="copyProgress">0/3</strong></div>
+ <div id="copyInstruction">Mirá la imagen y armala en tu pista</div>
+</div><div id="modeStatus" hidden></div><div id="notice" role="status" aria-live="polite"></div>
 <canvas id="mini" width="155" height="244" aria-label="Vista auxiliar de torre"></canvas><button id="miniBtn">AMPLIAR VISTA</button>
 <div id="tip" hidden>TOCÁ = 90° · DOS DEDOS = GIRAR LIBRE · ARRASTRÁ Y SOLTÁ</div>
 <div id="pieceDock" aria-label="Piezas disponibles" hidden>
