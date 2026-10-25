@@ -2,19 +2,19 @@ import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.
 import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
-const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
-let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing';
+const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
+let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null;
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
-function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
+function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
 function updateHUD(){ui.hudHeight.textContent=G.score(phase==='settling'?lastTop:top).toString();ui.hudPieces.textContent=states.length.toString();ui.hudRecord.textContent=Math.max(record,G.score(top)).toString()}
 function startPhysics(){
  if(world){world.free();world=null}if(queue){queue.free();queue=null}
  world=new RAPIER.World({x:0,y:-9.81,z:0});world.timestep=1/60;world.integrationParameters.maxVelocityIterations=8;world.integrationParameters.maxPositionIterations=3;queue=new RAPIER.EventQueue(true);
  const floor=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.039,0));
  world.createCollider(RAPIER.ColliderDesc.cuboid(1.25,.079,.36).setFriction(.98).setRestitution(.035),floor);
- states=[];nextId=1;random=G.rng((Date.now()>>>0)^0x524f334);settleTime=0;stillTime=0;lastTop=0;top=0;hi=0;steps=0;acc=0;frames=[];replaying=false;art.reset();updateHUD();
+ states=[];nextId=1;packRound=0;stock=[];selectedIndex=-1;trayTouch=null;twist=null;playPointers.clear();random=G.rng((Date.now()>>>0)^0x524f334);settleTime=0;stillTime=0;lastTop=0;top=0;hi=0;steps=0;acc=0;frames=[];replaying=false;art.reset();updateHUD();
 }
 function updateLanding(){
  if(!active||!world)return;
@@ -22,12 +22,79 @@ function updateLanding(){
  const hit=world.castRay(ray,50,true);
  art.setGhostLanding(active.x,hit?ray.origin.y-hit.timeOfImpact:.14);
 }
+
+const PIECE_COLORS=['#35e5cf','#ffbf67','#81a1ff','#ff829c','#b78aff','#ff996e','#bce981'];
+function pieceIcon(shape){
+ const col=PIECE_COLORS[shape.tone%PIECE_COLORS.length];
+ const parts=shape.parts.map(p=>'<polygon points="'+p.map(([x,y])=>(50+x*34).toFixed(1)+','+(29-y*26).toFixed(1)).join(' ')+'" fill="'+col+'" stroke="#eefffd" stroke-width="2.3" stroke-linejoin="round"/>').join('');
+ return '<svg viewBox="0 0 100 58" aria-hidden="true">'+parts+'</svg>';
+}
+function renderPack(){
+ if(!ui.pieceSlots)return;
+ ui.packCounter.textContent=stock.filter(s=>!s.used).length+' DISPONIBLES';
+ ui.pieceSlots.replaceChildren();
+ stock.forEach((item,i)=>{
+  const btn=document.createElement('button');
+  btn.type='button';btn.className='piecePick'+(item.used?' used':'')+(selectedIndex===i&&!item.used?' selected':'');
+  btn.setAttribute('aria-label',(item.used?'Ya utilizada: ':'Elegir ')+item.shape.name);
+  btn.setAttribute('aria-pressed',String(selectedIndex===i&&!item.used));
+  btn.disabled=item.used;
+  btn.innerHTML=pieceIcon(item.shape)+'<span>'+item.shape.name+'</span>';
+  btn.addEventListener('click',()=>{if(!item.used&&phase==='playing'&&selectedIndex!==i)choosePiece(i)});
+  btn.addEventListener('pointerdown',e=>startTrayGrab(e,i,btn));
+  btn.addEventListener('pointermove',moveTrayGrab);
+  btn.addEventListener('pointerup',endTrayGrab);
+  btn.addEventListener('pointercancel',()=>{trayTouch=null});
+  ui.pieceSlots.appendChild(btn);
+ });
+}
+function nextPack(){
+ stock=G.makePack(packRound++,random).map(shape=>({shape,used:false}));
+ selectedIndex=-1;
+ if(packRound>1)showText('¡NUEVAS PIEZAS PARA ELEGIR!',1050);
+}
+function choosePiece(i){
+ if(phase!=='playing'||!stock[i]||stock[i].used||!art)return;
+ selectedIndex=i;
+ const shape=stock[i].shape;
+ active={shape,x:0,y:Math.max(.92,top+.52),angle:0};
+ art.setActive(shape);art.moveActive(active.x,active.y,active.angle);updateLanding();
+ ui.blockName.textContent=shape.name.toUpperCase();
+ renderPack();
+ soundFX(560,.045,.05);vibe(5);
+}
 function makeActive(){
  if(states.length>=65){finish('¡TORRE LEGENDARIA!');return}
- const shape=G.select(states.length,random);active={shape,x:0,y:Math.max(.92,top+.52),angle:0};
- art.setActive(shape);art.moveActive(active.x,active.y,active.angle);updateLanding();ui.blockName.textContent=shape.name.toUpperCase();phaseTo('playing');
- if(states.length===0)showText('TOCÁ PARA GIRAR · ARRASTRÁ Y SOLTÁ PARA SOLTAR',4500);
+ if(!stock.length||stock.every(s=>s.used))nextPack();
+ selectedIndex=-1;active=null;
+ phaseTo('playing');
+ choosePiece(stock.findIndex(s=>!s.used));
+ if(states.length===0)showText('ELEGÍ UNA PIEZA · GIRÁ CON DOS DEDOS · ARRASTRÁ Y SOLTÁ',3800);
  updateHUD();
+}
+function startTrayGrab(e,i,btn){
+ if(phase!=='playing'||stock[i]?.used)return;
+ if(e.pointerType==='mouse'&&e.button!==0)return;
+ e.preventDefault();
+ choosePiece(i);
+ btn.setPointerCapture(e.pointerId);
+ trayTouch={id:e.pointerId,startX:e.clientX,startY:e.clientY,moved:false};
+}
+function moveTrayGrab(e){
+ if(!trayTouch||e.pointerId!==trayTouch.id||!active)return;
+ e.preventDefault();
+ const boardTop=ui.pieceDock.getBoundingClientRect().top;
+ if(e.clientY<boardTop-18){
+  trayTouch.moved=true;
+  active.x=clamp((e.clientX/Math.max(1,innerWidth)-.5)*2.5,-1.08,1.08);
+  art.moveActive(active.x,active.y,active.angle);updateLanding();
+ }
+}
+function endTrayGrab(e){
+ if(!trayTouch||e.pointerId!==trayTouch.id)return;
+ const wasDragged=trayTouch.moved&&e.clientY<ui.pieceDock.getBoundingClientRect().top-18;
+ trayTouch=null;
+ if(wasDragged)drop();
 }
 function drop(){
  if(phase!=='playing'||!active||!world)return;
@@ -46,7 +113,7 @@ function drop(){
   world.createCollider(col,body);attached++;
  }
  if(!attached){world.removeRigidBody(body);showText('No se pudo cargar esa figura');return}
- const id=nextId++;states.push({id,shape,body});art.releaseActive();art.startBlock(id,shape);
+ const id=nextId++;states.push({id,shape,body});if(stock[selectedIndex])stock[selectedIndex].used=true;art.releaseActive();art.startBlock(id,shape);renderPack();
  active=null;lastTop=top;settleTime=0;stillTime=0;frames=[];phaseTo('settling');showText('EQUILIBRANDO...',700);
  soundFX(370,.04,.11,'triangle');vibe(9);
 }
