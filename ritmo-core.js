@@ -25,7 +25,10 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
  const spacing={facil:2.5,normal:2,dificil:1.5,caos:1.25}[difficulty]||2;
  const accentEvents=!melodyEvents.length&&Array.isArray(song.rhythmBeats)&&song.rhythmBeats.length>=12
   ?song.rhythmBeats.filter(b=>b>=4&&b<song.bars*4-3).map(b=>({beat:b,pitch:null})):[];
- const targetEvents=melodyEvents.length?melodyEvents:accentEvents;
+ // Las notas de grabaciones autorizadas usan timestamps auditados de ESA grabación, no BPM estimado.
+ const licensedEvents=song.licensedRecording&&Array.isArray(song.noteTimes)
+  ?song.noteTimes.map(at=>({beat:at/beat,at,pitch:null})):[];
+ const targetEvents=licensedEvents.length?licensedEvents:melodyEvents.length?melodyEvents:accentEvents;
  let beatIndex=4,eventCursor=0;
  const gapBeats={facil:2.5,normal:1.55,dificil:1.10,caos:.78}[difficulty]||1.55;
  while(beatIndex<song.bars*4-3){
@@ -35,7 +38,7 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
    if(eventCursor>=targetEvents.length)break;
    noteEvent=targetEvents[eventCursor++];beatIndex=noteEvent.beat;
   }
-  let when=phase+beatIndex*beat,dt=when-lastAt;
+  let when=Number.isFinite(noteEvent?.at)?noteEvent.at:phase+beatIndex*beat,dt=when-lastAt;
   if(when>=duration-.6)break;
   let maxHops=Math.max(0,Math.floor((dt*.70-.12)/laneWidth));
   const possible=active.filter(c=>Math.abs(c-lane)<=maxHops);
