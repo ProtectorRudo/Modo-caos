@@ -47,3 +47,15 @@ Mantener rama `feat/torre-caos` y PR #31 abiertos sin fusionar automáticamente;
 **Pruebas ejecutadas**: unitarias `node tests/torre-modes.test.cjs`, `node tests/torre.test.cjs`, física `node tests/torre-rapier.test.mjs` (las 14 formas + estabilidad de las tres plantillas), y tres partidas completas en Playwright+Chromium con motor Rapier real (390×844): Puente con orden de cubos invertido y estructura desplazada 26 cm, Tótem y Casita, cada uno alcanzó 1/3 → 2/3 → 3/3 y terminó en «¡FIGURA PERFECTA!» sin error JavaScript. Comprobado que la referencia es visible, la mini vista se oculta, la geometría fantasma 3D está vacía, el jugador empieza sin pieza activa, las tres miniaturas aparecen y la imagen está por encima de la bandeja sin superposición. Regresión de los otros cinco modos 5/5 sin errores en navegador y con selector/bandeja funcional.
 
 **Límite de verificación:** pruebas WebGL en Chromium automatizado y físicas Rapier reales, **no prueba WebXR/ARCore en el celular del usuario**; falta validar visualmente el tamaño y posición del panel en Android físico antes de integrar en producción.
+
+## 25/10/2026 — Objetivo miniatura, sin tapar visión AR
+
+Captura real de Android: la referencia ocupaba aproximadamente la mitad del ancho útil y buena parte del alto del campo visual. Corregido **solo para el modo Copiá la Figura**:
+
+- Tarjeta con imagen objetivo y contador visible en tamaño **compacto por defecto** (aprox. 117 × 169 CSS px en viewport 390 × 844; ~6 % de la superficie de pantalla, frente al antiguo panel mucho mayor).
+- Tarjeta en esquina superior derecha, debajo del HUD, sin superposición con la bandeja. Contiene nombre del modelo, miniatura y progreso `0/3`.
+- **Ampliación voluntaria** al tocar la tarjeta o el icono `⤢`; botón accesible con `aria-expanded` y etiquetas «Ampliar / Reducir». Ampliada: ~261 × 336 px en 390 × 844. Tocarla de nuevo la reduce.
+- La ampliación **se reduce automáticamente** al seleccionar o mover una pieza, por lo que no tapa la torre cuando se construye. Una partida nueva inicia compacta. Mantiene los cuerpos físicos, cámara AR y validación de referencias separadas del mundo.
+- Prueba automatizada Chromium móvil con 390×844, 360×740 y 430×932: miniatura compacta 5–7 % de la pantalla; zoom y reducción en un toque, selección de pieza autocolapsa, contador e imagen visibles, la bandeja no queda tapada, cero errores JavaScript.
+- Regresión Playwright: otros 5 modos arrancan en fase `playing`, sin mostrar el panel de referencia y con cero errores.
+- Persisten pendientes la observación manual del tamaño visual y el toque en un teléfono ARCore real.
