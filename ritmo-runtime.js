@@ -31,7 +31,7 @@ E('localFile').addEventListener('change',async()=>{
  E('enter').disabled=true;E('demo').disabled=true;
  try{
   const result=await audio.loadLocal(file,song());
-  localReadyFor=song();
+  localReadyFor=song();E('beatOffset').value='0';E('beatOffsetLabel').textContent='0 ms';
   E('fileStatus').textContent='✅ '+file.name+' · '+result.bpm+' BPM · pulso estimado a '+Math.round(result.beatPhase*1000)+' ms. Ajustable si fuera necesario.';
  }catch(e){localReadyFor=null;E('fileStatus').textContent='⚠️ '+(e.message||'No se pudo leer el audio.')}
  refreshMusic();
@@ -39,6 +39,7 @@ E('localFile').addEventListener('change',async()=>{
 refreshMusic();
 
 E('latency').oninput=()=>{E('latencyValue').textContent=E('latency').value+' ms'};
+E('beatOffset').oninput=()=>{E('beatOffsetLabel').textContent=E('beatOffset').value+' ms';};
 function notify(s,duration=1100){E('toast').textContent=s;E('toast').style.opacity=1;toastUntil=performance.now()+duration}
 function hideToast(t){if(t>toastUntil)E('toast').style.opacity=0}
 function modeLabel(){return demo?'DEMO SIN AR':'SEGUIMIENTO DEL CELULAR'}
@@ -152,6 +153,7 @@ async function begin(){
  if(localSelected()&&localReadyFor!==song()){notify('FALTA ELEGIR EL AUDIO DE ESA CANCIÓN',1800);return}
  if(!demo&&(!locked||!calibrated)){notify('PRIMERO CALIBRÁ LA PISTA');return}
  const w=demo?.30:boardSize;
+ if(localSelected()){const data=audio.localStatus();G.SONGS[song()].phaseSeconds=Math.max(-.95,(data?.beatPhase||0)+Number(E('beatOffset').value)/1000)}
  game=G.make(song(),diff(),w);
  G.setPosition(game,demo?demoLane:selected,0);G.start(game);
  E('result').style.display='none';E('hud').style.display='block';E('gamePause').style.display='block';E('where').style.display='block';
