@@ -172,9 +172,17 @@ function drawPlacementOutline(frame){
  svgView.fromArray(view.transform.inverse.matrix);
  svgMvp.multiply(svgView).multiply(art.root.matrixWorld);
  const s=1.28*arenaScale,corners=[[-s,-s],[s,-s],[s,s],[-s,s]].map(p=>projectArenaPoint(p[0],p[1],w,h));
- if(corners.some(v=>!v)){svg.style.display='none';return}
  const pair=p=>p.map(v=>v.toFixed(1)).join(',');
- $('placementBorder').setAttribute('d','M'+corners.map(pair).join('L')+'Z');
+ // The player may stand INSIDE the arena. Front corners can be behind the
+ // viewer, but the visible rear outline must not disappear with them.
+ let border='';
+ for(let i=0;i<4;i++){
+  const a=corners[i],b=corners[(i+1)%4];
+  if(a&&b)border+='M'+pair(a)+'L'+pair(b);
+ }
+ // Never fill a partially clipped polygon across the phone's viewport.
+ $('placementBorder').style.fill=corners.every(Boolean)?'#07364639':'none';
+ $('placementBorder').setAttribute('d',border);
  let d='';
  for(const q of [-.66,-.33,0,.33,.66]){
   const x=q*s;
@@ -186,7 +194,7 @@ function drawPlacementOutline(frame){
  $('placementGridSvg').setAttribute('d',d);
  const center=projectArenaPoint(0,0,w,h);
  if(center){$('placementCross').setAttribute('cx',center[0]);$('placementCross').setAttribute('cy',center[1])}
- svg.style.display='block';
+ svg.style.display=border||d||center?'block':'none';
 }
 function updatePreview(frame){
  const h=checkHit(frame);
