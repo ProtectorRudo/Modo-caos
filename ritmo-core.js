@@ -76,6 +76,7 @@ function setPosition(g,x,t=g.elapsed){
 function multiplier(combo){return combo>=30?4:combo>=20?3:combo>=10?2:1}
 function resolve(g,n,rating){
  if(n.status!=='pending')return;
+ const previousScore=g.score;
  n.status=rating;n.hitAt=g.elapsed;g.judged++;
  if(rating==='FALLO'){g.miss++;g.combo=0;g.energy=clamp(g.energy-12,0,100)}
  else{
@@ -87,7 +88,7 @@ function resolve(g,n,rating){
   g.score+=points;g.energy=clamp(g.energy+(rating==='PERFECTO'?4:2),0,100);
  }
  if(g.slideActive?.id===n.id)g.slideActive=null;
- g.events.push({seq:++g.eventSeq,type:'judgement',rating,note:n.id,lane:n.lane,combo:g.combo,score:g.score,special:n.type==='caos'});
+ g.events.push({seq:++g.eventSeq,type:'judgement',rating,note:n.id,lane:n.lane,combo:g.combo,score:g.score,points:g.score-previousScore,noteType:n.type,special:n.type==='caos'});
  if(g.events.length>24)g.events.shift();
 }
 function tick(g,time){
