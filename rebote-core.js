@@ -45,27 +45,43 @@ function spawnEnemy(g,boss=false){
  return e;
 }
 function activeEnemy(g){return g.enemies.find(e=>e.alive&&e.boss)||g.enemies.find(e=>e.alive)}
+// Safe, phone-sized aiming offsets; no need to run, crouch or leap while viewing AR.
+// First shot is centered; then alternate upper/lower/left/right/diagonal trajectories.
+const ATTACK_LANES=[
+ {name:'CENTRO',x:0,y:0}, {name:'DERECHA',x:.43,y:.04},
+ {name:'ALTA',x:-.09,y:.39}, {name:'IZQUIERDA',x:-.43,y:-.04},
+ {name:'BAJA',x:.08,y:-.37}, {name:'ALTA DERECHA',x:.34,y:.29},
+ {name:'BAJA IZQUIERDA',x:-.33,y:-.27}
+];
+function laneAt(index){return ATTACK_LANES[index%ATTACK_LANES.length]}
 function launch(g,type=typeAt(g),target=activeEnemy(g)){
  if(!target)return false;
  const inbound=g.projectiles.filter(p=>!p.returning&&!p.dead&&p.type!=='fake');
  const limit=g.phase<2?1:g.phase<4?2:2;
  if(inbound.length>=limit)return false;
  if(inbound.some(p=>len(sub(p.pos,g.eye))<1.25))return false;
- const origin=V(target.x+(Math.sin(g.shotIndex*1.76)*.16),1.53,target.z+.08);
- const destination=add(g.eye,V(Math.sin(g.shotIndex*1.71)*(.08+(g.phase>2?.12:0)),0,0));
+ const lane=laneAt(g.shotIndex);
+ // Fire from different parts of the enemy's armored body, instead of one flat y-level.
+ const muzzleY=clamp(1.48+lane.y*.95,1.06,1.99);
+ const origin=V(target.x+(Math.sin(g.shotIndex*1.76)*.18),muzzleY,target.z+.08);
+ // The player uses the phone as the controller: moving it sideways or tilting
+ // to intercept a high/low shot improves precision. Offsets stay within arm reach.
+ const destination=add(g.eye,V(lane.x,lane.y,0));
  const direction=norm(sub(destination,origin));
  const speed=type==='pesada'?1.65:type==='veloz'?3.65:g.phase===0?1.67:g.phase===1?2.0:g.phase===2?2.45:2.72;
  const id=++g.projectileId;
  const p={id,type,pos:origin,prev:origin,velocity:mul(direction,speed),speed,
    radius:type==='pesada'?.22:.17,age:0,returning:false,dead:false,targetId:target.id,
-   bend:type==='curva'?.22:0,curvePhase:random(g)*6.28,hit:false,warning:0.50,hasDouble:type==='doble'};
+   bend:type==='curva'?.22:0,curvePhase:random(g)*6.28,hit:false,warning:0.50,
+   lane:lane.name,aimOffset:V(lane.x,lane.y,0),muzzleY,
+   hasDouble:type==='doble'};
  g.projectiles.push(p);
  if(type==='doble')g.delayed.push({at:g.elapsed+.90,created:g.elapsed,type:'normal',targetId:target.id});
  if(type==='fantasma'){
   const fake={...p,id:++g.projectileId,type:'fake',pos:add(origin,V(.32,0,0)),prev:add(origin,V(.32,0,0)),radius:.125,hasDouble:false};
   g.projectiles.push(fake);
  }
- g.effects.push({type:'launch',t:g.elapsed,id,x:origin.x,z:origin.z,style:type});
+ g.effects.push({type:'launch',t:g.elapsed,id,x:origin.x,y:origin.y,z:origin.z,style:type,lane:lane.name});
  g.shotIndex++;
  return true;
 }
@@ -100,6 +116,8 @@ function returnShot(g){
  const grade=bestResult.grade;
  const target=g.enemies.find(e=>e.id===best.targetId&&e.alive)||activeEnemy(g);
  best.returning=true;best.age=0;best.prev=best.pos;best.bend=0;best.hasDouble=false;
+ // Snapshot of the physical contact point for an actual ricochet ring and path.
+ best.bounceFrom=V(best.pos.x,best.pos.y,best.pos.z);best.bounceGrade=grade;
  best.grade=grade;best.radius=grade==='PERFECTO'?.215:.16;best.targetEnemy=target?.id;
  best.speed=grade==='PERFECTO'?6.2:grade==='BUENO'?4.8:3.3;
  best.velocity=mul(norm(sub(target?targetPoint(target):V(0,1.5,-2.5),best.pos)),best.speed);
@@ -110,7 +128,9 @@ function returnShot(g){
  const points=(grade==='PERFECTO'?175:grade==='BUENO'?90:40)*comboBoost;
  g.score+=points;g.lastResult=grade;
  if(g.perfectStreak===13){g.effects.push({type:'legend',t:g.elapsed});g.score+=1200}
- g.effects.push({type:'return',t:g.elapsed,grade,id:best.id,combo:g.combo,points});
+ g.effects.push({type:'return',t:g.elapsed,grade,id:best.id,combo:g.combo,points,
+  x:best.pos.x,y:best.pos.y,z:best.pos.z,
+  incoming:V(-best.velocity.x,-best.velocity.y,-best.velocity.z),lane:best.lane||'CENTRO'});
  return {ok:true,grade,points,combo:g.combo,distance:bestResult.distance};
 }
 function damage(g,p){
@@ -201,7 +221,7 @@ function snapshot(g){return {state:g.state,phase:PHASES[g.phase],remaining:Math.
   elapsed:g.elapsed,score:g.score,lives:g.lives,combo:g.combo,bestCombo:g.bestCombo,
   perfect:g.perfect,returns:g.returns,accuracy:g.returns?Math.round(g.perfect*100/g.returns):0,
   kills:g.enemiesKilled,victory:g.victory,reason:g.reason}}
-const api=Object.freeze({make,begin,tick,setView,returnShot,quality,launch,spawnEnemy,phaseAt,sweptPoint,snapshot,
+const api=Object.freeze({make,begin,tick,setView,returnShot,quality,launch,spawnEnemy,phaseAt,sweptPoint,snapshot,laneAt,ATTACK_LANES,
  STEP,DURATION,PHASES,TYPES,V,add,sub,mul,len,norm,clamp});
 root.ReboteCore=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
