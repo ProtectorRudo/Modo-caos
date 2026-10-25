@@ -47,7 +47,7 @@ const server=http.createServer((req,res)=>{
   const base='http://127.0.0.1:'+server.address().port;
   // Even old LAB URLs open the game directly, not a requirement to download.
   await page.goto(base+'/rodeados-manul.html?v=13',{waitUntil:'domcontentloaded'});
-  await page.waitForURL('**/rodeados.html?v=14',{timeout:6500});
+  await page.waitForURL('**/rodeados.html?v=15',{timeout:6500});
   assert.equal(await page.locator('#manulFile').count(),0,'no consumer-visible ZIP/GLB input');
   assert.equal(await page.locator('#manulPanel').count(),0,'manual integration panel cannot appear in arcade');
   await page.waitForFunction(()=>!!globalThis.__RodeadosAutoRobots,null,{timeout:20000});
