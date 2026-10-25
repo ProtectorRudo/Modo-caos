@@ -83,6 +83,9 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__ReboteDebug.arFrames>3&&__ReboteDebug.arDrawCalls>0,null,{timeout:9000});
  assert.equal(await page.locator('#arWorldOverlay canvas').count(),1,'independent WebGL canvas INSIDE the XR DOM overlay');
  assert(await page.locator('#arWorldOverlay canvas').isVisible(),'AR world canvas must be visible, not an offscreen native-only buffer');
+ await page.waitForFunction(()=>document.querySelector('#placementSvg')?.style.display==='block',null,{timeout:4500});
+ assert.match(await page.locator('#placementBorder').getAttribute('d'),/^M/,'world-anchored SVG floor outline is projected from XR eye, even if WebGL compositor is invisible on device');
+ assert.match(await page.locator('#placementGridSvg').getAttribute('d'),/L/,'SVG fallback grid is projected spatially, not screen-fixed');
  assert(await page.evaluate(()=>__ReboteDebug.arCanvas),'composited world canvas remains connected');
  assert.equal(await page.locator('#fix').isDisabled(),false,'fix placement only after visible renderer emitted draw calls');
  const a=await page.evaluate(()=>({scale:__ReboteDebug.scale,root:__ReboteDebug.root}));

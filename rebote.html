@@ -41,6 +41,10 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 #arWorldOverlay{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;display:none}
 #arWorldOverlay canvas{display:block;width:100%!important;height:100%!important;background:transparent!important;pointer-events:none}
 #overlay #arWorldOverlay{z-index:0}
+#placementSvg{position:absolute;inset:0;z-index:1;width:100%;height:100%;display:none;pointer-events:none;overflow:hidden;filter:drop-shadow(0 0 7px #28ffe3)}
+#placementBorder{fill:#07364639;stroke:#64ffef;stroke-width:4;stroke-linejoin:round}
+#placementGridSvg{fill:none;stroke:#93fff4;stroke-width:2;stroke-opacity:.75}
+#placementCross{fill:#faff94;stroke:#073a47;stroke-width:3}
 #overlay{position:absolute;inset:0;z-index:6;pointer-events:none;user-select:none;-webkit-user-select:none}
 #overlay button{pointer-events:auto}
 #screenFx{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:0}
@@ -112,6 +116,10 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
 </main></section>
 <section id="arena"><div id="world"></div><div id="overlay">
 <div id="arWorldOverlay" aria-hidden="true"></div>
+<svg id="placementSvg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<path id="placementBorder"></path><path id="placementGridSvg"></path>
+<circle id="placementCross" r="7"></circle>
+</svg>
 <div id="arConnecting" aria-live="polite">
 <div class="spin" aria-hidden="true"></div>
 <strong id="arConnectingTitle">ABRIENDO REALIDAD AUMENTADA</strong>

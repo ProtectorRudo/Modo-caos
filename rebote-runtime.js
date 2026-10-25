@@ -147,6 +147,55 @@ function checkHit(frame){
   return pose?{h,pose}:null;
  }catch(_){return null}
 }
+const svgMvp=new THREE.Matrix4(),svgView=new THREE.Matrix4(),svgRoot=new THREE.Vector4();
+function projectArenaPoint(x,z,screenW,screenH){
+ svgRoot.set(x,.105,z,1).applyMatrix4(svgMvp);
+ if(svgRoot.w<.03)return null;
+ const px=(svgRoot.x/svgRoot.w*.5+.5)*screenW;
+ const py=(.5-svgRoot.y/svgRoot.w*.5)*screenH;
+ if(!Number.isFinite(px)||!Number.isFinite(py))return null;
+ return [px,py];
+}
+function drawPlacementOutline(frame){
+ const svg=$('placementSvg');
+ if(!session||!frame||!['search','edit'].includes(stage)||!latestHit){
+  svg.style.display='none';return;
+ }
+ const viewer=currentViewer(frame),view=viewer?.views?.[0];
+ if(!view?.projectionMatrix||!view.transform?.inverse?.matrix){
+  svg.style.display='none';return;
+ }
+ const w=innerWidth,h=innerHeight;
+ svg.setAttribute('viewBox','0 0 '+w+' '+h);
+ art.root.updateMatrixWorld(true);
+ svgMvp.fromArray(view.projectionMatrix);
+ svgView.fromArray(view.transform.inverse.matrix);
+ svgMvp.multiply(svgView).multiply(art.root.matrixWorld);
+ const s=1.28*arenaScale,corners=[[-s,-s],[s,-s],[s,s],[-s,s]].map(p=>projectArenaPoint(p[0],p[1],w,h));
+ const pair=p=>p.map(v=>v.toFixed(1)).join(',');
+ // The player may stand INSIDE the arena. Front corners can be behind the
+ // viewer, but the visible rear outline must not disappear with them.
+ let border='';
+ for(let i=0;i<4;i++){
+  const a=corners[i],b=corners[(i+1)%4];
+  if(a&&b)border+='M'+pair(a)+'L'+pair(b);
+ }
+ // Never fill a partially clipped polygon across the phone's viewport.
+ $('placementBorder').style.fill=corners.every(Boolean)?'#07364639':'none';
+ $('placementBorder').setAttribute('d',border);
+ let d='';
+ for(const q of [-.66,-.33,0,.33,.66]){
+  const x=q*s;
+  for(const edge of [[[x,-s],[x,s]],[[-s,x],[s,x]]]){
+   const a=projectArenaPoint(...edge[0],w,h),b=projectArenaPoint(...edge[1],w,h);
+   if(a&&b)d+='M'+pair(a)+'L'+pair(b);
+  }
+ }
+ $('placementGridSvg').setAttribute('d',d);
+ const center=projectArenaPoint(0,0,w,h);
+ if(center){$('placementCross').setAttribute('cx',center[0]);$('placementCross').setAttribute('cy',center[1])}
+ svg.style.display=border||d||center?'block':'none';
+}
 function updatePreview(frame){
  const h=checkHit(frame);
  if(h){
@@ -309,6 +358,7 @@ function animate(t,frame){
   if(game.state==='finished')results();
  }
  art.update(game,t/1000,dt,stage==='search'||stage==='edit');
+ drawPlacementOutline(frame);
  if(stage==='playing'&&!session){qualityFrames++;qualityCost+=dt;if(qualityFrames>=180){
   if(qualityCost/qualityFrames>.038&&renderer.getPixelRatio()>1.1)renderer.setPixelRatio(1.05);
   qualityFrames=0;qualityCost=0;
