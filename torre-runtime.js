@@ -46,7 +46,12 @@ function readSnapshot(){
 }
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
 function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing';ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
-function updateHUD(){ui.hudHeight.textContent=G.score(phase==='settling'?lastTop:top).toString();ui.hudPieces.textContent=states.length.toString();ui.hudRecord.textContent=Math.max(record,G.score(top)).toString()}
+function updateHUD(){
+ ui.hudHeight.textContent=G.score(phase==='settling'?lastTop:top).toString();
+ ui.hudPieces.textContent=states.length.toString();
+ ui.hudRecord.textContent=modeId==='infinite'?Math.max(record,G.score(top)).toString():modeBest().toString();
+ modeHUD();
+}
 function createPlatform(width=1.25){
  if(baseCollider)world.removeCollider(baseCollider,true);
  baseHalf=width;
@@ -287,70 +292,148 @@ function readStates(){
  return pieces;
 }
 function saveRecord(){
+ if(modeId!=='infinite')return;
  const points=G.score(top);if(points>record){record=points;try{localStorage.setItem('mc_torre_record',String(record))}catch(_){}}
+}
+function modeBest(){
+ if(modeId==='infinite')return record;
+ try{return Number(localStorage.getItem('mc_torre_best_'+modeId))||0}catch(_){return 0}
+}
+function saveModeBest(points){
+ if(modeId==='infinite'){saveRecord();return}
+ try{if(points>modeBest())localStorage.setItem('mc_torre_best_'+modeId,String(points))}catch(_){}
+}
+function settleAccepted(pieces){
+ const previousStableHeight=lastTop;
+ lastTop=top;
+ stableBodies=pieces.map(p=>({id:p.id,x:p.x,y:p.y,angle:p.angle}));
+ hi=Math.max(hi,top);
+ saveRecord();updateHUD();
+ if(modeId==='balance'&&states.length%2===0){
+  const half=M.boardHalfWidth('balance',states.length);
+  if(half<baseHalf-.001){createPlatform(half);showText('⚠️ ¡LA BASE SE ESTRECHA!',1400);vibe(16)}
+ }
+ if(modeId==='copy'){
+  const outcome=M.matchTarget(readSnapshot(),G.SHAPES);
+  if(outcome.won){challengeCompleted('objective');return}
+  if(states.length>=3){challengeCompleted('limit');return}
+ }
+ if(modeId==='five'&&states.length>=5){challengeCompleted('limit');return}
+ if(clockRemaining<=0&&M.get(modeId).seconds){challengeCompleted('time');return}
+ if(G.score(top)>=100&&Math.floor(G.score(top)/100)>Math.floor(G.score(previousStableHeight)/100)){
+  soundFX(860,.25,.1);showText('¡'+G.score(top)+' CM!',1100);
+ }
+ makeActive();
 }
 function physicsStep(){
  if(!world||paused||replaying)return;
+ if(modeId==='heavy'&&tiltBody){
+  const angle=2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w);
+  const velocity=tiltBody.angvel().z;
+  tiltBody.addTorque({x:0,y:0,z:-2.8*angle-.9*velocity},true);
+ }
  world.step(queue);steps++;collisionAudio();
+ if(tiltBody){
+  const a=2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w);
+  art.setTilt(a);
+  if((phase==='playing'||phase==='settling')&&Math.abs(a)>.38){tiltFailSeconds+=1/60}
+  else tiltFailSeconds=Math.max(0,tiltFailSeconds-2/60);
+  if(tiltFailSeconds>.7){fail('balanza_volcada');return}
+ }
  const pieces=readStates();
+ if(modeId==='demolition'){
+  if(phase==='settling'){
+   settleTime+=1/60;
+   const moving=states.some(s=>{const v=s.body.linvel(),a=s.body.angvel();return Math.hypot(v.x,v.y)>.16||Math.abs(a.z)>.28});
+   stillTime=moving?0:stillTime+1/60;
+   if(settleTime>1.3&&(stillTime>.65||settleTime>4.8)){
+    scoreDemolition();
+    if(removals>=3||clockRemaining<=0){challengeCompleted('limit');return}
+    phaseTo('playing');renderPack();showText('¿CUÁL RETIRAMOS AHORA?',1000);
+   }
+  }
+  if(steps%6===0)updateHUD();
+  return;
+ }
  if((phase==='playing'||phase==='settling')&&pieces.length){
-  // Remember the *actual* simulation immediately before failure for slow replay,
-  // including collapse occurring AFTER the next piece has already appeared.
   frames.push(pieces.map(p=>({id:p.id,x:p.x,y:p.y,angle:p.angle})));
   if(frames.length>210)frames.shift();
   const latest=states.at(-1);
   if(phase==='settling')settleTime+=1/60;
   const reading=G.diagnoseCollapse(pieces,lastTop,latest.id,stableBodies);
-  const canEvaluate=phase==='playing'||settleTime>.8;
-  if(reading.failed&&canEvaluate){
-   collapseReason=reading.reason;
+  const outsideBalance=modeId==='balance'&&pieces.some(p=>Math.abs(p.x)>baseHalf+.36);
+  if((reading.failed||outsideBalance)&&(phase==='playing'||settleTime>.8)){
+   collapseReason=outsideBalance?'base_perdida':reading.reason;
    collapseSeconds+=1/60;
   }else{
    collapseSeconds=Math.max(0,collapseSeconds-2/60);
    if(!collapseSeconds)collapseReason=null;
   }
-  // A 0.7 second grace period lets shaky but viable stacks recover; scattered
-  // solids or a genuinely toppled previous foundation stay failed.
   if(collapseSeconds>.7){fail(collapseReason);return}
   if(phase==='settling'){
-   const fast=states.some(s=>{
-    const v=s.body.linvel(),w=s.body.angvel();
-    return Math.hypot(v.x,v.y)>.24||Math.abs(w.z)>.45;
-   });
-   stillTime=fast?0:stillTime+1/60;
+   const moving=states.some(s=>{const v=s.body.linvel(),a=s.body.angvel();return Math.hypot(v.x,v.y)>.24||Math.abs(a.z)>.45});
+   stillTime=moving?0:stillTime+1/60;
    if(settleTime>1.2&&(stillTime>.55||settleTime>5.5)){
-    // Never hand out another piece while a collapse is still in progress.
-    if(reading.failed||collapseSeconds>.07){
+    if(reading.failed||collapseSeconds>.07||outsideBalance){
      if(settleTime>9){fail(collapseReason||reading.reason||'estructura_inestable')}
      return;
     }
-    const previousStableHeight=lastTop;
-    lastTop=top;
-    stableBodies=pieces.map(p=>({id:p.id,x:p.x,y:p.y,angle:p.angle}));
-    hi=Math.max(hi,top);saveRecord();updateHUD();
-    if(G.score(top)>=100&&Math.floor(G.score(top)/100)>Math.floor(G.score(previousStableHeight)/100)){
-     soundFX(860,.25,.1);showText('¡'+G.score(top)+' CM! ALTURA IMPARABLE',1100);
-    }
-    makeActive();
+    settleAccepted(pieces);
    }
   }
  }
  if(steps%6===0)updateHUD();
+}
+function challengeCompleted(reason='time'){
+ if(phase==='finished'||phase==='replay')return;
+ const cfg=M.get(modeId);
+ if(modeId==='infinite'){finish('¡TORRE LEGENDARIA!');return}
+ if(active){art.releaseActive();active=null}
+ const metric=modeId==='demolition'?demolitionPoints:modeId==='copy'?M.matchTarget(readSnapshot(),G.SHAPES).matched:G.score(hi);
+ const result=M.outcome(modeId,{height:hi,placed:states.length,timeLeft:clockRemaining,matched:modeId==='copy'?metric:0,fallen:demolitionMarks,tilt:tiltBody?Math.abs(2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w)):0});
+ const prior=modeBest();saveModeBest(metric);
+ phaseTo('finished');
+ $('resultTitle').textContent=result.title;
+ $('resultNote').textContent=result.detail+(metric>prior?' · 🏆 ¡NUEVO RÉCORD!':'');
+ $('finalHeight').textContent=modeId==='demolition'?metric+' pts':modeId==='copy'?metric+'/3':metric+' cm';
+ $('resultMetric').textContent=modeId==='demolition'?'PUNTOS DE DEMOLICIÓN':modeId==='copy'?'PIEZAS EN SU SILUETA':'ALTURA ESTABLE';
+ $('finalPieces').textContent=modeId==='demolition'?removals:states.length;
+ $('finalRecord').textContent=modeBest()+(modeId==='demolition'?' pts':modeId==='copy'?'/3':' cm');
+ soundFX(result.won?760:230,.19,.1);vibe(result.won?20:9);
 }
 function fail(reason='torre_derrumbada'){
  if(phase!=='playing'&&phase!=='settling')return;
  collapseReason=reason;
  top=lastTop;saveRecord();
  active=null;art.releaseActive();
- phaseTo('replay');
- replayFrames=frames.slice(-110);
+ phaseTo('replay');replayFrames=frames.slice(-110);
  replayTime=0;replayStartAt=performance.now();replaying=true;
- showText('¡TORRE DERRUMBADA!',1800);
+ showText(reason==='balanza_volcada'?'¡LA BALANZA VOLCÓ!':'¡TORRE DERRUMBADA!',1600);
  soundFX(90,.32,.17,'sawtooth');vibe(45);
  if(!replayFrames.length)endReplay();
 }
-function endReplay(){replaying=false;phaseTo('finished');const pts=G.score(hi);$('finalHeight').textContent=pts+' cm';$('finalPieces').textContent=states.length;$('finalRecord').textContent=record+' cm';$('resultTitle').textContent='TORRE DERRUMBADA';$('resultNote').textContent=pts>startingRecord?'🏆 ¡NUEVO RÉCORD PERSONAL!':'¿Te animás a superar tu torre?';updateHUD()}
-function finish(title){saveRecord();phaseTo('finished');$('finalHeight').textContent=G.score(hi)+' cm';$('finalPieces').textContent=states.length;$('finalRecord').textContent=record+' cm';$('resultTitle').textContent=title}
+function endReplay(){
+ replaying=false;phaseTo('finished');
+ const points=G.score(hi);
+ const previous=modeBest();
+ saveModeBest(points);
+ $('finalHeight').textContent=points+' cm';
+ $('resultMetric').textContent='ALTURA ESTABLE';
+ $('finalPieces').textContent=states.length;
+ $('finalRecord').textContent=modeBest()+' cm';
+ $('resultTitle').textContent=collapseReason==='balanza_volcada'?'¡BALANZA VOLCADA!':'TORRE DERRUMBADA';
+ $('resultNote').textContent=points>previous?'🏆 ¡NUEVO RÉCORD PERSONAL!':'La próxima torre llegará más alto.';
+ updateHUD();
+}
+function finish(title){
+ saveRecord();phaseTo('finished');
+ $('finalHeight').textContent=G.score(hi)+' cm';
+ $('resultMetric').textContent='ALTURA ESTABLE';
+ $('finalPieces').textContent=states.length;
+ $('finalRecord').textContent=record+' cm';
+ $('resultTitle').textContent=title;
+ $('resultNote').textContent='¡Construcción legendaria!';
+}
 function paintReplay(dt){
  // Use actual elapsed time, not capped render-frame delta; AR phones with low
  // FPS must never leave the player trapped in an endless replay.
@@ -361,12 +444,26 @@ function paintReplay(dt){
  if(i>=replayFrames.length-1||elapsed>4){endReplay()}
 }
 function newGame(){
- startingRecord=record;editing=false;paused=false;startPhysics();ui.results.hidden=true;makeActive();$('introRecord').textContent='RÉCORD: '+record+' CM';
+ startingRecord=record;editing=false;paused=false;startPhysics();ui.results.hidden=true;
+ if(modeId==='demolition')createDemolitionTower();
+ else makeActive();
+ $('introRecord').textContent=modeId==='infinite'?'RÉCORD: '+record+' CM':M.get(modeId).short.toUpperCase();
+ modeHUD();
 }
 function tick(time,frame){
  const dt=Math.min(.05,Math.max(0,(time-lastTime)/1000||.016));lastTime=time;
  if(session&&frame)xrFrame(time,frame);
- if(phase==='playing'||phase==='settling'){if(!paused){acc=Math.min(.12,acc+dt);let k=0;while(acc>=1/60&&k++<6){physicsStep();acc-=1/60}}}
+ if((phase==='playing'||phase==='settling')&&!paused){
+  if(M.get(modeId).seconds){
+   clockRemaining=Math.max(0,clockRemaining-dt);
+   if(clockRemaining<=0&&phase==='playing'){challengeCompleted('time')}
+   else if(steps%8===0)modeHUD();
+  }
+  if(phase==='playing'||phase==='settling'){
+   acc=Math.min(.12,acc+dt);
+   let k=0;while(acc>=1/60&&k++<6){physicsStep();acc-=1/60;if(phase==='finished'||phase==='replay')break}
+  }
+ }
  if(replaying)paintReplay(dt);
  if(art)art.frame(Math.max(top,hi*.8),dt);
  if(time-miniTimer>160){drawMini();miniTimer=time}
