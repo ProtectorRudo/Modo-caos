@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const D=require('../torre-demolition.js');
+const p=(x1,y1,x2,y2)=>[{x:x1,y:y1},{x:x2,y:y1},{x:x2,y:y2},{x:x1,y:y2}];
+assert.equal(D.COLORS.length,8);assert.equal(new Set(D.COLORS).size,8);
+for(let n=1;n<=8;n++)assert.equal(D.color(n),D.COLORS[n-1]);
+assert.equal(D.color(9),D.color(1));
+assert.equal(D.pointInPolygon(p(10,20,90,100),50,50),true);
+assert.equal(D.pointInPolygon(p(10,20,90,100),130,50),false);
+assert.equal(D.pointInPolygon(p(10,20,90,100),10,40),true);
+assert.equal(D.pointInPolygon([],50,50),false);
+assert.equal(D.hitAt([{id:2,depth:.8,polygon:p(10,10,100,100)},{id:7,depth:.2,polygon:p(40,40,110,110)}],60,60),7);
+assert.equal(D.hitAt([{id:2,depth:.8,polygon:p(10,10,100,100)}],300,350),null);
+assert.equal(D.hitAt([{id:2,depth:NaN,polygon:p(10,10,100,100)}],50,50),null);
+assert.equal(D.isTap({x:10,y:10},{x:17,y:19}),true);
+assert.equal(D.isTap({x:10,y:10},{x:80,y:30}),false);
+console.log('TORRE demolition: direct hit regions, near-surface priority, swipe immunity & colour variety PASS');
