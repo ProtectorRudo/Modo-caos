@@ -1,0 +1,32 @@
+name: REBOTE MORTAL — quality gate
+on:
+  push:
+    branches: ['feat/rebote-mortal-ar', main]
+    paths: ['rebote*', 'tests/rebote*', '.github/workflows/rebote-tests.yml', 'index.html']
+  pull_request:
+    paths: ['rebote*', 'tests/rebote*', '.github/workflows/rebote-tests.yml']
+permissions:
+  contents: read
+jobs:
+  physics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: node --check rebote-core.js
+      - run: node --check rebote-art.js
+      - run: node --check rebote-runtime.js
+      - run: node --test tests/rebote.test.cjs
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: npm install --ignore-scripts --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/rebote-browser.test.cjs
