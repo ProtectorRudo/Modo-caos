@@ -17,7 +17,7 @@ const redLight=new THREE.PointLight(0xff785a,2.3,8);redLight.position.set(0,2,-2
 const art=createReboteArt(THREE,scene);
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 let game=G.make(),stage='home',demo=false,session=null,space=null,hitSource=null,anchor=null,anchorDelta=null;
-let latestHit=null,lastFrame=null,trackedEye=null,calStart=0,samples=[],calibrated=false,calibrationMotion=null;
+let latestHit=null,pendingAnchorHit=null,lastFrame=null,trackedEye=null,calStart=0,samples=[],calibrated=false,calibrationMotion=null;
 let fixed=false,previewPosition=V(),previewYaw=0,move=V(),yaw=0,arenaScale=1,fixPending=false;
 let timePrev=0,hudPrev=0,demoYaw=0,demoPitch=0,lastAim=null,lastAimAt=0,trackingAt=0;
 let effectsSeen=new WeakSet(),audioCtx=null,sounds=true,beeped=new Set(),pausedForTracking=false;
@@ -130,7 +130,7 @@ function updatePreview(frame){
 }
 function fixArena(){
  if(stage!=='edit'||!latestHit)return;
- fixed=true;fixPending=true;latestHit=null;
+ fixed=true;fixPending=true;pendingAnchorHit=latestHit;latestHit=null;
  setStage('calibrate');calStart=0;samples=[];calibrationMotion=null;
  status('📍 ARENA FIJADA');$('message').textContent='SOSTENÉ EL TELÉFONO QUIETO · CALIBRANDO';
  vibration(40);
@@ -198,9 +198,10 @@ function pause(){if(stage==='playing'){game.paused=true;setStage('paused');$('me
 function updateAnchor(frame){
  if(fixPending){
   fixPending=false;
-  if(typeof latestHit?.createAnchor==='function'){
-   try{Promise.resolve(latestHit.createAnchor()).then(a=>{if(!session){a.delete?.();return}anchor=a;anchorDelta=null}).catch(()=>{})}catch(_){}
+  if(typeof pendingAnchorHit?.createAnchor==='function'){
+   try{Promise.resolve(pendingAnchorHit.createAnchor()).then(a=>{if(!session){a.delete?.();return}anchor=a;anchorDelta=null}).catch(()=>{})}catch(_){}
   }
+  pendingAnchorHit=null;
  }
  if(!anchor||!space)return;
  try{
