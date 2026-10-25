@@ -117,6 +117,8 @@ const server=http.createServer((req,res)=>{
  assert(await page.evaluate(()=>__ReboteDebug.arDrawCalls)>8,'rounded mech and arena contribute visible WebGL geometry');
 
  assert(await page.locator('#returnBtn').isVisible(),'return button active in real XR overlay');
+ assert(await page.locator('#tapZone').isVisible(),'AR can parry by tapping anywhere in the lower zone');
+
  assert(await page.locator('#radar').isVisible(),'AR radar shows orientation information for offscreen robots');
  assert(await page.locator('#duelHud').isVisible(),'AR duel HUD exists after physical calibration');
  assert.equal(await page.evaluate(()=>__ReboteDebug.duelEnemies),1,'one physical opponent in AR');
