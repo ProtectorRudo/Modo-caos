@@ -64,7 +64,7 @@ export function createReboteArt(T,scene){
  }
  function makeBall(p){
   const group=new T.Group();shotLayer.add(group);
-  const material=new T.MeshBasicMaterial({color:p.returning?0x6effea:p.type==='pesada'?0xffc35a:p.type==='fantasma'?0xaf8bf9:0xff744d});
+  const material=new T.MeshBasicMaterial({color:p.returning?0x6effea:p.type==='pesada'?0xffc35a:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0xaf8bf9:0xff744d,transparent:p.type==='fake',opacity:p.type==='fake'?.38:1});
   const core=mesh(sphereG,material,group,[0,0,0],[p.radius*.73,p.radius*.73,p.radius*.73]);
   const shell=new T.Mesh(new T.SphereGeometry(1,20,12),new T.MeshBasicMaterial({color:p.returning?0x7cfff4:0xff6a33,transparent:true,opacity:.20,depthWrite:false}));
   shell.scale.setScalar(p.radius*1.42);group.add(shell);
@@ -108,12 +108,13 @@ export function createReboteArt(T,scene){
    group.position.set(p.pos.x,p.pos.y,p.pos.z);
    group.rotation.z+=dt*3;
    const m=group.userData;
-   m.material.color.setHex(p.returning?0x65ffe7:p.type==='pesada'?0xffcd67:p.type==='fantasma'?0x9c80e9:0xff693b);
+   m.material.color.setHex(p.returning?0x65ffe7:p.type==='pesada'?0xffcd67:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0x9c80e9:0xff693b);
    m.shell.material.color.setHex(p.returning?0x7cfff5:0xff7939);
    m.halo.rotation.y+=dt*4.7;
    const flicker=1+.11*Math.sin(time*28+p.id);
    group.scale.setScalar(flicker*(p.grade==='PERFECTO'&&p.returning?1.33:1));
-   m.shell.material.opacity=.19+.07*Math.sin(time*23+p.id);
+   m.material.opacity=p.type==='fake'?.28+.12*Math.sin(time*12):1;
+   m.shell.material.opacity=p.type==='fake'?.09:.19+.07*Math.sin(time*23+p.id);
    if(p.returning&&Math.random()<.43)spark(p.pos,0x5effea,2,.2,.36);
   }
   for(const [id,group] of shots)if(!g.projectiles.some(p=>p.id===id)){
