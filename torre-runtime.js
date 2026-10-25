@@ -2,8 +2,8 @@ import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.
 import {THREE,TorreArt,BLOCK,DEPTH} from './torre-art.js';
 const G=window.TorreCore,M=window.TorreModes,$=id=>document.getElementById(id);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), PI=Math.PI;
-const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
-let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayStartAt=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,modeId='infinite',targetIndex=0,currentTarget=M.TARGET,clockRemaining=0,baseHalf=1.25,baseBody=null,baseCollider=null,tiltBody=null,tiltFailSeconds=0,removals=0,demolitionStart=[],demolitionRemoved=[],demolitionMarks=0,demolitionPoints=0,modeOutcome='',stableBodies=[],collapseSeconds=0,collapseReason=null,startingRecord=0;
+const ui={home:$('home'),overlay:$('overlay'),notice:$('notice'),hud:$('hud'),tip:$('tip'),stage:$('stage'),hudHeight:$('height'),hudRecord:$('recordHud'),hudPieces:$('pieces'),blockName:$('blockName'),pieceDock:$('pieceDock'),pieceSlots:$('pieceSlots'),packCounter:$('packCounter'),copyReference:$('copyReference'),copyCanvas:$('copyCanvas'),copyProgress:$('copyProgress'),mini:$('mini'),results:$('results'),status:$('status'),xrScene:$('xrScene'),xrDraw:$('xrDraw'),xrPaint:$('xrPaint'),xrState:$('xrState'),arControls:$('arControls'),gesture:$('gesture'),replay:$('replay'),setup:$('setup')};
+let art=null,world=null,queue=null,states=[],active=null,random=G.rng(2026),nextId=1,settleTime=0,stillTime=0,lastTop=0,top=0,hi=0,steps=0,acc=0,lastTime=0,mode='demo',phase='home',paused=false,trackSource=null,ref=null,session=null,latestHit=null,hitSeen=0,anchor=null,fixedPose=null,rawPose=null,shift={x:0,z:0},yaw=0,scale=1,drag=null,pinch=null,frames=[],replayTime=0,replayStartAt=0,replayFrames=[],replaying=false,record=0,sound=true,haptic=true,audio=null,noticeTimer=0,miniTimer=0,lastHit=null,lastSound=0,editing=false,resumePhase='playing',packRound=0,stock=[],selectedIndex=-1,trayTouch=null,twist=null,modeId='infinite',targetIndex=0,currentTarget=M.TARGET,copyMatched=0,clockRemaining=0,baseHalf=1.25,baseBody=null,baseCollider=null,tiltBody=null,tiltFailSeconds=0,removals=0,demolitionStart=[],demolitionRemoved=[],demolitionMarks=0,demolitionPoints=0,modeOutcome='',stableBodies=[],collapseSeconds=0,collapseReason=null,startingRecord=0;
 try{record=Number(localStorage.getItem('mc_torre_record')||0)||0}catch(_){}
 $('introRecord').textContent='RÉCORD: '+record+' CM';
 function selectGameMode(id){
@@ -30,12 +30,66 @@ function selectGameMode(id){
  const requested=new URLSearchParams(location.search).get('modo');
  selectGameMode(requested&&M.MODES[requested]?requested:'infinite');
 })();
+
+/** Independent reference image. No target geometry enters the AR world.
+ * Draw a crisp illustration from the SAME physical polygons as the game.
+ * Canvas is not the construction surface, and never accepts input.
+ */
+function drawCopyBlueprint(){
+ const canvas=ui.copyCanvas,ctx=canvas.getContext('2d');
+ if(!ctx||!currentTarget?.length)return;
+ const w=canvas.width,h=canvas.height;
+ ctx.clearRect(0,0,w,h);
+ const bg=ctx.createLinearGradient(0,0,w,h);
+ bg.addColorStop(0,'#163750');bg.addColorStop(1,'#0a182c');
+ ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+ ctx.strokeStyle='#7bc4ce15';ctx.lineWidth=1;
+ for(let x=12;x<w;x+=24){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
+ for(let y=14;y<h;y+=24){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ const figures=currentTarget.map(t=>{
+  const shape=G.SHAPES.find(s=>s.id===t.shape);
+  return {t,shape,parts:shape.parts.map(poly=>G.rotated(poly,t.angle).map(([u,v])=>[t.x+u*BLOCK,t.y+v*BLOCK]))};
+ });
+ const points=figures.flatMap(f=>f.parts.flatMap(p=>p));
+ const lo=Math.min(...points.map(p=>p[0])),hi=Math.max(...points.map(p=>p[0]));
+ const ymax=Math.max(...points.map(p=>p[1])),ymin=.14;
+ const scaleX=(w-65)/Math.max(.38,hi-lo);
+ const scaleY=(h-65)/Math.max(.44,ymax-ymin);
+ const sc=Math.min(scaleX,scaleY,240);
+ const offset=(hi+lo)*.5;
+ const X=x=>w*.5+(x-offset)*sc;
+ const Y=y=>h-40-(y-ymin)*sc;
+ const bottom=Y(.14);
+ ctx.fillStyle='#234b62';ctx.fillRect(16,bottom+3,w-32,12);
+ ctx.strokeStyle='#7bffe3';ctx.lineWidth=4;
+ ctx.beginPath();ctx.moveTo(19,bottom+2);ctx.lineTo(w-19,bottom+2);ctx.stroke();
+ const colors=['#35e5cf','#ffbf67','#81a1ff','#ff829c','#b78aff','#ff996e','#bce981'];
+ for(const f of figures){
+  const color=colors[f.shape.tone%colors.length];
+  for(const poly of f.parts){
+   const path=()=>{ctx.beginPath();poly.forEach(([x,y],i)=>i?ctx.lineTo(X(x),Y(y)):ctx.moveTo(X(x),Y(y)));ctx.closePath()};
+   ctx.save();ctx.translate(5,5);path();ctx.fillStyle='#051728';ctx.globalAlpha=.65;ctx.fill();ctx.restore();
+   path();ctx.fillStyle=color;ctx.fill();
+   path();ctx.strokeStyle='#f0fffe';ctx.lineWidth=3;ctx.stroke();
+   ctx.save();ctx.clip();
+   const glow=ctx.createLinearGradient(0,0,w,h);
+   glow.addColorStop(0,'#ffffff75');glow.addColorStop(1,'#ffffff00');
+   ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);ctx.restore();
+  }
+ }
+ ctx.fillStyle='#a2d7df';ctx.font='bold 15px system-ui';
+ ctx.textAlign='center';ctx.fillText('MODELO DE REFERENCIA',w/2,22);
+ $('copyTitle').textContent=M.TARGET_NAMES[targetIndex];
+ $('copyProgress').textContent='0/'+currentTarget.length;
+ ui.copyReference.dataset.perfect='false';
+}
 function modeHUD(){
  const cfg=M.get(modeId);let message=cfg.icon+' '+cfg.name.toUpperCase();
  if(cfg.seconds)message+=' · '+Math.ceil(Math.max(0,clockRemaining))+'s';
  if(modeId==='balance')message+=' · BASE '+Math.round(baseHalf*200)+' CM';
  if(modeId==='heavy')message+=' · INCLINACIÓN '+Math.round(Math.abs(tiltBody?2*Math.atan2(tiltBody.rotation().z,tiltBody.rotation().w):0)*180/Math.PI)+'°';
- if(modeId==='copy')message+=' · '+M.TARGET_NAMES[targetIndex]+' '+M.matchTarget(readSnapshot(),currentTarget).matched+'/3';
+ if(modeId==='copy')message+=' · '+M.TARGET_NAMES[targetIndex]+' · '+copyMatched+'/3';
+ if(modeId==='copy'){ui.copyProgress.textContent=copyMatched+'/'+currentTarget.length;ui.copyReference.dataset.perfect=String(copyMatched===currentTarget.length)}
  if(modeId==='five')message+=' · '+Math.max(0,5-states.length)+' RESTANTES';
  if(modeId==='demolition')message+=' · '+(3-removals)+' EXTRACCIONES · '+demolitionPoints+' PTS';
  $('modeStatus').textContent=message;
@@ -45,7 +99,7 @@ function readSnapshot(){
  return states.map(s=>{const p=s.body.translation(),q=s.body.rotation();return {id:s.id,shape:s.shape.id,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}})
 }
 function showText(text,t=2500){ui.notice.textContent=text;ui.notice.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>ui.notice.style.opacity='0',t)}
-function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing'||modeId==='demolition';ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
+function phaseTo(p){phase=p;ui.stage.dataset.phase=p;ui.overlay.dataset.mode=modeId;ui.copyReference.hidden=modeId!=='copy'||(p!=='playing'&&p!=='settling');ui.hud.hidden=!(p==='playing'||p==='settling'||p==='replay'||p==='finished'||p==='paused');ui.arControls.hidden=!(p==='placing');ui.results.hidden=p!=='finished';ui.replay.hidden=p!=='replay';ui.setup.hidden=true;ui.xrState.hidden=p!=='placing';ui.xrScene.hidden=mode!=='ar'||p==='home';ui.xrDraw.hidden=ui.xrScene.hidden;ui.xrPaint.hidden=ui.xrScene.hidden;ui.mini.hidden=p==='placing'||p==='home'||modeId==='copy';$('miniBtn').hidden=ui.mini.hidden;ui.blockName.hidden=p!=='playing'||modeId==='demolition';ui.tip.hidden=p!=='playing';ui.pieceDock.hidden=!(p==='playing'||p==='settling');$('modeStatus').hidden=p==='home'||p==='placing';ui.gesture.style.pointerEvents=(p==='placing'||p==='playing')?'auto':'none';}
 function updateHUD(){
  $('hudHeightLabel').textContent=modeId==='demolition'?'PUNTOS':'ALTURA';
  ui.hudHeight.textContent=modeId==='demolition'?demolitionPoints.toString():G.score(phase==='settling'?lastTop:top).toString();
@@ -90,7 +144,7 @@ function startPhysics(){
   const requested=Number(new URLSearchParams(location.search).get('figura'));
   const valid=new URLSearchParams(location.search).has('figura')&&Number.isInteger(requested)&&requested>=0&&requested<M.TARGETS.length;
   targetIndex=valid?requested:Math.floor(Math.random()*M.TARGETS.length);
-  currentTarget=M.TARGETS[targetIndex];art.setTarget(currentTarget,G.SHAPES);
+  currentTarget=M.TARGETS[targetIndex];copyMatched=0;art.setTarget([],[]);drawCopyBlueprint();
  }
  $('pieceDock').dataset.demolition=String(modeId==='demolition');
  $('pieceDock').dataset.five=String(modeId==='five');
@@ -325,6 +379,9 @@ function settleAccepted(pieces){
  }
  if(modeId==='copy'){
   const outcome=M.matchTarget(readSnapshot(),currentTarget);
+  const wasMatched=copyMatched;copyMatched=outcome.matched;modeHUD();
+  if(copyMatched>wasMatched){soundFX(830,.14,.075,'sine');vibe(10);showText('✓ ¡COINCIDE! '+copyMatched+'/3 PIEZAS',1400)}
+  else if(states.length<3){showText('COMPARÁ TU CONSTRUCCIÓN CON LA IMAGEN',1350)}
   if(outcome.won){challengeCompleted('objective');return}
   if(states.length>=3){challengeCompleted('limit');return}
  }
@@ -497,7 +554,7 @@ function drawMini(){
  const viewHeight=modeId==='copy'?Math.max(1.32,top+.2):Math.max(2.6,top+.65,hi+.65);const px=Math.min(w/2.9,(h-20)/viewHeight);
  const X=x=>w/2+x*px, Y=y=>h-15-(y+.04)*px;
  ctx.strokeStyle='#84f7e8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(-baseHalf),Y(.14));ctx.lineTo(X(baseHalf),Y(.14));ctx.stroke();
- if(modeId==='copy'){
+ if(false){ // No blueprint ghost in the user's own tower/map.
   ctx.save();ctx.strokeStyle='#ffe1a1';ctx.lineWidth=2.5;ctx.setLineDash([5,3]);
   for(const t of currentTarget){
    const shape=G.SHAPES.find(sh=>sh.id===t.shape);
@@ -731,10 +788,6 @@ function renderARSpatial(frame,time){
  }
  if(phase==='placing'&&!editing)piece(G.SHAPES[0],0,.145+BLOCK*.5,0,.95);
  else{
-  if(modeId==='copy')for(const t of currentTarget){
-   const shape=G.SHAPES.find(s=>s.id===t.shape);
-   if(shape)piece(shape,t.x,t.y,t.angle,.20);
-  }
   const all=states.map(item=>{const p=item.body.translation(),q=item.body.rotation();return {shape:item.shape,x:p.x,y:p.y,angle:2*Math.atan2(q.z,q.w)}}).sort((a,b)=>b.y-a.y);
   for(const it of all)piece(it.shape,it.x,it.y,it.angle,.93);
   if(active)piece(active.shape,active.x,active.y,active.angle,.92);
