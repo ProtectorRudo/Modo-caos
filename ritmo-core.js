@@ -23,14 +23,17 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
  }
  const notes=[];let lane=2,lastAt=0;
  const spacing={facil:2.5,normal:2,dificil:1.5,caos:1.25}[difficulty]||2;
+ const accentEvents=!melodyEvents.length&&Array.isArray(song.rhythmBeats)&&song.rhythmBeats.length>=12
+  ?song.rhythmBeats.filter(b=>b>=4&&b<song.bars*4-3).map(b=>({beat:b,pitch:null})):[];
+ const targetEvents=melodyEvents.length?melodyEvents:accentEvents;
  let beatIndex=4,eventCursor=0;
  const gapBeats={facil:2.5,normal:1.55,dificil:1.10,caos:.78}[difficulty]||1.55;
  while(beatIndex<song.bars*4-3){
   let noteEvent=null;
-  if(melodyEvents.length){
-   while(eventCursor<melodyEvents.length&&melodyEvents[eventCursor].beat<beatIndex-.001)eventCursor++;
-   if(eventCursor>=melodyEvents.length)break;
-   noteEvent=melodyEvents[eventCursor++];beatIndex=noteEvent.beat;
+  if(targetEvents.length){
+   while(eventCursor<targetEvents.length&&targetEvents[eventCursor].beat<beatIndex-.001)eventCursor++;
+   if(eventCursor>=targetEvents.length)break;
+   noteEvent=targetEvents[eventCursor++];beatIndex=noteEvent.beat;
   }
   let when=phase+beatIndex*beat,dt=when-lastAt;
   if(when>=duration-.6)break;
@@ -48,9 +51,9 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
   let type=chaos?'caos':special?'special':hold?'hold':slide?'slide':'simple';
   const holdTime=hold?Math.min(.64,spacing*beat*.42):0;
   notes.push({id:seq,lane,fromLane,at:when,type,hold:holdTime,slideDuration:slide?Math.min(.73,dt*.72):0,beat:beatIndex,
-    pitch:noteEvent?noteEvent.pitch:song.lead[(Math.floor(beatIndex/2)+song.beat)%song.lead.length],status:'pending'});
-  lastAt=when;beatIndex+=melodyEvents.length?gapBeats:spacing;
-  if(difficulty==='caos'&&seq%17===14&&!melodyEvents.length)beatIndex+=.25;
+    pitch:noteEvent&&Number.isFinite(noteEvent.pitch)?noteEvent.pitch:song.lead[(Math.floor(beatIndex/2)+song.beat)%song.lead.length],status:'pending'});
+  lastAt=when;beatIndex+=targetEvents.length?gapBeats:spacing;
+  if(difficulty==='caos'&&seq%17===14&&!targetEvents.length)beatIndex+=.25;
  }
  return {songId,song,difficulty,notes,duration,beat,laneWidth,active};
 }
