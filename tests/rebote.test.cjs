@@ -90,3 +90,36 @@ test('escudo del jefe se anuncia en core durante las ventanas de bloqueo',()=>{
   assert.equal(boss.shield,Math.sin(g.elapsed*1.75)>.80,'visual shield matches actual parry window');
  }
 });
+
+test('7 trayectorias de pelota: centro, lateral, alta, baja y diagonal, sin giros inseguros',()=>{
+ const expected=['CENTRO','DERECHA','ALTA','IZQUIERDA','BAJA','ALTA DERECHA','BAJA IZQUIERDA'];
+ assert.deepEqual(G.ATTACK_LANES.map(x=>x.name),expected);
+ const g=G.make({seed:16});G.begin(g);g.projectiles=[];
+ const origins=[],aims=[];
+ for(let i=0;i<7;i++){
+  const lane=G.laneAt(i);
+  assert(Math.abs(lane.x)<=.45&&Math.abs(lane.y)<=.41,'desplazamiento alcanzable con el teléfono');
+  g.projectiles=[];assert(G.launch(g,'normal'));
+  const p=g.projectiles.find(p=>p.type==='normal');
+  assert.equal(p.lane,lane.name);
+  assert(Math.abs(p.muzzleY-(1.48+lane.y*.95))<.03,'la altura del emisor varía con cada patrón');
+  origins.push(p.pos.y);aims.push(p.aimOffset);
+ }
+ assert(Math.max(...origins)-Math.min(...origins)>.55,'las pelotas parten físicamente desde alturas distintas');
+ assert(aims.some(a=>a.x>.3)&&aims.some(a=>a.x<-.3),'ataques laterales reales');
+ assert(aims.some(a=>a.y>.3)&&aims.some(a=>a.y<-.3),'ataques altos y bajos reales');
+});
+test('DEVOLVER genera ricochet físico con punto de contacto para animación',()=>{
+ const g=G.make({seed:7});G.begin(g);g.projectiles=[];g.nextShot=999;
+ const e=g.enemies[0],ball={id:501,type:'normal',pos:G.V(0,1.55,-.52),prev:G.V(0,1.55,-.52),velocity:G.V(0,0,1.8),speed:1.8,radius:.17,age:.7,returning:false,dead:false,targetId:e.id,lane:'ALTA'};
+ g.projectiles=[ball];G.setView(g,G.V(0,1.55,.05),G.V(0,0,-1));
+ const original={...ball.pos},r=G.returnShot(g);
+ assert.equal(r.ok,true);assert.equal(ball.returning,true);
+ assert.deepEqual(ball.bounceFrom,original);
+ assert.equal(ball.bounceGrade,r.grade);
+ assert(ball.velocity.z<0,'rebote invierte el trayecto hacia el robot');
+ const fx=g.effects.find(e=>e.type==='return'&&e.id===501);
+ assert(fx&&fx.y===original.y&&fx.z===original.z,'efecto visual en el punto de contacto real');
+ G.tick(g,.14);
+ assert(ball.pos.z<original.z,'la pelota realmente regresa por el espacio 3D');
+});

@@ -50,7 +50,7 @@ export function createReboteArt(T,scene){
  const botLayer=new T.Group();root.add(botLayer);
  const shotLayer=new T.Group();root.add(shotLayer);
  const fxLayer=new T.Group();root.add(fxLayer);
- const bots=new Map(),shots=new Map(),particles=[];
+ const bots=new Map(),shots=new Map(),particles=[],ripples=[];
  const sphereG=new T.SphereGeometry(1,18,14),capsuleG=new T.CylinderGeometry(1,1,1,10);
  // Rounded, reusable hull geometry replaces the sharp voxel cubes.
  const hullShape=new T.Shape();
@@ -63,6 +63,32 @@ export function createReboteArt(T,scene){
  const sharedRobotGeometries=new Set([hullG,sphereG,capsuleG]);
  // Shared projectile geometry avoids compiling/allocating a new geometry for every shot.
  const shellG=new T.SphereGeometry(1,20,12),haloG=new T.TorusGeometry(1,.09,6,30);
+ const seamG=new T.TorusGeometry(1,.032,6,48),rippleG=new T.TorusGeometry(1,.042,8,52);
+ // Procedural panel pattern: a recognizable glossy BALL, not a flat neon disc.
+ // The texture is generated locally; no files to download or third-party CDNs.
+ const textureCanvas=document.createElement('canvas');
+ textureCanvas.width=256;textureCanvas.height=128;
+ const ctx=textureCanvas.getContext('2d');
+ ctx.fillStyle='#f9e8ce';ctx.fillRect(0,0,256,128);
+ for(let row=0;row<3;row++)for(let col=0;col<7;col++){
+  const cx=col*43+(row%2)*21,cy=row*45+6;
+  ctx.fillStyle=(row+col)%3===0?'#ef603b':'#ffae61';
+  ctx.strokeStyle='#713a31';ctx.lineWidth=3;
+  ctx.beginPath();
+  for(let k=0;k<6;k++){
+   const a=k*Math.PI/3,px=cx+21*Math.cos(a),py=cy+22*Math.sin(a);
+   if(!k)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+  }
+  ctx.closePath();ctx.fill();ctx.stroke();
+ }
+ for(const x of [22,112,205]){
+  ctx.strokeStyle='#fff5de';ctx.lineWidth=7;ctx.beginPath();
+  ctx.moveTo(x,-10);ctx.bezierCurveTo(x+25,35,x-25,78,x+6,138);ctx.stroke();
+ }
+ const ballTexture=new T.CanvasTexture(textureCanvas);
+ ballTexture.colorSpace=T.SRGBColorSpace;
+ ballTexture.wrapS=T.RepeatWrapping;
+ const ballColor=new T.Color();
  const sharedRobotMaterials=new Set([dark,steel,edge,carbon,armor,warm,blue,orange,red]);
  function mesh(geo,material,parent,pos,scale){
   const m=new T.Mesh(geo,material);m.position.set(...pos);m.scale.set(...scale);parent.add(m);return m
@@ -155,18 +181,40 @@ export function createReboteArt(T,scene){
  }
  function makeBall(p){
   const group=new T.Group();shotLayer.add(group);
-  const material=new T.MeshBasicMaterial({color:p.returning?0x6effea:p.type==='pesada'?0xffc35a:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0xaf8bf9:0xff9a61,transparent:true,opacity:p.type==='fake'?.27:1});
-  const core=mesh(sphereG,material,group,[0,0,0],[p.radius*.80,p.radius*.80,p.radius*.80]);
-  const shine=new T.Mesh(new T.SphereGeometry(1,12,9),new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.65,depthWrite:false}));
-  shine.position.set(-p.radius*.24,p.radius*.22,p.radius*.48);
-  shine.scale.setScalar(p.radius*.21);group.add(shine);
-  const shell=new T.Mesh(shellG,new T.MeshBasicMaterial({color:p.returning?0x7cfff4:0xff6a33,transparent:true,opacity:.20,depthWrite:false}));
-  shell.scale.setScalar(p.radius*1.42);group.add(shell);
-  const halo=new T.Mesh(haloG,new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false}));
-  halo.scale.setScalar(p.radius*1.24);group.add(halo);
+  const spin=new T.Group();group.add(spin);
+  const material=new T.MeshStandardMaterial({
+   map:ballTexture,color:0xffffff,metalness:.12,roughness:.25,
+   emissive:0xff6436,emissiveIntensity:.23,
+   transparent:p.type==='fake',opacity:p.type==='fake'?.40:1
+  });
+  const core=mesh(sphereG,material,spin,[0,0,0],[p.radius,p.radius,p.radius]);
+  // Bands rotate with the sphere, so it reads as a physical spinning ball.
+  const seamMaterial=new T.MeshBasicMaterial({color:0x633d38,transparent:true,opacity:.55,depthWrite:false});
+  const seamA=new T.Mesh(seamG,seamMaterial);seamA.scale.setScalar(p.radius*.99);spin.add(seamA);
+  const seamB=new T.Mesh(seamG,seamMaterial);seamB.scale.setScalar(p.radius*.99);seamB.rotation.y=Math.PI/2;spin.add(seamB);
+  const shine=new T.Mesh(new T.SphereGeometry(1,12,9),new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.45,depthWrite:false}));
+  shine.position.set(-p.radius*.29,p.radius*.26,p.radius*.79);
+  shine.scale.setScalar(p.radius*.16);spin.add(shine);
+  const shell=new T.Mesh(shellG,new T.MeshBasicMaterial({color:0xff8e62,transparent:true,opacity:.12,depthWrite:false}));
+  shell.scale.setScalar(p.radius*1.23);group.add(shell);
+  const halo=new T.Mesh(haloG,new T.MeshBasicMaterial({color:0xffe8cc,transparent:true,opacity:.53,depthWrite:false}));
+  halo.scale.setScalar(p.radius*1.2);group.add(halo);
   const trail=new T.Mesh(new T.CylinderGeometry(.04,.24,1,8),new T.MeshBasicMaterial({color:0xff8e59,transparent:true,opacity:.24,depthWrite:false,side:T.DoubleSide}));
-  trail.position.z=-.28;group.add(trail);
-  group.userData={core,material,shell,halo,trail,shine};return group;
+  group.add(trail);
+  group.userData={core,material,shell,halo,trail,shine,spin,seamMaterial};
+  return group;
+ }
+ function shockwave(pos,grade){
+  for(let n=0;n<2;n++){
+   const m=new T.Mesh(rippleG,new T.MeshBasicMaterial({
+    color:grade==='PERFECTO'?0x6affea:0xffd07d,
+    transparent:true,opacity:n===0?.95:.65,depthWrite:false,side:T.DoubleSide
+   }));
+   m.position.set(pos.x,pos.y,pos.z);
+   m.scale.setScalar(.11);
+   fxLayer.add(m);
+   ripples.push({obj:m,age:-n*.09,life:.49,grade});
+  }
  }
  function spark(pos,color,count=9,life=.5,power=1){
   for(let i=0;i<count;i++){
@@ -196,7 +244,9 @@ export function createReboteArt(T,scene){
    // Contact pad stays on the floor; only the mechanical body bobs subtly.
    b.userData.mech.position.y=.012+Math.sin(time*1.7+e.phase)*.013;
    b.userData.reactor.rotation.y+=dt*2.5;
-   b.rotation.y=Math.sin(time*.48+e.phase)*.14;
+   // Mech visor always faces the tracked player, even if they circle the arena.
+   b.rotation.y=Math.atan2(g.eye.x-e.x,g.eye.z-e.z);
+   b.rotation.y+=Math.sin(time*.48+e.phase)*.025;
    b.userData.head.rotation.y=Math.sin(time*.74+e.phase)*.19;
    b.userData.leftArm.rotation.x=-.55+Math.sin(time*2+e.phase)*.26;
    b.userData.rightArm.rotation.x=-.70+Math.sin(time*3+e.phase)*.35;
@@ -225,8 +275,11 @@ export function createReboteArt(T,scene){
   }
   for(const p of g.projectiles){
    let group=shots.get(p.id);if(!group){group=makeBall(p);shots.set(p.id,group)}
-   group.position.set(p.pos.x,p.pos.y,p.pos.z);
-   group.rotation.z+=dt*3;
+   // Bounce trajectory has a visible upward spring immediately after DEVOLVER.
+   const spring=p.returning?Math.sin(Math.min(1,p.age/.48)*Math.PI)*.16:0;
+   group.position.set(p.pos.x,p.pos.y+spring,p.pos.z);
+   group.userData.spin.rotation.y+=dt*(p.returning?17:9);
+   group.userData.spin.rotation.x+=dt*(p.returning?12:5);
    const m=group.userData;
    m.trail.visible=p.type!=='fake'&&p.age>.08;
    m.trail.material.color.setHex(p.returning?0x4dfff0:0xffa066);
@@ -238,7 +291,10 @@ export function createReboteArt(T,scene){
    m.trail.scale.set(p.radius*.9,.5+p.speed*.055,p.radius*.9);
    m.trail.position.addScaledVector(velocity.clone().normalize(),-.20);
    m.shine.material.opacity=p.returning?.78:.55;
-   m.material.color.setHex(p.returning?0x65ffe7:p.type==='pesada'?0xffcd67:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0x9c80e9:0xff693b);
+   m.material.color.setHex(p.returning?0xc0fff2:p.type==='pesada'?0xffdc9a:p.type==='fake'?0xbba7ff:p.type==='fantasma'?0xe2b4ff:0xffffff);
+   m.material.emissive.setHex(p.returning?0x00ddbe:0xff6337);
+   m.material.emissiveIntensity=p.returning?.7:.22;
+   m.seamMaterial.color.setHex(p.returning?0x087766:0x633d38);
    m.shell.material.color.setHex(p.returning?0x7cfff5:0xff7939);
    m.halo.rotation.y+=dt*4.7;
    // The ball itself telegraphs the strike window without covering the camera.
@@ -249,15 +305,24 @@ export function createReboteArt(T,scene){
    m.halo.material.color.setHex(urgency>.50?0xffd978:p.returning?0x62ffee:0xffffff);
    m.halo.material.opacity=p.type==='fake'?.16:.50+.40*urgency;
    const flicker=1+.11*Math.sin(time*28+p.id);
-   group.scale.setScalar(flicker*(p.grade==='PERFECTO'&&p.returning?1.33:1));
-   m.material.opacity=p.type==='fake'?.28+.12*Math.sin(time*12):1;
+   const elastic=p.returning&&p.age<.22?1+Math.sin(p.age/.22*Math.PI)*.22:1;
+   group.scale.setScalar((1+(flicker-1)*.22)*(p.grade==='PERFECTO'&&p.returning?1.18:1)*elastic);
+   m.material.opacity=p.type==='fake'?.32+.08*Math.sin(time*12):1;
    m.shell.material.opacity=p.type==='fake'?.09:.19+.07*Math.sin(time*23+p.id);
-   if(p.returning&&Math.random()<.43)spark(p.pos,0x5effea,2,.2,.36);
+   if(p.returning&&Math.random()<.22)spark(p.pos,0x5effea,1,.16,.3);
   }
   for(const [id,group] of shots)if(!g.projectiles.some(p=>p.id===id)){
    shotLayer.remove(group);
-   group.traverse(obj=>{if(obj.material)obj.material.dispose()});
+   group.traverse(obj=>{if(obj.material)obj.material.dispose();if(obj.geometry&&!new Set([sphereG,shellG,haloG,seamG]).has(obj.geometry))obj.geometry.dispose()});
    shots.delete(id);
+  }
+  for(let i=ripples.length-1;i>=0;i--){
+   const wave=ripples[i];wave.age+=dt;
+   if(wave.age<0)continue;
+   const progress=Math.min(1,wave.age/wave.life);
+   wave.obj.scale.setScalar(.10+progress*(wave.grade==='PERFECTO'?.72:.47));
+   wave.obj.material.opacity=(1-progress)*.9;
+   if(progress>=1){fxLayer.remove(wave.obj);wave.obj.material.dispose();ripples.splice(i,1)}
   }
   for(let i=particles.length-1;i>=0;i--){
    const p=particles[i];p.life-=dt;p.obj.position.addScaledVector(p.vel,dt);p.vel.y-=dt*1.0;
@@ -266,7 +331,12 @@ export function createReboteArt(T,scene){
   }
  }
  function effect(e){
-  if(e.type==='return'){const p=shots.get(e.id);if(p)spark(p.position,e.grade==='PERFECTO'?0x6dfff1:0x50b8ff,e.grade==='PERFECTO'?19:10,.5,e.grade==='PERFECTO'?1.4:1)}
+  if(e.type==='return'){
+   const at={x:e.x??0,y:e.y??1.5,z:e.z??0};
+   shockwave(at,e.grade);
+   spark(at,e.grade==='PERFECTO'?0x6dfff1:0xffdba0,e.grade==='PERFECTO'?19:11,.48,e.grade==='PERFECTO'?1.35:1);
+  }
+  if(e.type==='launch')spark({x:e.x,y:e.y??1.5,z:e.z},0xffb36e,4,.22,.45);
   if(e.type==='enemy-hit'||e.type==='enemy-down')spark({x:e.x,y:1.4,z:e.z},e.type==='enemy-down'?0xff7343:0x7effec,e.type==='enemy-down'?28:13,.8,1.6);
   if(e.type==='damage')spark({x:0,y:1.4,z:0},0xff3f58,23,.38,1.4);
   if(e.type==='legend')spark({x:0,y:1.45,z:-1},0xdfffff,60,1.1,2.2);
@@ -276,7 +346,19 @@ export function createReboteArt(T,scene){
   root.traverse(o=>{if(o.geometry&&!sharedRobotGeometries.has(o.geometry))o.geometry.dispose();
    if(o.material&&!sharedRobotMaterials.has(o.material))o.material.dispose()});
   for(const g of sharedRobotGeometries)g.dispose();
+  ballTexture.dispose();seamG.dispose();rippleG.dispose();
   for(const m of sharedRobotMaterials)m.dispose();
  }
- return {root,plane,update,effect,dispose,setSize(v){plane.userData.size=Math.max(.7,Math.min(1.45,v))},getRobotCount(){return bots.size},getShotCount(){return shots.size}};
+ return {root,plane,update,effect,dispose,setSize(v){plane.userData.size=Math.max(.7,Math.min(1.45,v))},
+  getRobotCount(){return bots.size},getShotCount(){return shots.size},
+  getTexturedBalls(){return [...shots.values()].filter(group=>!!group.userData.material?.map).length},
+  getRobotFacingDot(eye){
+   const dots=[...bots.values()].filter(b=>b.visible).map(b=>{
+    const dx=eye.x-b.position.x,dz=eye.z-b.position.z,d=Math.hypot(dx,dz);
+    return d>.01?(Math.sin(b.rotation.y)*dx+Math.cos(b.rotation.y)*dz)/d:1;
+   });
+   return dots.length?Math.min(...dots):1;
+  },
+  getRicochetRipples(){return ripples.length}
+ };
 }

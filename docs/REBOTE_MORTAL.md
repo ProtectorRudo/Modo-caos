@@ -89,3 +89,10 @@ Para cubrir teléfonos donde incluso el segundo lienzo WebGL no llegue a mostrar
 - Nuevas esferas luminosas con brillo y estela vectorial. Liberación de geometrías temporales y preservación de geometrías compartidas hasta terminar la escena.
 - HUD de móviles reducido para no tapar la mitad inferior de la cámara.
 - Tests automáticos XR sintético: piso estabilizado, posición inicial delante de la cámara, calibración estable y sin salto de anclaje, render 3D, retícula, proyectiles, juego, pérdidas de tracking y regresiones. La prueba física ARCore con teléfono **sigue pendiente**.
+
+## V9 — Jugabilidad de rebotes, alturas y brújula de amenazas
+
+- Patrones determinísticos rotativos de siete trayectorias físicas: centro, derecha, alta, izquierda, baja, diagonal alta derecha y diagonal baja izquierda. Alturas del emisor entre 1,06–1,99 m, destinos con desvíos de hasta 43 cm lateral y 39 cm vertical. El objetivo es mover/apuntar el **teléfono** dentro de un lugar despejado; no requiere correr, saltar ni tracking corporal.
+- Rebote visible: núcleo esférico texturizado proceduralmente con paneles de pelota, giro rápido, reflejo y estela. DEVOLVER invierte la dirección, impulsa el proyectil hacia el robot, aplica arco visual elástico y genera dos ondas 3D + partículas + sonido boing. La física/barrrido mantiene sus colisiones exactas.
+- Los mechs giran su visor hacia el teléfono rastreado, aunque el usuario se mueva alrededor. Radar compacto en pantalla indica VOS, robots (y jefe) y pelota entrante con referencia relativa a la cámara; no mueve el mundo 3D ni sustituye el AR.
+- Se mantiene la calibración de V8, la progresión de cinco fases, los combos, los modos demo y la protección al perder tracking. Pruebas automáticas verifican variedad, límites seguros, retorno real, orientaciones y radar; cámara ARCore física requiere nueva prueba del jugador.
