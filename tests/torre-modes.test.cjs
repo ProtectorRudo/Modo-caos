@@ -12,10 +12,14 @@ const target=[
  {id:3,shape:'ancho',x:0,y:.607,angle:.07}
 ];
 assert.deepEqual(M.matchTarget(target),{won:true,matched:3,total:3});
+assert.equal(M.TARGETS.length,3);
+for(const variant of M.TARGETS)assert.equal(M.matchTarget(variant,variant).won,true);
+assert.equal(M.matchTarget(M.TARGETS[1],M.TARGETS[2]).won,false);
 assert.equal(M.matchTarget(target.slice(0,2)).won,false);
 assert.equal(M.matchTarget([...target.slice(0,2),{...target[2],x:.46}]).won,false);
 assert.equal(M.outcome('five',{height:.89,placed:5}).won,false);
-assert.equal(M.outcome('five',{height:.95,placed:5}).won,true);
+assert.equal(M.outcome('five',{height:.95,placed:5}).won,false);
+assert.equal(M.outcome('five',{height:1.85,placed:5}).won,true);
 assert.equal(M.outcome('copy',{matched:2}).won,false);
 assert.equal(M.outcome('copy',{matched:3}).won,true);
 const original=[{id:1,x:0,y:.3,angle:0},{id:2,x:0,y:.7,angle:0},{id:3,x:0,y:1.1,angle:0}];
