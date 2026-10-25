@@ -30,6 +30,9 @@ const server=http.createServer((req,res)=>{
  assert.equal(floorStart.plates,25);
  assert.equal(floorStart.darkPlates,25,'all 25 cells are tactical graphite war plates in battle mode');
  assert.equal(floorStart.visible,25,'combat deck visible over camera');
+ assert.equal(floorStart.textured,true,'all 25 military tiles share a real CanvasTexture PBR atlas');
+ assert.equal(floorStart.perimeterPosts,4,'four low grounded combat markers appear during play');
+ assert.equal(floorStart.ashCount,26,'only one tiny controlled ash-particle batch exists');
 
  assert(await page.locator('#radarWrap').isVisible(),'360-degree radar is active');
  await page.waitForTimeout(300);
