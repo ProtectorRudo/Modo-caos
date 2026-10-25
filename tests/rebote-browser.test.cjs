@@ -14,10 +14,39 @@ const server=http.createServer((req,res)=>{
  browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--disable-web-security']});
  const page=await browser.newPage({viewport:{width:393,height:850},isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',err=>errors.push(err.message));
- await page.goto('http://127.0.0.1:'+server.address().port+'/rebote.html',{waitUntil:'load'});
- await page.waitForFunction(()=>!!globalThis.__ReboteDebug,null,{timeout:35000});
+ const diagnostics=[];
+ page.on('console',msg=>{if(msg.type()==='error')diagnostics.push('console: '+msg.text())});
+ page.on('requestfailed',req=>diagnostics.push('failed '+req.url()+' '+(req.failure()?.errorText||'')));
+ page.on('response',resp=>{if(resp.status()>=400)diagnostics.push('HTTP '+resp.status()+' '+resp.url())});
+ 
+ const cdnSha=process.env.REBOTE_CDN_SHA;
+ const remote=cdnSha?'https://rawcdn.githack.com/ProtectorRudo/Modo-caos/'+cdnSha+'/rebote.html':null;
+ await page.goto(remote||'http://127.0.0.1:'+server.address().port+'/rebote.html',{waitUntil:'load',timeout:45000});
+ if(remote&&(await page.title()).includes('External Content Notice')){
+  console.log('EXTERNAL HOST NOTICE',JSON.stringify({
+   links:await page.locator('a').evaluateAll(els=>els.map(a=>({text:a.textContent?.trim(),href:a.href}))).catch(()=>[]),
+   buttons:await page.locator('button').allTextContents().catch(()=>[])
+  }));
+  const proceed=page.getByRole('link',{name:/open the page/i});
+  if(await proceed.count())await proceed.first().click();
+  else{
+   const proceedButton=page.getByRole('button',{name:/open the page/i});
+   if(await proceedButton.count())await proceedButton.first().click();
+  }
+ }
+
+ try{await page.waitForFunction(()=>!!globalThis.__ReboteDebug,null,{timeout:18000})}
+ catch(e){
+  console.error('BOOT DIAGNOSTICS',JSON.stringify({
+   url:page.url(),loaded:await page.locator('title').innerText().catch(()=>''),support:await page.locator('#arProblemText').innerText().catch(()=>''),problems:diagnostics.slice(-22),
+   secure:await page.evaluate(()=>isSecureContext).catch(()=>false)
+  },null,2));throw e;
+ }
  assert.match(await page.title(),/REBOTE MORTAL/);
  assert(await page.locator('#startAR').isVisible());
+ assert.equal(await page.locator('script[src^="./rebote-core.js"]').count(),1,'core URL relative for external HTTPS mirrors');
+ assert.equal(await page.locator('script[src^="./rebote-runtime.js"]').count(),1,'WebXR runtime URL relative for CDN and Pages');
+ assert.equal(await page.locator('a[href="https://modo-caos-eta.vercel.app/"]').count(),1,'fallback play links back to original arcade menu');
  // An embedded Android WebView may not expose navigator.xr at all.
  await page.evaluate(()=>Object.defineProperty(navigator,'xr',{configurable:true,value:undefined}));
  await page.locator('#startAR').click();

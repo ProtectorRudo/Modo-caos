@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createReboteArt} from './rebote-art.js?v=6';
-import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=6';
+import {createReboteArt} from './rebote-art.js?v=7';
+import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=7';
 /* REBOTE MORTAL · WebXR immersive-ar con Hit Test y anclaje opcional.
    La matriz AR no depende del HUD. El "jugador" es la posición del TELÉFONO, nunca pies/cuerpo. */
 const $=id=>document.getElementById(id),G=globalThis.ReboteCore;
@@ -403,7 +403,7 @@ $('adjust').onclick=()=>{if(demo)return;game.paused=true;fixed=false;anchor?.del
 $('pauseBtn').onclick=pause;
 $('center').onclick=()=>{if(stage==='playing')pause();if(!demo)startCalibration()};
 $('sound').onclick=()=>{sounds=!sounds;$('sound').textContent=sounds?'🔊':'🔇'};
-function leave(){session?.end?.().catch(()=>{});location.href='/'}
+function leave(){session?.end?.().catch(()=>{});location.href='https://modo-caos-eta.vercel.app/'}
 $('exit').onclick=leave;$('quit').onclick=leave;
 $('rematch').onclick=()=>{
  const wasDemo=demo,eye=game.eye,aim=game.aim;
