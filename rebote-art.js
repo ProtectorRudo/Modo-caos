@@ -5,9 +5,29 @@ export function createReboteArt(T,scene){
  const dark=mat(0x162537,.78,.29),steel=mat(0x5f829b,.87,.21),edge=mat(0xc5e9f0,.88,.18);
  const blue=mat(0x20dfff,.22,.22,0x12b9e7,2.2),orange=mat(0xff5b31,.19,.29,0xfa3716,2),red=mat(0xf03662,.25,.3,0xe51c41,1.5);
  const plane=new T.Group();root.add(plane);
- const floor=new T.Mesh(new T.CylinderGeometry(1.45,1.45,.06,64),new T.MeshStandardMaterial({color:0x0a263b,metalness:.72,roughness:.33,transparent:true,opacity:.84,side:T.DoubleSide}));
+ const placementCue=new T.Group();root.add(placementCue);
+ const neon=new T.MeshBasicMaterial({color:0x60ffe1,depthTest:false});
+ const gold=new T.MeshBasicMaterial({color:0xffdb69,depthTest:false});
+ const beacon=new T.Mesh(new T.CylinderGeometry(.055,.055,.80,12),neon);
+ beacon.position.y=.52;beacon.renderOrder=9;placementCue.add(beacon);
+ const beaconHead=new T.Mesh(new T.OctahedronGeometry(.17),gold);
+ beaconHead.position.y=.99;beaconHead.renderOrder=10;placementCue.add(beaconHead);
+ for(const sx of [-1,1])for(const sz of [-1,1]){
+  const post=new T.Mesh(new T.BoxGeometry(.11,.45,.11),neon);
+  post.position.set(sx*1.02,.25,sz*1.02);
+  placementCue.add(post);
+ }
+ const floor=new T.Mesh(new T.CylinderGeometry(1.45,1.45,.06,64),new T.MeshBasicMaterial({color:0x07455a,transparent:true,opacity:.90,side:T.DoubleSide,depthWrite:false}));
  floor.position.y=.016;plane.add(floor);
- const ringMat=new T.MeshBasicMaterial({color:0x30efff,transparent:true,opacity:.88});
+ const ringMat=new T.MeshBasicMaterial({color:0x30efff,transparent:true,opacity:1,depthTest:false});
+ const gridMaterial=new T.MeshBasicMaterial({color:0x4dffea,transparent:true,opacity:.67,depthTest:false,depthWrite:false});
+ for(let i=-2;i<=2;i++){
+  const pos=i*.48,length=2.58;
+  const xLine=new T.Mesh(new T.BoxGeometry(length,.009,.015),gridMaterial);
+  xLine.position.set(0,.085,pos);plane.add(xLine);
+  const zLine=new T.Mesh(new T.BoxGeometry(.015,.009,length),gridMaterial);
+  zLine.position.set(pos,.085,0);plane.add(zLine);
+ }
  for(let i=0;i<3;i++){
   const r=new T.Mesh(new T.TorusGeometry(1.36-i*.22,.012,8,88),i===0?ringMat:new T.MeshBasicMaterial({color:i===1?0x3de8e5:0x164d75,transparent:true,opacity:i===1?.65:.7}));
   r.rotation.x=-Math.PI/2;r.position.y=.068+i*.003;plane.add(r);
@@ -105,6 +125,10 @@ export function createReboteArt(T,scene){
  function update(g,time,dt,preview=false){
   plane.visible=preview||g.state==='playing'||g.state==='ready';
   const pulse=.85+.15*Math.sin(time*3);
+  placementCue.visible=preview;
+  placementCue.scale.setScalar(plane.userData.size||1);
+  beaconHead.rotation.y=time*2.2;
+  beaconHead.position.y=.98+Math.sin(time*4)*.08;
   ringMat.opacity=pulse;center.rotation.y=time*.24;
   youMarker.visible=g.state==='ready'||g.state==='playing';
   if(g.eye&&youMarker.visible){youMarker.position.set(g.eye.x,0,g.eye.z);yourRing.scale.setScalar(1+.10*Math.sin(time*5));}
