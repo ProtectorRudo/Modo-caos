@@ -403,7 +403,7 @@ $('adjust').onclick=()=>{if(demo)return;game.paused=true;fixed=false;anchor?.del
 $('pauseBtn').onclick=pause;
 $('center').onclick=()=>{if(stage==='playing')pause();if(!demo)startCalibration()};
 $('sound').onclick=()=>{sounds=!sounds;$('sound').textContent=sounds?'🔊':'🔇'};
-function leave(){session?.end?.().catch(()=>{});location.href='./index.html'}
+function leave(){session?.end?.().catch(()=>{});location.href='https://modo-caos-eta.vercel.app/'}
 $('exit').onclick=leave;$('quit').onclick=leave;
 $('rematch').onclick=()=>{
  const wasDemo=demo,eye=game.eye,aim=game.aim;
