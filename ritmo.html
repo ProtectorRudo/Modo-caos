@@ -103,7 +103,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <details class="details"><summary>🎚 Ajuste fino de sincronización</summary>
 <p>Si las notas llegan antes o después del sonido, ajustá la compensación. Predeterminado: 0 ms.</p>
 <label>Latencia: <span id="latencyValue">0 ms</span><input id="latency" type="range" min="-300" max="300" value="0" step="10"></label></details>
-<p id="precheck">Chrome Android + ARCore · Suelo despejado y seco · Adaptá el tamaño de la pista a tu habitación. Ajustá la pista a un ancho aproximado de 0,8 a 1,28 m. No corras ni saltes: se sigue la posición del <b>celular</b>, no tus pies.</p>
+<p id="precheck">📱 Para jugar en AR abrí este enlace <b>directamente en Chrome Android</b>, no dentro de ChatGPT o WhatsApp (menú ⋮ → Abrir en Chrome). Requiere ARCore y un piso despejado; la demo 2D funciona sin AR. Ajustá la pista entre 0,8 y 1,28 m. No corras ni saltes: se sigue el <b>celular</b>, no tus pies.</p>
 </div></main>
 <div id="overlay">
 <svg id="tiles"></svg><svg id="rtSvg"></svg><canvas id="gameCanvas"></canvas>
@@ -126,12 +126,23 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <div class="rank" id="resultRank"></div><p id="resultStats"></p>
 <button id="retry">↻ REVANCHA</button><button id="share" class="alt">↗ COMPARTIR RESULTADO</button><button id="finishExit" class="alt">← VOLVER AL ARCADE</button></div></div>
 </div>
-<script defer src="/ritmo-engine.js?v=ritmo5"></script>
-<script defer src="/ritmo-core.js?v=8"></script>
-<script defer src="/ritmo-catalog.js?v=8"></script>
-<script defer src="/ritmo-licensed.js?v=8"></script>
-<script defer src="/ritmo-despacito.js?v=8"></script>
-<script defer src="/ritmo-audio.js?v=8"></script>
-<script defer src="/ritmo-art.js?v=4"></script>
-<script defer src="/ritmo-runtime.js?v=8"></script>
+<script>
+window.addEventListener('error',function(e){
+ if(!e||!e.message)return;
+ const p=document.getElementById('precheck');
+ if(p){p.textContent='⚠️ El juego encontró un error: '+e.message+'. Probá actualizar la página o abrirla en Chrome Android.';p.style.color='#ffe28e'}
+});
+window.addEventListener('unhandledrejection',function(e){
+ const p=document.getElementById('precheck'),msg=String(e?.reason?.message||e?.reason||'Error al iniciar').slice(0,180);
+ if(p){p.textContent='⚠️ No se completó el inicio: '+msg+'. Probá de nuevo en Chrome Android.';p.style.color='#ffe28e'}
+});
+</script>
+<script defer src="/ritmo-engine.js?v=9"></script>
+<script defer src="/ritmo-core.js?v=9"></script>
+<script defer src="/ritmo-catalog.js?v=9"></script>
+<script defer src="/ritmo-licensed.js?v=9"></script>
+<script defer src="/ritmo-despacito.js?v=9"></script>
+<script defer src="/ritmo-audio.js?v=9"></script>
+<script defer src="/ritmo-art.js?v=9"></script>
+<script defer src="/ritmo-runtime.js?v=9"></script>
 </body></html>
