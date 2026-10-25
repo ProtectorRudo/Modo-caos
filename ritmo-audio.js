@@ -4,7 +4,7 @@
  const SONGS=root.RitmoCore.SONGS,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function create(){
   let ctx=null,timer=null,startAt=0,nextBeat=0,sourceNodes=new Set(),gain=null,mute=false,track='neon',ended=false;
-  function init(){ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();if(!gain){gain=ctx.createGain();gain.gain.value=.25;gain.connect(ctx.destination)}return ctx}
+  function init(){ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();if(!gain){gain=ctx.createGain();gain.gain.value=mute?0:.25;gain.connect(ctx.destination)}return ctx}
   function oscillator(freq,start,dur,wave='sine',vol=.14,slide=null){
    const o=ctx.createOscillator(),g=ctx.createGain();o.type=wave;o.frequency.setValueAtTime(freq,start);
    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),start+dur);
