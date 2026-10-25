@@ -74,3 +74,24 @@ Solicitud basada en prueba AR en Android: la torre ya estaba montada, pero cada 
 **QA ejecutada**: `node tests/torre-demolition.test.cjs`, `tests/torre.test.cjs`, `tests/torre-modes.test.cjs` y `tests/torre-rapier.test.mjs`: OK. **Playwright/Chromium 390×844** con simulación Rapier: 8 cuerpos 3D con 8 colores distintos, bandeja y mini vista ocultas; click fuera y arrastre sin consumo; click en el bloque 7 retira **exactamente el ID 7**, pasa de 8 a 7 cuerpos y 1 extracción, tras estabilización suma 20 pts. Cero errores JavaScript. **Simulación del fotograma AR**: 48 regiones táctiles correspondientes a 8 cuerpos y 8 colores distintos; el toque en polígono de bloque 7 lo retira con el mismo resultado, sin lista de botones y sin errores. **Regresión**: los otros cinco modos arrancan y permiten arrastrar/soltar pieza, 5/5 sin errores.
 
 **Pendiente**: probar físicamente ARCore en el celular Android real (especialmente correspondencia entre dedo y cubo desde diferentes ángulos, contraste de colores con la cámara y FPS). No declarar AR físico verificado solo por simulación.
+
+## 25/10/2026 — Demolición Caótica: 10 rondas, 40 figuras y puntuación continua
+
+Cambio solicitado tras probar el modo de extracción directa: antes solo había una torre de **dos columnas rectas** con cuatro niveles, y tras tres extracciones se acababa la partida. Ahora funciona como una campaña breve de **10 rondas**, elegidas entre **40 figuras** con siluetas distintas.
+
+- **Biblioteca de 40 construcciones authored** en `torre-demolition.js`. Cada figura es una distribución de columnas de cubos con alturas diferentes (3 o 4 columnas, 4–16 piezas), construida con las dimensiones y separaciones físicas del motor Rapier. Hay castillos, torres asimétricas, escalones, picos y valles; la primera dificultad incluye columnas altas aisladas, evitando el muro anterior de dos filas uniformes.
+- **Aleatoriedad sin repeticiones:** `D.plan(random)` usa Fisher–Yates por nivel para escoger 10 figuras distintas, 2 del nivel 1, 3 del 2, 3 del 3 y 2 del 4. El primer escenario y el orden cambian entre partidas; la complejidad aumenta progresivamente.
+- **Tres extracciones por figura** y **32 segundos por ronda**. Tras la tercera extracción se espera el asentamiento físico del derrumbe, se concede puntaje y se pasa automáticamente a una figura nueva mediante transición visual breve de ~1,35 s. Si se agota el tiempo, también avanza. Al completar la décima, pantalla final y récord.
+- **Puntos acumulados:** 100 puntos por cubo derribado (desplazamiento físico real) + 20 por extracción + 50 por cada caída adicional en cadena, sin resetear el total entre figuras. Si se usan las tres extracciones dentro de los 32 s, se suma 2 puntos por segundo restante. El HUD muestra total, ronda/10, nombre de figura, extracciones restantes y una barra de progreso.
+- **Calibración AR intacta entre rondas:** la transición elimina únicamente cuerpos Rapier y mallas de la torre; mantiene el mundo físico, la plataforma anclada, posición, escala y orientación del grupo Three.js. No vuelve a pedir cámara ni Hit Test. No se altera ningún juego ni modalidad ajena.
+- **Registros:** récord local del puntaje total para las 10 rondas, y resumen de cada figura para la pantalla final. Un nuevo intento genera otra selección aleatoria.
+
+### Verificación realizada
+
+1. `node tests/torre-demolition-rounds.test.cjs`: biblioteca de 40 siluetas geométricamente únicas, cuerpos apoyados, 220 barajas distintas con 10 figuras sin repetir y dificultad creciente, puntuación por combos y tiempo restante.
+2. Físicas Rapier auténticas, no animaciones dibujadas: **40/40** estructuras apoyadas durante 245 pasos de simulación, ninguna se derrumbó sola. Ejemplo: castillo inicial con 5 piezas, al retirar base central se cayeron **dos cubos**, 270 puntos.
+3. Partida Chromium móvil 390×844 con Rapier real y script QA: **10/10 rondas** y 10 IDs sin repetir; puntuación acumulada, intermisiones, trofeo final, récord, reinicio y nuevo deck correctos; sin excepciones JavaScript. Escenario alternativo: tiempo agotado en ronda uno y transición normal a ronda dos.
+4. Regresión navegador de Torre Infinita, Equilibrio Mortal, Peso Pesado, Copiá la Figura y Cinco Piezas, **5/5 sin errores**. Bandeja en esos modos y panel especial solo en Demolición.
+
+**Pendiente de verificar físicamente:** FPS, hit test y tamaño en un dispositivo Android compatible con ARCore; los resultados del navegador de pruebas no sustituyen esa prueba.
+
