@@ -144,6 +144,7 @@ h1 span{color:var(--orange);text-shadow:0 0 28px #ff584f66}
  });
  document.getElementById('startAR').addEventListener('click',()=>{
   if(window.__ReboteDebug)return;
+  window.__reboteEarlyTap=true;
   show('CARGANDO MOTOR AR…','Se están preparando los gráficos. Si el botón sigue sin responder, revisá tu conexión.');
   setTimeout(()=>{
    if(!window.__ReboteDebug)show('EL MOTOR DEL JUEGO NO CARGÓ','Puede fallar la conexión al motor 3D o el navegador integrado. Abrí este enlace en Chrome.');
