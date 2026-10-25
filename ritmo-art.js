@@ -19,10 +19,10 @@ function create(svg,canvas){
  function ar(frame,W,g,size=.32){
   const pose=frame.getViewerPose(ref);if(!pose||!pose.views.length)return;
   const view=pose.views[0],P=mul(view.projectionMatrix,mul(view.transform.inverse.matrix,W));
-  const w=innerWidth,h=innerHeight,x=(i)=>(i-2)*size;
+  const w=innerWidth,h=innerHeight,x=(i)=>(i-1.5)*size;
   const playing=g?.state==='playing',elapsed=g?.elapsed||0,lead=2.65;
   let html='<defs><filter id="rbGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4"/></filter></defs>';
-  for(let i=0;i<5;i++){
+  for(let i=0;i<4;i++){
    let a=x(i)-size*.49,b=x(i)+size*.49,color=C[i],lit=g?.lane===i;
    html+=worldQuad(P,a,-1.18,b,.94,.058,w,h,i%2?'#102c51':'#08213d',color,1.35,playing?.66:.48);
    html+=worldQuad(P,a,-1.18,a+.012,.94,.064,w,h,color,color,1,.62);
@@ -31,7 +31,7 @@ function create(svg,canvas){
    let c=p3(P,x(i),.104,.64,w,h),r=p3(P,x(i)+size*.29,.104,.64,w,h);
    if(c&&r){const rad=Math.max(9,Math.min(54,Math.hypot(r[0]-c[0],r[1]-c[1])));html+='<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+(rad*1.3)+'" fill="'+color+'" opacity=".20" filter="url(#rbGlow)"/><circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+rad+'" fill="'+(lit?'#efffff':color)+'" stroke="'+color+'" stroke-width="3" opacity=".92"/>';}
   }
-  html+=worldQuad(P,-2.48*size,.60,2.48*size,.68,.075,w,h,'#ffffff','#ffffff',2,.74);
+  html+=worldQuad(P,-1.99*size,.60,1.99*size,.68,.075,w,h,'#ffffff','#ffffff',2,.74);
   if(g&&(playing||g.state==='finished')){
    for(const n of g.notes){
     const delta=n.at-elapsed;if(delta>lead||delta<-.22||n.status!=='pending')continue;
@@ -55,11 +55,11 @@ function create(svg,canvas){
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
   const gr=ctx.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#091124');gr.addColorStop(.65,'#0b2440');gr.addColorStop(1,'#070c20');ctx.fillStyle=gr;ctx.fillRect(0,0,w,h);
   const center=w/2,top=h*.18,bottom=h*.80,topWidth=Math.min(w*.55,270),bottomWidth=Math.min(w*.92,570);
-  const x=(lane,t)=>center+(lane-2)*(topWidth+(bottomWidth-topWidth)*t)/5;
+  const x=(lane,t)=>center+(lane-1.5)*(topWidth+(bottomWidth-topWidth)*t)/4;
   function line(points,fill,stroke,width){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.lineWidth=width||1;ctx.strokeStyle=stroke;ctx.stroke()}}
-  for(let i=0;i<5;i++){
-   const l=i-2.5,r=i-1.5;
-   line([[center+l*topWidth/5,top],[center+r*topWidth/5,top],[center+r*bottomWidth/5,bottom],[center+l*bottomWidth/5,bottom]],i%2?'#102744':'#0a1d37',C[i],1.6);
+  for(let i=0;i<4;i++){
+   const l=i-2,r=i-1;
+   line([[center+l*topWidth/4,top],[center+r*topWidth/4,top],[center+r*bottomWidth/4,bottom],[center+l*bottomWidth/4,bottom]],i%2?'#102744':'#0a1d37',C[i],1.6);
   }
   // Moving beat grid creates depth but stays visually behind the notes.
   for(let i=0;i<11;i++){const t=(i/10+.12*(g?.elapsed||0))%1,y=top+(bottom-top)*t*t;ctx.globalAlpha=t*.15;ctx.strokeStyle='#abfaff';ctx.beginPath();ctx.moveTo(center-(topWidth+(bottomWidth-topWidth)*t)/2,y);ctx.lineTo(center+(topWidth+(bottomWidth-topWidth)*t)/2,y);ctx.stroke();ctx.globalAlpha=1}
@@ -74,8 +74,8 @@ function create(svg,canvas){
    if(n.type==='hold'){ctx.fillStyle=C[n.lane]+'99';ctx.fillRect(x(n.lane,t)-r*.42,y-r-45*t,r*.84,45*t)}
    if(n.type==='special'||n.type==='caos'){ctx.fillStyle='#ffffff';ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.fillText('★',x(n.lane,t),y+6)}
   }
-  for(let i=0;i<5;i++){
-   const px=x(i,1),py=bottom,r=bottomWidth/12.5;
+  for(let i=0;i<4;i++){
+   const px=x(i,1),py=bottom,r=bottomWidth/10.4;
    ctx.shadowColor=C[i];ctx.shadowBlur=g?.lane===i?28:12;ctx.fillStyle=g?.lane===i?'#f7ffff':C[i];ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
    ctx.shadowBlur=0;ctx.lineWidth=3;ctx.strokeStyle=C[i];ctx.stroke();
    if(g?.lane===i){ctx.font='900 12px system-ui';ctx.textAlign='center';ctx.fillStyle='#ffffff';ctx.fillText('VOS',px,py-r-15)}
