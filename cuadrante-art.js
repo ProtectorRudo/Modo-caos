@@ -78,7 +78,7 @@ root.CuadranteArt=function(T){
   you.position.set(0,1.2,2.90);enemy.position.set(0,1.2,-2.90);
   // In real AR the player is not a permanent square. Its physics collider
   // stays active, while the player's visual shield appears only on impact.
-  const defenseShield=new T.Group();root.add(defenseShield);
+  const defenseShield=new T.Group();defenseShield.name='cuadrante-impact-shield';root.add(defenseShield);
   defenseShield.visible=false;defenseShield.position.set(0,1.2,2.84);
   const shieldFaceMat=new T.MeshBasicMaterial({color:0x28f9ed,transparent:true,
    opacity:0,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
@@ -94,7 +94,7 @@ root.CuadranteArt=function(T){
   shieldRing.position.z=-.065;defenseShield.add(shieldRing);
   // An anchored, tiny reticle inside the tunnel shows what the phone is
   // defending. The on-screen sight is only UI; this marker is world-locked.
-  const aimMarker=new T.Group();root.add(aimMarker);
+  const aimMarker=new T.Group();aimMarker.name='cuadrante-aim-marker';root.add(aimMarker);
   const aimMaterial=new T.MeshBasicMaterial({color:0x80fff5,transparent:true,
    opacity:.72,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
   const aimDot=new T.Mesh(new T.RingGeometry(.085,.113,32),aimMaterial);aimMarker.add(aimDot);
