@@ -58,7 +58,7 @@ test('horse body animates in local XR space, not attached to camera',async()=>{
 });
 test('horse head and stage are anchored decorations; no duplicated giant miss overlay',()=>{
  assert.ok(art.includes('function horseHead('));
- assert.ok(art.includes("props?.drawCharacter(mesh,surface,t,low,quality)"));
+ assert.ok(art.includes("props?.drawCharacter(mesh,surface,t,low,quality,combo)"));
  assert.ok(art.includes("props?.drawPart('riser'"));
  assert.ok(art.includes("props.drawPart('cdj'"));
  assert.ok(art.includes("props?.drawPart('laser'"));
