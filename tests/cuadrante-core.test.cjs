@@ -31,4 +31,11 @@ caseOf('prediction offers bounded hint only for unobstructed beginner arena',()=
  s.mode=2;assert.equal(C.predictedLanding(s).reliable,false);
 });
 
+caseOf('AR stage is placed ahead of phone, with player paddle on detected target',()=>{
+ for(const yaw of [0,Math.PI/3,-Math.PI/2,Math.PI]){
+  const hit={x:2,y:0,z:3},scale=.66,world=C.anchoredArena(hit,yaw,0,{x:0,z:0},scale);
+  const frontal={x:world.x+Math.sin(yaw)*3*scale,z:world.z+Math.cos(yaw)*3*scale};
+  assert.ok(Math.abs(frontal.x-hit.x)<1e-6&&Math.abs(frontal.z-hit.z)<1e-6);
+ }
+});
 console.log('CUADRANTE core PASS:',tests.length,'simulations');
