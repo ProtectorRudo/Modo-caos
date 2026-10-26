@@ -267,4 +267,6 @@ layer.addEventListener('pointermove',e=>{
 });
 for(const type of ['pointerup','pointercancel','lostpointercapture'])layer.addEventListener(type,e=>{pointers.delete(e.pointerId);placeDistance=0});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing&&state&&!placing&&state.phase!=='paused'&&state.phase!=='finished')pause()});
+// The HTML is visible before network-delivered scripts finish; prevent dead early taps.
+$('startAr').disabled=false;$('startDemo').disabled=false;
 })();
