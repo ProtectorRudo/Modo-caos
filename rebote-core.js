@@ -28,7 +28,7 @@ function make(opts={}){
   enemiesKilled:0,shotIndex:0,nextShot:2.25,projectiles:[],delayed:[],enemies:[],effects:[],
   eye:V(0,1.55,.05),aim:V(0,0,-1),enemyId:0,projectileId:0,
   protection:0,lastResult:'',reason:'',bossSpawned:false,bossDefeated:false,stats:{missed:0,grazed:0},lastShotAt:-100,
-  bufferedShot:null,bufferedHits:0,
+  bufferedShot:null,bufferedHits:0,lastTelegraphFor:null,duelReward:0,
   duelLevel:0,duelWins:0,nextDuelAt:null,duelChampion:false};
 }
 function begin(g){
@@ -153,9 +153,14 @@ function quality(g,p){
 function returnShot(g,fromBuffer=false){
  if(g.state!=='playing'||g.paused)return {ok:false,reason:'NO DISPONIBLE'};
  if(!fromBuffer){
+  // Double tapping never cancels an already armed, imminent parry.
+  if(g.bufferedShot&&g.elapsed<=g.bufferedShot.until&&
+     g.projectiles.some(p=>p.id===g.bufferedShot.id&&!p.dead&&!p.returning)){
+    return {ok:false,queued:true,reason:'REBOTE CARGADO'};
+  }
   if(g.elapsed-g.lastShotAt<.13)return {ok:false,reason:'ESPERÁ'};
   g.lastShotAt=g.elapsed;g.attempts++;
-  g.bufferedShot=null; // A fresh tap replaces an earlier queued attempt.
+  g.bufferedShot=null;
  }
  const inbound=g.projectiles.filter(p=>!p.dead&&!p.returning&&p.type!=='fake'&&
    (!fromBuffer||p.id===g.bufferedShot?.id));
@@ -236,9 +241,16 @@ function hitRobot(g,p,e){
     g.duelWins++;
     // Give the player a breather and prevent orphaned shots hitting during a KO.
     g.projectiles.forEach(q=>{q.dead=true});
-    g.delayed.length=0;g.nextShot=Infinity;
+    g.delayed.length=0;g.nextShot=Infinity;g.bufferedShot=null;
     g.protection=Math.max(g.protection,g.elapsed+2.1);
-    g.effects.push({type:'duel-ko',t:g.elapsed,level:g.duelLevel,name:e.name});
+    // A real KO bonus + a single halfway shield recovery keep six duels fair.
+    const points=200+(g.duelLevel+1)*110;
+    g.score+=points;g.duelReward+=points;
+    g.effects.push({type:'duel-ko',t:g.elapsed,level:g.duelLevel,name:e.name,
+      x:e.x,z:e.z,points});
+    if(g.duelWins===3&&g.lives<3){
+      g.lives++;g.effects.push({type:'shield-recover',t:g.elapsed,lives:g.lives});
+    }
     if(g.duelWins===DUEL_RIVALS.length){
      g.duelChampion=true;g.bossDefeated=true;finish(g,true,'seis_rivales');
     }else g.nextDuelAt=g.elapsed+2.15;
@@ -283,6 +295,14 @@ function step(g,dt){
   if(success||!enemy||g.elapsed-d.created>3.5)g.delayed.splice(g.delayed.indexOf(d),1);
   else d.at=g.elapsed+.19;
  }
+ const nextEnemy=activeEnemy(g);
+ // Charge-up cue appears before a new incoming projectile, not during an attack.
+ if(nextEnemy&&Number.isFinite(g.nextShot)&&g.nextShot-g.elapsed>0&&
+     g.nextShot-g.elapsed<=.55&&g.lastTelegraphFor!==g.nextShot&&
+     !g.projectiles.some(p=>!p.dead&&!p.returning&&p.type!=='fake')){
+   g.lastTelegraphFor=g.nextShot;
+   g.effects.push({type:'telegraph',t:g.elapsed,x:nextEnemy.x,z:nextEnemy.z,enemyId:nextEnemy.id});
+ }
  if(g.elapsed>=g.nextShot){
    if(!activeEnemy(g)&&g.mode!=='duelo')spawnEnemy(g,g.phase===4);
    const ok=launch(g);
@@ -302,7 +322,10 @@ function step(g,dt){
    if(enemy)p.velocity=mul(norm(sub(targetPoint(enemy),p.pos)),p.speed);
   }
   p.pos=add(p.pos,mul(p.velocity,dt));
-  if(g.bufferedShot?.id===p.id&&g.elapsed>g.bufferedShot.until)g.bufferedShot=null;
+  if(g.bufferedShot?.id===p.id&&g.elapsed>g.bufferedShot.until){
+    g.bufferedShot=null;
+    g.effects.push({type:'buffer-expired',t:g.elapsed,id:p.id});
+  }
   if(g.bufferedShot?.id===p.id&&!p.returning&&quality(g,p).ok){
    returnShot(g,true);
   }
@@ -332,7 +355,7 @@ function snapshot(g){return {state:g.state,phase:PHASES[g.phase],remaining:Math.
   elapsed:g.elapsed,score:g.score,lives:g.lives,combo:g.combo,bestCombo:g.bestCombo,
   perfect:g.perfect,returns:g.returns,accuracy:g.returns?Math.round(g.perfect*100/g.returns):0,
   kills:g.enemiesKilled,victory:g.victory,reason:g.reason,
-  bufferedHits:g.bufferedHits,buffered:!!g.bufferedShot}}
+  bufferedHits:g.bufferedHits,buffered:!!g.bufferedShot,duelReward:g.duelReward}}
 const api=Object.freeze({make,begin,tick,setView,returnShot,quality,launch,spawnEnemy,phaseAt,sweptPoint,snapshot,laneAt,ATTACK_LANES,
  STEP,DURATION,DUEL_DURATION,DUEL_RIVALS,PHASES,TYPES,V,add,sub,mul,len,norm,clamp});
 root.ReboteCore=api;
