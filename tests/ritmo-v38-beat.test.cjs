@@ -51,6 +51,8 @@ test('licensed audio note map remains deterministic and reachable across all wid
   for(const n of map.notes)assert.ok(cues.some(at=>Math.abs(at-n.at)<1e-6));
   for(let i=1;i<map.notes.length;i++){
    const prev=map.notes[i-1],n=map.notes[i];
+   if(diff==='normal'||diff==='facil'||diff==='dificil')
+    assert.ok(Math.abs(n.lane-prev.lane)<=1,'audible song should request adjacent lane only');
    assert.ok(Math.abs(n.lane-prev.lane)*size+.12<=(n.at-prev.at)*.70+.000001,'impossible jump');
   }
  }
