@@ -148,7 +148,10 @@
     for(const cfg of instances){
      if(!cfg)continue;
      const scale=cfg.scale||.3,offset=cfg.offset||[0,0,0];
-     const p=v=>v.map((x,i)=>x*scale+offset[i]);
+     // V32 permits a shorter DJ fascia without changing its width/depth;
+     // other CC0 props still use their original uniform scaling.
+     const axes=Array.isArray(scale)?scale:[scale,scale,scale];
+     const p=v=>v.map((x,i)=>x*axes[i]+offset[i]);
      surface(mesh,p(tr.A),p(tr.B),p(tr.C),p(tr.C),tr.color,1,0);
     }
    }
@@ -157,24 +160,43 @@
   // Animate actual Quaternius Punk geometry without changing the WebXR shader:
   // isolate the 2958-triangle shirt/arms mesh and blend a DJ mixing pose
   // in world-space. Legs and human head are intentionally excluded.
-  function drawCharacter(mesh,surface,time=0,low=0,quality=2){
+  function drawCharacter(mesh,surface,time=0,low=0,quality=2,combo=0){
    const triangles=loaded['quaternius-punk'];
    if(!triangles)return false;
-   const bob=Math.sin(time*5.4)*(.006+.012*low);
-   const groove=Math.sin(time*3.4)*.023,sw=Math.sin(time*2.2)*.013;
+   // V32 two-stage upper/lower arm bend. The original Quaternius Punk
+   // has a T-pose: move elbows forward and IN, then place the hands
+   // over the two CDJ wheels rather than leave them stretched outward.
+   // Blend around shoulders; keep all coordinates in the existing AR anchor.
+   const bob=Math.sin(time*5.2)*(.004+.007*low);
+   const groove=Math.sin(time*2.7)*.011;
+   const smooth=x=>{x=Math.min(1,Math.max(0,x));return x*x*(3-2*x)};
    const map=p=>{
     const x=p[0],d=Math.abs(x),sign=Math.sign(x)||1;
-    const arm=Math.max(0,Math.min(1,(d-.20)/.50));
-    const px=sign*(Math.min(d,.20)+Math.max(0,d-.20)*.23);
-    const py=(p[1]-1)*.68+.327 -.155*arm+bob+sw*(1-arm);
-    const pz=-1.54+p[2]*.68+.085*arm+
-     arm*(.022*Math.sin(time*5.1+sign)+.02*low*Math.sin(time*7.2+sign*1.8))
-     +groove*(1-arm);
+    const raw=smooth((d-.193)/.60);
+    const elbow=Math.sin(raw*Math.PI);
+    const lean=Math.sin(time*5.2+sign)*(.009+.011*low);
+    // x=0.20 shoulder, x≈0.30 elbow, x≈0.17 hand. CDJ centers ±0.171.
+    const armX=.20+.105*elbow-.031*raw;
+    const px=sign*(d<.193?d:armX)+(1-raw)*groove*.2;
+    const py=(p[1]-1)*.68+.327-.285*raw-.030*elbow+bob
+      +(combo>=25&&sign>0?.115*raw*(.5+.5*Math.sin(time*3.7)):0);
+    const pz=-1.54+p[2]*.68+.065*raw+.027*elbow
+      +raw*lean+(1-raw)*groove;
     return [px,py,pz];
    };
-   for(const tri of triangles){
-    const base=tri.color.map(v=>Math.min(.82,Math.max(.10,v*1.35+.055)));
-    const color=base[0]>.43&&base[1]<.35?[.52,.115,.24]:base;
+   // In the original GLB the whitish center was dominating the torso:
+   // a charcoal bomber jacket makes the horse head the focal point.
+   const step=quality===0?2:1;
+   for(let i=0;i<triangles.length;i+=step){
+    const tri=triangles[i],base=tri.color;
+    let color;
+    if(Math.max(...base)-Math.min(...base)<.055){
+      const t=Math.min(1,Math.max(0,base[0]*1.7));
+      color=[.065+.090*t,.085+.105*t,.116+.124*t];
+    }else if(base[0]>.4&&base[0]>base[1]*1.30){
+      // Skin and warm details retain their original identity.
+      color=base.map(v=>Math.min(.86,Math.max(.10,v*1.22+.045)));
+    }else color=base.map(v=>Math.min(.80,Math.max(.075,v*1.18+.055)));
     surface(mesh,map(tri.A),map(tri.B),map(tri.C),map(tri.C),color,1,0);
    }
    return true;

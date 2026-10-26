@@ -58,7 +58,7 @@ test('horse body animates in local XR space, not attached to camera',async()=>{
 });
 test('horse head and stage are anchored decorations; no duplicated giant miss overlay',()=>{
  assert.ok(art.includes('function horseHead('));
- assert.ok(art.includes("props?.drawCharacter(mesh,surface,t,low,quality)"));
+ assert.ok(art.includes("props?.drawCharacter(mesh,surface,t,low,quality,combo)"));
  assert.ok(art.includes("props?.drawPart('riser'"));
  assert.ok(art.includes("props.drawPart('cdj'"));
  assert.ok(art.includes("props?.drawPart('laser'"));
@@ -67,9 +67,9 @@ test('horse head and stage are anchored decorations; no duplicated giant miss ov
  assert.ok(!runtime.includes('notify(msg,440)'));
  assert.ok(stage.includes('const trails=quality===0?3:5'));
  assert.ok(stage.includes("const back=-1.15,front=.94"));
- assert.ok(html.includes('/ritmo-exterior.js?v=31'));
- assert.ok(html.includes('/ritmo-stage-showtime.js?v=31'));
- assert.ok(html.includes('/ritmo-glb-props.js?v=31'));
+ assert.ok(html.includes('/ritmo-exterior.js?v=32'));
+ assert.ok(html.includes('/ritmo-stage-showtime.js?v=32'));
+ assert.ok(html.includes('/ritmo-glb-props.js?v=32'));
 });
 test('simulated live DJ scene draws finite geometry and beat reaction without touching AR core',()=>{
  const meshes=[],glows=[],coords=[];
