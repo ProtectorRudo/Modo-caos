@@ -20,6 +20,7 @@
    const u=[B[0]-A[0],B[1]-A[1],B[2]-A[2]],w=[C[0]-A[0],C[1]-A[1],C[2]-A[2]];
    const normal=[u[1]*w[2]-u[2]*w[1],u[2]*w[0]-u[0]*w[2],u[0]*w[1]-u[1]*w[0]];
    const length=Math.max(1e-8,Math.hypot(...normal));const n=normal.map(q=>q/length);
+   if(n[1]<-.7)n[1]=-n[1]; // upper plate normals face the ambient lights
    const mat=material===undefined?(b===glow?3:a<.83?1:0):material;
    vert(b,A,n,c,a,mat);vert(b,B,n,c,a,mat);vert(b,C,n,c,a,mat);
    vert(b,A,n,c,a,mat);vert(b,C,n,c,a,mat);vert(b,D,n,c,a,mat);
