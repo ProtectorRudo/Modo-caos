@@ -2,6 +2,7 @@
 (function(root,factory){const C=factory();if(typeof module==='object'&&module.exports)module.exports=C;root.MiniWorldsCore=C})(typeof window!=='undefined'?window:globalThis,function(){
 'use strict';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),near=(a,b,r)=>Math.hypot(a.x-b.x,a.z-b.z)<r;
+const BOX_TOP=.59; // matches makeBox GLB dimensions and procedural mesh above the ground
 const LEVELS=[
 {name:'LA ISLA DESPIERTA',zone:'ISLA SALVAJE',theme:'lagoon',boss:'DRAGÓN DORADO',description:'Playas, selva, ruinas y el despertar de un dragón colosal.'},
 {name:'EL ACANTILADO PERDIDO',zone:'ISLA SALVAJE',theme:'sunset',boss:'REY YETI',description:'Puentes suspendidos, trampas y un gigante de hielo bajo la tormenta.'}
@@ -95,7 +96,7 @@ function level(n=0){
 }
 function create(n=0){
  const map=level(n);
- const player={x:0,z:1.2,y:0,vy:0,vx:0,vz:0,face:Math.PI,hearts:3,invuln:0,grounded:true,jumps:0,attack:0,attackId:0,coyote:0,buffer:0};
+ const player={x:0,z:1.2,y:0,vy:0,vx:0,vz:0,face:Math.PI,hearts:3,invuln:0,grounded:true,jumps:0,attack:0,attackId:0,coyote:0,buffer:0,onBox:null};
  return {map,player,phase:'ready',clock:0,coins:0,stars:0,kills:0,combo:0,checkpoint:{x:0,z:1.2,y:0},events:[],hazards:[],projectiles:[],lastInput:{x:0,z:0},won:false,deadCount:0,travel:0};
 }
 function emit(s,type,data={}){s.events.push({...data,type})} // event name always wins over entity.kind
@@ -105,7 +106,7 @@ function damage(s,source){
  if(p.hearts<=0){s.deadCount++;emit(s,'down');respawn(s,true)}
 }
 function respawn(s,full=false){
- const p=s.player;p.x=s.checkpoint.x;p.z=s.checkpoint.z;p.y=s.checkpoint.y+.06;p.vx=p.vz=p.vy=0;p.grounded=false;p.jumps=0;p.invuln=2;
+ const p=s.player;p.x=s.checkpoint.x;p.z=s.checkpoint.z;p.y=s.checkpoint.y+.06;p.vx=p.vz=p.vy=0;p.grounded=false;p.jumps=0;p.onBox=null;p.invuln=2;
  if(full){p.hearts=3;emit(s,'retry')}else emit(s,'respawn');
 }
 function attack(s){
@@ -118,7 +119,7 @@ function attack(s){
  b.hp--;b.flash=.25;hit++;emit(s,'boxHit',{id:b.id,kind:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
  if(b.hp<=0){b.alive=false;emit(s,'boxBreak',{id:b.id,kind:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
  const bounty=b.type==='coins'?6:b.type==='reinforced'?4:2;
- s.coins+=bounty;emit(s,'bonus',{count:bounty});
+ s.coins+=bounty;emit(s,'bonus',{count:bounty,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
  if(b.type==='mystery'&&p.hearts<3&&b.id%2===0){p.hearts++;emit(s,'heart')}
  if(b.type==='secret'&&!s.map.stars[2].taken){s.map.stars[2].taken=true;s.stars++;emit(s,'star',{id:2})}
  }}
@@ -135,11 +136,11 @@ function attack(s){
  }
  if(hit)emit(s,'hit',{count:hit});return true;
 }
-function platformY(s,x,z){
+function platformY(s,x,z,margin=0){
  let yy=null;
  // The visual platform top and the physics surface use the SAME footprint.
  for(const f of s.map.platforms)
-  if(Math.abs(x-f.x)<=f.w/2-.02&&Math.abs(z-f.z)<=f.d/2-.02)yy=Math.max(yy??-100,f.y);
+  if(Math.abs(x-f.x)<=f.w/2-.02+margin&&Math.abs(z-f.z)<=f.d/2-.02+margin)yy=Math.max(yy??-100,f.y);
  // Explicit connector corridors are tested with the very same capsule
  // projection as their rendered bridge meshes.
  if(yy!==null)return yy;
@@ -147,7 +148,7 @@ function platformY(s,x,z){
   const dx=w.x2-w.x1,dz=w.z2-w.z1,len2=dx*dx+dz*dz;
   const t=clamp(((x-w.x1)*dx+(z-w.z1)*dz)/Math.max(.0001,len2),0,1);
   const px=w.x1+dx*t,pz=w.z1+dz*t;
-  if(Math.hypot(x-px,z-pz)<=w.width/2-.06)yy=Math.max(yy??-100,w.y1+(w.y2-w.y1)*t);
+  if(Math.hypot(x-px,z-pz)<=w.width/2-.06+margin)yy=Math.max(yy??-100,w.y1+(w.y2-w.y1)*t);
  }
  return yy;
 }
@@ -203,7 +204,9 @@ function tick(s,input={},dt=1/60){
  for(const box of s.map.boxes){
    if(!box.alive)continue;
    const floor=platformY(s,box.x,box.z)??0;
-   if(p.y>=floor+.60||p.y+.65<floor)continue;
+   // Crates are climbable: never apply side blocking when already above
+   // their lid, or during the downward arc of a landing on the lid.
+   if(p.y>=floor+BOX_TOP-.025||p.y+.65<floor)continue;
    const dx=p.x-box.x,dz=p.z-box.z;
    if(Math.abs(dx)>.47||Math.abs(dz)>.47)continue;
    const wasOutsideX=Math.abs(oldX-box.x)>=.47,wasOutsideZ=Math.abs(oldZ-box.z)>=.47;
@@ -212,23 +215,43 @@ function tick(s,input={},dt=1/60){
    else if(Math.abs(dx)>.0&&Math.abs(dx)>Math.abs(dz)){p.x=box.x+Math.sign(dx)*.47;p.vx=0}
    else{p.z=box.z+Math.sign(dz||1)*.47;p.vz=0}
  }
- const ground=platformY(s,p.x,p.z);
+ // Capsule-radius edge assist works during descending jumps only; the
+ // broad landing lip is visible terrain, not a new hidden floating floor.
+ const normalGround=platformY(s,p.x,p.z);
+ const edgeGround=p.vy<=0&&!p.grounded?platformY(s,p.x,p.z,.17):null;
+ let ground=normalGround??edgeGround;
+ let landedBox=null;
+ if(p.vy<=0){
+  for(const box of s.map.boxes){
+   if(!box.alive)continue;
+   const boxFloor=platformY(s,box.x,box.z);
+   if(boxFloor===null)continue;
+   const top=boxFloor+BOX_TOP;
+   const inFootprint=Math.abs(p.x-box.x)<=.36&&Math.abs(p.z-box.z)<=.36;
+   const lidHeld=p.onBox===box.id&&Math.abs(oldY-top)<.10;
+   // Require the feet to cross the lid from above, or already be standing
+   // on it. Side impact cannot teleport the knight onto a crate.
+   if(inFootprint&&(lidHeld||oldY>=top-.035&&p.y<=top)&&
+      (landedBox===null||top>landedBox.top))landedBox={id:box.id,top};
+  }
+ }
  const previouslyGrounded=p.grounded;
- p.grounded=false;
- if(ground!==null&&p.vy<=0){
-  // Auto-step small height changes while walking. Without this, entering
-  // a perfectly solid 22cm raised platform can make the knight fall THROUGH
-  // the island because oldY<ground-.2 forever.
+ p.grounded=false;p.onBox=null;
+ if(landedBox&&(ground===null||landedBox.top>=ground-.01)){
+  p.y=landedBox.top;p.vy=0;p.grounded=true;p.jumps=0;p.onBox=landedBox.id;
+  if(oldY>p.y+.10)emit(s,'land',{surface:'crate',id:landedBox.id});
+ }else if(ground!==null&&p.vy<=0){
   const easyStep=previouslyGrounded&&ground>=oldY-.55&&ground<=oldY+.46;
-  const landFromAbove=oldY>=ground-.24&&p.y<=ground;
-  if(easyStep||landFromAbove){
+  // Forgiving at the lip, but no floor underneath when truly in open sea.
+  const landing=oldY>=ground-.11&&p.y<=ground;
+  if(easyStep||landing){
    p.y=ground;p.vy=0;p.grounded=true;p.jumps=0;
-   if(!easyStep&&oldY>ground+.10)emit(s,'land');
+   if(!easyStep&&oldY>ground+.10)emit(s,'land',{surface:'soil'});
   }
  }
  if(p.y<-2.8){emit(s,'fall');respawn(s)}
  for(const c of s.map.coins){if(!c.taken&&Math.hypot(p.x-c.x,p.z-c.z)<.44&&Math.abs(p.y+.48-c.y)<1.05){
- c.taken=true;s.coins++;s.combo++;emit(s,'coin',{id:c.id,combo:s.combo})}}
+ c.taken=true;s.coins++;s.combo++;emit(s,'coin',{id:c.id,combo:s.combo,x:c.x,y:c.y,z:c.z})}}
  for(const a of s.map.stars){if(!a.taken&&Math.hypot(p.x-a.x,p.z-a.z)<.56&&Math.abs(p.y+.35-a.y)<1.18){
  a.taken=true;s.stars++;emit(s,'star',{id:a.id})}}
  for(let i=0;i<s.map.checkpoints.length;i++){const c=s.map.checkpoints[i];if(p.z<c.z+.7&&s.checkpoint.z>c.z){s.checkpoint={...c};p.hearts=Math.min(3,p.hearts+1);emit(s,'checkpoint',{id:i})}}
@@ -241,5 +264,5 @@ function tick(s,input={},dt=1/60){
 function start(s){if(s.phase==='ready'||s.phase==='paused'){s.phase='playing';emit(s,'start')}return s}
 function pause(s){if(s.phase==='playing')s.phase='paused';else if(s.phase==='paused')s.phase='playing'}
 function drain(s){return s.events.splice(0)}
-return {LEVELS,level,create,tick,start,pause,attack,drain,damage,platformY};
+return {LEVELS,level,create,tick,start,pause,attack,drain,damage,platformY,BOX_TOP};
 });
