@@ -212,7 +212,7 @@ function makeStage(map){
   projectilePool.forEach((o,i)=>{let q=s.projectiles[i];o.visible=Boolean(q);if(q){o.position.set(q.x,q.y,q.z);o.scale.setScalar(1+.3*Math.sin(elapsed*22))}});
   hazardPool.forEach((o,i)=>{let h=s.hazards[i];o.visible=Boolean(h);if(h){o.position.set(h.x,1.20+(h.active<=0?.01:0),h.z);o.material.opacity=h.active>0?.2:.72}});
   const b=map.boss;boss.root.visible=b.active&&b.alive;
-  if(boss.root.visible){boss.root.position.set(b.x,b.y,b.z);boss.torso.rotation.z=Math.sin(elapsed*2)*.045;
+  if(boss.root.visible){boss.root.position.set(b.x,b.y,b.z);boss.root.rotation.y=Math.atan2(p.x-b.x,p.z-b.z);boss.torso.rotation.z=Math.sin(elapsed*2)*.045;
    boss.claws.forEach((o,i)=>o.rotation.x=Math.sin(elapsed*(b.phase+2)+i)*.3+(b.telegraph>0?Math.sin(elapsed*15)*.7:0));
    boss.weak.visible=b.weak>0;boss.aura.visible=b.weak>0;boss.aura.rotation.z=elapsed*2.4;boss.weak.scale.setScalar(1+.18*Math.sin(elapsed*9))}
   warning.visible=b.active&&b.telegraph>0;warning.position.x=b.x;warning.material.opacity=.24+.35*Math.abs(Math.sin(elapsed*12));
