@@ -59,9 +59,9 @@ test('full genuine 2958 triangle skinned mesh remains intact in low mode',async(
  }
  assert.ok(stretched<7,'avoid shredded triangles: '+stretched+', max='+longest);
 });
-test('professional stage and distinct V34 assets preserve exact scoring floor',()=>{
+test('professional stage and distinct V35 assets preserve exact scoring floor',()=>{
  for(const f of ['ritmo-glb-props','ritmo-skinning','ritmo-exterior','ritmo-stage-showtime'])
-  assert.ok(page.includes('/'+f+'.js?v=34'),f);
+  assert.ok(page.includes('/'+f+'.js?v=35'),f);
  assert.ok(page.includes('/ritmo-runtime.js?v=31'),'runtime unchanged');
  assert.ok(floor.includes('const trails=quality===0?3:5'));
  assert.ok(floor.includes('const back=-1.15,front=.94'));
@@ -69,7 +69,7 @@ test('professional stage and distinct V34 assets preserve exact scoring floor',(
  assert.ok(exterior.includes("drawPart('mixer'"));
  assert.ok(exterior.includes("drawPart('cdj'"));
  assert.ok(exterior.includes('const hands=skeletal?.hands?.(t,low,combo);'));
- assert.ok(exterior.includes('HORSE DJ V34'));
+ assert.ok(exterior.includes('HORSE DJ V35'));
  assert.ok(exterior.includes('stageWidth*.43'));
  assert.ok(exterior.includes('const BACK=.22'));
 });
