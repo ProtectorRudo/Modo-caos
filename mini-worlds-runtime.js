@@ -4,7 +4,7 @@
 const C=window.MiniWorldsCore,S=window.MiniWorldsSpatial,$=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const debugAR=new URLSearchParams(location.search).get('debug')==='1';
 let T,renderer,camera,view,game,stage,session,hitSource,lastHit=null,anchor=null,mode='demo',phase='home',placing=false,hasHit=false;
-let yaw=0,scale=.36,offset={x:0,z:0},lockedPose=null,worldYaw=0,headingSet=false;
+let yaw=0,scale=.215,offset={x:0,z:0},lockedPose=null,worldYaw=0,headingSet=false;
 let spatialLock=null,placementSerial=0,steeringYaw=null,heldSteeringYaw=null;
 let anchorPoseAtLock=null,anchorDriftWarned=false,trackingResetWarned=false;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
@@ -509,8 +509,8 @@ $('arStatus').onclick=()=>{
  arDebugVisible=!arDebugVisible;
  notice(arDebugVisible?'GUÍA VERDE ACTIVADA SOBRE EL PISO':'GUÍA VERDE OCULTA',1500);
 };
-$('scaleLess').onclick=()=>{scale=clamp(scale*.84,.19,.62);notice('PISTA '+(scale*33).toFixed(1)+' m DE LARGO',1400)};
-$('scaleMore').onclick=()=>{scale=clamp(scale*1.16,.19,.62);notice('PISTA '+(scale*33).toFixed(1)+' m DE LARGO',1400)};
+$('scaleLess').onclick=()=>{scale=clamp(scale*.84,.155,.345);notice('ZONA AR '+(scale*8.8).toFixed(1)+' m DE LARGO',1400)};
+$('scaleMore').onclick=()=>{scale=clamp(scale*1.16,.155,.345);notice('ZONA AR '+(scale*8.8).toFixed(1)+' m DE LARGO',1400)};
 $('turnLeft').onclick=()=>{yaw-=P()/12;worldYaw-=P()/12};
 $('turnRight').onclick=()=>{yaw+=P()/12;worldYaw+=P()/12};
 function P(){return Math.PI}
@@ -572,7 +572,7 @@ touch.addEventListener('pointermove',e=>{
  placePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(placePointers.size===1){offset.x+=(e.clientX-prev.x)*.0015;offset.z+=(e.clientY-prev.y)*.0015}
  else{let ps=[...placePointers.values()],dist=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y),a=Math.atan2(ps[1].y-ps[0].y,ps[1].x-ps[0].x);
- if(pinch){scale=clamp(scale*dist/Math.max(1,pinch.dist),.19,.62);worldYaw+=a-pinch.a;yaw+=a-pinch.a}pinch={dist,a}}
+ if(pinch){scale=clamp(scale*dist/Math.max(1,pinch.dist),.155,.345);worldYaw+=a-pinch.a;yaw+=a-pinch.a}pinch={dist,a}}
 });
 for(const ev of ['pointerup','pointercancel'])touch.addEventListener(ev,e=>{placePointers.delete(e.pointerId);pinch=null});
 document.body.addEventListener('beforexrselect',e=>e.preventDefault());
