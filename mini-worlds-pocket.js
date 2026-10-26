@@ -35,7 +35,7 @@ function create(T,stage){
  function reindex(){
   for(const child of [...world.children]){
    if(layers.includes(child))continue;
-   if(dynamicAlways.has(child)){layers[0].parent.add(child);continue}
+   if(dynamicAlways.has(child)||child===stage.kenneyArt||child===stage.premiumLayer){world.add(child);continue}
    const z=child.position?.z||0;
    layers[roomAtZ(z)].add(child);
   }
@@ -54,6 +54,11 @@ function create(T,stage){
   if(next===active){reindex();return false}
   active=next;transitionCount++;
   stage.room=next;world.position.z=ROOMS[active].offset;
+  // Two stacked virtual floors; the upper gardens are intentionally elevated
+  // while physical AR placement remains fixed at the same real floor point.
+  world.position.y=ROOMS[active].floor*1.55;
+  if(stage.ocean?.o)stage.ocean.o.position.z=-2.0-ROOMS[active].offset;
+  if(stage.ocean?.o)stage.ocean.o.position.y=-.70-world.position.y;
   for(let i=0;i<layers.length;i++)layers[i].visible=i===active;
   reindex();
   return {room:next,info:ROOMS[next],reason};
@@ -63,7 +68,13 @@ function create(T,stage){
   return switchRoom(desired,z<ROOMS[active].min?'forward':'back');
  }
  function initialize(){
-  stage.room=0;world.position.z=0;
+  stage.room=0;world.position.z=0;world.position.y=0;
+  if(stage.ocean?.o){
+   // Restrict 3D water to current pocket instead of 12 metres.
+   stage.ocean.o.scale.set(.66,.265,1);
+   stage.ocean.o.position.z=-2.0;
+  }
+  if(stage.shoreFoam)stage.shoreFoam.visible=false;
   reindex();
   layers.forEach((l,i)=>l.visible=i===0);
  }
