@@ -5,6 +5,7 @@ const $=id=>document.getElementById(id),C=window.CuadranteCore;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,state,modePlay='circuit';
 let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
+let floorSeconds=0,lastFloorHit=null;
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
 let bank=null,assetsPromise=null,pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
 try{records={...records,...JSON.parse(localStorage.getItem('cuadrante-records')||'{}')}}catch(e){}
@@ -128,9 +129,10 @@ function setDemoCamera(){if(!camera||renderer?.isLite)return;const aspect=innerW
  camera.fov=aspect<1?66:57;camera.aspect=aspect;camera.position.set(0,1.68,aspect<1?7.5:6.6);camera.lookAt(0,1.2,-.65);camera.updateProjectionMatrix()}
 function resize(){if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);applyQuality();if(!renderer.xr.isPresenting)setDemoCamera()}
 window.addEventListener('resize',resize);
-function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;pointers.clear();
+function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;floorSeconds=0;lastFloorHit=null;pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
  $('recenterBtn').style.display='none';$('hitFlash').className='';
+ stage?.setPlacementPreview?.(false);$('fixArena').disabled=true;
  $('overlay').style.display='none';$('ticker').style.opacity='0';$('placeControls').style.display='none';$('placeTitle').style.display='none';
  $('labelPhase').style.display='block';$('hud').style.display='flex';$('pauseBtn').style.display='block';$('touchLayer').style.pointerEvents='auto';
  $('cameraFeed').style.display='none';$('labelPhase').textContent='ARRASTRÁ PARA MOVER EL CUADRADO';$('load').style.display='none';
@@ -139,23 +141,48 @@ function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;noti
  $('placeControls').style.display='flex';$('placeTitle').style.display='block';$('hud').style.display='none';$('pauseBtn').style.display='none';
  $('labelPhase').textContent=inputMode==='ar'?'BUSCANDO EL PISO · APUNTÁ EL CELULAR':'CÁMARA SIN SEGUIMIENTO ESPACIAL';}
 }
-function placeFromFrame(frame){
- if(!placing||!frame||!hitSource||!renderer?.xr?.isPresenting)return;
- const hits=frame.getHitTestResults(hitSource);if(!hits.length){hasHit=false;return}
- const p=hits[0].getPose(renderer.xr.getReferenceSpace());if(!p)return;
- hasHit=true;
- const pos=p.transform.position,cam=renderer.xr.getCamera(camera);let dir=new THREE.Vector3();cam.getWorldDirection(dir);
- let baseYaw=Math.atan2(-dir.x,-dir.z);yaw=baseYaw;
- const world=C.anchoredArena(pos,baseYaw,offset.rot||0,offset,arenaScale);
+function placeFromFrame(frame,dt){
+ if(!placing||inputMode!=='ar'||!frame||!hitSource||!renderer?.xr?.isPresenting)return;
+ const hits=frame.getHitTestResults(hitSource);
+ let pose=null;
+ for(const hit of hits){
+  const candidate=hit.getPose(renderer.xr.getReferenceSpace());
+  if(C.horizontalHit(candidate)){pose=candidate;break}
+ }
+ if(!pose){
+  hasHit=false;floorSeconds=0;lastFloorHit=null;
+  $('fixArena').disabled=true;stage.setPlacementPreview?.(false);
+  $('labelPhase').textContent=hits.length?'APUNTÁ A UNA SUPERFICIE HORIZONTAL':'BUSCANDO PISO REAL · MOVÉ EL CELULAR DESPACIO';
+  return;
+ }
+ const pos=pose.transform.position;
+ const next={x:pos.x,y:pos.y,z:pos.z};
+ const dist=lastFloorHit?Math.hypot(pos.x-lastFloorHit.x,pos.y-lastFloorHit.y,pos.z-lastFloorHit.z):Infinity;
+ if(!lastFloorHit||dist>.055){
+  floorSeconds=0;lastFloorHit=next;hasHit=false;
+ }else{
+  // Small floor-pose jitter is filtered without making the world follow the phone.
+  floorSeconds=Math.min(1,floorSeconds+Math.min(dt,.05));
+  lastFloorHit.x+=(pos.x-lastFloorHit.x)*.16;
+  lastFloorHit.y+=(pos.y-lastFloorHit.y)*.16;
+  lastFloorHit.z+=(pos.z-lastFloorHit.z)*.16;
+ }
+ const cam=renderer.xr.getCamera(camera),dir=new THREE.Vector3();
+ cam.getWorldDirection(dir);
+ const baseYaw=Math.atan2(-dir.x,-dir.z);yaw=baseYaw;
+ const world=C.anchoredArena(lastFloorHit,baseYaw,offset.rot||0,offset,arenaScale);
  stage.root.rotation.y=world.rotation;
  stage.root.position.set(world.x,world.y,world.z);
  stage.root.scale.setScalar(arenaScale);
- $('fixArena').disabled=false;$('labelPhase').textContent='SUPERFICIE DETECTADA · AJUSTÁ TU ARENA';
+ hasHit=floorSeconds>=.60;
+ stage.setPlacementPreview?.(true,hasHit);
+ $('fixArena').disabled=!hasHit;
+ $('labelPhase').textContent=hasHit?'PISO DETECTADO ✓ · AHORA FIJÁ LA ARENA':'PISO ENCONTRADO · CALIBRANDO '+Math.round(floorSeconds/.6*100)+'%';
 }
 function frame(t,xrFrame){
  if(!renderer||!stage||!camera)return;
  const dt=clamp((t-prev)/1000||.016,0,.07);prev=t;measureFrame(dt);
- if(placing&&inputMode==='ar')placeFromFrame(xrFrame);
+ if(placing&&inputMode==='ar')placeFromFrame(xrFrame,dt);
  if(state&&state.phase!=='ready'&&state.phase!=='paused'&&state.phase!=='finished'){
   acc+=dt;let steps=0;while(acc>=1/120&&steps++<9){C.step(state,1/120);acc-=1/120}if(steps>=9)acc=0;
   const events=C.drain(state);handleEvents(events);music();
@@ -224,8 +251,8 @@ function pause(){if(!state||placing)return;if(state.phase==='paused'){C.resume(s
 $('pauseBtn').onclick=pause;$('exitBtn').onclick=()=>back();
 function recenter(){
  if(!playing||placing||inputMode!=='ar'||!renderer?.xr?.isPresenting||!state||state.phase==='finished')return;
- C.pause(state);recentering=true;placing=true;hasHit=false;offset={x:0,z:0,rot:0};
- pointers.clear();$('overlay').style.display='none';$('pauseBtn').textContent='Ⅱ';$('pauseBtn').style.display='none';
+ C.pause(state);recentering=true;placing=true;hasHit=false;floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};
+ pointers.clear();stage?.setPlacementPreview?.(false);$('overlay').style.display='none';$('pauseBtn').textContent='Ⅱ';$('pauseBtn').style.display='none';
  $('recenterBtn').style.display='none';$('hud').style.display='none';
  $('placeTitle').style.display='block';$('placeTitle').firstChild.textContent='RECENTRAR ARENA';
  $('placeControls').style.display='flex';$('fixArena').disabled=true;$('fixArena').textContent='FIJAR Y CONTINUAR';
@@ -253,26 +280,27 @@ async function init(mode){
   await load();build();
   if(mode==='ar')await beginAR(requestedXR);else enter('demo');
  }catch(e){
+  // A failed immersive session must NEVER pretend a camera stream has
+  // spatial tracking. Report the exact failure, clean XR, offer real 3D.
+  const reason=(e?.message||String(e)).slice(0,190);
   $('load').style.display='none';
-  if(!renderer||!stage||renderer.isLite){
-   // An unavailable third-party CDN or GPU must never strand the Play button.
-   if(requestedXR)requestedXR.then(s=>s.end().catch(()=>{})).catch(()=>{});
-   try{buildLite();enter('demo');$('labelPhase').textContent='MODO LIGERO · CONTROLES Y FÍSICA COMPLETOS';
-    note('MODO LIGERO · LISTO PARA JUGAR',2600)}
-   catch(fail){report(fail);await back()}
-  }else if(mode==='ar'){
-   report(e);
-   try{await fallbackCamera()}catch(err){report(err);enter('demo')}
-  }else{
-   // Rendering may have failed after initialization; recover with 2D graphics.
-   try{buildLite();enter('demo');$('labelPhase').textContent='MODO LIGERO · FÍSICA ORIGINAL';
-    note('MODO LIGERO · LISTO PARA JUGAR',2400)}
-   catch(err){report(err);await back()}
-  }
+  inputMode='demo';
+  if(hitSource){try{hitSource.cancel()}catch(_){}hitSource=null}
+  if(session){const old=session;session=null;try{await old.end()}catch(_){}}
+  else if(requestedXR)requestedXR.then(s=>s.end().catch(()=>{})).catch(()=>{});
+  try{
+   if(!renderer||!stage||renderer.isLite){buildLite()}
+   else if(renderer.xr.isPresenting){build()} // discard any partially active XR framebuffer
+   enter('demo');C.pause(state);
+   modal('AR ESPACIAL NO INICIADA','NO SE PUDO DETECTAR EL PISO',
+    'No se activó WebXR con seguimiento de superficies. La cámara sola no detecta el piso. Revisá Chrome y Servicios de Google Play para RA. Detalle: '+reason);
+   button('JUGAR EN MODO 3D',()=>{C.resume(state);$('overlay').style.display='none'},'blue');
+   button('VOLVER Y REINTENTAR AR',()=>back(),'alt');
+  }catch(fail){report(fail);if(playing)await back()}
  }
 }
 async function beginAR(requestedXR){
- if(!navigator.xr||!requestedXR)throw Error('WebXR no está disponible. Se abrirá modo cámara alternativo.');
+ if(!navigator.xr||!requestedXR)throw Error('Tu navegador no ofrece WebXR immersive-ar.');
  session=await requestedXR;
  session.addEventListener('end',()=>{if(playing&&inputMode==='ar'&&!placing){C.pause(state);modal('AR DESCONECTADA','SE CERRÓ LA CÁMARA','Reiniciá la arena para recuperar el seguimiento espacial.');button('VOLVER AL MENÚ',back,'blue')}})
  await renderer.xr.setSession(session);
@@ -280,18 +308,11 @@ async function beginAR(requestedXR){
  hitSource=await session.requestHitTestSource({space:viewer});
  enter('ar');$('fixArena').disabled=true;note('BUSCÁ UNA SUPERFICIE',1850);
 }
-async function fallbackCamera(){
- try{videoStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
- $('cameraFeed').srcObject=videoStream;$('cameraFeed').style.display='block';await $('cameraFeed').play()}
- catch(e){report('No se pudo activar la cámara. Podés jugar en el modo 3D sin cámara.');enter('demo');return}
- enter('camera');$('cameraFeed').style.display='block';stage.root.position.set(0,0,0);stage.root.scale.setScalar(.9);
- $('labelPhase').textContent='CÁMARA SIN TRACKING ESPACIAL · CALIBRACIÓN MANUAL';$('fixArena').disabled=false;
-}
 $('startAr').onclick=()=>init('ar');$('startDemo').onclick=()=>init('demo');
 function doFix(){
  if(!placing)return;
- if(inputMode==='ar'&&!hasHit){note('APUNTÁ A UN PISO DESPEJADO',1250);return}
- placing=false;$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
+ if(inputMode==='ar'&&(!hasHit||floorSeconds<.60)){note('ESPERÁ A QUE EL PISO SE PONGA VERDE',1350);return}
+ placing=false;hasHit=false;stage?.setPlacementPreview?.(false);$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
  $('labelPhase').textContent=inputMode==='ar'?'AR REAL · ARRASTRÁ PARA DEFENDER':'CÁMARA SIN TRACKING · ARRASTRÁ PARA DEFENDER';
  $('recenterBtn').style.display=inputMode==='ar'?'block':'none';
  if(recentering){
