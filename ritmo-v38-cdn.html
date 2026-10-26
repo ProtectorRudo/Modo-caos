@@ -165,7 +165,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <h1>RITMO <span>CAOS</span></h1>
 <p class="intro">🎸 Las notas vienen hacia vos. <b>Vos sos el joystick:</b> movete de costado hasta el color justo cuando suene.</p>
 <div class="hero"><div class="stage"><i></i><i></i><i></i><i></i></div><strong>EL ESCENARIO ES TU CASA</strong></div>
-<div class="features"><b>🐴 RITMO CAOS V38 · BEAT LOCK · CANAL ESTABLE</b><b>🎼 DESPACITO + 11 TEMAS · NEON PRISM</b><b>🟢 4 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
+<div class="features"><b>🐴 RITMO CAOS V38 · BEAT LOCK · SINCRONIZACIÓN MUSICAL</b><b>🎼 DESPACITO + 11 TEMAS · NEON PRISM</b><b>🟢 4 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
 <div class="config"><label>CANCIÓN<select id="song"><option value="despacito_remix_justin" selected>🔥 DESPACITO (REMIX) · Fonsi, Daddy Yankee y Justin Bieber · 80 s</option><option value="neon">⚡ Neón sin freno</option><option value="fuego">🎸 Fuego en el escenario</option><option value="solar">☀️ Solar latino</option><optgroup label="MELODÍAS CONOCIDAS · INCLUIDAS">
 <option value="alegria">🎻 Oda a la Alegría · Beethoven</option>
 <option value="elise">🎹 Para Elisa · Beethoven</option>
@@ -198,7 +198,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
 <button id="lock" disabled>📍 FIJAR LOS 4 CARRILES</button>
 <div id="topActions"><button id="exit">← MENÚ</button><button id="gamePause">Ⅱ PAUSA</button><button id="quality" title="Calidad gráfica" aria-label="Calidad gráfica">✨ AUTO · V38</button><button id="sound">🔊</button></div>
-<div id="sceneVersion" aria-label="Versión del escenario">V37 · VERIFICANDO RENDER</div>
+<div id="sceneVersion" aria-label="Versión del escenario">V38 · SINCRONIZANDO AUDIO</div>
 <div id="hud"><div class="hudRow"><div>PUNTOS<strong id="score">0</strong></div><div>COMBO<strong id="combo">×0</strong></div><div>ENERGÍA<strong id="energy">100%</strong></div><div>TIEMPO<strong id="clock">00:00</strong></div></div>
 <div id="progress"><div id="progressFill"></div></div><div id="forecast"></div></div>
 <div id="where">📍 VOS · CENTRO</div><div id="toast" aria-live="polite"></div>
@@ -238,35 +238,34 @@ window.addEventListener('unhandledrejection',function(e){
 });
 </script>
 <script>
-/* Modo Caos V38 independent HTTPS build, pinning ALL JS and 3D/audio files
-   to the SAME tested source SHA. This page never falls back to old V37. */
+/* Modo Caos V38 BEAT LOCK - all game, audio and GLB resources pinned to one revision. */
 (function(){
- const root="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854";
+ const root="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b";
  const nativeFetch=window.fetch.bind(window);
  window.fetch=function(resource,options){
-   if(typeof resource==='string' && /^\/(assets|media)\/ritmo\//.test(resource))
-     resource=root+resource;
-   return nativeFetch(resource,options);
+  if(typeof resource==='string' && /^\/(assets|media)\/ritmo\//.test(resource))
+   resource=root+resource;
+  return nativeFetch(resource,options);
  };
  window.__ritmoPreviewAssets=root;
 })();
 </script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-engine.js?v=28"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-core.js?v=38"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-tracking.js?v=38"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-catalog.js?v=28"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-licensed.js?v=28"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-despacito.js?v=38"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-audio.js?v=38"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-art.js?v=28"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-stage3d.js?v=28"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-stage-premium.js?v=28"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-glb-props.js?v=37"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-skinning.js?v=37"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-exterior.js?v=37"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-stage-showtime.js?v=38"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-kenney-vfx.js?v=28"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-fx.js?v=28"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-haptics.js?v=28"></script>
-<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854/ritmo-runtime.js?v=38"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-engine.js?v=28"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-core.js?v=38"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-tracking.js?v=38"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-catalog.js?v=28"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-licensed.js?v=28"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-despacito.js?v=38"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-audio.js?v=38"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-art.js?v=28"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-stage3d.js?v=28"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-stage-premium.js?v=28"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-glb-props.js?v=37"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-skinning.js?v=37"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-exterior.js?v=37"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-stage-showtime.js?v=38"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-kenney-vfx.js?v=28"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-fx.js?v=28"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-haptics.js?v=28"></script>
+<script defer src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b/ritmo-runtime.js?v=38"></script>
 </body></html>
