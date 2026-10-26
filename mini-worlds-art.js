@@ -303,6 +303,32 @@ function makeStage(map){
  const boxes=map.boxes.map(b=>makeBox(root,b,Math.max(0,...map.platforms.filter(p=>Math.abs(b.x-p.x)<p.w/2&&Math.abs(b.z-p.z)<p.d/2).map(p=>p.y))));
  const enemies=map.enemies.map(e=>makeEnemy(root,e,e.type==='flying'?1.25:(Math.max(0,...map.platforms.filter(p=>Math.abs(e.x-p.x)<p.w/2&&Math.abs(e.z-p.z)<p.d/2).map(p=>p.y)))));
  const hero=makeAvatar(root),boss=makeBoss(root,map.boss,Boolean(map.n));boss.root.visible=false;
+ // Floating enchanted wand stays visible with both fallback witch and GLB Mage.
+ const wand=group(hero.root,.37,.82,.17);
+ wand.rotation.z=-.23;
+ mesh(cyl(.044,.038,.50,9),M.woodDark,0,.12,0,wand);
+ const wandTip=mesh(new T.IcosahedronGeometry(.102,1),new T.MeshStandardMaterial({
+  color:0xa9fff2,emissive:0x4cdac3,emissiveIntensity:1.6,roughness:.24
+ }),0,.41,0,wand);
+ hero.wand=wand;hero.wandTip=wandTip;
+ // Animated spell missiles use a constant-size visual pool on mobile.
+ const magicMaterial=new T.MeshStandardMaterial({color:0xa1ffef,emissive:0x36ffd2,emissiveIntensity:2.0,roughness:.20});
+ const magicGeo=new T.IcosahedronGeometry(.15,1);
+ const magicOrbs=Array.from({length:12},()=>{
+  const obj=mesh(magicGeo,magicMaterial,0,0,0,root);
+  obj.visible=false;obj.castShadow=false;return obj;
+ });
+ const runes=map.runes.map((r)=>{
+  const g=group(root,r.x,r.y,r.z);
+  const crystal=mesh(new T.OctahedronGeometry(.27,0),M.purple,0,0,0,g);
+  const petals=Array.from({length:5},(_,i)=>{
+   const a=i*Math.PI*2/5;
+   const t=mesh(new T.OctahedronGeometry(.18,0),M.grass2,Math.sin(a)*.36,.18,Math.cos(a)*.36,g);
+   t.visible=false;return t;
+  });
+  const ring=mesh(new T.TorusGeometry(.35,.04,5,22),M.gold,0,0,0,g);
+  return {root:g,crystal,petals,ring};
+ });
  // Cheap readable contact shadows: no expensive real-time shadow map in AR.
  const shadowMat=new T.MeshBasicMaterial({color:0x0d2634,transparent:true,opacity:.27,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
  const shadow=(x,z,size=1)=>{const o=mesh(new T.CircleGeometry(.35,24),shadowMat.clone(),x,.046,z,root);o.rotation.x=-P/2;o.scale.set(size,1,.67);o.castShadow=false;return o};
@@ -381,16 +407,25 @@ function makeStage(map){
  function combatFx(evt,actor){
   if(!evt)return;
   const material=color=>new T.MeshBasicMaterial({color,transparent:true,opacity:.95,depthWrite:false,depthTest:false,side:T.DoubleSide});
-  if(evt.type==='swing'&&actor){
+  if(evt.type==='spellCast'&&actor){
    const angle=actor.face,px=actor.x+Math.sin(angle)*.65,pz=actor.z+Math.cos(angle)*.65;
-   const o=mesh(new T.TorusGeometry(.68,.066,7,30,Math.PI*1.35),material(0xcafff3),px,actor.y+.91,pz,root);
+   const o=mesh(new T.TorusGeometry(.29,.047,7,24),material(0xa1fff5),px,actor.y+.79,pz,root);
    o.rotation.y=angle;o.rotation.z=-.55;o.renderOrder=1800;o.castShadow=false;
-   combatBursts.push({o,t:0,life:.19,kind:'slash'});
+   combatBursts.push({o,t:0,life:.17,kind:'slash'});
   }
   if(evt.type==='enemyAlert'){
    const o=mesh(new T.ConeGeometry(.17,.38,4),material(0xffea72),evt.x,(evt.y||0)+1.44,evt.z,root);
    o.renderOrder=1803;o.castShadow=false;
    combatBursts.push({o,t:0,life:.7,kind:'alert'});
+  }
+  if(evt.type==='spellHit'){
+   impact(evt.x,evt.y,evt.z,evt.kind==='rune'?'#ffdf8a':'#8fffe7',12);
+   shockwave(evt.x,evt.y,evt.z,0x8affea,.32,.25);
+  }
+  if(evt.type==='runeRestored'){
+   rewardPop('¡RESTÁURALO! +5',evt.x,evt.y+.65,evt.z);
+   impact(evt.x,evt.y,evt.z,'#a7ffb6',25);
+   shockwave(evt.x,evt.y-.4,evt.z,0xbaffcb,.65,.64);
   }
   if(evt.type==='coin'){
    rewardPop(evt.reward===2?'+2':'+1',evt.x,evt.y+.38,evt.z);
@@ -474,6 +509,21 @@ function makeStage(map){
  function update(s,dt,elapsed){
   const p=s.player;
   ocean.material.uniforms.uTime.value=elapsed;
+  wandTip.scale.setScalar(1+.18*Math.sin(elapsed*9));
+  for(let i=0;i<magicOrbs.length;i++){
+   const b=s.magicShots?.[i],o=magicOrbs[i];
+   o.visible=!!b;
+   if(b){o.position.set(b.x,b.y+.035*Math.sin(elapsed*18+i),b.z);
+    o.scale.setScalar(1+.15*Math.sin(elapsed*19+i));o.rotation.y+=dt*3}
+  }
+  for(let i=0;i<runes.length;i++){
+   const r=map.runes[i],o=runes[i];
+   o.crystal.material=r.restored?M.gold:M.purple;
+   o.crystal.rotation.y+=dt*(r.restored?2.6:1.1);
+   o.crystal.scale.setScalar(r.restored?1.22:.82+.13*Math.sin(elapsed*3+i));
+   o.petals.forEach((p,k)=>{p.visible=r.restored;p.rotation.y=elapsed*.5+k});
+   o.ring.rotation.z=elapsed*1.5;
+  }
   shoreFoam.material.opacity=.24+.12*Math.sin(elapsed*1.55);
   // Breeze on a few distant palms and foliage groups; no bone animation.
   for(let i=0;i<windTargets.length;i++){
@@ -587,7 +637,7 @@ function makeStage(map){
   // premium detail, while a few Kenney/procedural palms retain island identity.
   windTargets.forEach((plant,i)=>{plant.visible=!enabled||i%4===0});
  };
- return {scene,root:anchorRoot,worldRoot:root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,heroShadow,furyRing,ocean,shoreFoam,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
+ return {scene,root:anchorRoot,worldRoot:root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,heroShadow,furyRing,ocean,shoreFoam,magicOrbs,runes,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
 }
 return {makeStage};
 }})(typeof window!=='undefined'?window:globalThis);
