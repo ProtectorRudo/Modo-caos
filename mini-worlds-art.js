@@ -220,8 +220,30 @@ function makeStage(map){
  const warning=mesh(new T.RingGeometry(.84,1.3,40),new T.MeshBasicMaterial({color:0xff513e,transparent:true,opacity:.45,side:T.DoubleSide,depthWrite:false}),0,1.20,-23.2,root);warning.rotation.x=-P/2;warning.visible=false;
  const projectilePool=Array.from({length:14},()=>{let o=mesh(sphere(.12,9,7),M.red,0,0,0,root);o.visible=false;return o});
  const hazardPool=Array.from({length:8},()=>{let o=mesh(new T.RingGeometry(.40,.77,24),new T.MeshBasicMaterial({color:0xff583c,transparent:true,opacity:.57,side:T.DoubleSide,depthWrite:false}),0,0,0,root);o.rotation.x=-P/2;o.visible=false;return o});
- const effects=[];
+ const effects=[],combatBursts=[],koTimers=new Map();
  let stageCharacters=null;
+ function combatFx(evt,actor){
+  if(!evt)return;
+  const material=color=>new T.MeshBasicMaterial({color,transparent:true,opacity:.95,depthWrite:false,depthTest:false,side:T.DoubleSide});
+  if(evt.type==='swing'&&actor){
+   const angle=actor.face,px=actor.x+Math.sin(angle)*.65,pz=actor.z+Math.cos(angle)*.65;
+   const o=mesh(new T.TorusGeometry(.68,.066,7,30,Math.PI*1.35),material(0xcafff3),px,actor.y+.91,pz,root);
+   o.rotation.y=angle;o.rotation.z=-.55;o.renderOrder=1800;o.castShadow=false;
+   combatBursts.push({o,t:0,life:.19,kind:'slash'});
+  }
+  if(evt.type==='enemyDown')koTimers.set(evt.id,.55);
+  if(['enemyHit','enemyDown','boxBreak','bossHit'].includes(evt.type)){
+   const target=evt.type==='bossHit'?{x:map.boss.x,y:map.boss.y+1.5,z:map.boss.z}:evt;
+   if(!Number.isFinite(target?.x))return;
+   const color=evt.type==='enemyDown'?0xfff0a3:evt.type==='boxBreak'?0xffbb72:0x7effe0;
+   const radius=evt.type==='enemyDown'?.42:.28;
+   const o=mesh(new T.RingGeometry(radius*.54,radius,30),material(color),target.x,(target.y||0)+.80,target.z,root);
+   o.renderOrder=1801;o.castShadow=false;
+   combatBursts.push({o,t:0,life:evt.type==='enemyDown'?.55:.28,kind:'hit'});
+   impact(target.x,(target.y||0)+.9,target.z,evt.type==='enemyDown'?'#fff1a1':'#97fff6',evt.type==='enemyDown'?21:9);
+  }
+ }
+
  function bindCharacters(handler){stageCharacters=handler}
  function impact(x,y,z,c='#ffe89f',count=11){for(let i=0;i<count;i++){
   const o=mesh(sphere(.025+rand()*.045,6,5),mat(c),x,y,z,root);o.castShadow=false;
@@ -230,6 +252,10 @@ function makeStage(map){
   const p=s.player;
   if(typeof stageCharacters==='function')stageCharacters(s,dt);
   hero.root.position.set(p.x,p.y,p.z);hero.root.rotation.y=p.face;
+ heroShadow.position.set(p.x,(window.MiniWorldsCore?.platformY(s,p.x,p.z)??p.y)+.045,p.z);
+ const shadowGap=Math.max(0,p.y-heroShadow.position.y);
+ heroShadow.material.opacity=.26/(1+shadowGap*.85);
+ heroShadow.scale.set(1.1-shadowGap*.1,1,(1.1-shadowGap*.1)*.67);
   let run=Math.min(1,Math.hypot(p.vx,p.vz)/2.7),t=elapsed*11;
   hero.body.position.y=.58+(p.grounded?Math.sin(t)*.025*run:Math.sin(elapsed*5)*.035);
   hero.body.rotation.z=Math.sin(t*.5)*.055*run+(p.attack>.03?-.26:0);
@@ -238,9 +264,20 @@ function makeStage(map){
   for(let i=0;i<coins.length;i++){const c=map.coins[i],o=coins[i];o.visible=!c.taken;if(o.visible){o.rotation.y=elapsed*2.6+i;o.position.y=c.y+Math.sin(elapsed*3+i)*.09}}
   for(let i=0;i<stars.length;i++){const c=map.stars[i],o=stars[i];o.visible=!c.taken;if(o.visible){o.rotation.y=elapsed*1.5;o.position.y=c.y+Math.sin(elapsed*2+i)*.13}}
   for(let i=0;i<boxes.length;i++){const b=map.boxes[i],o=boxes[i];o.visible=b.alive;if(o.visible){o.rotation.z=b.flash>0?Math.sin(elapsed*50)*.09:0;o.scale.setScalar(b.flash>0?1.10:1)}}
-  for(let i=0;i<enemies.length;i++){const e=map.enemies[i],o=enemies[i];o.visible=e.alive;if(o.visible){o.position.x=e.x;o.position.z=e.z;
+  for(let i=0;i<enemies.length;i++){
+   const e=map.enemies[i],o=enemies[i],death=koTimers.get(e.id)||0;
+   o.visible=e.alive||death>0;
+   enemyShadows[i].visible=e.alive&&e.type!=='flying';
+   enemyShadows[i].position.set(e.x,(window.MiniWorldsCore?.platformY(s,e.x,e.z)??0)+.045,e.z);
+   if(o.visible){o.position.x=e.x;o.position.z=e.z;
    if(e.type==='flying')o.position.y=e.y;else o.position.y=Math.max(0,...map.platforms.filter(p=>Math.abs(e.x-p.x)<p.w/2&&Math.abs(e.z-p.z)<p.d/2).map(p=>p.y))+.42;
-   o.rotation.y=Math.atan2(p.x-e.x,p.z-e.z);o.rotation.z=e.flash>0?.23*Math.sin(elapsed*44):Math.sin(elapsed*4+i)*.035}}
+   o.rotation.y=Math.atan2(p.x-e.x,p.z-e.z);
+    if(death>0){const t=1-death/.55;o.position.y+=Math.sin(t*Math.PI)*.80;
+      o.rotation.z=t*1.5;o.scale.setScalar(Math.max(.02,1-t*t));}
+    else{o.scale.setScalar(1);o.rotation.z=e.flash>0?.22*Math.sin(elapsed*44):Math.sin(elapsed*4+i)*.035}
+   }
+   if(death>0){const next=death-dt;if(next<=0)koTimers.delete(e.id);else koTimers.set(e.id,next)}
+  }
   projectilePool.forEach((o,i)=>{let q=s.projectiles[i];o.visible=Boolean(q);if(q){o.position.set(q.x,q.y,q.z);o.scale.setScalar(1+.3*Math.sin(elapsed*22))}});
   hazardPool.forEach((o,i)=>{let h=s.hazards[i];o.visible=Boolean(h);if(h){o.position.set(h.x,1.20+(h.active<=0?.01:0),h.z);o.material.opacity=h.active>0?.2:.72}});
   const b=map.boss;boss.root.visible=b.active&&b.alive;
@@ -249,6 +286,13 @@ function makeStage(map){
    boss.weak.visible=b.weak>0;boss.aura.visible=b.weak>0;boss.aura.rotation.z=elapsed*2.4;boss.weak.scale.setScalar(1+.18*Math.sin(elapsed*9))}
   warning.visible=b.active&&b.telegraph>0;warning.position.x=b.x;warning.material.opacity=.24+.35*Math.abs(Math.sin(elapsed*12));
   portal.visible=s.won;if(portal.visible)portal.rotation.y+=dt*.5;
+  for(let i=combatBursts.length-1;i>=0;i--){
+   const fx=combatBursts[i];fx.t+=dt;
+   const progress=Math.min(1,fx.t/fx.life);
+   fx.o.material.opacity=(1-progress)*.92;
+   fx.o.scale.setScalar(fx.kind==='slash'?1+progress*.38:.55+progress*1.6);
+   if(fx.t>=fx.life){fx.o.parent?.remove(fx.o);fx.o.geometry.dispose();fx.o.material.dispose();combatBursts.splice(i,1)}
+  }
   for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.life-=dt;f.vy-=8*dt;f.o.position.x+=f.vx*dt;f.o.position.y+=f.vy*dt;f.o.position.z+=f.vz*dt;f.o.scale.setScalar(Math.max(.1,f.life*2));if(f.life<=0){root.remove(f.o);f.o.geometry.dispose();effects.splice(i,1)}}
  }
  function dispose(){
@@ -265,7 +309,7 @@ function makeStage(map){
   materials.forEach(m=>m.dispose());
   Object.values(M).forEach(m=>m.dispose());
  }
- return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,update,impact,dispose,bindCharacters};
+ return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,update,impact,combatFx,dispose,bindCharacters};
 }
 return {makeStage};
 }})(typeof window!=='undefined'?window:globalThis);
