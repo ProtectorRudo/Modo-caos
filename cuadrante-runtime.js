@@ -127,6 +127,57 @@ function buildLite(){
  renderer=kit.renderer;stage=kit.stage;camera=kit.camera;
  renderer.setAnimationLoop(frame);
 }
+function closeArWorld(){
+ arCompositor?.dispose();arCompositor=null;arCompositorReady=false;
+ arDrawFrames=0;arVisibleOutline=false;arRenderFaultAt=0;
+ $('arWorldOverlay').style.display='none';
+ $('placementSvg').style.display='none';$('arDrawStatus').style.display='none';
+}
+async function openArWorld(){
+ closeArWorld();
+ const {createCuadranteArCompositor}=await import('./cuadrante-ar-compositor.js');
+ if(!THREE||!stage?.scene)throw Error('Arena 3D no iniciada');
+ arCompositor=createCuadranteArCompositor(THREE,$('arWorldOverlay'),1.15);
+ $('arWorldOverlay').style.display='block';arCompositorReady=true;
+}
+function showArOutline(frame){
+ if(!session||!frame||!stage||!placing||!stage.root.visible){
+  arVisibleOutline=false;$('placementSvg').style.display='none';return;
+ }
+ const pose=frame.getViewerPose(renderer.xr.getReferenceSpace());
+ const view=pose?.views?.[0];
+ if(!view?.projectionMatrix||!view.transform?.inverse?.matrix){
+  arVisibleOutline=false;$('placementSvg').style.display='none';return;
+ }
+ stage.root.updateMatrixWorld(true);
+ const mvp=new THREE.Matrix4().fromArray(view.projectionMatrix)
+   .multiply(new THREE.Matrix4().fromArray(view.transform.inverse.matrix))
+   .multiply(stage.root.matrixWorld);
+ const width=innerWidth,height=innerHeight;
+ const project=(x,y,z)=>{
+  const v=new THREE.Vector4(x,y,z,1).applyMatrix4(mvp);
+  if(!Number.isFinite(v.w)||v.w<=.04)return null;
+  const px=(v.x/v.w*.5+.5)*width,py=(.5-v.y/v.w*.5)*height;
+  return Number.isFinite(px)&&Number.isFinite(py)?[px,py]:null;
+ };
+ const corners=[
+  [-1.74,.17,2.9],[1.74,.17,2.9],
+  [1.74,.17,-2.75],[-1.74,.17,-2.75]
+ ].map(q=>project(...q));
+ const center=project(0,.185,2.9);
+ const visible=corners.filter(p=>p&&p[0]>-width*.35&&p[0]<width*1.35&&p[1]>-height*.35&&p[1]<height*1.35).length;
+ const nearScreen=!!center&&center[0]>=0&&center[0]<=width&&center[1]>=0&&center[1]<=height;
+ arVisibleOutline=nearScreen||visible>=2;
+ const path=[],point=p=>p[0].toFixed(1)+','+p[1].toFixed(1);
+ for(let i=0;i<4;i++)if(corners[i]&&corners[(i+1)%4])path.push('M'+point(corners[i])+'L'+point(corners[(i+1)%4]));
+ const svg=$('placementSvg');svg.setAttribute('viewBox','0 0 '+width+' '+height);
+ $('placementBorder').setAttribute('d',path.join(''));
+ if(center){$('placementTarget').setAttribute('cx',center[0]);$('placementTarget').setAttribute('cy',center[1]);$('placementTarget').style.display='block'}
+ else $('placementTarget').style.display='none';
+ svg.style.display=arVisibleOutline?'block':'none';
+ $('placementBorder').style.stroke=hasHit?'#41ffd3':'#ffbe74';
+ $('placementTarget').style.fill=hasHit?'#41ffd3':'#ffbe74';
+}
 function setDemoCamera(){if(!camera||renderer?.isLite)return;const aspect=innerWidth/innerHeight;
  camera.fov=aspect<1?66:57;camera.aspect=aspect;camera.position.set(0,1.68,aspect<1?7.5:6.6);camera.lookAt(0,1.2,-.65);camera.updateProjectionMatrix()}
 function resize(){arCompositor?.resize();if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);applyQuality();if(!renderer.xr.isPresenting)setDemoCamera()}
@@ -319,13 +370,14 @@ async function beginAR(requestedXR){
  await renderer.xr.setSession(session);
  const viewer=await session.requestReferenceSpace('viewer');
  hitSource=await session.requestHitTestSource({space:viewer});
+ await openArWorld();
  enter('ar');$('fixArena').disabled=true;note('BUSCÁ UNA SUPERFICIE',1850);
 }
 $('startAr').onclick=()=>init('ar');$('startDemo').onclick=()=>init('demo');
 function doFix(){
  if(!placing)return;
  if(inputMode==='ar'&&(!hasHit||!arCompositorReady||!arVisibleOutline||floorSeconds<.60)){note('APUNTÁ A LA MARCA VERDE Y ESPERÁ QUE APAREZCA LA ARENA',1800);return}
- placing=false;hasHit=false;stage.root.visible=true;stage?.setPlacementPreview?.(false);$('ui').classList.remove('ar-placing');$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
+ placing=false;hasHit=false;stage.root.visible=true;stage?.setPlacementPreview?.(false);$('placementSvg').style.display='none';$('ui').classList.remove('ar-placing');$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
  $('labelPhase').textContent=inputMode==='ar'?'AR REAL · ARRASTRÁ PARA DEFENDER':'CÁMARA SIN TRACKING · ARRASTRÁ PARA DEFENDER';
  $('recenterBtn').style.display=inputMode==='ar'?'block':'none';
  if(recentering){
