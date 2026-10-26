@@ -197,6 +197,19 @@
    beam([-.019,h-.047,z+.079],[0,h-.054,z+.080],.003,[.20,.13,.13]);
    beam([0,h-.054,z+.080],[.019,h-.047,z+.079],.003,[.20,.13,.13]);
   }
+  function fallbackBomber(t,low){
+   const bob=Math.sin(t*5.2)*(.004+.007*low),z=-1.54;
+   // Torso-only fallback. The horse mask stays the sole head if GLB fails.
+   cuboid(mesh,0,.460+bob,z,.205,.263,.105,[.045,.061,.097],[.10,.14,.21],1);
+   for(const sign of [-1,1]){
+    const shoulder=[sign*.113,.586+bob,z+.015];
+    const elbow=[sign*.273,.429+bob,z+.060];
+    const hand=[sign*.168,.338+bob,-1.403];
+    beam(shoulder,elbow,.041,[.050,.078,.127]);
+    beam(elbow,hand,.035,[.065,.098,.156]);
+    ball(hand[0],hand[1],hand[2],.016,[.68,.42,.27],8,5);
+   }
+  }
   // 3D horse-head mask, styled for the Quaternius Punk character.
   // Not falsely attributed to Quaternius: the mask is original procedural art.
   function horseHead(t,low,combo,quality){
@@ -301,7 +314,7 @@
    }
    stacks(size,low,quality);
    if(!props?.drawCharacter(mesh,surface,t,low,quality,combo))
-    avatar(t,low,mid,combo);
+    fallbackBomber(t,low);
    horseHead(t,low,combo,quality);
    // Bomber collar, neckline, zipper and ribbing are visible against the LCD.
    const bob=Math.sin(t*5.2)*(.004+.007*low);
