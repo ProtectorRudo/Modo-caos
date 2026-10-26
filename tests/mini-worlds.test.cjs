@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const C=require('../mini-worlds-core.js');
 const run=(name,fn)=>{try{fn();console.log('✓ '+name)}catch(e){console.error('✗ '+name);throw e}};
 run('two unique, loadable levels with all required entity classes',()=>{
- for(let n=0;n<2;n++){let a=C.create(n);assert.equal(a.phase,'ready');assert.equal(a.map.platforms.length,8);assert.ok(a.map.coins.length>=30);
+ for(let n=0;n<2;n++){let a=C.create(n);assert.equal(a.phase,'ready');assert.equal(a.map.platforms.length,14);assert.ok(a.map.coins.length>=30);
  assert.ok(a.map.boxes.length>=10);assert.equal(a.map.stars.length,3);assert.equal(new Set(a.map.enemies.map(x=>x.type)).size,4);
  assert.equal(a.map.boss.phase,1)}assert.notEqual(C.LEVELS[0].name,C.LEVELS[1].name);
 });
@@ -24,7 +24,7 @@ run('boxes are solid and vanish after an attack',()=>{
 run('coins and stars are unique pickups',()=>{
  let s=C.create();C.start(s);s.player.x=-.62;s.player.z=-.65;C.tick(s,{},1/60);assert.equal(s.coins,1);
  C.tick(s,{},1/60);assert.equal(s.coins,1);
- s.player.x=-1.1;s.player.z=-10.35;s.player.y=1.18;C.tick(s,{},1/60);assert.equal(s.stars,1);
+ const star=s.map.stars[0];s.player.x=star.x;s.player.z=star.z;s.player.y=star.y-.35;C.tick(s,{},1/60);assert.equal(s.stars,1);
  C.tick(s,{},1/60);assert.equal(s.stars,1);
 });
 run('enemies patrol, throw visible projectiles and take hits',()=>{
@@ -51,5 +51,18 @@ run('telegraphed boss attacks and three health phases',()=>{
 });
 run('pause freezes timers and supports resuming',()=>{
  let s=C.create();C.start(s);C.tick(s,{},1/60);let prev=s.clock;C.pause(s);C.tick(s,{},1/60);assert.equal(s.clock,prev);C.pause(s);C.tick(s,{},1/60);assert.ok(s.clock>prev);
+});
+run('all bonus islands connect and all pickups remain on solid ground',()=>{
+ for(let n=0;n<2;n++){
+  const s=C.create(n),p=s.map.platforms;
+  const inside=e=>p.some(t=>Math.abs(e.x-t.x)<=t.w/2-.1&&Math.abs(e.z-t.z)<=t.d/2-.1);
+  const solid=[...s.map.coins,...s.map.boxes,...s.map.stars,...s.map.enemies.filter(e=>e.type!=='flying')];
+  assert.ok(solid.every(inside),'off-platform collectible or foe');
+  for(const side of p.slice(8)){
+   assert.ok(p.slice(0,8).some(center=>
+    Math.abs(side.x-center.x)<(side.w+center.w)/2-.2&&Math.abs(side.z-center.z)<(side.d+center.d)/2-.2),
+    'bonus island inaccessible');
+  }
+ }
 });
 console.log('MINI WORLDS · ALL CORE TESTS PASSED');
