@@ -51,6 +51,8 @@ export function createReboteArt(T,scene){
  const shotLayer=new T.Group();root.add(shotLayer);
  const fxLayer=new T.Group();root.add(fxLayer);
  const bots=new Map(),shots=new Map(),particles=[],ripples=[];
+ const particleGeometry=new T.TetrahedronGeometry(1,0);
+ const keptShotGeometries=new Set([sphereG,shellG,haloG,seamG]);
  const sphereG=new T.SphereGeometry(1,18,14),capsuleG=new T.CylinderGeometry(1,1,1,10);
  // Rounded, reusable hull geometry replaces the sharp voxel cubes.
  const hullShape=new T.Shape();
@@ -111,6 +113,11 @@ export function createReboteArt(T,scene){
   const padRing=new T.Mesh(new T.TorusGeometry(.39,.009,5,48),new T.MeshBasicMaterial({color:tierColor,transparent:true,opacity:.70,depthWrite:false}));
   padRing.rotation.x=-Math.PI/2;padRing.position.y=.023;base.add(padRing);
   const mech=new T.Group();bot.add(mech);
+  // The same robot telegraphs its next shot: readable, physical, and not HUD noise.
+  const charge=new T.Mesh(new T.TorusGeometry(.18,.018,6,40),
+    new T.MeshBasicMaterial({color:0xffdf83,transparent:true,opacity:0,depthWrite:false}));
+  charge.position.set(0,1.36,.43);
+  mech.add(charge);charge.visible=false;
   if(e.duel){
    // Distinct tier identity without downloading heavy GLB skins: different halo
    // and shoulder insignias, still anchored to the physical floor.
@@ -181,7 +188,7 @@ export function createReboteArt(T,scene){
   }
   bot.userData={mech,base,head,visor,reactor:reactorCore,reactorRing:bezel,legs,
    leftArm:shoulderGroups[0],rightArm:shoulderGroups[1],torso,
-   armorPanels:[]};
+   armorPanels:[],charge};
   if(e.boss){
    for(const sign of [-1,1]){
     const panel=box(mech,edge,[sign*.38,1.20,.10],[.23,.43,.36]);
@@ -232,8 +239,9 @@ export function createReboteArt(T,scene){
  }
  function spark(pos,color,count=9,life=.5,power=1){
   for(let i=0;i<count;i++){
-   if(particles.length>155){let old=particles.shift();fxLayer.remove(old.obj);old.obj.geometry.dispose();old.obj.material.dispose()}
-   const m=new T.Mesh(new T.TetrahedronGeometry(.035*power,0),new T.MeshBasicMaterial({color,transparent:true,opacity:.98,depthWrite:false}));
+   if(particles.length>140){let old=particles.shift();fxLayer.remove(old.obj);old.obj.material.dispose()}
+   const m=new T.Mesh(particleGeometry,new T.MeshBasicMaterial({color,transparent:true,opacity:.98,depthWrite:false}));
+   m.scale.setScalar(.035*power);
    m.position.set(pos.x,pos.y,pos.z);fxLayer.add(m);
    const a=i*2.399+Math.random()*.8,s=.5+Math.random()*.9;
    particles.push({obj:m,vel:new T.Vector3(Math.cos(a)*s,(Math.random()-.25)*1.8,Math.sin(a)*s),life,max:life});
@@ -263,7 +271,15 @@ export function createReboteArt(T,scene){
    b.rotation.y+=Math.sin(time*.48+e.phase)*.025;
    b.userData.head.rotation.y=Math.sin(time*.74+e.phase)*.19;
    b.userData.leftArm.rotation.x=-.55+Math.sin(time*2+e.phase)*.26;
-   b.userData.rightArm.rotation.x=-.70+Math.sin(time*3+e.phase)*.35;
+   const waiting=g.state==='playing'&&e.alive&&Number.isFinite(g.nextShot)&&
+    g.nextShot-g.elapsed>0&&g.nextShot-g.elapsed<.55&&
+    !g.projectiles.some(p=>!p.dead&&!p.returning&&p.type!=='fake');
+   const windup=waiting?Math.pow(1-(g.nextShot-g.elapsed)/.55,.75):0;
+   b.userData.charge.visible=waiting;
+   b.userData.charge.scale.setScalar(1+windup*.70);
+   b.userData.charge.material.opacity=waiting?.22+windup*.72:0;
+   b.userData.charge.rotation.z=time*3.0;
+   b.userData.rightArm.rotation.x=-.70-windup*.70+Math.sin(time*3+e.phase)*.15;
    b.userData.legs.forEach((l,i)=>l.rotation.x=Math.sin(time*1.2+i*Math.PI)*.075);
    b.userData.torso.rotation.z=Math.sin(time*1.6+e.phase)*.02;
    const dmg=Math.max(0,1-e.health/e.maxHealth);
@@ -327,7 +343,7 @@ export function createReboteArt(T,scene){
   }
   for(const [id,group] of shots)if(!g.projectiles.some(p=>p.id===id)){
    shotLayer.remove(group);
-   group.traverse(obj=>{if(obj.material)obj.material.dispose();if(obj.geometry&&!new Set([sphereG,shellG,haloG,seamG]).has(obj.geometry))obj.geometry.dispose()});
+   group.traverse(obj=>{if(obj.material)obj.material.dispose();if(obj.geometry&&!keptShotGeometries.has(obj.geometry))obj.geometry.dispose()});
    shots.delete(id);
   }
   for(let i=ripples.length-1;i>=0;i--){
@@ -341,10 +357,11 @@ export function createReboteArt(T,scene){
   for(let i=particles.length-1;i>=0;i--){
    const p=particles[i];p.life-=dt;p.obj.position.addScaledVector(p.vel,dt);p.vel.y-=dt*1.0;
    p.obj.material.opacity=Math.max(0,p.life/p.max);
-   if(p.life<=0){fxLayer.remove(p.obj);p.obj.geometry.dispose();p.obj.material.dispose();particles.splice(i,1)}
+   if(p.life<=0){fxLayer.remove(p.obj);p.obj.material.dispose();particles.splice(i,1)}
   }
  }
  function effect(e){
+  if(e.type==='telegraph')spark({x:e.x,y:1.45,z:e.z},0xffd27a,6,.19,.55);
   if(e.type==='duel-intro')spark({x:e.x,y:1.35,z:e.z},[0x54f0db,0xffb453,0xd98fff,0x5c9aff,0xff704e,0xffd76b][e.level]||0x5bffe1,23,.72,1.2);
   if(e.type==='duel-ko')spark({x:e.x||0,y:1.3,z:e.z||-2.3},0xffd674,34,.65,1.5);
   if(e.type==='return'){
@@ -362,7 +379,7 @@ export function createReboteArt(T,scene){
   root.traverse(o=>{if(o.geometry&&!sharedRobotGeometries.has(o.geometry))o.geometry.dispose();
    if(o.material&&!sharedRobotMaterials.has(o.material))o.material.dispose()});
   for(const g of sharedRobotGeometries)g.dispose();
-  ballTexture.dispose();seamG.dispose();rippleG.dispose();
+  ballTexture.dispose();seamG.dispose();rippleG.dispose();particleGeometry.dispose();
   for(const m of sharedRobotMaterials)m.dispose();
  }
  return {root,plane,update,effect,dispose,setSize(v){plane.userData.size=Math.max(.7,Math.min(1.45,v))},
