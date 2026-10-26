@@ -32,7 +32,10 @@ root.MiniWorldsAssets=function(T){
  }
  async function decorate(stage,level,signal){
   const scene=stage?.root;if(!scene)return {count:0,loaded:0,failed:models.length};
-  const add=new T.Group();add.name='MINI WORLDS · KENNEY CC0 PREMIUM WORLD DRESSING';scene.add(add);
+  const add=new T.Group();add.name='MINI WORLDS · KENNEY CC0 WORLD DRESSING';scene.add(add);
+  const foliage=new T.Group();foliage.name='KENNEY FOLIAGE FALLBACK';add.add(foliage);
+  stage.kenneyFoliage=foliage;
+  foliage.visible=!stage.premiumNativeActive;
   let alive=true,loaded=0,failed=0,instances=0;
   stage.disposeAssets=()=>{alive=false};
   const base=await loader();
@@ -57,6 +60,10 @@ root.MiniWorldsAssets=function(T){
    const t=templates.get(name);if(!t)return;
    if(place(add,t,x,y,z,height,angle))instances++;
   };
+  const flora=(name,x,y,z,height,angle=0)=>{
+   const t=templates.get(name);if(!t)return;
+   if(place(foliage,t,x,y,z,height,angle))instances++;
+  };
   const tiles=stage.map.platforms;
   for(let i=0;i<tiles.length;i++){
    const p=tiles[i],height=p.y+.03,x=p.x,z=p.z,wx=p.w*.5,wz=p.d*.5;
@@ -64,17 +71,17 @@ root.MiniWorldsAssets=function(T){
     // Decorative pieces stay on the outside rim, clear of the avatar corridor and enemies.
     // Leave a clear playable corridor. Scenic vegetation should frame a
     // memorable vista, not bury the knight under dozens of palm crowns.
-    if(i%2===0)pick(i%4?'tree-palmbend':'tree-palmdetailedtall',x-wx-.26,height,z+wz*.22,1.27+random()*.24,random()*6.28);
-    if(i%3===0)pick('tree-palmshort',x+wx+.25,height,z-wz*.36,1.0+random()*.18,random()*6.28);
-    pick('plant-bushdetailed',x+wx+.15,height,z+(random()-.5)*p.d*.75,.37+random()*.15,random()*6.28);
-    pick(i%2?'flower-yellowb':'grass-leafslarge',x-wx+.18,height,z+(random()-.5)*p.d*.75,.23+random()*.1,random()*6.28);
+    if(i%2===0)flora(i%4?'tree-palmbend':'tree-palmdetailedtall',x-wx-.26,height,z+wz*.22,1.27+random()*.24,random()*6.28);
+    if(i%3===0)flora('tree-palmshort',x+wx+.25,height,z-wz*.36,1.0+random()*.18,random()*6.28);
+    flora('plant-bushdetailed',x+wx+.15,height,z+(random()-.5)*p.d*.75,.37+random()*.15,random()*6.28);
+    flora(i%2?'flower-yellowb':'grass-leafslarge',x-wx+.18,height,z+(random()-.5)*p.d*.75,.23+random()*.1,random()*6.28);
    }
    if(p.kind==='ruins'||p.kind==='waterfall'||p.kind==='arena'){
     pick('stone-largeb',x-wx-.20,height,z-.30,.58+random()*.27,random()*6.28);
     pick('rock-tallb',x+wx+.33,height-.22,z+.25,1.05+random()*.5,random()*6.28);
     if(i%2===0)pick('rock-largea',x+wx+.18,height-.06,z+.16,.36+random()*.11,random()*6.28);
    }
-   if(level&&i===3){pick('tree-detailed',x-wx-.65,height-.1,z,2.05,.3);pick('tree-detailed',x+wx+.5,height,z-.5,1.50,2)}
+   if(level&&i===3){flora('tree-detailed',x-wx-.65,height-.1,z,2.05,.3);flora('tree-detailed',x+wx+.5,height,z-.5,1.50,2)}
   }
   const beach=tiles[0],camp=tiles[1],bridge=tiles[2],waterfall=tiles[6];
   pick('canoe',beach.x-3.1,-.56,beach.z+1.3,.75,.3);
@@ -109,6 +116,7 @@ root.MiniWorldsAssets=function(T){
    }
   });
   stage.assetStats={loaded,failed,instances};
+  foliage.visible=!stage.premiumNativeActive;
   if(!alive||signal?.aborted){add.parent?.remove(add);return {count:0,loaded,failed}};
   return {count:instances,loaded,failed};
  }
