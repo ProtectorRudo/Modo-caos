@@ -144,7 +144,7 @@ function layout(state){
  $('landing').hidden=state!=='home';$('viewport').hidden=!active;$('hud').hidden=state==='home'||state==='placing';
  $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';
  $('chaosMeter').hidden=state==='home'||state==='placing';
- if(state==='home')document.body.classList.remove('fury-mode');
+ if(state==='home')document.body.classList.remove('fury-mode','boss-encounter');
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';
  $('recenter').hidden=mode!=='ar'||(state!=='playing'&&state!=='paused');
  $('mapToggle').hidden=state!=='playing'&&state!=='paused';
@@ -318,6 +318,7 @@ function updateHUD(){
  $('coinCount').textContent=String(game.coins).padStart(2,'0');$('starCount').textContent=game.stars+'/3';
  $('clock').textContent=Math.floor(game.clock/60)+':'+String(Math.floor(game.clock%60)).padStart(2,'0');
  const b=game.map.boss;$('bossHud').hidden=!b.active||!b.alive;
+ document.body.classList.toggle('boss-encounter',b.active&&b.alive&&phase==='playing');
  $('bossLabel').textContent=game.map.definition.boss+' · FASE '+b.phase;
  $('bossFill').style.width=(b.hp/b.maxHp*100)+'%';
  const q=game.chaos;
