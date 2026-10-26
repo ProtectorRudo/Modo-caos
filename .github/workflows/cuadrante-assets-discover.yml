@@ -5,6 +5,10 @@ on:
     paths:
       - scripts/inspect-cuadrante-assets.py
       - .github/workflows/cuadrante-assets-discover.yml
+  pull_request:
+    paths:
+      - scripts/inspect-cuadrante-assets.py
+      - .github/workflows/cuadrante-assets-discover.yml
   workflow_dispatch:
 permissions:
   contents: read
