@@ -117,15 +117,15 @@ function makeBoss(parent,b,variant=false){
  const aura=mesh(new T.TorusGeometry(.37,.055,8,24),M.sky,0,.58,.88,torso);
  return {root:g,torso,claws,weak,aura};
 }
-// The floor-sized world spans 12 × 32 game units. The physical AR track
-// defaults to ~4.6m wide × 12m long, anchored to the first floor hit.
+// The floor-sized world spans 18.5 × 33 game units. The physical AR track
+// defaults to ~6.7m wide × 11.9m long, anchored to a real floor hit.
 function sprawlingEnvironment(root,rand,cliff){
- const sea=mesh(new T.PlaneGeometry(14,33),M.water,0,-.69,-11.35,root);
+ const sea=mesh(new T.PlaneGeometry(18.5,33),M.water,0,-.69,-11.35,root);
  sea.rotation.x=-P/2;sea.receiveShadow=false;sea.castShadow=false;
  const shore=cliff?M.stone:M.sand;
  for(const side of [-1,1]){
   for(let j=0;j<7;j++){
-   const z=1.20-j*4.05,x=side*(4.1+rand()*.45);
+   const z=1.20-j*4.05,x=side*(6.45+rand()*.38);
    const isle=group(root,x,-.41,z);
    const width=1.65+rand()*.4,length=3.7+rand()*.5;
    const plate=mesh(cube(width,.54,length),shore,0,0,0,isle);
