@@ -107,7 +107,14 @@ function build(){
  stage=window.CuadranteArt(THREE).makeStage();applyQuality();camera=new THREE.PerspectiveCamera(61,innerWidth/innerHeight,.025,90);
  // Non-blocking licensed visual pack: 3D objects appear as they load. A slow
  // connection must never delay startup, collisions, AR anchoring or scores.
- assetsPromise=window.CuadrantePremium?.decorate(THREE,stage).catch(()=>null)||null;
+ assetsPromise=window.CuadrantePremium?.decorate(THREE,stage).then(stats=>{
+  if(renderer&&!renderer.isLite&&stage?.root?.parent){
+   container.dataset.premiumModels=String(stats?.models||0);
+   container.dataset.pbrChannels=String(stats?.textures||0);
+   container.dispatchEvent(new CustomEvent('cuadrante-assets-ready',{detail:stats}));
+  }
+  return stats;
+ }).catch(()=>null)||null;
  setDemoCamera();renderer.setAnimationLoop(frame);
 }
 function buildLite(){
