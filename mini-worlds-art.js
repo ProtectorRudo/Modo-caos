@@ -3,6 +3,38 @@
 'use strict';
 const P=Math.PI,mat=(c,metal=0,rough=.76)=>new T.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
 const M={sand:mat('#e9ca8f'),edge:mat('#9d754e'),soil:mat('#685445'),grass:mat('#7abb84'),grass2:mat('#419a6d'),leaf:mat('#24795b'),leaf2:mat('#61b987'),dark:mat('#203d54'),wood:mat('#ad8150'),woodDark:mat('#653a2e'),gold:mat('#ffd25b',.68,.23),steel:mat('#72c0ca',.58,.34),coral:mat('#ff8469'),sky:mat('#a9f3e9'),white:mat('#faffed'),ink:mat('#142738'),red:mat('#ff695f'),stone:mat('#9eabb0'),purple:mat('#b67cff'),water:new T.MeshStandardMaterial({color:0x298ca9,transparent:true,opacity:.68,roughness:.35,metalness:0,side:T.DoubleSide})};
+// Small reusable tile textures give the terrain tactile grain instead of
+// flat plastic. Every material references ONE low-cost texture, shared across
+// the stage. The same colors remain deliberately playful, not photorealistic.
+const groundTextures=[];
+function groundTexture(kind,seed){
+ const c=document.createElement('canvas');c.width=128;c.height=128;
+ const g=c.getContext('2d');const random=rng(seed);
+ g.fillStyle='#f1eee7';g.fillRect(0,0,128,128);
+ for(let i=0;i<440;i++){
+  const x=random()*128,y=random()*128,size=.5+random()*2.1;
+  if(kind==='sand')g.fillStyle=i%3===0?'#c8c2b3':'#ffffff';
+  else if(kind==='grass')g.fillStyle=i%3===0?'#bcc9bc':'#f6fff1';
+  else g.fillStyle=i%3===0?'#c2c0bc':'#ffffff';
+  g.globalAlpha=.11+random()*.25;
+  g.beginPath();g.ellipse(x,y,size*(kind==='grass'?.55:1.35),size,random()*Math.PI,0,Math.PI*2);g.fill();
+ }
+ g.globalAlpha=.15;
+ if(kind==='grass')for(let i=0;i<110;i++){
+  const x=random()*128,y=random()*128;
+  g.strokeStyle=i%2?'#718e79':'#fefff4';g.lineWidth=.65;
+  g.beginPath();g.moveTo(x,y);g.lineTo(x+(random()-.5)*4,y-2-random()*4);g.stroke();
+ }
+ g.globalAlpha=1;
+ const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;
+ t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2.3,2.3);
+ t.anisotropy=2;groundTextures.push(t);return t;
+}
+M.sand.map=groundTexture('sand',382);M.sand.roughness=.96;M.sand.needsUpdate=true;
+M.grass.map=groundTexture('grass',572);M.grass.roughness=.94;M.grass.needsUpdate=true;
+M.grass2.map=M.grass.map;M.grass2.needsUpdate=true;
+M.stone.map=groundTexture('stone',942);M.stone.roughness=.91;M.stone.needsUpdate=true;
+
 const sphere=(r=1,w=12,h=9)=>new T.SphereGeometry(r,w,h);
 const cube=(x=1,y=1,z=1)=>new T.BoxGeometry(x,y,z);
 const geoCone=(r=.4,h=1,n=9)=>new T.ConeGeometry(r,h,n);
@@ -431,6 +463,7 @@ function makeStage(map){
   geometries.forEach(g=>g.dispose());
   materials.forEach(m=>m.dispose());
   rewardTextures.forEach(t=>t.dispose());
+  groundTextures.forEach(t=>t.dispose());
   Object.values(M).forEach(m=>m.dispose());
   shardMat.dispose();
  }
