@@ -62,18 +62,17 @@ root.MiniWorldsAssets=function(T){
    const p=tiles[i],height=p.y+.03,x=p.x,z=p.z,wx=p.w*.5,wz=p.d*.5;
    if(p.kind==='beach'||p.kind==='jungle'){
     // Decorative pieces stay on the outside rim, clear of the avatar corridor and enemies.
-    pick(i%2?'tree-palmbend':'tree-palmdetailedtall',x-wx-.18,height,z+wz*.2,1.35+random()*.35,random()*6.28);
-    pick('tree-palmshort',x+wx+.21,height,z-wz*.32,1.0+random()*.3,random()*6.28);
-    for(let k=0;k<3;k++){
-     let edge=k%2?-1:1;
-     pick('plant-bushdetailed',x+edge*(wx+.1),height,z+(random()-.5)*p.d*.92,.36+random()*.2,random()*6.28);
-     pick(k%2?'flower-yellowb':'grass-leafslarge',x+edge*(wx-.17),height,z+(random()-.5)*p.d*.83,.24+random()*.2,random()*6.28);
-    }
+    // Leave a clear playable corridor. Scenic vegetation should frame a
+    // memorable vista, not bury the knight under dozens of palm crowns.
+    if(i%2===0)pick(i%4?'tree-palmbend':'tree-palmdetailedtall',x-wx-.26,height,z+wz*.22,1.27+random()*.24,random()*6.28);
+    if(i%3===0)pick('tree-palmshort',x+wx+.25,height,z-wz*.36,1.0+random()*.18,random()*6.28);
+    pick('plant-bushdetailed',x+wx+.15,height,z+(random()-.5)*p.d*.75,.37+random()*.15,random()*6.28);
+    pick(i%2?'flower-yellowb':'grass-leafslarge',x-wx+.18,height,z+(random()-.5)*p.d*.75,.23+random()*.1,random()*6.28);
    }
    if(p.kind==='ruins'||p.kind==='waterfall'||p.kind==='arena'){
     pick('stone-largeb',x-wx-.20,height,z-.30,.58+random()*.27,random()*6.28);
     pick('rock-tallb',x+wx+.33,height-.22,z+.25,1.05+random()*.5,random()*6.28);
-    for(let k=0;k<3;k++)pick('rock-largea',x+(k%2?1:-1)*(wx+.12),height-.06,z+(random()-.5)*p.d*.84,.33+random()*.17,random()*6.28);
+    if(i%2===0)pick('rock-largea',x+wx+.18,height-.06,z+.16,.36+random()*.11,random()*6.28);
    }
    if(level&&i===3){pick('tree-detailed',x-wx-.65,height-.1,z,2.05,.3);pick('tree-detailed',x+wx+.5,height,z-.5,1.50,2)}
   }
