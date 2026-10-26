@@ -205,7 +205,11 @@
    const ox=cs*rx-sn*rz,oy=origin.y,oz=sn*rx+cs*rz;
    const lx=cs*dx-sn*dz,lz=sn*dx+cs*dz;
    const scale=e.height/1.75,pad=e.type==='tank'||e.type==='boss'?.09:.06;
-   const boxes=[
+   const boxes=e.type==='spider'?[
+    ['head',[-.28,.28,.40,.88,.08,.64]],
+    ['body',[-.47,.47,.18,.77,-.68,.15]],
+    ['legs',[-.72,.72,.02,.43,-.78,.79]]
+   ]:[
     ['head',[-.22-pad,.22+pad,1.43*scale,1.82*scale,-.24,.30]],
     ['body',[-.42-pad,.42+pad,.78*scale,1.48*scale,-.32,.35]],
     ['legs',[-.35-pad,.35+pad,.05*scale,.84*scale,-.27,.32]]
