@@ -56,7 +56,12 @@ jobs:
           const resp=await page.goto(site,{waitUntil:'domcontentloaded',timeout:30000});
           if(!resp.ok())throw Error('Bad HTTP '+resp.status());
           console.log('BROWSER URL:',page.url(),'TITLE:',await page.title(),'BODY:',(await page.locator('body').innerText()).slice(0,700),'BUTTONS:',await page.locator('button').count());
-          await page.locator('#startDemo').click({timeout:10000});
+          if((await page.title()).includes('External Content Notice')){
+            console.log('CDN interstitial detected; testing its user-facing Open the page link');
+            await page.getByText('Open the page',{exact:true}).click({timeout:10000});
+            console.log('AFTER INTERSTITIAL URL',page.url(),'TITLE',await page.title());
+          }
+          await page.locator('#startDemo').click({timeout:20000});
           await page.locator('#stage canvas').waitFor({state:'visible',timeout:40000});
           await page.locator('#pauseBtn').click();
           await page.locator('#modalTitle').textContent().then(x=>{if(x!=='PAUSA')throw Error('Pause broken: '+x)});
