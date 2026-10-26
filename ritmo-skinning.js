@@ -129,7 +129,7 @@
    // sweep is visible even on a tiny mobile screen.
    const sweep=Math.sin(phase+offset*1.75);
    const handX=sign*(.151+.017*(.5+.5*sweep));
-   const handY=.414+.033*Math.sin(phase+offset*1.75)+raise;
+   const handY=.415+.015*Math.sin(phase+offset*1.75)+raise;
    const handZ=-1.413+.008*Math.cos(phase+offset);
    const T=[handX/.86,1+(handY-.300-.030)/.60];
    const upperLen=Math.hypot(E[0]-S[0],E[1]-S[1]);
