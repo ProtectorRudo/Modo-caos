@@ -112,7 +112,7 @@ function addPalm(p,x,z,size=1){
  const g=group(p,x,.05,z),trunk=mesh(cyl(.105,.17,1.36,9),M.wood,.04,.63,0,g);trunk.rotation.z=-.11;
  for(let i=0;i<6;i++){const a=i*P/3;let stem=group(g,.16,1.3,0);stem.rotation.y=a;stem.rotation.z=-.16;let leaf=mesh(geoCone(.20,1.35,5),i%2?M.leaf:M.leaf2,0,.10,.57,stem);leaf.rotation.x=P/2+.23;leaf.scale.set(1.25,.85,.7)}
  for(let i=0;i<3;i++)mesh(sphere(.12),M.woodDark,.14+Math.cos(i*2)*.12,1.22,.04+Math.sin(i*2)*.12,g);
- g.scale.setScalar(size);
+ g.scale.setScalar(size);return g;
 }
 function addFlower(p,x,z,seed){
  const g=group(p,x,.03,z);mesh(cyl(.027,.033,.32,5),M.grass2,0,.13,0,g);
@@ -261,7 +261,7 @@ function makeStage(map){
  const sun=new T.DirectionalLight(0xfff4d6,2.25);sun.position.set(-3,9,5);sun.castShadow=false;scene.add(sun);
  scene.add(new T.HemisphereLight(0xcaf5ff,0x70503d,2.0));
  const root=group(scene);
- const rand=rng(7403+map.n*719),platforms=[];
+ const rand=rng(7403+map.n*719),platforms=[],windTargets=[];
  const ocean=sprawlingEnvironment(root,rand,Boolean(map.n));
  const shoreFoam=makeShoreFoam(root,map);
  for(const p of map.platforms)platforms.push(platform(root,p,rand));
@@ -269,7 +269,7 @@ function makeStage(map){
  for(let i=0;i<map.platforms.length;i++){
   const p=map.platforms[i],prev=map.platforms[i-1];
   if(p.kind==='beach'||p.kind==='jungle')for(let n=0;n<1;n++){let x=p.x+(rand()>.5?1:-1)*(p.w*.45+.22);
-    let z=p.z+(rand()-.5)*p.d*.8;addPalm(root,x,z,.72+rand()*.30)}
+    let z=p.z+(rand()-.5)*p.d*.8;windTargets.push(addPalm(root,x,z,.72+rand()*.30))}
   if(p.kind==='jungle'||p.kind==='ruins'){addRock(root,p.x+p.w*.5,p.y+.05,p.z,.22)}
   if(prev&&i!==2&&p.z-prev.z> -4.1){ /* bridging gaps intentionally remain jumpable */ }
  }
@@ -299,6 +299,17 @@ function makeStage(map){
  const shadow=(x,z,size=1)=>{const o=mesh(new T.CircleGeometry(.35,24),shadowMat.clone(),x,.046,z,root);o.rotation.x=-P/2;o.scale.set(size,1,.67);o.castShadow=false;return o};
  const heroShadow=shadow(0,0,1.1);
  const enemyShadows=map.enemies.map(e=>shadow(e.x,e.z,.75));
+ // Cheap, camera-visible fury indicator and orbiting sparks on existing
+ // geometry: just one ring + eight low-poly spark meshes.
+ const furyMat=new T.MeshBasicMaterial({color:0xffdb66,transparent:true,opacity:.7,depthWrite:false,side:T.DoubleSide});
+ const furyRing=mesh(new T.TorusGeometry(.48,.055,6,34),furyMat,0,.10,0,root);
+ furyRing.rotation.x=-P/2;furyRing.visible=false;furyRing.renderOrder=850;
+ const furySparkMat=new T.MeshBasicMaterial({color:0xffe6a4,transparent:true,opacity:.8,depthWrite:false});
+ const furySparkGeo=new T.TetrahedronGeometry(.075,0);
+ const furySparks=Array.from({length:8},()=>{
+  const o=mesh(furySparkGeo,furySparkMat,0,0,0,root);
+  o.visible=false;o.castShadow=false;return o;
+ });
  // A bright, depth-independent locator guarantees that a correctly rendered
  // WebXR scene always has a recognizable object at the detected floor point.
  const previewBeacon=group(root,0,.105,.10);
@@ -315,6 +326,12 @@ function makeStage(map){
  const projectilePool=Array.from({length:14},()=>{let o=mesh(sphere(.12,9,7),M.red,0,0,0,root);o.visible=false;return o});
  const hazardPool=Array.from({length:8},()=>{let o=mesh(new T.RingGeometry(.40,.77,24),new T.MeshBasicMaterial({color:0xff583c,transparent:true,opacity:.57,side:T.DoubleSide,depthWrite:false}),0,0,0,root);o.rotation.x=-P/2;o.visible=false;return o});
  const effects=[],combatBursts=[],koTimers=new Map(),rewardTextures=new Map();
+ const particleGeo=new T.TetrahedronGeometry(.052,0),particleMaterials=new Map();
+ function particleMaterial(color){
+  if(!particleMaterials.has(color))particleMaterials.set(color,new T.MeshBasicMaterial({color,transparent:true,opacity:.92,depthWrite:false}));
+  return particleMaterials.get(color);
+ }
+ const shardGeo=cube(.13,.13,.13);
  function rewardTexture(text){
   if(rewardTextures.has(text))return rewardTextures.get(text);
   const c=document.createElement('canvas');c.width=256;c.height=104;
@@ -337,8 +354,8 @@ function makeStage(map){
  function crateShards(x,y,z){
   for(let k=0;k<8;k++){
    const a=k*Math.PI*.25,velocity=1.2+rand()*.9;
-   const o=mesh(cube(.095+rand()*.085,.08+rand()*.12,.09+rand()*.06),shardMat,x,y+.4,z,root);
-   o.castShadow=false;
+   const o=mesh(shardGeo,shardMat,x,y+.4,z,root);
+   o.castShadow=false;o.scale.set(.6+rand()*.7,.6+rand()*.9,.6+rand()*.6);
    combatBursts.push({o,t:0,life:.62,kind:'shard',vx:Math.sin(a)*velocity,vy:1.8+rand()*.9,vz:Math.cos(a)*velocity});
   }
  }
@@ -386,13 +403,39 @@ function makeStage(map){
  }
 
  function bindCharacters(handler){stageCharacters=handler}
- function impact(x,y,z,c='#ffe89f',count=11){for(let i=0;i<count;i++){
-  const o=mesh(sphere(.025+rand()*.045,6,5),mat(c),x,y,z,root);o.castShadow=false;
-  effects.push({o,vx:(rand()-.5)*3,vy:1+rand()*3,vz:(rand()-.5)*3,life:.35+rand()*.35})}}
+ function impact(x,y,z,c='#ffe89f',count=11){
+  // A fixed particle budget avoids hundreds of unique sphere meshes and
+  // one shader/material allocation per sparkle on budget Android GPUs.
+  const room=Math.max(0,74-effects.length),total=Math.min(count,room);
+  for(let i=0;i<total;i++){
+   const o=mesh(particleGeo,particleMaterial(c),x,y,z,root);o.castShadow=false;
+   o.scale.setScalar(.5+rand()*.9);
+   effects.push({o,vx:(rand()-.5)*3,vy:1+rand()*3,vz:(rand()-.5)*3,life:.28+rand()*.3});
+  }
+}
  function update(s,dt,elapsed){
   const p=s.player;
   ocean.material.uniforms.uTime.value=elapsed;
   shoreFoam.material.opacity=.24+.12*Math.sin(elapsed*1.55);
+  // Breeze on a few distant palms and foliage groups; no bone animation.
+  for(let i=0;i<windTargets.length;i++){
+   windTargets[i].rotation.z=Math.sin(elapsed*.9+i*1.8)*.025;
+   windTargets[i].rotation.x=Math.cos(elapsed*.73+i)*.016;
+  }
+  furyRing.visible=s.chaos?.fury>0;furyRing.position.set(p.x,p.y+.12,p.z);
+  if(furyRing.visible){
+   furyRing.rotation.z=elapsed*2.8;
+   furyMat.opacity=.53+.22*Math.sin(elapsed*10);
+   const power=Math.max(.2,s.chaos.fury/7);
+   furyRing.scale.setScalar(1+.23*Math.sin(elapsed*8)*power);
+  }
+  furySparks.forEach((o,i)=>{
+   o.visible=furyRing.visible;
+   if(!o.visible)return;
+   const phase=elapsed*3.6+i*Math.PI/4;
+   o.position.set(p.x+Math.cos(phase)*.51,p.y+.30+(elapsed*1.3+i*.24)%1.15,p.z+Math.sin(phase)*.51);
+   o.rotation.y=phase;
+  });
   if(typeof stageCharacters==='function')stageCharacters(s,dt);
   hero.root.position.set(p.x,p.y,p.z);hero.root.rotation.y=p.face;
  heroShadow.position.set(p.x,(window.MiniWorldsCore?.platformY(s,p.x,p.z)??p.y)+.045,p.z);
@@ -445,12 +488,12 @@ function makeStage(map){
     fx.o.parent?.remove(fx.o);
     // Sprite billboards share geometry internally; never dispose their
     // shared geometry while other rewards are still alive.
-    if(fx.kind!=='pop')fx.o.geometry?.dispose();
+    if(fx.kind!=='pop'&&fx.kind!=='shard')fx.o.geometry?.dispose();
     if(fx.kind!=='shard')fx.o.material?.dispose();
     combatBursts.splice(i,1);
    }
   }
-  for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.life-=dt;f.vy-=8*dt;f.o.position.x+=f.vx*dt;f.o.position.y+=f.vy*dt;f.o.position.z+=f.vz*dt;f.o.scale.setScalar(Math.max(.1,f.life*2));if(f.life<=0){root.remove(f.o);f.o.geometry.dispose();f.o.material.dispose();effects.splice(i,1)}}
+  for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.life-=dt;f.vy-=8*dt;f.o.position.x+=f.vx*dt;f.o.position.y+=f.vy*dt;f.o.position.z+=f.vz*dt;f.o.scale.setScalar(Math.max(.1,f.life*2));if(f.life<=0){root.remove(f.o);effects.splice(i,1)}}
  }
  function dispose(){
   // A GLB may have dozens of meshes sharing the same material/geometry.
@@ -467,7 +510,9 @@ function makeStage(map){
   rewardTextures.forEach(t=>t.dispose());
   groundTextures.forEach(t=>t.dispose());
   Object.values(M).forEach(m=>m.dispose());
-  shardMat.dispose();
+  shardMat.dispose();shardGeo.dispose();particleGeo.dispose();
+  particleMaterials.forEach(m=>m.dispose());
+  furyMat.dispose();furySparkMat.dispose();furySparkGeo.dispose();
  }
  return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,update,impact,combatFx,dispose,bindCharacters};
 }
