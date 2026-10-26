@@ -17,7 +17,7 @@
   // Individual verified CC0 stage props. Never load the complete nightclub.
   ...['facade','turntable','led-panel','speaker-sub','speaker-mid',
       'moving-head','strobe','truss'].map(key=>({
-   key,local:'/assets/ritmo/dj-'+key+'.glb',remote:null
+   key,local:'/assets/ritmo/'+(key==='facade'?'dj-booth-facade':'dj-'+key)+'.glb',remote:null
   }))
  ];
  function mult(A,B){const R=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)for(let k=0;k<4;k++)R[c*4+r]+=A[k*4+r]*B[c*4+k];return R}
