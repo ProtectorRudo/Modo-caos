@@ -1,0 +1,54 @@
+name: Ritmo Caos - vendor two CC0 DJ GLBs
+on:
+  push:
+    branches: [feat/ritmo-dj-exterior-20261026]
+    paths:
+      - .github/workflows/ritmo-vendor-glb.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: true
+          ref: feat/ritmo-dj-exterior-20261026
+      - name: Download documented CC0 Nightclub and DJ Booth assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/ritmo
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 120 \
+            "https://cdn.3dassets.dev/assets/34089/v1/model.glb" \
+            -o assets/ritmo/dj-booth-desk.glb
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 120 \
+            "https://cdn.3dassets.dev/assets/34090/v1/model.glb" \
+            -o assets/ritmo/dj-mixer.glb
+          python3 - <<'PY'
+          import os,struct,json
+          for name in ('dj-booth-desk.glb','dj-mixer.glb'):
+              path='assets/ritmo/'+name
+              with open(path,'rb') as f: data=f.read()
+              magic,version,total=struct.unpack_from('<III',data,0)
+              assert magic==0x46546C67 and version==2 and len(data)==total,(name,'not GLB2')
+              jlen,jtype=struct.unpack_from('<II',data,12)
+              assert jtype==0x4E4F534A and 0<jlen<200000
+              gltf=json.loads(data[20:20+jlen])
+              assert gltf.get('asset',{}).get('version')=='2.0'
+              assert 1000<len(data)<350000,(name,len(data))
+              print('VERIFIED CC0 GLB:',name,len(data),'bytes',len(gltf.get('meshes',[])),'meshes')
+          PY
+      - name: Commit verified licensed binaries to feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ritmo/dj-booth-desk.glb assets/ritmo/dj-mixer.glb
+          if ! git diff --cached --quiet; then
+            git commit -m "asset(ritmo): vendor 3DAssets.dev CC0 DJ booth desk and mixer GLBs"
+            git push origin HEAD:feat/ritmo-dj-exterior-20261026
+          fi
