@@ -301,10 +301,21 @@ function tick(s,input={},dt=1/60){
   }
  }
  if(p.y<-2.8){emit(s,'fall');respawn(s)}
- for(const c of s.map.coins){if(!c.taken&&Math.hypot(p.x-c.x,p.z-c.z)<.44&&Math.abs(p.y+.48-c.y)<1.05){
- c.taken=true;s.coins+=chaos.fury>0?2:1;s.combo++;
- advanceChain(s,'coin');gainChaos(s,3,'coin');
- emit(s,'coin',{id:c.id,combo:s.combo,x:c.x,y:c.y,z:c.z,reward:chaos.fury>0?2:1})}}
+ for(const c of s.map.coins){
+ if(c.taken)continue;
+ const dist=Math.hypot(p.x-c.x,p.z-c.z),vertical=Math.abs(p.y+.48-c.y);
+ // Gently magnetize loose coins only within clear pickup range. No teleport
+ // of distant objects or collision-affecting motion.
+ if(dist<.92&&vertical<1.15&&dist>.12){
+  const pull=Math.min(dist*.35,dt*(chaos.fury>0?2.2:1.05));
+  c.x+=(p.x-c.x)/dist*pull;c.z+=(p.z-c.z)/dist*pull;
+ }
+ if(Math.hypot(p.x-c.x,p.z-c.z)<.47&&vertical<1.05){
+  c.taken=true;s.coins+=chaos.fury>0?2:1;s.combo++;
+  advanceChain(s,'coin');gainChaos(s,3,'coin');
+  emit(s,'coin',{id:c.id,combo:s.combo,x:c.x,y:c.y,z:c.z,reward:chaos.fury>0?2:1})
+ }
+}
  for(const a of s.map.stars){if(!a.taken&&Math.hypot(p.x-a.x,p.z-a.z)<.56&&Math.abs(p.y+.35-a.y)<1.18){
  a.taken=true;s.stars++;gainChaos(s,32,'star');emit(s,'star',{id:a.id,x:a.x,y:a.y,z:a.z})}}
  for(let i=0;i<s.map.checkpoints.length;i++){const c=s.map.checkpoints[i];if(p.z<c.z+.7&&s.checkpoint.z>c.z){s.checkpoint={...c};p.hearts=Math.min(3,p.hearts+1);emit(s,'checkpoint',{id:i})}}
