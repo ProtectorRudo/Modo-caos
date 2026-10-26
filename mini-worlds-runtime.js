@@ -12,7 +12,7 @@ let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=n
 let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
 let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePointers=new Map(),pinch=null;
 let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0,arDebugVisible=false;
-let mapOpen=false,arQuality=1.12,comboVisibleUntil=0,coinPulseUntil=0;
+let mapOpen=false,arQuality=1.12,comboVisibleUntil=0,coinPulseUntil=0,portalHoldUntil=0;
 let arCompositor=null,xrEmptyScene=null,arCompositorError='',arFpsTotal=0,arFpsFrames=0;
 let level=0,progress={unlocked:0,best:[null,null],coins:0},settings={sound:true,music:true};
 try{progress={...progress,...JSON.parse(localStorage.getItem('mc-mini-worlds-save-v1')||'{}')}}catch(_){}
@@ -87,6 +87,7 @@ function renderSetup(){
 function newStage(){
  if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose()}
  game=C.create(level);stage=window.MiniWorldsArt(T).makeStage(game.map);
+ stage.pocket=window.MiniWorldsPocket?.create(T,stage)||null;
  const stageRef=stage;
  // Native, bundled CC0 assets never block controls. Keep the original art if any GLB cannot load.
  if(window.MiniWorldsAssets){
@@ -126,10 +127,11 @@ function newStage(){
 function setCamera(first=false){
  if(!camera||!game)return;
  const p=game.player;
- const reach=7.8*orbitZoom;
- const want=new T.Vector3(p.x+Math.sin(orbitYaw)*reach,p.y+orbitHeight*orbitZoom,p.z+Math.cos(orbitYaw)*reach);
+ const reach=5.0*orbitZoom;
+ const rz=stage?.pocket?.localZ(p.z)??p.z,ry=p.y+(stage?.worldRoot?.position.y||0);
+ const want=new T.Vector3(p.x+Math.sin(orbitYaw)*reach,ry+orbitHeight*orbitZoom,rz+Math.cos(orbitYaw)*reach);
  if(first)camera.position.copy(want);else camera.position.lerp(want,.11);
- const focus=new T.Vector3(p.x,p.y+.6,p.z-3.15);
+ const focus=new T.Vector3(p.x,ry+.6,rz-1.45);
  camera.lookAt(focus);
 }
 function drawMiniMap(){
@@ -246,7 +248,9 @@ function applyHit(frame){
  // Start tile stays at hit-tested floor center; never follows the phone.
  stage.root.position.set(pos.x+offset.x,pos.y,pos.z+offset.z);
  stage.root.rotation.y=worldYaw;stage.root.scale.setScalar(scale);
- $('fixWorld').disabled=false;$('placementHint').textContent='PISO DETECTADO · PISTA '+(33*scale).toFixed(1)+' m × '+(18.5*scale).toFixed(1)+' m · GIRÁ O ESCALÁ';
+ $('fixWorld').disabled=false;
+ const footprint=window.MiniWorldsPocket?.displayLength(scale)||{length:8.8*scale,width:11.5*scale};
+ $('placementHint').textContent='PISO DETECTADO · MUNDO COMPACTO '+footprint.length.toFixed(1)+' m × '+footprint.width.toFixed(1)+' m · 4 ZONAS CON PORTALES';
 }
 function maintainWorldLock(frame){
  if(placing||mode!=='ar'||!spatialLock||!stage)return;
@@ -296,7 +300,7 @@ function recenter(){
 }
 function startGame(){
  if(phase!=='ready')return;
- C.start(game);layout('playing');hideModal();notice('AVENTURA GIGANTE · JOYSTICK, SALTÁ Y ATACÁ',2400);haptic(15);
+ C.start(game);layout('playing');hideModal();notice('✨ BRUJITA · MOVETE, SALTÁ Y LANZÁ MAGIA',2400);haptic(15);
 }
 function pause(){
  if(!game||phase==='home')return;
@@ -418,6 +422,20 @@ function frame(t,xrFrame){
    jumpQueued=false;punchQueued=false;acc-=1/60;
   }
   if(loops>=4)acc=0;
+  const portal=stage.pocket?.sync(game.player.z);
+  if(portal){
+   game.player.vx=0;game.player.vz=0;
+   input.x=0;input.z=0;heldSteeringYaw=null;
+   $('stick').style.transform='translate(0,0)';
+   portalHoldUntil=performance.now()+520;
+   $('portalFlash')?.classList.add('active');
+   notice('✨ PORTAL · '+portal.info.title+(portal.info.floor?' · PISO SUPERIOR':''),1800);
+   haptic([12,40,20]);beep('star');
+   $('zoneTitle').textContent='ZONA '+(portal.room+1)+'/4 · '+portal.info.title;
+  }
+  if(portalHoldUntil&&performance.now()>portalHoldUntil){
+   portalHoldUntil=0;$('portalFlash')?.classList.remove('active');
+  }
   events();song();
  }else{acc=0;jumpQueued=false;punchQueued=false}
  // Animation errors never prevent drawing or conceal the whole world.
