@@ -155,6 +155,7 @@ function moveEnemies(s,dt){
  const p=s.player;
  for(const e of s.map.enemies){if(!e.alive)continue;e.t+=dt;e.stun=Math.max(0,e.stun-dt);e.flash=Math.max(0,e.flash-dt);e.attack=Math.max(0,e.attack-dt);
  const d=Math.hypot(p.x-e.x,p.z-e.z),focus=d<3.8;
+ if(focus&&!e.armed){e.armed=true;emit(s,'enemyAlert',{id:e.id,kind:e.type,x:e.x,y:e.y,z:e.z})}
  if(e.type==='flying'){e.y=1.7+Math.sin(e.t*3+e.id)*.45;e.x=e.baseX+Math.cos(e.t*1.55)*.55;e.z=e.baseZ+Math.sin(e.t*1.2)*.55;}
  else if(e.stun<=0){
  if(e.type==='patrol'){let tx=focus?p.x:e.baseX+Math.sin(e.t)*.75,tz=focus?p.z:e.baseZ;let len=Math.hypot(tx-e.x,tz-e.z)||1;e.x+=clamp((tx-e.x)/len*.74*dt,-.1,.1);e.z+=clamp((tz-e.z)/len*.74*dt,-.1,.1)}
