@@ -22,7 +22,7 @@ function make(real){
   drawCharacter:(mesh,surface,t,l,q,combo)=>{calls.push({type:'body',t,l,q,combo});return true},
   draw:(mesh,surface)=>{calls.push({type:'desk'});return true}
  };
- const window={RitmoImportedProps:{create:()=>props}};
+ const window={RitmoImportedProps:{create:()=>props},RitmoSkeletalDJ:{create:()=>({draw:(mesh,surface,t,l,q,combo)=>{calls.push({type:'body',t,l,q,combo});return true}})}};
  new Function('window',exterior)(window);
  const scene=window.RitmoExterior.create(api);
  return{scene,tri,lit,pts,calls,panels};
@@ -32,9 +32,9 @@ test('V32 changes exterior only, keeps untouched scoring floor and input scripts
  assert.match(stage,/const trails=quality===0\?3:5/);
  assert.match(stage,/let z=\.65,r=size\*\.44/);
  assert.match(stage,/try\{exterior\?\.render\(size,time,game/);
- assert.match(page,/ritmo-glb-props\.js\?v=32/);
- assert.match(page,/ritmo-exterior\.js\?v=32/);
- assert.match(page,/ritmo-stage-showtime\.js\?v=32/);
+ assert.match(page,/ritmo-glb-props\.js\?v=33/);
+ assert.match(page,/ritmo-exterior\.js\?v=33/);
+ assert.match(page,/ritmo-stage-showtime\.js\?v=33/);
  assert.ok(page.includes('/ritmo-runtime.js?v=31'), 'core game behavior stays V31');
 });
 test('horse DJ elbow and wrist curve in toward the two CDJ targets',async()=>{
