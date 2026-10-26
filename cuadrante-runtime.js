@@ -6,7 +6,7 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,state,modePlay='circuit';
 let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
-let pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
+let bank=null,assetsPromise=null,pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
 try{records={...records,...JSON.parse(localStorage.getItem('cuadrante-records')||'{}')}}catch(e){}
 const opts={music:.24,sfx:.65,sensitivity:1};
 try{
@@ -18,6 +18,7 @@ function report(e){$('error').textContent='CUADRANTE: '+(e&&e.message||String(e)
 function note(t,ms=1500){$('ticker').textContent=t;$('ticker').style.opacity='1';toastUntil=performance.now()+ms}
 function sound(name){
  if(!audioCtx||opts.sfx<=0)return;
+ if(bank?.play(name,audioCtx,opts.sfx,state?state.ball.x/1.76:0))return;
  const now=audioCtx.currentTime;
  const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
  const types={smash:[790,160,.23],transformWarning:[220,280,.17],hit:[280,125,.11],perfect:[570,280,.19],rivalHit:[195,105,.10],wall:[145,85,.055],geometryHit:[220,75,.13],goal:[520,900,.32],conceded:[230,75,.31],transform:[94,250,.27],victory:[420,850,.42],launch:[145,250,.10],click:[200,290,.07]};
@@ -33,7 +34,14 @@ function sound(name){
  }else osc.connect(gain).connect(audioCtx.destination);
  osc.start(now);osc.stop(now+p[2]+.03);
 }
-function initAudio(){try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();audioCtx.resume().catch(()=>{})}catch(e){}}
+function initAudio(){
+ try{
+  audioCtx??=new(window.AudioContext||window.webkitAudioContext)();
+  audioCtx.resume().catch(()=>{});
+  if(!bank&&window.CuadrantePremium)bank=window.CuadrantePremium.createAudio();
+  bank?.prime(audioCtx); // prefetch only after user's own JUGAR gesture
+ }catch(e){}
+}
 function haptic(ms){if(navigator.vibrate)try{navigator.vibrate(ms)}catch(e){}}
 function impactFlash(variant){
  const fx=$('hitFlash');fx.className='';
@@ -97,6 +105,9 @@ function build(){
  renderer.setClearColor(0x080d14,0);renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');
  applyQuality();renderer.setSize(window.innerWidth,window.innerHeight,false);container.appendChild(renderer.domElement);
  stage=window.CuadranteArt(THREE).makeStage();applyQuality();camera=new THREE.PerspectiveCamera(61,innerWidth/innerHeight,.025,90);
+ // Non-blocking licensed visual pack: 3D objects appear as they load. A slow
+ // connection must never delay startup, collisions, AR anchoring or scores.
+ assetsPromise=window.CuadrantePremium?.decorate(THREE,stage).catch(()=>null)||null;
  setDemoCamera();renderer.setAnimationLoop(frame);
 }
 function buildLite(){
