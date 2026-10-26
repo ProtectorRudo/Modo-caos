@@ -637,7 +637,7 @@ function makeStage(map){
   // premium detail, while a few Kenney/procedural palms retain island identity.
   windTargets.forEach((plant,i)=>{plant.visible=!enabled||i%4===0});
  };
- return {scene,root:anchorRoot,worldRoot:root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,heroShadow,furyRing,ocean,shoreFoam,magicOrbs,runes,projectilePool,hazardPool,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
+ return {scene,root:anchorRoot,worldRoot:root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,heroShadow,furyRing,furySparks,ocean,shoreFoam,magicOrbs,runes,projectilePool,hazardPool,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
 }
 return {makeStage};
 }})(typeof window!=='undefined'?window:globalThis);
