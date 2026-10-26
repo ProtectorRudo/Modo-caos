@@ -25,6 +25,19 @@ function beep(name){
  const a=notes[name]||notes.coin,o=ctx.createOscillator(),g=ctx.createGain();o.type=a[3];o.frequency.setValueAtTime(a[0],now);o.frequency.exponentialRampToValueAtTime(Math.max(35,a[1]),now+a[2]);
  g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.065,now+.012);g.gain.exponentialRampToValueAtTime(.0001,now+a[2]);
  o.connect(g).connect(ctx.destination);o.start(now);o.stop(now+a[2]+.03);
+ // A quiet second transient adds a real impact/collection identity without
+ // requiring large sample files or making the phone speakers harsh.
+ if(name==='coin'||name==='smash'||name==='hit'){
+  const extra=ctx.createOscillator(),env=ctx.createGain(),delay=name==='coin'?.045:.018,duration=name==='coin'?.095:.12;
+  extra.type=name==='coin'?'sine':'triangle';
+  const f=name==='coin'?1760:name==='smash'?210:540;
+  extra.frequency.setValueAtTime(f,now+delay);
+  extra.frequency.exponentialRampToValueAtTime(name==='coin'?2220:Math.max(65,f*.39),now+delay+duration);
+  env.gain.setValueAtTime(.0001,now+delay);
+  env.gain.linearRampToValueAtTime(name==='coin'?.024:.036,now+delay+.01);
+  env.gain.exponentialRampToValueAtTime(.0001,now+delay+duration);
+  extra.connect(env).connect(ctx.destination);extra.start(now+delay);extra.stop(now+delay+duration+.02);
+ }
 }
 function song(){
  if(!ctx||!settings.music||phase!=='playing'||ctx.currentTime<musicAt)return;
@@ -281,9 +294,9 @@ function events(){
   else if(e.type==='jump')beep(e.double?'double':'jump');
   else if(e.type==='swing'){beep('attack');haptic(8)}
   else if(e.type==='boxHit'){beep('hit');haptic(12)}
-  else if(e.type==='boxBreak'){beep('smash');haptic([18,25,20]);notice('¡CAJA ROTA! + MONEDAS',650)}
+  else if(e.type==='boxBreak'){beep('smash');haptic([18,25,20])}
   else if(e.type==='enemyHit'){beep('hit');haptic(17)}
-  else if(e.type==='enemyDown'){beep('smash');haptic([23,28,34]);notice('¡KO! +3 MONEDAS',850)}
+  else if(e.type==='enemyDown'){beep('smash');haptic([23,28,34]);if(e.combo%3===0)notice('¡TRIPLE CAOS! · '+e.combo+' ENEMIGOS',930)}
   else if(e.type==='hurt'){beep('damage');haptic([40,50,30]);notice('¡CUIDADO! · '+game.player.hearts+' CORAZONES',1050)}
   else if(e.type==='fall'){beep('fail');notice('¡AL AGUA! · VOLVÉS AL CHECKPOINT',1300)}
   else if(e.type==='checkpoint'){beep('checkpoint');haptic(20);notice('⚑ CHECKPOINT · CORAZÓN RECUPERADO',1800);stage.impact(x,y,z,'#b5ffec',24)}
