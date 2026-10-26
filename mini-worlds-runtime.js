@@ -23,7 +23,7 @@ function haptic(ms){try{navigator.vibrate?.(ms)}catch(_){}}
 function audioInit(){try{ctx??=new(window.AudioContext||window.webkitAudioContext)();ctx.resume().catch(()=>{})}catch(_){}}
 function beep(name){
  if(!settings.sound||!ctx)return;const now=ctx.currentTime;
- const notes={coin:[880,1250,.085,'sine'],star:[630,1380,.31,'triangle'],jump:[180,450,.11,'triangle'],double:[230,690,.16,'triangle'],smash:[140,53,.15,'sawtooth'],attack:[390,160,.09,'sawtooth'],hit:[250,90,.18,'sawtooth'],damage:[170,74,.27,'sawtooth'],checkpoint:[430,900,.35,'triangle'],win:[520,1150,.55,'triangle'],fail:[180,90,.4,'sawtooth'],boss:[96,55,.5,'sawtooth']};
+ const notes={coin:[880,1250,.085,'sine'],star:[630,1380,.31,'triangle'],jump:[180,450,.11,'triangle'],double:[230,690,.16,'triangle'],smash:[140,53,.15,'sawtooth'],attack:[390,160,.09,'sawtooth'],spell:[780,1280,.13,'sine'],hit:[250,90,.18,'sawtooth'],damage:[170,74,.27,'sawtooth'],checkpoint:[430,900,.35,'triangle'],win:[520,1150,.55,'triangle'],fail:[180,90,.4,'sawtooth'],boss:[96,55,.5,'sawtooth']};
  const a=notes[name]||notes.coin,o=ctx.createOscillator(),g=ctx.createGain();o.type=a[3];o.frequency.setValueAtTime(a[0],now);o.frequency.exponentialRampToValueAtTime(Math.max(35,a[1]),now+a[2]);
  g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.065,now+.012);g.gain.exponentialRampToValueAtTime(.0001,now+a[2]);
  o.connect(g).connect(ctx.destination);o.start(now);o.stop(now+a[2]+.03);
@@ -358,7 +358,9 @@ function events(){
     if(e.combo%15===0)notice('¡'+e.combo+' MONEDAS!',800)}
   else if(e.type==='star'){beep('star');haptic([15,35,25]);notice('✦ ESTRELLA SECRETA '+game.stars+'/3',2200);stage.impact(x,y,z,'#ffe56b',25)}
   else if(e.type==='jump')beep(e.double?'double':'jump');
-  else if(e.type==='swing'){beep('attack');haptic(8)}
+  else if(e.type==='spellCast'){beep('spell');haptic(8)}
+  else if(e.type==='spellHit'){beep('coin');haptic(13)}
+  else if(e.type==='runeRestored'){beep('star');haptic([18,30,34]);notice('✨ ¡FLORES RESTAURADAS! +5',900)}
   else if(e.type==='boxHit'){beep('hit');haptic(12)}
   else if(e.type==='boxBreak'){beep('smash');haptic([18,25,20])}
   else if(e.type==='treasure'){beep('star');haptic(22)}
