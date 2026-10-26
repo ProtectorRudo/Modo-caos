@@ -5,13 +5,14 @@
 (function(root){
  const COLORS=[[.19,1,.48],[1,.20,.37],[1,.85,.18],[.10,.49,1]];
  const VS="attribute vec3 aPos;attribute vec4 aColor;uniform mat4 uMVP;varying vec4 vCol;varying vec3 vPos;void main(){gl_Position=uMVP*vec4(aPos,1.);vCol=aColor;vPos=aPos;}";
- const FS="precision mediump float;uniform float uBeat;uniform float uTime;varying vec4 vCol;varying vec3 vPos;void main(){float grid=step(.976,fract(vPos.z*11.))*0.09+step(.98,fract(vPos.x*31.))*0.05;float pulse=.93+.07*sin(uTime*4.+vPos.z*9.);gl_FragColor=vec4(min(vec3(1.),vCol.rgb*(pulse+.14*uBeat+grid)),vCol.a);}";
+ const FS="precision mediump float;uniform float uBeat;uniform float uTime;varying vec4 vCol;varying vec3 vPos;void main(){float etched=step(.973,fract(vPos.z*13.5))*0.085+step(.988,fract(vPos.x*28.))*0.038;float grain=.975+.025*sin(vPos.x*89.+vPos.z*74.);float shimmer=.95+.05*sin(uTime*3.+vPos.z*9.);float sound=1.+uBeat*.17;vec3 col=vCol.rgb*(grain*shimmer*sound+etched);gl_FragColor=vec4(min(vec3(1.),col),vCol.a);}";
  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
  function mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)for(let k=0;k<4;k++)o[c*4+r]+=a[k*4+r]*b[c*4+k];return o}
  function project(M,x,y,z,w,h){const v=[x,y,z,1],q=[0,0,0,0];for(let r=0;r<4;r++)for(let k=0;k<4;k++)q[r]+=M[k*4+r]*v[k];if(q[3]<.025)return null;return[(q[0]/q[3]+1)*w/2,(1-q[1]/q[3])*h/2]}
  function shader(gl,type,src){let q=gl.createShader(type);gl.shaderSource(q,src);gl.compileShader(q);if(!gl.getShaderParameter(q,gl.COMPILE_STATUS))throw Error('Stage shader: '+gl.getShaderInfoLog(q));return q}
  function create(){
-  let glRef=null,gpu=null,quality=2,avg=16,last=0,nframes=0,state='ESPERANDO GPU',spots=[null,null,null,null];
+  let glRef=null,gpu=null,quality=2,avg=16,last=0,nframes=0,state='ESPERANDO GPU',spots=[null,null,null,null],visualMode='auto';
+  const hitWaves=[];
   const solid=[],glow=[];
   const muted=(c,m)=>c.map(x=>Math.min(1,x*m));
   function vert(b,p,c,a){b.push(p[0],p[1],p[2],c[0],c[1],c[2],a)}
@@ -31,6 +32,38 @@
   function ring(b,x,y,z,ri,ro,c,a=1,steps=16,vertical=false){
    const coord=(r,theta)=>vertical?[x+Math.cos(theta)*r,y+Math.sin(theta)*r,z]:[x+Math.cos(theta)*r,y,z+Math.sin(theta)*r];
    for(let i=0;i<steps;i++){let u=i*2*Math.PI/steps,v=(i+1)*2*Math.PI/steps;face(b,coord(ri,u),coord(ro,u),coord(ro,v),coord(ri,v),c,a)}
+  }
+  function crystal(b,x,y,z,r,c){
+   // 3D faceted note nucleus, readable without any large downloaded texture.
+   const edges=10;
+   for(let i=0;i<edges;i++){
+    let a=i*2*Math.PI/edges,v=(i+1)*2*Math.PI/edges;
+    const p=(rad,t,h)=>[x+Math.cos(t)*rad,y+h,z+Math.sin(t)*rad];
+    const tint=i%2===0?c:muted(c,.64);
+    face(b,p(r*.64,a,0),p(r*.64,v,0),p(r*.78,v,.026),p(r*.78,a,.026),tint,.94);
+    face(b,p(r*.78,a,.026),p(r*.78,v,.026),p(.025,v,.085),p(.025,a,.085),i%3===0?[.89,.98,1]:muted(c,.87),.92);
+   }
+   ring(glow,x,y+.094,z,r*.35,r*.62,c,.68,16);
+  }
+  function drawHitWaves(t,size){
+   for(let i=hitWaves.length-1;i>=0;i--){
+    const h=hitWaves[i],age=t-h.time,life=h.rating==='HOLD'?.95:.73;
+    if(age<0)continue;
+    if(age>life){hitWaves.splice(i,1);continue}
+    const p=age/life,c=COLORS[h.lane],x=(h.lane-1.5)*size,z=.65;
+    const radius=size*(.24+p*.45),alpha=(1-p)*(h.rating==='FALLO'?.16:.83);
+    ring(glow,x,.18+p*.09,z,radius,radius+size*.055,c,alpha,18);
+    if(quality>0&&h.rating!=='FALLO'){
+     const n=h.rating==='HOLD'?14:9;
+     for(let j=0;j<n;j++){
+      let a=j*6.283185307/n+Math.sin(h.seed+j)*.27,
+      rad=.015+p*size*.36,
+      xx=x+Math.cos(a)*rad,zz=z+Math.sin(a)*rad,
+      yy=.20+.20*p*(1-p)+.045*Math.sin(a*5+p*3);
+      box(glow,xx,yy,zz,.008+size*.013,.015+.014*(1-p),.007,c,c,alpha*.72);
+     }
+    }
+   }
   }
   function build(size,t,game,en){
    const elapsed=game?.elapsed||0,playing=game?.state==='playing',low=en.low||.25,mid=en.mid||.25,high=en.high||.25;
