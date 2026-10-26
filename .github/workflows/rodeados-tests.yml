@@ -19,6 +19,7 @@ jobs:
       - run: node --check rodeados-ux.js
       - run: node --check rodeados-progression.js
       - run: node --check rodeados-art.js
+      - run: node --check rodeados-spider.js
       - run: node .github/scripts/rodeados-asset-metadata.cjs
       - run: node --check rodeados-manul.js
       - run: node --check rodeados-robots-auto.js
@@ -30,6 +31,7 @@ jobs:
       - run: node --test tests/rodeados-bomb.test.cjs
       - run: node --test tests/rodeados-war-floor.test.cjs
       - run: node --test tests/rodeados-approach-v15.test.cjs
+      - run: node --test tests/rodeados-spider-v16.test.cjs
       - run: node --test tests/rodeados-progression.test.cjs
   chromium:
     runs-on: ubuntu-latest
