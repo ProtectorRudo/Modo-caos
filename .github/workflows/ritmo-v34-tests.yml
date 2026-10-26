@@ -36,6 +36,7 @@ jobs:
       - name: V34 true IK, Quaternius skin continuity and older regressions
         run: |
           node --test \
+            tests/ritmo-dj-v34.test.cjs \
             tests/ritmo-v34-live-dj.test.cjs \
             tests/ritmo-live-v34.test.cjs \
             tests/ritmo-ik-v34.test.cjs \
