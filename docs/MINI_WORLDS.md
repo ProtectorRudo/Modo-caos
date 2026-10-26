@@ -90,3 +90,27 @@ La versión contiene núcleo y contenidos jugables de dos aventuras pero **no co
 - Tests: `tests/mini-worlds-ar-compositor.test.cjs` prueba copia fiel de matrices de la cámara nativa, escena 3D correcta, materiales de transparencia del renderer, resize y cleanup. `tests/mini-worlds-ar-visibility.test.cjs` verifica guías y overlay.
 
 **Limitación:** la revisión está testeada con simulación JS y comparación de arquitectura con RODEADOS, pero no hay prueba física de ARCore de MINI WORLDS aún. Se requiere nueva captura AR tras desplegar esta rama. `main` y producción original permanecen intactos.
+
+## Revisión de jugabilidad y arte (26/10/2026, feedback visual del usuario)
+
+El usuario confirmó con captura AR real la composición exitosa del mundo y el caballero, pero informó caídas falsas sobre tierra, golpe/KO poco satisfactorios y gráficos saturados de vegetación.
+
+**Corrección física estructural**
+- `level()` ahora crea **13 causeways con física y malla visible idénticamente posicionadas** por nivel: 7 cruces en la ruta principal y 6 accesos a islas laterales. Los corredores son de 1,70–2,25 unidades de ancho, con una interpolación suave de altura entre las elevaciones vecinas.
+- `platformY()` valida el contacto sobre las mismas huellas visuales de plataformas y caminos. La actualización del jugador sube automáticamente desniveles transitables de hasta 0,46 unidades y baja de manera segura hasta 0,55, pero conserva salto doble y caídas auténticas fuera de la tierra.
+- Se probaron automáticamente en ambos mundos **todas las rutas principales y los seis ramales**, caminando con el joystick virtual y sin saltos ni fotogramas sin contacto con el suelo. Es una **simulación core**, no una afirmación sobre la precisión física de ARCore real.
+
+**Nuevo combate y recompensas**
+- Se corrigió el bug `emit(s,type,data)`: al usar `{type,...data}`, el nombre del evento era sustituido por `type:'patrol'` o `type:'normal'`; impedía que `enemyHit`, `enemyDown`, `boxHit` y `boxBreak` llegaran a sus efectos. Ahora el nombre manda y se conserva `kind` para el subtipo.
+- Eventos de ataque con coordenadas 3D exactas de enemigos, cajas y recompensas. Anillos de impacto, estelas de espada, partículas en el objetivo, vibración/sonido distintos para golpe y KO, recompensa `+3` anunciada y desaparición progresiva de enemigos durante ~550 ms.
+- Sombras de contacto baratas bajo caballero y enemigos para identificar posición/altura sin exigir shadow maps reales.
+
+**Dirección artística y rendimiento**
+- Se dibuja el terreno de los causeways como malla física real, con rampas y bordes visibles; tonos de arena, selva, roca y agua más coherentes.
+- Se redujeron palmeras/arbustos/rocas duplicados, liberando recorridos y disminuyendo los GLB clonados y draw calls potenciales. Se conserva la biblioteca de 19 GLB Kenney y los personajes KayKit/Quaternius.
+- Minimapa opcional (botón mapa) con trazado de puentes, zonas, enemigos, jefe y posición/orientación del caballero; el diagnóstico AR queda oculto en juego normal y se activa con `?debug=1`.
+- El compositor AR adapta resolución según FPS después de ventanas de 180 cuadros, sin alterar reglas físicas ni la ubicación espacial de los objetos.
+
+**Pruebas**: tests originales core 10/10; `tests/mini-worlds-traversal.test.cjs` para ruta y combate; módulos JS con sintaxis válida, HUD completo y tests del compositor. El preview de esta nueva revisión debe verificarse en Vercel y luego probarse físicamente en Chrome Android antes de marcar la experiencia AR como aprobada.
+
+**Limitaciones**: gráficos aún son **low-poly estilizados**, no modelos fotorrealistas ni calidad de consola demostrada; sin medición de FPS en hardware ni prueba de golpes/táctil en el dispositivo del usuario. No se fusionó `main` ni se editó Supabase.
