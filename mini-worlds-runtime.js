@@ -56,8 +56,17 @@ function renderSetup(){
  renderer.setAnimationLoop(frame);
 }
 function newStage(){
- if(stage){view.remove(stage.scene);stage.dispose()}
+ if(stage){stage.disposeAssets?.();stage.dispose()}
  game=C.create(level);stage=window.MiniWorldsArt(T).makeStage(game.map);
+ const stageRef=stage;
+ // Native, bundled CC0 assets never block controls. Keep the original art if any GLB cannot load.
+ if(window.MiniWorldsAssets){
+  Promise.resolve().then(()=>window.MiniWorldsAssets(T).decorate(stageRef,level)).then(stats=>{
+   if(stage===stageRef&&stats?.count){
+    console.info('[MINI WORLDS] Imported '+stats.loaded+' licensed GLB models, '+stats.count+' decorative instances.');
+   }
+  }).catch(e=>console.warn('[MINI WORLDS] Procedural world remains available:',e.message));
+ }
  view=stage.scene;view.background=mode==='ar'?null:new T.Color(level?0x9ea6cf:0xa5dadd);
  stage.root.rotation.y=mode==='ar'?worldYaw:0;
  stage.root.scale.setScalar(mode==='ar'?scale:1);
@@ -160,7 +169,7 @@ function pause(){
  if(!game||phase==='home')return;
  if(phase==='playing'){C.pause(game);layout('paused');showModal('AVENTURA EN PAUSA','ISLA SALVAJE','Seguís desde el mismo lugar, con tus monedas y estrellas guardadas en la partida.',[
  {label:'▶ CONTINUAR',action:()=>{C.pause(game);hideModal();layout('playing')}},
- {label:settings.music?'♫ MÚSICA: SÍ':'♫ MÚSICA: NO',secondary:true,action:()=>{settings.music=!settings.music;save();pause();pause()}},
+ {label:settings.music?'♫ MÚSICA: SÍ':'♫ MÚSICA: NO',secondary:true,action:()=>{settings.music=!settings.music;save();hideModal();C.pause(game);layout('playing');pause()}},
  {label:'↻ REINICIAR NIVEL',secondary:true,action:()=>{hideModal();newStage();layout('ready')}},
  {label:'SALIR AL MENÚ',secondary:true,action:()=>home()}
  ])}
