@@ -4,14 +4,19 @@
 const E=id=>document.getElementById(id),G=window.RitmoCore,A=window.RitmoArt,audio=window.RitmoAudio.create();
 if(!G||!A)throw Error('Ritmo Caos requiere core y art');
 const art=A.create(E('rtSvg'),E('gameCanvas')),fx=window.RitmoFx?.create(E('fxCanvas')),
- stagePremium=window.RitmoStagePremium?.create(),stage3d=window.RitmoStage3D?.create(),
+ stageShowtime=window.RitmoStageShowtime?.create(),stagePremium=window.RitmoStagePremium?.create(),stage3d=window.RitmoStage3D?.create(),
  haptics=window.RitmoHaptics?.create(navigator),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-let stage3dOK=false,activeStage=null,premiumUsable=!!stagePremium;
+let stage3dOK=false,activeStage=null,showtimeUsable=!!stageShowtime,premiumUsable=!!stagePremium;
 window.modoCaosCustomRender=function(gl,view,W,t){
  const params=[gl,view,W,t,locked?game:null,boardSize,audio.spectrum];
  let success=false,renderer=null;
- // Premium always comes first, original tested stage remains functional backup.
- if(premiumUsable){
+ // PRISM is a genuinely different stage design. Preserve both earlier renderers
+ // as seamless fallback to avoid breaking floor placement on Android devices.
+ if(showtimeUsable){
+  try{success=!!stageShowtime.render(...params)}catch(_){success=false}
+  if(success)renderer=stageShowtime;else showtimeUsable=false;
+ }
+ if(!success&&premiumUsable){
   try{success=!!stagePremium.render(...params)}catch(_){success=false}
   if(success)renderer=stagePremium;
   else premiumUsable=false; // stop trying a failing shader every XR frame
@@ -179,10 +184,10 @@ E('sound').onclick=()=>{muted=!muted;audio.volume(muted);E('sound').textContent=
 const qualityModes=['auto','high','low'];
 const qualityNames=['✨ AUTO','✨ ALTA','✨ LIGERA'];
 E('quality').onclick=()=>{
- if(!stage3d&&!stagePremium){notify('RENDERIZADO CLÁSICO');return}
- const renderer=activeStage||stagePremium||stage3d;
+ if(!stage3d&&!stagePremium&&!stageShowtime){notify('RENDERIZADO CLÁSICO');return}
+ const renderer=activeStage||stageShowtime||stagePremium||stage3d;
  const next=(qualityModes.indexOf(renderer.mode())+1)%qualityModes.length;
- stagePremium?.setQuality(qualityModes[next]);
+ stageShowtime?.setQuality(qualityModes[next]);stagePremium?.setQuality(qualityModes[next]);
  stage3d?.setQuality(qualityModes[next]);
  E('quality').textContent=qualityNames[next];
  notify(next===0?'GRÁFICOS AUTOMÁTICOS':next===1?'GRÁFICOS ALTA CALIDAD':'GRÁFICOS MODO LIGERO',1000);
@@ -223,7 +228,7 @@ function onEvents(){
    try{audio.feedback?.('HOLD_START',ev.lane,game.combo)}catch(_){}
   }else if(ev.type==='hold_complete'){
    fx?.burst(ev.lane,noteSpot(ev.lane),'HOLD',ev.combo,ev.points);
-   (activeStage||stagePremium||stage3d)?.hit(ev.lane,'HOLD');
+   (activeStage||stageShowtime||stagePremium||stage3d)?.hit(ev.lane,'HOLD');
    try{audio.feedback?.('HOLD_COMPLETE',ev.lane,ev.combo)}catch(_){}
    haptics?.scored(ev.note); // Exactly one miniature vibration on completed sustain
    notify('🌟 ¡SOSTENIDA PERFECTA! + PUNTOS',920);
@@ -235,7 +240,7 @@ function onEvents(){
    // Complete sustains get their own large effect and audio chord.
    if(note?.type!=='hold'){
     fx?.burst(ev.lane,noteSpot(ev.lane),ev.rating,ev.combo,ev.points);
-    (activeStage||stagePremium||stage3d)?.hit(ev.lane,ev.rating);
+    (activeStage||stageShowtime||stagePremium||stage3d)?.hit(ev.lane,ev.rating);
    }
    if(ev.rating!=='FALLO'){
     if(note?.type!=='hold'){
