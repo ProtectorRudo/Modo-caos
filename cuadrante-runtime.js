@@ -131,6 +131,7 @@ function resize(){if(!renderer||!camera)return;renderer.setSize(innerWidth,inner
 window.addEventListener('resize',resize);
 function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;floorSeconds=0;lastFloorHit=null;pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
+ $('ui').classList.toggle('ar-placing',mode==='ar');
  $('recenterBtn').style.display='none';$('hitFlash').className='';
  stage?.setPlacementPreview?.(false);$('fixArena').disabled=true;
  $('overlay').style.display='none';$('ticker').style.opacity='0';$('placeControls').style.display='none';$('placeTitle').style.display='none';
@@ -251,7 +252,7 @@ function pause(){if(!state||placing)return;if(state.phase==='paused'){C.resume(s
 $('pauseBtn').onclick=pause;$('exitBtn').onclick=()=>back();
 function recenter(){
  if(!playing||placing||inputMode!=='ar'||!renderer?.xr?.isPresenting||!state||state.phase==='finished')return;
- C.pause(state);recentering=true;placing=true;hasHit=false;floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};
+ C.pause(state);recentering=true;placing=true;hasHit=false;floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
  pointers.clear();stage?.setPlacementPreview?.(false);$('overlay').style.display='none';$('pauseBtn').textContent='Ⅱ';$('pauseBtn').style.display='none';
  $('recenterBtn').style.display='none';$('hud').style.display='none';
  $('placeTitle').style.display='block';$('placeTitle').firstChild.textContent='RECENTRAR ARENA';
@@ -261,7 +262,7 @@ function recenter(){
 }
 $('recenterBtn').onclick=recenter;
 async function back(){
- if(!playing)return;playing=false;placing=false;recentering=false;
+ if(!playing)return;playing=false;placing=false;recentering=false;$('ui').classList.remove('ar-placing');
  try{if(session){const old=session;session=null;await old.end()}}catch(e){}
  if(hitSource){try{hitSource.cancel()}catch(e){}hitSource=null}
  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null}
@@ -312,7 +313,7 @@ $('startAr').onclick=()=>init('ar');$('startDemo').onclick=()=>init('demo');
 function doFix(){
  if(!placing)return;
  if(inputMode==='ar'&&(!hasHit||floorSeconds<.60)){note('ESPERÁ A QUE EL PISO SE PONGA VERDE',1350);return}
- placing=false;hasHit=false;stage?.setPlacementPreview?.(false);$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
+ placing=false;hasHit=false;stage?.setPlacementPreview?.(false);$('ui').classList.remove('ar-placing');$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
  $('labelPhase').textContent=inputMode==='ar'?'AR REAL · ARRASTRÁ PARA DEFENDER':'CÁMARA SIN TRACKING · ARRASTRÁ PARA DEFENDER';
  $('recenterBtn').style.display=inputMode==='ar'?'block':'none';
  if(recentering){
@@ -321,7 +322,7 @@ function doFix(){
  }else{
   C.start(state);note('¡ARRASTRÁ PARA MOVER EL CUADRADO!',1700);
  }
- $('placeTitle').firstChild.textContent='FIJÁ TU ARENA';
+ $('placeTitle').firstChild.textContent='DETECTÁ EL PISO';
  $('fixArena').textContent='FIJAR ARENA';
 }
 $('fixArena').onclick=doFix;
