@@ -244,7 +244,34 @@ function frame(t,xrFrame){
  if(state)stage.update(state,dt);
  if(state)refreshHud();
  if(toastUntil&&performance.now()>toastUntil){$('ticker').style.opacity='0';toastUntil=0}
- renderer.render(stage.scene,camera);
+ if(session&&renderer.xr.isPresenting){
+  // Same camera-matched DOM-overlay approach proven in Rodeados 360 and Rebote.
+  // Native XR keeps the real camera feed; the independently transparent canvas
+  // uses the native XR eye view/projection. World remains anchored to the floor.
+  renderer.render(nativeXRScene,camera);
+  if(arCompositor){
+   const good=arCompositor.render(stage.scene,renderer.xr.getCamera(camera));
+   if(good&&arCompositor.drawCalls>0){
+    arDrawFrames++;arRenderFaultAt=0;
+    if(placing){
+     showArOutline(xrFrame);
+     $('fixArena').disabled=!(hasHit&&arVisibleOutline);
+     if(hasHit&&!arVisibleOutline)$('labelPhase').textContent='ARENA FUERA DE LA VISTA · APUNTÁ AL MARCADOR';
+    }
+    $('arDrawStatus').style.display='none';
+   }else{
+    if(placing){$('fixArena').disabled=true;hasHit=false;arVisibleOutline=false;$('placementSvg').style.display='none'}
+    arRenderFaultAt ||= t;
+    if(t-arRenderFaultAt>700){
+     $('arDrawStatus').style.display='block';
+     $('arDrawStatus').textContent='⚠ ARENA 3D NO VISIBLE · RECENTRÁ O VOLVÉ A MODO 3D';
+    }
+    if(!placing&&t-arRenderFaultAt>2800&&state&&state.phase!=='paused'&&state.phase!=='finished'){
+     C.pause(state);$('labelPhase').textContent='GRÁFICOS AR NO VISIBLES · RECENTRÁ PARA RECUPERAR';
+    }
+   }
+  }else if(placing)$('fixArena').disabled=true;
+ }else renderer.render(stage.scene,camera);
 }
 function refreshHud(){
  $('youScore').textContent=state.score[0];$('rivalScore').textContent=state.score[1];
