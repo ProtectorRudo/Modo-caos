@@ -55,3 +55,41 @@
 **Jefes iniciales:** modelos YellowDragon y Yeti del **mismo pack Quaternius** y misma licencia CC0. Archivos locales `assets/mini-worlds/characters/YellowDragon.gltf` y `Yeti.gltf`; los modelos se escalan de forma visual, tienen núcleo vulnerable independiente y mantienen la física y las 3 fases del motor. Dragón Dorado en la primera misión y Rey Yeti en la segunda.
 
 **Limitaciones y no afirmaciones:** verificada presencia de esqueletos, buffers embebidos y clips glTF mediante inspección de los archivos. No verificados todavía el resultado visual en Chrome WebGL, carga CORS del caballero en todos los dispositivos, clip de espada exacto del caballero, ni el posicionamiento real en Android ARCore. Mantenerlos bajo revisión de preview. No usar personajes o marcas originales de Astro Bot.
+
+## Naturaleza y ruinas premium importadas (26/10/2026)
+
+A diferencia de las 19 piezas Kenney autohospedadas, los siete GLB de esta ampliación se cargan automáticamente desde URLs inmutables `raw.githubusercontent.com` asociadas a commits públicos de sus repositorios de origen. **No están copiados aún dentro de este repositorio**. Son arte opcional: si la descarga remota falla, se conserva el escenario Kenney/procedural, completo, con todas sus colisiones y controles.
+
+### Quaternius — Stylized Nature MegaKit, edición Standard, CC0
+
+Fuente oficial: https://quaternius.com/packs/stylizednaturemegakit.html (edición Standard gratuita, modelos glTF, licencia indicada en la página: CC0).
+
+Copias GLB optimizadas para web de `anshaneja5/skyline-run`, commit fijo `0c41526d8d4130c37c15e219c2c3737fa8cb4ad8`, créditos de tercero https://github.com/anshaneja5/skyline-run/blob/0c41526d8d4130c37c15e219c2c3737fa8cb4ad8/CREDITS.md :
+
+| Alias código | Archivo remoto verificado | Tamaño | Git blob SHA |
+|---|---|---:|---|
+| canopyA | `public/assets/models/tree1.glb` | 516 044 bytes | `80bd662cc51f983986f4e201463dc3a729a6cd4a` |
+| canopyB | `public/assets/models/tree2.glb` | 446 732 bytes | `0197de65879eb650247c8d56ac52da34489938cb` |
+| canopyC | `public/assets/models/tree3.glb` | 332 440 bytes | `828786b4bdb5224a8b3672f5e5d6cebe1c65bd93` |
+| shrub | `public/assets/models/bush.glb` | 108 520 bytes | `84b4153c17e988a658e56d4093b0028d1b034c3f` |
+
+### Kay Lousberg — KayKit Medieval Hexagon Pack, CC0
+
+Pack original: https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/tree/84fa4e91af6a88989be7c99e0891cede11f2ca38 .
+
+GLBs de `kikoncuo/jevfire`, commit fijo `5df83b558bf635e006d31f8f2fc2798d0e3ff051`, con procedencia y licencia preservadas en https://github.com/kikoncuo/jevfire/blob/main/web/ASSETS.md .
+
+| Alias código | Archivo remoto verificado | Tamaño | Git blob SHA |
+|---|---|---:|---|
+| medievalTower | `web/public/assets/tower.glb` | 130 876 bytes | `d4bace4e1157841d5270e6a6fbb3d8120b7781dc` |
+| medievalWall | `web/public/assets/wall.glb` | 48 220 bytes | `493bfe3f0df0d0fcad99c21b6eeea813b6dd145c` |
+| medievalRock | `web/public/assets/rock.glb` | 18 800 bytes | `b3edff0760b3e01088fbae75afbd14c42c827829` |
+
+### Distribución y limitaciones
+
+- `mini-worlds-premium.js` carga de forma automática los **cuatro modelos Quaternius para el primer nivel** y los **siete para el segundo**, normaliza por altura real y coloca instancias clonadas solo en márgenes de las plataformas físicas, sin alterar colisiones ni AR.
+- Cuando al menos tres copias de canopy se colocan correctamente, se oculta el grupo de palmas/arbustos Kenney duplicados. Se conservan algunas palmeras autóctonas y los modelos jugables de monedas, cofres, puentes y rocas. Si solo cargan arbustos, no se eliminan los árboles anteriores.
+- Se preserva el snapshot de anclaje WebXR, el movimiento relativo a cámara y la navegación por los 13 caminos físicamente jugables. Se aborta la incorporación si la escena se desecha antes de completar las descargas.
+- El total nuevo es de aproximadamente **1,4 MB** para el paisaje tropical y unos **200 KB adicionales** de ruinas medievales en el segundo mundo. Carga sujeta al acceso HTTPS/CORS a GitHub.
+- **No atribuir a KayKit Platformer Pack** estas tres piezas de arquitectura: proceden de **KayKit Medieval Hexagon**, aunque su función es decorar un juego de plataformas. La integración directa del pack Platformer de KayKit quedó pendiente porque no se obtuvo un subconjunto GLB distribuible y verificable, sin recurso pagado ni intervención manual.
+- Pruebas: metadata GitHub de los siete archivos/SHAs, mock GLTF de colocación y reemplazo, regresiones del motor original. No se confirmó aún render visual ni FPS del primer y segundo mundo sobre Android real. Para producción definitiva conviene copiar los siete GLB a nuestro mismo origen, previa herramienta autorizada para transferencias binarias.
