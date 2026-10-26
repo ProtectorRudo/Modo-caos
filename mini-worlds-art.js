@@ -9,6 +9,72 @@ const geoCone=(r=.4,h=1,n=9)=>new T.ConeGeometry(r,h,n);
 const cyl=(a,b,h,n=10)=>new T.CylinderGeometry(a,b,h,n);
 const mesh=(g,m,x=0,y=0,z=0,parent)=>{let o=new T.Mesh(g,m);o.position.set(x,y,z);if(parent)parent.add(o);o.castShadow=true;o.receiveShadow=true;return o};
 const group=(p,x=0,y=0,z=0)=>{const o=new T.Group();o.position.set(x,y,z);p.add(o);return o};
+// Animated shader ocean with a moving surface, soft caustics, readable depth,
+// broken foam bands and mobile-friendly one-pass highlights. The water stays
+// physically BELOW the walkable collision plane (never a fake land surface).
+function makeOcean(parent,map){
+ const material=new T.ShaderMaterial({
+  transparent:true,depthWrite:false,side:T.DoubleSide,
+  uniforms:{uTime:{value:0},uDeep:{value:new T.Color(map.n?0x173e72:0x0e6290)},
+   uShallow:{value:new T.Color(map.n?0x359cba:0x29bebc)},
+   uFoam:{value:new T.Color(map.n?0xc1e9ef:0xddfff2)}},
+  vertexShader:`
+   uniform float uTime;
+   varying vec2 vWaterUV;
+   varying float vWave;
+   void main(){
+    vec3 pos=position;
+    float wave=sin(pos.x*1.53+pos.y*.57+uTime*1.37)*.044;
+    wave+=cos(pos.y*1.83-pos.x*.69-uTime*1.16)*.036;
+    wave+=sin(pos.x*3.2+pos.y*2.75+uTime*2.2)*.011;
+    pos.z+=wave;
+    vWaterUV=pos.xy;
+    vWave=wave;
+    gl_Position=projectionMatrix*modelViewMatrix*vec4(pos,1.);
+   }`,
+  fragmentShader:`
+   precision mediump float;
+   uniform float uTime;
+   uniform vec3 uDeep,uShallow,uFoam;
+   varying vec2 vWaterUV;
+   varying float vWave;
+   void main(){
+    vec2 p=vWaterUV;
+    float swells=sin(p.x*1.85+p.y*.74+uTime*1.32);
+    swells+=.48*cos(p.y*2.34-p.x*.39-uTime*.94);
+    float ribbons=abs(sin((p.x+p.y*.34)*3.9-uTime*1.47));
+    float softness=smoothstep(.87,1.,ribbons);
+    float caustic=pow(max(0.,sin(p.x*4.7+uTime*1.17)*cos(p.y*3.8-uTime*.92)),4.);
+    float tint=clamp(.50+.22*swells+.10*vWave,0.,1.);
+    vec3 color=mix(uDeep,uShallow,tint);
+    color+=vec3(caustic*.12);
+    color=mix(color,uFoam,softness*.14);
+    float glint=pow(max(0.,sin(p.x*8.1+p.y*4.5+uTime*2.4)),14.);
+    color=mix(color,uFoam,glint*.21);
+    gl_FragColor=vec4(color,.83);
+   }`
+ });
+ const o=mesh(new T.PlaneGeometry(18.5,33,24,42),material,0,-.69,-11.35,parent);
+ o.rotation.x=-P/2;o.receiveShadow=false;o.castShadow=false;o.renderOrder=-4;
+ return {o,material};
+}
+// All visible playable land gets a faint tide line, batched into one draw
+// call. No impassable "fake islands" are left in the playable field.
+function makeShoreFoam(parent,map){
+ const verts=[];
+ for(const f of map.platforms){
+  const x=f.x,z=f.z,a=f.w*.5+.12,b=f.d*.5+.12,y=-.635;
+  const pts=[[x-a,z-b],[x+a,z-b],[x+a,z+b],[x-a,z+b]];
+  for(let i=0;i<4;i++){
+   const p=pts[i],q=pts[(i+1)%4];
+   verts.push(p[0],y,p[1],q[0],y,q[1]);
+  }
+ }
+ const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(verts,3));
+ const mat=new T.LineBasicMaterial({color:0xc6fff2,transparent:true,opacity:.32,depthWrite:false});
+ const line=new T.LineSegments(geo,mat);line.frustumCulled=false;parent.add(line);
+ return line;
+}
 const rng=s=>()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296};
 function addPalm(p,x,z,size=1){
  const g=group(p,x,.05,z),trunk=mesh(cyl(.105,.17,1.36,9),M.wood,.04,.63,0,g);trunk.rotation.z=-.11;
@@ -136,22 +202,16 @@ function makeBoss(parent,b,variant=false){
 // The floor-sized world spans 18.5 × 33 game units. The physical AR track
 // defaults to ~6.7m wide × 11.9m long, anchored to a real floor hit.
 function sprawlingEnvironment(root,rand,cliff){
- const sea=mesh(new T.PlaneGeometry(18.5,33),M.water,0,-.69,-11.35,root);
- sea.rotation.x=-P/2;sea.receiveShadow=false;sea.castShadow=false;
- const shore=cliff?M.stone:M.sand;
+ const sea=makeOcean(root,{n:cliff?1:0});
+ // These far-shore shapes used to be large sandy "islands" without hitboxes:
+ // players jumped there and fell through. They are now unmistakably
+ // submerged rock outcrops rather than false walkable platforms.
  for(const side of [-1,1]){
-  for(let j=0;j<6;j++){
-   const z=1.20-j*4.05,x=side*(6.45+rand()*.38);
-   const isle=group(root,x,-.41,z);
-   const width=1.65+rand()*.4,length=3.7+rand()*.5;
-   const plate=mesh(cube(width,.54,length),shore,0,0,0,isle);
-   plate.rotation.y=(rand()-.5)*.13;
-   for(let k=0;k<3;k++){
-    const dx=(rand()-.5)*width*.85,dz=(rand()-.5)*length*.85;
-    addRock(isle,dx,.29,dz,.20+rand()*.16);
-   }
-   if(j%3===0){addPalm(isle,side*.21,.1,.85+rand()*.22);addFlower(isle,-side*.5,-.25,j)}
-   if(cliff){let spear=mesh(geoCone(.32,1.5+rand()*1.2,6),M.stone,side*.52,1.05,-.58,isle);spear.rotation.z=side*.18}
+  for(let j=0;j<5;j++){
+   const z=1.0-j*5.0,x=side*(7.2+rand()*.42);
+   const stone=addRock(root,x,-.78,z,.34+rand()*.27);
+   stone.scale.y=.37;
+   if(cliff&&j%3===0){const spear=mesh(geoCone(.24,.62,6),M.stone,x,-.57,z,root);spear.rotation.z=side*.1}
   }
  }
  // Ancient landmarks at the far ends make the 3D level readable from a distance.
@@ -170,7 +230,8 @@ function makeStage(map){
  scene.add(new T.HemisphereLight(0xcaf5ff,0x70503d,2.0));
  const root=group(scene);
  const rand=rng(7403+map.n*719),platforms=[];
- sprawlingEnvironment(root,rand,Boolean(map.n));
+ const ocean=sprawlingEnvironment(root,rand,Boolean(map.n));
+ const shoreFoam=makeShoreFoam(root,map);
  for(const p of map.platforms)platforms.push(platform(root,p,rand));
  for(let i=0;i<(map.walkways||[]).length;i++)causeway(root,map.walkways[i],i);
  for(let i=0;i<map.platforms.length;i++){
@@ -181,7 +242,8 @@ function makeStage(map){
   if(prev&&i!==2&&p.z-prev.z> -4.1){ /* bridging gaps intentionally remain jumpable */ }
  }
  // World-sized sea and shore banks are already assembled above.
- const lagoon=mesh(new T.CircleGeometry(2.4,40),M.water,.7,.49,-18.3,root);lagoon.rotation.x=-P/2;lagoon.material=M.water;
+ // Former opaque lagoon disc has been removed: the animated ocean now
+ // shows through every opening without covering the route.
  // Adventure 2 is a stormy cliff journey with glowing stones, high rock needles and relics.
  if(map.n===1){
   for(let i=0;i<22;i++){
@@ -255,6 +317,8 @@ function makeStage(map){
   effects.push({o,vx:(rand()-.5)*3,vy:1+rand()*3,vz:(rand()-.5)*3,life:.35+rand()*.35})}}
  function update(s,dt,elapsed){
   const p=s.player;
+  ocean.material.uniforms.uTime.value=elapsed;
+  shoreFoam.material.opacity=.24+.12*Math.sin(elapsed*1.55);
   if(typeof stageCharacters==='function')stageCharacters(s,dt);
   hero.root.position.set(p.x,p.y,p.z);hero.root.rotation.y=p.face;
  heroShadow.position.set(p.x,(window.MiniWorldsCore?.platformY(s,p.x,p.z)??p.y)+.045,p.z);
