@@ -37,6 +37,7 @@ jobs:
         run: |
           node --test \
             tests/ritmo-v34-live-dj.test.cjs \
+            tests/ritmo-ik-v34.test.cjs \
             tests/ritmo-skinning-v33.test.cjs \
             tests/ritmo-stage-v32.test.cjs \
             tests/ritmo-horse-dj-v31.test.cjs \
