@@ -62,7 +62,7 @@ assert(art.includes('new T.ShaderMaterial'),'moving ocean shader missing');
 assert(art.includes('uTime.value=elapsed'),'water time uniform must animate every frame');
 assert(art.includes('makeShoreFoam(root,map)'),'seafoam effect missing');
 assert(!art.includes('const plate=mesh(cube(width,.54,length)'),'uncollidable fake islands must not resemble playable land');
-assert(art.includes('rewardPop('+String.fromCharCode(39)+'+1'+String.fromCharCode(39)),'coin visual reaction missing');
+assert(art.includes("evt.reward===2?'+2':'+1'"),'normal/fury coin visual reaction missing');
 assert(art.includes('crateShards(evt.x,evt.y,evt.z)'),'crate fragments missing');
 assert(art.includes("rewardPop('KO! +3'"),'enemy reward pop missing');
 assert(runtime.includes('stage.combatFx?.(e,game.player)'),'combat fx not connected');
