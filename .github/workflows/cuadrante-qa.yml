@@ -52,3 +52,22 @@ jobs:
           npx playwright test tests/cuadrante-browser.spec.cjs --reporter=line
         env:
           CI: true
+      - name: Probe public HTTPS CDN for deployment fallback
+        if: always()
+        continue-on-error: true
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          const sha=process.env.SOURCE_SHA;
+          for(const host of ['raw.githack.com','rawcdn.githack.com']){
+            const base='https://'+host+'/ProtectorRudo/Modo-caos/'+sha+'/';
+            for(const file of ['cuadrante.html','cuadrante-runtime.js']){
+              try{
+                const res=await fetch(base+file,{signal:AbortSignal.timeout(15000)});
+                const body=await res.text();
+                console.log(base+file,'status',res.status,'mime',res.headers.get('content-type'),'bytes',body.length,'valid',body.includes('CUADRANTE'));
+              }catch(e){console.log(base+file,e.message)}
+            }
+          }
+          NODE
