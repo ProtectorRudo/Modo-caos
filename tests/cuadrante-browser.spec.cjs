@@ -5,6 +5,11 @@ test('3D arcade loads, plays, pauses and returns to menu',async({page})=>{
  await page.goto('http://127.0.0.1:8765/cuadrante.html',{waitUntil:'domcontentloaded'});
  await expect(page.locator('#home')).toBeVisible();
  await expect(page.locator('#startDemo')).toBeVisible();
+ await page.locator('#settingsBtn').click();
+ await expect(page.locator('#touchSense')).toBeVisible();
+ await page.locator('#touchSense').fill('80');
+ await expect(page.locator('#senseVal')).toHaveText('80%');
+ await page.locator('#settingsBtn').click();
  await page.locator('#startDemo').click();
  await expect(page.locator('#home')).toBeHidden({timeout:35000});
  await expect(page.locator('#hud')).toBeVisible();
