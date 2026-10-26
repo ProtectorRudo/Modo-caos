@@ -203,7 +203,7 @@ function enter(mode){lockedArena=null;inputMode=mode;state=C.create({modePlay});
  $('overlay').style.display='none';$('ticker').style.opacity='0';$('placeControls').style.display='none';$('placeTitle').style.display='none';
  $('labelPhase').style.display='block';$('hud').style.display='flex';$('pauseBtn').style.display='block';$('touchLayer').style.pointerEvents='auto';
  $('cameraFeed').style.display='none';$('labelPhase').textContent=(renderer?.isLite?'MODO LIGERO · ARRASTRÁ PARA DEFENDER':'ARRASTRÁ PARA MOVER EL CUADRADO');$('load').style.display='none';
- if(inputMode==='demo'){stage.root.visible=true;stage.root.position.set(0,0,0);stage.root.scale.set(1,1,COURT_STRETCH);C.start(state);note('ARRASTRÁ PARA DEFENDER',2100)}
+ if(inputMode==='demo'){stage.root.visible=true;stage.root.position.set(0,0,0);if(renderer?.isLite)stage.root.scale.setScalar(1);else stage.root.scale.set(1,1,COURT_STRETCH);C.start(state);note('ARRASTRÁ PARA DEFENDER',2100)}
  else{placing=true;stage.root.visible=false;stage.root.position.set(0,0,-1);stage.root.scale.set(arenaScale,arenaScale,arenaScale*COURT_STRETCH);
  $('placeControls').style.display='flex';$('placeTitle').style.display='block';$('hud').style.display='none';$('pauseBtn').style.display='none';
  $('labelPhase').textContent=inputMode==='ar'?'BUSCANDO EL PISO · APUNTÁ EL CELULAR':'CÁMARA SIN SEGUIMIENTO ESPACIAL';}
