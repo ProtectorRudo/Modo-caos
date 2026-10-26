@@ -136,7 +136,7 @@ function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;noti
  stage?.setPlacementPreview?.(false);$('fixArena').disabled=true;
  $('overlay').style.display='none';$('ticker').style.opacity='0';$('placeControls').style.display='none';$('placeTitle').style.display='none';
  $('labelPhase').style.display='block';$('hud').style.display='flex';$('pauseBtn').style.display='block';$('touchLayer').style.pointerEvents='auto';
- $('cameraFeed').style.display='none';$('labelPhase').textContent='ARRASTRÁ PARA MOVER EL CUADRADO';$('load').style.display='none';
+ $('cameraFeed').style.display='none';$('labelPhase').textContent=(renderer?.isLite?'MODO LIGERO · ARRASTRÁ PARA DEFENDER':'ARRASTRÁ PARA MOVER EL CUADRADO');$('load').style.display='none';
  if(inputMode==='demo'){stage.root.visible=true;stage.root.position.set(0,0,0);stage.root.scale.setScalar(1);C.start(state);note('ARRASTRÁ PARA DEFENDER',2100)}
  else{placing=true;stage.root.visible=false;stage.root.position.set(0,0,-1);stage.root.scale.setScalar(arenaScale);
  $('placeControls').style.display='flex';$('placeTitle').style.display='block';$('hud').style.display='none';$('pauseBtn').style.display='none';
