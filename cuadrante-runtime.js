@@ -8,7 +8,11 @@ let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
 let pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
 try{records={...records,...JSON.parse(localStorage.getItem('cuadrante-records')||'{}')}}catch(e){}
-const opts={music:.24,sfx:.65};
+const opts={music:.24,sfx:.65,sensitivity:1};
+try{
+ const saved=Number(localStorage.getItem('cuadrante-sensitivity'));
+ if(Number.isFinite(saved)&&saved>=.6&&saved<=1.45)opts.sensitivity=saved;
+}catch(e){}
 function save(){try{localStorage.setItem('cuadrante-records',JSON.stringify(records))}catch(e){}}
 function report(e){$('error').textContent='CUADRANTE: '+(e&&e.message||String(e));$('error').style.display='block';setTimeout(()=>$('error').style.display='none',7500)}
 function note(t,ms=1500){$('ticker').textContent=t;$('ticker').style.opacity='1';toastUntil=performance.now()+ms}
@@ -52,7 +56,14 @@ function selectMode(m){modePlay=m;$('modeCircuit').classList.toggle('active',m==
 $('modeCircuit').onclick=()=>selectMode('circuit');$('modeSurvive').onclick=()=>selectMode('survival');
 $('settingsBtn').onclick=()=>{$('settings').style.display=$('settings').style.display==='block'?'none':'block';displayRecords()};
 function displayRecords(){$('records').textContent='PARTIDAS '+records.games+' · VICTORIAS '+records.wins+' · COMBO '+records.bestCombo+' · MEJOR INTERCAMBIO '+records.bestRally+' · PUNTOS '+records.bestArcade}
-$('sfxVol').oninput=e=>opts.sfx=+e.target.value/100;$('musicVol').oninput=e=>opts.music=+e.target.value/100;$('quality').onchange=e=>{quality=e.target.value;applyQuality()};
+$('sfxVol').oninput=e=>opts.sfx=+e.target.value/100;$('musicVol').oninput=e=>opts.music=+e.target.value/100;
+$('touchSense').value=String(Math.round(opts.sensitivity*100));
+$('senseVal').textContent=Math.round(opts.sensitivity*100)+'%';
+$('touchSense').oninput=e=>{
+ opts.sensitivity=+e.target.value/100;$('senseVal').textContent=e.target.value+'%';
+ try{localStorage.setItem('cuadrante-sensitivity',String(opts.sensitivity))}catch(_){}
+};
+$('quality').onchange=e=>{quality=e.target.value;applyQuality()};
 function applyQuality(){
  if(!renderer)return;
  const mobile=window.innerWidth<950;
@@ -299,8 +310,8 @@ layer.addEventListener('pointermove',e=>{
   }return;
  }
  if(state.phase==='playing'||state.phase==='serve'){
-   const aspect=innerWidth/innerHeight;
-   C.target(state,state.player.x+dx/innerWidth*(aspect>1?4.6:5.1),state.player.y-dy/innerHeight*(aspect>1?3.2:3.4));
+   const move=C.touchDelta(dx,dy,innerWidth,innerHeight,opts.sensitivity);
+   C.target(state,state.player.x+move.x,state.player.y+move.y);
  }
 });
 for(const type of ['pointerup','pointercancel','lostpointercapture'])layer.addEventListener(type,e=>{pointers.delete(e.pointerId);placeDistance=0});
