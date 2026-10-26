@@ -370,7 +370,7 @@ function refreshHud(){
  const meter=$('contactFill');
  meter.style.transform='scaleX('+danger.toFixed(3)+')';
  meter.style.opacity=danger>.03?'1':'0';
- if(modePlay==='survival'&&state.phase!=='ready'&&!placing)$('labelPhase').textContent='SUPERVIVENCIA · '+state.survivalLives+' VIDAS · '+(inputMode==='ar'?'APUNTÁ CON EL CELULAR':'ARRASTRÁ PARA DEFENDER');
+ if(modePlay==='survival'&&state.phase!=='ready'&&!placing&&!aimCalibration&&!aimPausedForTracking)$('labelPhase').textContent='SUPERVIVENCIA · '+state.survivalLives+' VIDAS · '+(inputMode==='ar'?'APUNTÁ CON EL CELULAR':'ARRASTRÁ PARA DEFENDER');
 }
 function handleEvents(events){
  for(const ev of events){const type=ev.type;
