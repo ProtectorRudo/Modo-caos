@@ -38,6 +38,8 @@ void main(){
  function create(){
   let gpu=null,gpuGL=null,quality=2,mode='auto',meanMs=16,prevMs=0,frames=0,status='ESPERANDO AR',lastSpot=[null,null,null,null];
   const mesh=[],illum=[],waves=[];
+   // Independent decorator: errors cannot prevent rhythm gameplay.
+   const exterior=root.RitmoExterior?.create({mesh,illum,surface,cuboid,annulus,disc,getQuality:()=>quality});
   function vertex(target,p,n,col,a,mat){target.push(...p,...n,...col,a,mat)}
   function surface(target,A,B,Cc,D,col,a=.99,mat){
    const v=[B[0]-A[0],B[1]-A[1],B[2]-A[2]],w=[Cc[0]-A[0],Cc[1]-A[1],Cc[2]-A[2]];
@@ -109,17 +111,20 @@ void main(){
      cuboid(illum,edge,.059,-.1,.007,.006,2.10,c,c,.97,3);
      floor(illum,edge-.015,edge+.015,back,front,.063,c,.17,3);
     }
-    // The raceway flows towards YOU in repeated beat-linked LED waves.
+    // Keep the original V28 animated floor alive on AUTO / LOW.
+    // Only the decorative moving LED strips are adjusted. Geometry, lane colors,
+    // glass, physical note paths and pads remain byte-for-byte the same.
     if(quality>0){
      for(let j=0;j<15;j++){
       let z=back+.10+j*(front-back)/15;
       floor(illum,a+.028,b-.028,z,z+.009,.064,tint(c,.92),j%3===0?.27:.15,3);
      }
-     const phase=((time*(.25+.33*low))%1);
-     for(let j=0;j<5;j++){
-      const z=back+.12+((j/5+phase)%1)*(front-back-.20);
-      floor(illum,a+.038,b-.038,z,z+.022,.065,[.72,1,1],.23+.12*low,3);
-     }
+    }
+    const phase=(time*(.25+.33*low))%1;
+    const trails=quality===0?3:5;
+    for(let j=0;j<trails;j++){
+     const z=back+.12+((j/trails+phase)%1)*(front-back-.20);
+     floor(illum,a+.038,b-.038,z,z+.022,.065,[.72,1,1],.23+.12*low,3);
     }
     // Hero reactor target: raised chrome decagon with 3 concentric luminous rings.
     let z=.65,r=size*.44;
@@ -165,6 +170,7 @@ void main(){
       [x+.095,.08,back+.39],[x-.095,.08,back+.39],c,opacity,3);
     }
    }
+   try{exterior?.render(size,time,game,{low,mid,high,beat})}catch(_){/* safe fallback */}
    if(!game)return;
    // The player's own lane glows with a responsive halo, not a screen-fixed sprite.
    const player=cap(game.lane,0,3),x=(player-1.5)*size,c=C[player];
