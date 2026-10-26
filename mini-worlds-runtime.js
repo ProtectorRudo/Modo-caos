@@ -10,6 +10,7 @@ let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=n
 let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
 let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePointers=new Map(),pinch=null;
 let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0,arDebugVisible=false;
+let mapOpen=false,arQuality=1.12;
 let arCompositor=null,xrEmptyScene=null,arCompositorError='',arFpsTotal=0,arFpsFrames=0;
 let level=0,progress={unlocked:0,best:[null,null],coins:0},settings={sound:true,music:true};
 try{progress={...progress,...JSON.parse(localStorage.getItem('mc-mini-worlds-save-v1')||'{}')}}catch(_){}
@@ -101,12 +102,31 @@ function setCamera(first=false){
  const focus=new T.Vector3(p.x,p.y+.6,p.z-3.15);
  camera.lookAt(focus);
 }
+function drawMiniMap(){
+ if(!mapOpen||!game)return;
+ const canvas=$('miniMap'),g=canvas.getContext('2d');if(!g)return;
+ const W=canvas.width,H=canvas.height;
+ const X=x=>8+(x+8.5)/17*(W-16),Z=z=>8+(z+26)/29*(H-16);
+ g.clearRect(0,0,W,H);
+ g.fillStyle='#0b2939';g.fillRect(0,0,W,H);
+ g.strokeStyle='#55bdac';g.lineCap='round';g.lineWidth=5;
+ for(const r of game.map.walkways||[]){g.beginPath();g.moveTo(X(r.x1),Z(r.z1));g.lineTo(X(r.x2),Z(r.z2));g.stroke()}
+ for(const p of game.map.platforms){g.fillStyle=p.kind==='bridge'?'#c5ab7c':p.kind==='beach'?'#e1ca91':'#73b79b';
+  g.fillRect(X(p.x-p.w/2),Z(p.z+p.d/2),p.w*(W-16)/17,p.d*(H-16)/29)}
+ for(const e of game.map.enemies)if(e.alive){g.fillStyle='#ff9874';g.beginPath();g.arc(X(e.x),Z(e.z),2.3,0,Math.PI*2);g.fill()}
+ const b=game.map.boss;if(b.alive){g.fillStyle='#f2bf65';g.beginPath();g.arc(X(b.x),Z(b.z),4,0,Math.PI*2);g.fill()}
+ const p=game.player;g.save();g.translate(X(p.x),Z(p.z));g.rotate(-p.face+Math.PI);
+ g.fillStyle='#faffff';g.beginPath();g.moveTo(0,-6);g.lineTo(4,5);g.lineTo(-4,5);g.closePath();g.fill();g.restore();
+ g.font='bold 9px system-ui';g.fillStyle='#e9fff6';g.fillText('TU AVENTURA',8,12);
+}
 function layout(state){
  phase=state;const active=state==='playing'||state==='paused'||state==='ready'||state==='placing'||state==='won';
  $('landing').hidden=state!=='home';$('viewport').hidden=!active;$('hud').hidden=state==='home'||state==='placing';
  $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';
  $('recenter').hidden=mode!=='ar'||(state!=='playing'&&state!=='paused');
+ $('mapToggle').hidden=state!=='playing'&&state!=='paused';
+ $('miniMap').hidden=!mapOpen||(state!=='playing'&&state!=='paused');
  $('arStatus').hidden=!debugAR||mode!=='ar'||(state!=='playing'&&state!=='paused');
  $('positionPad').style.pointerEvents=state==='placing'?'auto':'none';
  if(state==='home')hideModal();
@@ -280,7 +300,16 @@ function frame(t,xrFrame){
  if(!renderer||!game)return;
  const dt=clamp((t-old)/1000||.016,0,.05);old=t;elapsed+=dt;animFrames++;
  // A gentle mobile quality governor reduces GPU pressure without changing the simulation tick.
- if(mode==='demo'&&phase==='playing'&&animFrames%4===0){
+ if(mode==='ar'&&phase==='playing'&&arCompositor){
+   arFpsTotal+=dt;arFpsFrames++;
+   if(arFpsFrames>=180){
+    const fps=arFpsFrames/Math.max(.001,arFpsTotal);
+    const next=fps<27?.83:fps<36?.95:fps>47?1.12:arQuality;
+    if(Math.abs(next-arQuality)>.04){arQuality=next;arCompositor.setQuality(next)}
+    arFpsTotal=0;arFpsFrames=0;
+   }
+  }
+  if(mode==='demo'&&phase==='playing'&&animFrames%4===0){
   if(dt>.035){slowFrames++;fastFrames=Math.max(0,fastFrames-2)}
   else if(dt<.022){fastFrames++;slowFrames=Math.max(0,slowFrames-1)}
   if(slowFrames>50&&pixelTarget>1.01){
@@ -306,7 +335,7 @@ function frame(t,xrFrame){
  }
  if(stage.previewBeacon)stage.previewBeacon.visible=mode==='ar'&&(placing||phase==='ready');
  if(mode==='demo')setCamera();
- if(animFrames%6===0)updateHUD();
+ if(animFrames%6===0){updateHUD();drawMiniMap()}
  if(toastUntil&&performance.now()>toastUntil){$('toast').classList.remove('show');toastUntil=0}
  try{
   if(mode==='ar'&&renderer.xr.isPresenting){
@@ -361,6 +390,10 @@ function fillLanding(){
 $('demoPlay').addEventListener('click',()=>play('demo'));$('arPlay').addEventListener('click',()=>play('ar'));
 $('fixWorld').onclick=fixWorld;$('begin').onclick=startGame;
 $('pause').onclick=pause;$('recenter').onclick=recenter;$('menuBtn').onclick=()=>home();
+$('mapToggle').onclick=()=>{
+ mapOpen=!mapOpen;$('miniMap').hidden=!mapOpen;
+ $('mapToggle').textContent=mapOpen?'✕':'🗺';drawMiniMap();
+};
 $('arStatus').onclick=()=>{
  if(mode!=='ar')return;
  arDebugVisible=!arDebugVisible;
