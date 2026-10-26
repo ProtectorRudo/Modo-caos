@@ -1,0 +1,166 @@
+'use strict';
+/* NEON LIVE: four-lane physically anchored procedural WebGL stage.
+ * Reuses the existing XR framebuffer. No runtime downloads or external CDNs.
+ * Transparent rails, faceted pads, music reactive equalizer and 3D note ribbons. */
+(function(root){
+ const COLORS=[[.19,1,.48],[1,.20,.37],[1,.85,.18],[.10,.49,1]];
+ const VS="attribute vec3 aPos;attribute vec4 aColor;uniform mat4 uMVP;varying vec4 vCol;varying vec3 vPos;void main(){gl_Position=uMVP*vec4(aPos,1.);vCol=aColor;vPos=aPos;}";
+ const FS="precision mediump float;uniform float uBeat;uniform float uTime;varying vec4 vCol;varying vec3 vPos;void main(){float grid=step(.976,fract(vPos.z*11.))*0.09+step(.98,fract(vPos.x*31.))*0.05;float pulse=.93+.07*sin(uTime*4.+vPos.z*9.);gl_FragColor=vec4(min(vec3(1.),vCol.rgb*(pulse+.14*uBeat+grid)),vCol.a);}";
+ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+ function mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)for(let k=0;k<4;k++)o[c*4+r]+=a[k*4+r]*b[c*4+k];return o}
+ function project(M,x,y,z,w,h){const v=[x,y,z,1],q=[0,0,0,0];for(let r=0;r<4;r++)for(let k=0;k<4;k++)q[r]+=M[k*4+r]*v[k];if(q[3]<.025)return null;return[(q[0]/q[3]+1)*w/2,(1-q[1]/q[3])*h/2]}
+ function shader(gl,type,src){let q=gl.createShader(type);gl.shaderSource(q,src);gl.compileShader(q);if(!gl.getShaderParameter(q,gl.COMPILE_STATUS))throw Error('Stage shader: '+gl.getShaderInfoLog(q));return q}
+ function create(){
+  let glRef=null,gpu=null,quality=2,avg=16,last=0,nframes=0,state='ESPERANDO GPU',spots=[null,null,null,null];
+  const solid=[],glow=[];
+  const muted=(c,m)=>c.map(x=>Math.min(1,x*m));
+  function vert(b,p,c,a){b.push(p[0],p[1],p[2],c[0],c[1],c[2],a)}
+  function face(b,A,B,C,D,c,a=1){
+   vert(b,A,c,a);vert(b,B,c,a);vert(b,C,c,a);
+   vert(b,A,c,a);vert(b,C,c,a);vert(b,D,c,a);
+  }
+  function quad(b,x0,x1,z0,z1,y,c,a=1){face(b,[x0,y,z0],[x1,y,z0],[x1,y,z1],[x0,y,z1],c,a)}
+  function box(b,x,y,z,w,h,d,c,top=c,a=1){
+   const x0=x-w/2,x1=x+w/2,z0=z-d/2,z1=z+d/2,y1=y+h;
+   face(b,[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1],top,a);
+   face(b,[x0,y,z1],[x0,y1,z1],[x0,y1,z0],[x0,y,z0],c,a);
+   face(b,[x1,y,z0],[x1,y1,z0],[x1,y1,z1],[x1,y,z1],c,a);
+   face(b,[x0,y,z1],[x1,y,z1],[x1,y1,z1],[x0,y1,z1],c,a);
+   face(b,[x1,y,z0],[x0,y,z0],[x0,y1,z0],[x1,y1,z0],c,a);
+  }
+  function ring(b,x,y,z,ri,ro,c,a=1,steps=16,vertical=false){
+   const coord=(r,theta)=>vertical?[x+Math.cos(theta)*r,y+Math.sin(theta)*r,z]:[x+Math.cos(theta)*r,y,z+Math.sin(theta)*r];
+   for(let i=0;i<steps;i++){let u=i*2*Math.PI/steps,v=(i+1)*2*Math.PI/steps;face(b,coord(ri,u),coord(ro,u),coord(ro,v),coord(ri,v),c,a)}
+  }
+  function build(size,t,game,en){
+   const elapsed=game?.elapsed||0,playing=game?.state==='playing',low=en.low||.25,mid=en.mid||.25,high=en.high||.25;
+   const f=-1.18,n=.93,L=-2*size,R=2*size;
+   quad(solid,L-.055,R+.055,f-.05,n+.06,.020,[.010,.019,.039],.77);
+   for(let lane=0;lane<4;lane++){
+    let x=(lane-1.5)*size,c=COLORS[lane],a=x-size*.46,b=x+size*.46;
+    box(solid,x,.028,-.122,size*.93,.038,2.11,[.019,.034,.054],[.035,.061,.099],.95);
+    quad(solid,a,b,f,n,.068,muted(c,.12),.60);
+    quad(solid,x-size*.025,x+size*.025,f,n,.073,muted(c,.54),.38);
+    quad(glow,a+.005,a+.013,f,n,.08,c,.91);
+    quad(glow,b-.013,b-.005,f,n,.08,c,.91);
+    quad(glow,a-.021,a+.024,f,n,.078,c,.13);
+    quad(glow,b-.024,b+.021,f,n,.078,c,.13);
+    if(quality>0)for(let j=0;j<17;j++){
+     let z=f+.12+j*(n-f)/18;
+     quad(solid,a+.014,b-.014,z,z+.007,.081,[.25,.43,.55],j%3===0?.18:.075);
+    }
+    // Extruded target pad and layered neon annuli
+    let z=.65,r=size*.39;
+    box(solid,x,.029,z,size*.85,.049,size*.84,[.025,.046,.068],[.075,.105,.147]);
+    ring(solid,x,.091,z,r*.67,r,[.09,.13,.19],.92,20);
+    ring(glow,x,.096,z,r*.70,r*.87,c,.95,20);
+    ring(glow,x,.101,z,r*.08,r*.32,c,.46,20);
+    ring(glow,x,.107,z,0,r*.08,[.83,1,1],.81,16);
+    ring(glow,x,.106,z,r*1.02,r*1.11,c,.28,20);
+   }
+   for(const side of [-1,1]){
+    let x=side*(R+.014);
+    box(solid,x,.026,-.116,.034,.065,2.16,[.035,.056,.083],[.14,.18,.23]);
+    box(glow,x,.091,-.116,.013,.008,2.09,[.12,.70,1],[.12,.70,1],.90);
+    if(quality>0)for(let k=0;k<8;k++){
+     let z=f+.16+k*.245;box(solid,x,.075,z,.048,.052,.070,[.08,.10,.13],[.22,.27,.34]);
+     quad(glow,x-.019,x+.019,z-.018,z+.018,.131,[1,.49,.13],.67);
+    }
+    // Small holographic light towers and speakers at far end, never screen-fixed
+    const back=f-.11,sx=side*(size*1.68);
+    box(solid,sx,.033,back,.18,.29,.13,[.025,.037,.056],[.12,.16,.23]);
+    for(let yy of [.12,.24]){
+     ring(solid,sx,yy,back+.068,.032,.057,[.13,.18,.26],1,14,true);
+     ring(glow,sx,yy,back+.072,.031,.041,[.15,.72,1],.79,14,true);
+     ring(glow,sx,yy,back+.075,0,.015,[.62,.95,1],.41+low*.26,14,true);
+    }
+    const bx=side*(R+.06);
+    box(solid,bx,.028,f+.22,.052,.24,.05,[.075,.08,.10],[.19,.24,.29]);
+    box(glow,bx,.270,f+.22,.047,.02,.06,[.97,.50,.12],[1,.76,.31],.91);
+   }
+   // 3D receiver crossbar and soft halo
+   box(glow,0,.093,.485,R-L+.19,.014,.027,[.73,.97,1],[.73,.97,1],.93);
+   quad(glow,L-.07,R+.07,.451,.489,.100,[.24,.82,1],.28+low*.15);
+   // Futuristic console at the distant end with audio-reactive spectrum
+   let z=f-.13;
+   box(solid,0,.038,z,.50,.27,.095,[.022,.035,.053],[.11,.16,.22]);
+   box(solid,0,.31,z,.52,.035,.11,[.06,.07,.1],[.18,.23,.30]);
+   box(glow,0,.094,z+.052,.45,.17,.004,[.035,.18,.36],[.035,.18,.36],.71);
+   if(quality>0)for(let j=0;j<11;j++){
+    let x=(j-5)*.035,k=j%3===0?low:j%2?mid:high;
+    let height=.024+.114*clamp(k*.78+.15+.16*Math.sin(t*7+j),0,1);
+    const c=j%3===0?[.37,1,.63]:j%3===1?[1,.29,.63]:[.22,.64,1];
+    box(glow,x,.109,z+.06,.023,height,.006,c,c,.85);
+   }
+   if(game){
+    let lane=clamp(game.lane,0,3),x=(lane-1.5)*size,col=COLORS[lane];
+    ring(glow,x,.168,.65,size*.32,size*.40,col,.75,20);
+    ring(glow,x,.174,.65,0,size*.11,[.90,1,1],.82,18);
+    if(game.holdActive){
+     let hn=game.holdActive.note.lane,p=clamp(game.holdActive.progress,0,1),xx=(hn-1.5)*size,c=COLORS[hn];
+     for(let j=0;j<Math.ceil(24*p);j++){
+      let a=j*Math.PI/12,b=(j+1)*Math.PI/12;
+      const pt=(r,t)=>[xx+Math.cos(t)*r,.178,.65+Math.sin(t)*r];
+      face(glow,pt(size*.41,a),pt(size*.51,a),pt(size*.51,b),pt(size*.41,b),c,.95);
+     }
+    }
+    if(playing||game.state==='finished'){
+     const lead=2.65;
+     for(const note of game.notes){
+      let dt=note.at-elapsed;if(note.status!=='pending'||dt<-0.26||dt>lead+.08)continue;
+      const x=(note.lane-1.5)*size,c=COLORS[note.lane],z=.64-clamp(dt/lead,0,1)*1.79,r=size*.24;
+      box(solid,x,.108,z,r*1.8,.020,r*1.42,muted(c,.46),muted(c,.79));
+      ring(glow,x,.140,z,r*.52,r*.95,c,.96,16);
+      ring(glow,x,.145,z,0,r*.48,[.93,1,1],.80,16);
+      ring(glow,x,.149,z,r*.96,r*1.22,c,.23,16);
+      if(note.type==='hold'){
+       let len=Math.min(.88,Math.max(.27,note.hold/lead*1.79));
+       quad(solid,x-r*.58,x+r*.58,z-len,z,.138,muted(c,.40),.88);
+       quad(glow,x-r*.16,x+r*.16,z-len,z,.151,[.84,1,1],.36);
+       for(let j=0;j<4;j++)quad(glow,x-r*.63,x-r*.54,z-len+j*len/4,z-len+(j+.65)*len/4,.156,c,.77);
+      }else if(note.type==='slide'&&Number.isFinite(note.fromLane)){
+       let other=(note.fromLane-1.5)*size;
+       quad(glow,Math.min(other,x)-r*.18,Math.max(other,x)+r*.18,z-.12,z+.028,.137,c,.57);
+      }
+     }
+    }
+   }
+  }
+  function init(gl){
+   let vertShader=shader(gl,gl.VERTEX_SHADER,VS),fragShader=shader(gl,gl.FRAGMENT_SHADER,FS),p=gl.createProgram();
+   gl.attachShader(p,vertShader);gl.attachShader(p,fragShader);gl.linkProgram(p);
+   if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error('Stage link: '+gl.getProgramInfoLog(p));
+   gpu={p,buf:gl.createBuffer(),pos:gl.getAttribLocation(p,'aPos'),color:gl.getAttribLocation(p,'aColor'),mvp:gl.getUniformLocation(p,'uMVP'),time:gl.getUniformLocation(p,'uTime'),beat:gl.getUniformLocation(p,'uBeat')};
+   glRef=gl;state='3D ACTIVO';
+  }
+  function batch(gl,a,additive){
+   if(!a.length)return;
+   gl.bindBuffer(gl.ARRAY_BUFFER,gpu.buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(a),gl.DYNAMIC_DRAW);
+   gl.enableVertexAttribArray(gpu.pos);gl.vertexAttribPointer(gpu.pos,3,gl.FLOAT,false,28,0);
+   gl.enableVertexAttribArray(gpu.color);gl.vertexAttribPointer(gpu.color,4,gl.FLOAT,false,28,12);
+   gl.blendFunc(gl.SRC_ALPHA,additive?gl.ONE:gl.ONE_MINUS_SRC_ALPHA);
+   gl.drawArrays(gl.TRIANGLES,0,a.length/7);
+  }
+  function render(gl,view,W,now,game,size,analysis){
+   if(!gl||!view||!W)return false;
+   try{
+    if(!gpu||glRef!==gl)init(gl);
+    const en=analysis?.()||{low:.28,mid:.34,high:.28},elapsed=game?.elapsed||0;
+    const dt=last?clamp(now-last,0,110):16;last=now;avg=avg*.93+dt*.07;
+    if(++nframes%90===0)quality=avg>27?0:avg>21?1:2;
+    solid.length=0;glow.length=0;build(size,now*.001,game,en);
+    const P=mul(view.projectionMatrix,mul(view.transform.inverse.matrix,W)),width=root.innerWidth||392,height=root.innerHeight||850;
+    spots=COLORS.map((c,i)=>project(P,(i-1.5)*size,.16,.65,width,height));
+    gl.useProgram(gpu.p);gl.uniformMatrix4fv(gpu.mvp,false,P);gl.uniform1f(gpu.time,now*.001);
+    gl.uniform1f(gpu.beat,(Math.cos(elapsed*(game?.bpm||100)*Math.PI/30)+1)*.27+en.low*.4);
+    gl.enable(gl.BLEND);gl.disable(gl.CULL_FACE);gl.disable(gl.DEPTH_TEST);gl.depthMask(false);
+    batch(gl,solid,false);batch(gl,glow,true);
+    gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(true);gl.disable(gl.BLEND);
+    state=quality===0?'3D LIGERO':'3D ACTIVO';
+    return true;
+   }catch(e){state='3D FALLBACK: '+String(e.message||e);return false}
+  }
+  return {render,spot:lane=>spots[lane]||null,status:()=>state,quality:()=>quality};
+ }
+ root.RitmoStage3D={create};
+})(window);
