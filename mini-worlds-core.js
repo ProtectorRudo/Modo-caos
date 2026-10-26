@@ -13,7 +13,14 @@ function level(n=0){
  [0,0,4.7,4.4,0,'beach'],[.2,-3.5,3.4,3.2,.22,'beach'],
  [-.55,-6.7,2.2,3,.45,'bridge'],[-1.0,-9.5,2.6,2.9,.55,'jungle'],
  [.65,-12.35,3.5,3.1,.78,'jungle'],[.9,-15.75,3.1,3.1,1.08,'ruins'],
- [-.45,-18.9,2.75,3.0,1.18,'waterfall'],[0,-22.7,5.5,5.2,1.15,'arena']];
+ [-.45,-18.9,2.75,3.0,1.18,'waterfall'],[0,-22.7,5.5,5.2,1.15,'arena'],
+ // Optional islands connect to the main route and fill a whole floor, not a narrow ribbon.
+ [3.20,-3.40,3.35,3.10,.22,'beach'],
+ [-3.05,-9.50,3.20,3.00,.55,'jungle'],
+ [3.48,-12.35,3.30,3.12,.78,'jungle'],
+ [-2.30,-15.75,3.20,3.05,1.08,'ruins'],
+ [-3.28,-18.88,3.22,3.20,1.18,'waterfall'],
+ [3.25,-20.18,3.05,3.05,1.15,'ruins']];
  if(n){
   P[0][5]='ruins';P[1][5]='bridge';P[2][5]='bridge';
   P[3][5]='ruins';P[4][5]='bridge';P[5][5]='ruins';P[6][5]='jungle';
@@ -25,7 +32,10 @@ function level(n=0){
  [-1.0,-7.4,'reinforced'],[-.25,-9.2,'mystery'],
  [.95,-11.8,'normal'],[-.55,-12.7,'coins'],[1.1,-14.8,'reinforced'],
  [-.1,-16.15,'normal'],[-.5,-18.65,'secret'],[.5,-19.65,'mystery'],
- [-1.7,-22.65,'normal'],[1.7,-22.65,'coins']
+ [-1.7,-22.65,'normal'],[1.7,-22.65,'coins'],
+ [3.28,-3.45,'mystery'],[-3.3,-9.6,'coins'],
+ [3.5,-12.55,'reinforced'],[-3.1,-18.75,'secret'],
+ [3.35,-20.3,'mystery']
  ].map(([x,z,type],i)=>({id:i,x:x+(i>3&&i<11?shift*.25:0),z,type,hp:type==='reinforced'?3:1,alive:true,flash:0}));
  const coins=[];
  const push=(x,z,y=.53)=>coins.push({id:coins.length,x,z,y,taken:false});
@@ -36,14 +46,19 @@ function level(n=0){
  for(let k=0;k<6;k++)push(-.1+(k%3)*.63,-15.1-k*.63,1.68);
  for(let k=0;k<6;k++)push(-.7+(k%3)*.70,-18.1-k*.65,1.78);
  for(let k=0;k<5;k++)push(-1+(k%5)*.5,-21.55,1.78);
+ // Collectibles reward lateral exploration of the 6 extra land masses.
+ const branches=[[3.2,-3.4,.22],[-3.05,-9.5,.55],[3.48,-12.35,.78],[-2.3,-15.75,1.08],[-3.28,-18.88,1.18],[3.25,-20.18,1.15]];
+ for(const [bx,bz,by] of branches)for(let i=0;i<4;i++)push(bx-.68+i*.43,bz+(i%2?-.42:.44),by+.59);
  const enemies=(n?[
  [0,-4.15,'flying'],[-1.0,-9.15,'thrower'],[.6,-11.7,'defender'],
- [.7,-15.3,'flying'],[-.2,-18.55,'patrol'],[-1.1,-20.1,'defender']
+ [.7,-15.3,'flying'],[-.2,-18.55,'patrol'],[-1.1,-20.1,'defender'],
+ [3.15,-3.65,'patrol'],[-3.1,-18.8,'thrower'],[3.4,-20.3,'defender']
  ]:[
  [0,-4.15,'patrol'],[-1.0,-9.15,'flying'],[.6,-11.7,'defender'],
- [.7,-15.3,'thrower'],[-.2,-18.55,'patrol'],[-1.1,-20.1,'flying']
+ [.7,-15.3,'thrower'],[-.2,-18.55,'patrol'],[-1.1,-20.1,'flying'],
+ [3.15,-3.65,'patrol'],[3.5,-12.5,'thrower'],[-3.1,-18.8,'defender']
  ]).map(([x,z,type],i)=>({id:i,x,z,baseX:x,baseZ:z,y:type==='flying'?1.75:0,hp:type==='defender'?3:type==='flying'?2:2,type,alive:true,t:0,attack:0,stun:0,flash:0,armed:false}));
- const stars=[{id:0,x:-1.1,z:-10.35,y:1.6,taken:false},{id:1,x:1.75,z:-16.0,y:2.1,taken:false},{id:2,x:-1.65,z:-18.8,y:1.7,taken:false}];
+ const stars=[{id:0,x:-3.0,z:-10.0,y:1.55,taken:false},{id:1,x:3.9,z:-13.1,y:1.78,taken:false},{id:2,x:-3.0,z:-18.8,y:1.7,taken:false}];
  const checkpoints=[{x:.5,z:-12.3,y:.78},{x:0,z:-19.0,y:1.18}];
  const boss={x:0,z:-24.2,y:1.15,hp:9,maxHp:9,phase:1,active:false,alive:true,weak:0,telegraph:0,attack:0,t:0,invuln:0};
  return {n,definition:LEVELS[n],platforms,boxes,coins,enemies,stars,checkpoints,boss};
