@@ -67,7 +67,7 @@ def main():
  z,hashval,length=archive(SOURCES["quaternius"]);manifest["source_sha256"]["quaternius"]=hashval
  print("Downloaded Quaternius free standard pack:",length, "bytes",flush=True)
  names=set(z.namelist());prefix="Modular SciFi MegaKit[Standard]/glTF/"
- deps=set()
+ deps=set();patched={}
  for key,name in SELECTION.items():
   member=prefix+name+".gltf"
   if member not in names: raise RuntimeError("Not in free pack: "+member)
@@ -79,14 +79,28 @@ def main():
    path=PurePosixPath(member).parent/uri
    import posixpath
    path=posixpath.normpath(str(path))
-   if not path.startswith(prefix) or path not in names:raise ValueError("Unsafe or missing glTF dependency: "+path)
+   if path not in names:
+    # The standard archive has shared textures in one common folder rather
+    # than next to each .gltf. Repair only unique verified basename matches.
+    candidates=[n for n in names if n.startswith(prefix) and n.endswith("/"+PurePosixPath(uri).name)]
+    if len(candidates)!=1:raise ValueError("Ambiguous or missing glTF dependency: "+path+" matches="+repr(candidates))
+    path=candidates[0]
+    part["uri"]=posixpath.relpath(path,posixpath.dirname(member))
+   if not path.startswith(prefix):raise ValueError("Unsafe glTF dependency: "+path)
    used.add(path)
+  patched[member]=json.dumps(gltf,separators=(",",":"),ensure_ascii=False).encode("utf-8")
   deps.update(used)
   manifest["models"][key]={"url":"models/"+name+".gltf","triangles":"from supplier original; render outside gameplay collision field"}
  for member in sorted(deps):
   target=MODEL_DIR/Path(member[len(prefix):])
-  info=copy_member(z,member,target)
-  print("3D MODEL RESOURCE",member[len(prefix):],info["bytes"],flush=True)
+  if member in patched:
+   target.parent.mkdir(parents=True,exist_ok=True)
+   target.write_bytes(patched[member])
+   size=len(patched[member])
+  else:
+   info=copy_member(z,member,target)
+   size=info["bytes"]
+  print("3D MODEL RESOURCE",member[len(prefix):],size,flush=True)
  # Kenney normalized .ogg.
  z,hashval,length=archive(SOURCES["kenney"]);manifest["source_sha256"]["kenney"]=hashval
  print("Downloaded Kenney:",length,flush=True)
