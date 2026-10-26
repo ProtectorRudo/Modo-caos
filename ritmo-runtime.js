@@ -26,6 +26,14 @@ window.modoCaosCustomRender=function(gl,view,W,t){
   if(success)renderer=stage3d;
  }
  activeStage=renderer;stage3dOK=success;
+ // Visible proof of the actual WebXR renderer; never claim V37 scenery if a
+ // legacy scene silently activates due to an older WebGL driver.
+ const indicator=E('sceneVersion');
+ if(indicator){
+  const rendererName=!success?'2D DE RESPALDO':renderer===stageShowtime?'NEON PRISM':renderer===stagePremium?'ESCENARIO LEGACY':'WEBGL CLÁSICO';
+  const current='V37 · '+rendererName;
+  if(indicator.textContent!==current)indicator.textContent=current;
+ }
  E('rtSvg').style.display=success?'none':'block';
  if(!success)E('playerBadge').style.display='none';
  return success;
@@ -182,7 +190,7 @@ function togglePause(){
 E('gamePause').onclick=togglePause;
 E('sound').onclick=()=>{muted=!muted;audio.volume(muted);E('sound').textContent=muted?'🔇':'🔊'};
 const qualityModes=['auto','high','low'];
-const qualityNames=['✨ AUTO','✨ ALTA','✨ LIGERA'];
+const qualityNames=['✨ AUTO · V37','✨ ALTA · V37','✨ LIGERA · V37'];
 E('quality').onclick=()=>{
  if(!stage3d&&!stagePremium&&!stageShowtime){notify('RENDERIZADO CLÁSICO');return}
  const renderer=activeStage||stageShowtime||stagePremium||stage3d;
@@ -371,6 +379,6 @@ E('enter').addEventListener('click',()=>{
  try{audio.init()}catch(e){E('precheck').textContent='⚠️ El navegador no pudo inicializar audio: '+(e.message||e)+'. Probá Chrome Android.'}
 });
 window.modoCaosRuntimeReady=true;
-E('enter').dataset.gameReady='true';
+if(E('enter').dataset)E('enter').dataset.gameReady='true';
 requestAnimationFrame(loop);
 })();

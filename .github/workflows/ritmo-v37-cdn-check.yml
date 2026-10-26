@@ -1,0 +1,39 @@
+name: Ritmo V37 - Live HTTPS CDN verification
+on:
+  push:
+    branches: [feat/ritmo-v37-visible-stage-fix-20261026]
+    paths: ['.github/workflows/ritmo-v37-cdn-check.yml', 'ritmo-v37-cdn.html']
+  pull_request:
+    paths: ['.github/workflows/ritmo-v37-cdn-check.yml', 'ritmo-v37-cdn.html']
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Fetch real public page with correct HTML MIME
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/c3ab5d24eddd8847e9edcb022a7875604eef9809/ritmo-v37-cdn.html'
+          curl --retry 3 --retry-delay 2 -fLsS -D /tmp/headers -o /tmp/page.html "$PAGE"
+          grep -qi '^content-type: *text/html' /tmp/headers
+          grep -q 'HORSE DJ V37' /tmp/page.html
+          grep -q 'src="https://rawcdn.githack.com/ProtectorRudo/Modo-caos/73b2964daacf960d26991bc897f760e1a92baf49/ritmo-runtime.js?v=37"' /tmp/page.html
+          grep -q 'window.fetch=function(resource,options)' /tmp/page.html
+          echo "V37 HTML HTTPS OK; headers:"
+          grep -iE '^(HTTP/|content-type:|content-length:|cache-control:)' /tmp/headers
+          wc -c /tmp/page.html
+      - name: Verify remote scripts, DJ GLB and public audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/73b2964daacf960d26991bc897f760e1a92baf49'
+          for file in ritmo-engine.js ritmo-core.js ritmo-glb-props.js ritmo-skinning.js ritmo-exterior.js ritmo-stage-showtime.js ritmo-runtime.js assets/ritmo/dj-quaternius-punk.glb assets/ritmo/dj-mixer.glb assets/ritmo/dj-cdj.glb media/ritmo/despacito-remix-80s.ogg.b64; do
+            curl --retry 3 --retry-delay 2 -fLsS -o /tmp/probe "$BASE/$file"
+            bytes=$(wc -c </tmp/probe)
+            if [ "$bytes" -lt 50 ]; then echo "Invalid remote file: $file"; exit 1; fi
+            printf 'HTTP OK %8s bytes %s\n' "$bytes" "$file"
+          done
+          echo 'V37 HTTPS hosting and all selected dependencies are reachable.'
