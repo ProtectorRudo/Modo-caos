@@ -3,6 +3,7 @@
 Detect local rhythmic transients in subbands instead of guessing BPM timestamps.
 Does not publish or fetch any additional copyrighted recording."""
 import json,base64,subprocess,tempfile,statistics,math,struct,pathlib
+import imageio_ffmpeg
 root=pathlib.Path(__file__).resolve().parents[1]
 song=json.loads((root/"docs/ritmo-despacito-remix-map.json").read_text())
 encoded=(root/"media/ritmo/despacito-remix-80s.ogg.b64").read_text().strip()
@@ -11,7 +12,7 @@ with tempfile.TemporaryDirectory() as td:
  src=pathlib.Path(td)/"remix.ogg"
  src.write_bytes(base64.b64decode(encoded))
  def pcm(filters):
-  args=["ffmpeg","-v","error","-y","-i",str(src),"-ac","1","-ar","8000"]
+  args=[imageio_ffmpeg.get_ffmpeg_exe(),"-v","error","-y","-i",str(src),"-ac","1","-ar","8000"]
   if filters:args+=["-af",filters]
   data=subprocess.check_output(args+["-f","s16le","pipe:1"])
   return list(struct.unpack("<"+str(len(data)//2)+"h",data))
