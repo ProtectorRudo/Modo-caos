@@ -49,16 +49,16 @@
 </style></head><body>
 <div id="landing"><div class="wrapper">
 <section>
-<div class="label">MODO CAOS PRESENTA · AVENTURA DE BOLSILLO</div><h1 class="brand">MINI<span>WORLDS.</span></h1>
-<div class="headline">Un universo extraordinario. Justo sobre el piso de tu casa.</div>
-<p class="copy">Conocé a ORIN, explorá una isla llena de secretos, rompé cajas, juntá monedas y derrotá a un cangrejo mecánico gigante. ¡Cada nivel es una nueva aventura!</p>
-<div class="features"><span>✦ MUNDO 3D</span><span>◈ REALIDAD AUMENTADA</span><span>♥ 3 CORAZONES</span><span>✺ JEFE FINAL</span></div>
+<div class="label">MODO CAOS PRESENTA · AVENTURA GIGANTE EN TU PISO</div><h1 class="brand">MINI<span>WORLDS.</span></h1>
+<div class="headline">Un mundo enorme. Todo tu piso es la aventura.</div>
+<p class="copy">Controlá a tu caballero KayKit, explorá una isla inmensa, rompé cajas, juntá monedas y enfrentá al Dragón Dorado. Te esperan monstruos de Quaternius y un Yeti colosal en el siguiente nivel.</p>
+<div class="features"><span>✦ PISTA AR GIGANTE</span><span>◈ 3D + REALIDAD AUMENTADA</span><span>♥ 3 CORAZONES</span><span>✺ JEFES ANIMADOS</span></div>
 <div class="label" id="unlocked">AVENTURA 1 DISPONIBLE</div><div id="levelChoice"></div>
 <div class="buttonStack"><button class="cta" id="arPlay" disabled>COMPROBANDO AR...</button><button class="cta outline" id="demoPlay">▶ JUGAR AHORA · AVENTURA 3D</button></div>
 <div class="features"><span id="saveLabel">0 MONEDAS GANADAS</span><button class="levelChoice" id="sounds">SONIDO: SÍ</button></div>
-<p class="fine">AR real: Chrome Android + ARCore + superficie despejada. Sin AR podés jugar en modo 3D con el mismo desafío. <a href="./index.html">‹ VOLVER A MODO CAOS</a></p>
+<p class="fine">AR: escenario anclado al piso, alrededor de 12 m de largo inicialmente y ajustable; manejás al héroe con joystick, no hace falta caminar por el escenario. Necesitás Android con ARCore, Chrome y un lugar despejado. Sin AR podés jugar en 3D. <a href="./index.html">‹ VOLVER A MODO CAOS</a></p>
 </section>
-<section class="visual" aria-label="Ilustración original: isla fantástica y héroe Orin">
+<section class="visual" aria-label="Ilustración estilizada: isla fantástica y protagonista caballero">
 <div class="planet"></div><div class="isle"><div class="palm">🌴</div><div class="palm two">🌴</div><div class="heroFace"></div></div>
 <span class="shine a">✦</span><span class="shine b">✧</span><div class="captionGraphic">ISLA SALVAJE · TU PRIMER GRAN VIAJE</div>
 </section></div></div>
@@ -66,14 +66,14 @@
 <div id="gameUI" hidden>
 <div id="hud"><span id="health">♥♥♥</span><span>🟡 <b id="coinCount">00</b></span><span>⭐ <b id="starCount">0/3</b></span><span id="clock">0:00</span></div>
 <div id="zoneTitle">MUNDO 1 · LA ISLA DESPIERTA</div><button id="pause" hidden aria-label="Pausar">Ⅱ</button><button id="recenter" hidden>⌖ RECENTRAR</button>
-<div id="bossHud" hidden><span id="bossLabel">CAPITÁN PINZA · FASE 1</span><div id="bossTrack"><i id="bossFill"></i></div></div>
+<div id="bossHud" hidden><span id="bossLabel">DRAGÓN DORADO · FASE 1</span><div id="bossTrack"><i id="bossFill"></i></div></div>
 <div id="toast" aria-live="polite"></div>
 <div id="controls" hidden><div id="joystick" aria-label="Joystick de movimiento"><div id="stick"></div></div><div class="actionButtons"><button id="punchBtn" class="actionButton"><span>✊</span><small>GOLPEAR</small></button><button id="jumpBtn" class="actionButton"><span>↥</span><small>SALTAR</small></button></div></div>
-<div id="placement" hidden><div id="positionPad"></div><div id="placementHint">APUNTÁ AL PISO · MOVÉ EL CELULAR DESPACIO</div><div id="placementButtons"><button id="scaleLess">−</button><button id="turnLeft">↶</button><button id="fixWorld" disabled>FIJAR MUNDO</button><button id="turnRight">↷</button><button id="scaleMore">＋</button></div></div>
-<div id="ready" hidden><div class="readyCard"><div class="label">MINI WORLDS · MISIÓN 01</div><h2 id="readyTitle">¡BIENVENIDO A ISLA SALVAJE!</h2><p>Joystick para moverte · ↑ saltar dos veces · ✊ romper cajas y golpear enemigos.</p><button class="cta" id="begin">▶ ¡EMPEZAR AVENTURA!</button></div></div>
+<div id="placement" hidden><div id="positionPad"></div><div id="placementHint">BUSCÁ UN PISO LIBRE · AJUSTÁ EL MUNDO CON + Y −</div><div id="placementButtons"><button id="scaleLess">−</button><button id="turnLeft">↶</button><button id="fixWorld" disabled>FIJAR MUNDO</button><button id="turnRight">↷</button><button id="scaleMore">＋</button></div></div>
+<div id="ready" hidden><div class="readyCard"><div class="label">MINI WORLDS · MISIÓN 01</div><h2 id="readyTitle">¡BIENVENIDO A ISLA SALVAJE!</h2><p>Joystick: explorá la pista entera sin caminar · ↑ doble salto · ✊ espadazo a cajas y monstruos. El mundo AR queda fijo al piso.</p><button class="cta" id="begin">▶ ¡EMPEZAR AVENTURA!</button></div></div>
 <div id="modal" hidden><div class="modalCard"><div class="label" id="modalTag">AVENTURA</div><h2 id="modalTitle"></h2><p id="modalDesc"></p><div id="actions"></div></div></div>
 <button id="menuBtn" hidden>VOLVER</button><div id="load" hidden>PREPARANDO TU UNIVERSO 3D…</div>
 </div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
-<script src="./mini-worlds-core.js"></script><script src="./mini-worlds-art.js"></script><script src="./mini-worlds-assets.js"></script><script src="./mini-worlds-runtime.js"></script>
+<script src="./mini-worlds-core.js"></script><script src="./mini-worlds-art.js"></script><script src="./mini-worlds-assets.js"></script><script src="./mini-worlds-characters.js"></script><script src="./mini-worlds-runtime.js"></script>
 </body></html>
