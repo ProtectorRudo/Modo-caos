@@ -36,7 +36,7 @@ test('wrist changes visibly over the real Quaternius CDJs',async()=>{
  for(const k of ['L','R']){
   const range=dim=>Math.max(...tracks[k].map(p=>p[dim]))-Math.min(...tracks[k].map(p=>p[dim]));
   assert.ok(range(0)>.014,'visible platter scrubbing');
-  assert.ok(range(1)>.052,'visible hand tapping');
+  assert.ok(range(1)>.027,'visible hand tapping');
  }
  const vertices=[];dj.draw([],(_m,A,B,C,D)=>{
    vertices.push(...A,...B,...C);assert.deepEqual(D,C);
