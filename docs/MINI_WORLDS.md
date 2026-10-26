@@ -197,3 +197,29 @@ Con autorización expresa del usuario se conectó una nueva capa de naturaleza y
 - `tests/mini-worlds-premium.test.cjs` simula éxito, fallo de red, fallo parcial y cierre durante la carga, además de contar modelos por bioma y verificar fuentes fijadas. Se mantienen y pasan siete suites previas del core, físicas, controles, audiovisual y compositor.
 
 **Importantísimo:** estos assets se cargan automáticamente para el jugador, pero están **alojados en repositorios públicos externos**, todavía no empaquetados en el repositorio del juego por limitaciones de transferencia de archivos binarios de esta sesión. También queda pendiente integrar directamente el pack **KayKit Platformer** gratuito; sí usamos arquitectura genuina **KayKit Medieval Hexagon** para las ruinas. La preview necesita probarse en Chrome Android y confirmar carga HTTPS/CORS, aspecto, FPS y que el nuevo escenario permanezca anclado al suelo. No afirmar “premium 10/10” ni “publicado” hasta QA real.
+
+## Rediseño para un living normal + aventura de una brujita (26/10/2026)
+
+**Feedback usuario:** 11,9 m de pista AR en una casa normal son impracticables; al seguirla con el teléfono se pierde el final y aumentan los problemas de tracking. Se pidió una combinación original de plataformas y exploración/transformación mágica inspirada por Astro Bot y las mecánicas de Epic Mickey, **sin usar contenido Disney ni reproducir el juego**. El caballero se sustituye por brujita con varita y disparos.
+
+### Arquitectura de cuatro mundos de bolsillo (mini-worlds-pocket.js)
+
+- Se mantiene el mapa **lógico** completo con sus 14 plataformas, colisiones, 13 caminos conectados, monedas y enemigos, pero se presenta **una zona 3D por vez**. El área física de colocación predeterminada pasa a aproximadamente **1,9 × 2,5 m** (`scale=.215`); controles de escala 0,155–0,345. No es necesario atravesar físicamente toda la casa: se utiliza joystick.
+- 4 zonas reversibles en el mismo anclaje: **Bosque de los Hechizos**, **Jardines Escondidos**, **Templo de las Nubes**, **Trono del Guardián**. Los sectores 3 y 4 están en una **segunda planta virtual** elevada; se vuelve con el joystick cruzando la transición anterior.
+- Al cruzar un umbral lógico, el portal realiza un cambio explícito con destello y sonido. **Nunca se mueve o interpola continuamente el suelo AR mientras el jugador camina.** Transformaciones separadas: `stage.root` es ancla física fija WebXR, `stage.worldRoot` es solo el contenido virtual de la zona actual. `MiniWorldsPocket` desactiva capas de sectores remotos y vuelve a usar el mismo volumen AR; el agua se concentra en la región visible. Esto evita tener 12 m de objetos simultáneos fuera de una casa normal.
+- El jugador puede volver a zonas previas. La física/progreso lógico no se reinician durante la transición y no se crean islas decorativas sin hitboxes. El reparto de escenarios reutiliza naturaleza Quaternius + arquitectura KayKit ya integradas. El minimapa conserva la ruta total.
+- La demo 3D sigue al héroe en coordenadas visuales de la zona activa. La guía nativa de piso dibuja las plataformas del sector actual, no los primeros 12 m del mapa completo.
+
+### Nueva protagonista y combate mágico
+
+- **Heroína:** `Mage.glb` de Kay Lousberg / KayKit Character Pack Adventurers, mismo pack CC0 que el caballero anterior. Fuente oficial en https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 ; archivo `addons/kaykit_character_pack_adventures/Characters/gltf/Mage.glb` (GitHub ref main), tamaño verificado 3 589 240 bytes. Pose/animaciones de casting/attack, sombrero violeta y varita luminosa. Si falla la descarga externa, un avatar procedural original de brujita sustituye el GLB.
+- Se eliminó la espada como arma del jugador. Botón **HECHIZO** lanza proyectiles 3D que recorren el mapa lógico a ~8,3 unidades/s, con alcance y vida acotados, colisión substepped contra cajas, enemigos y jefes vulnerables. Impactos cercanos se confirman al instante para evitar toques frustrantes. Se mantienen dificultad, corazones, Furia y recompensas existentes.
+- Tres **símbolos florales malditos** por nivel pueden restaurarse a distancia con hechizos. La magia transforma visualmente cristal oscuro → flor con pétalos, ilumina la zona y concede +5 monedas y carga CAOS solo una vez. Inspiración general de mundos restaurables, sin pintar/borrar objetos de Disney ni usar elementos de esa franquicia.
+- Se conservaron las criaturas, dos jefes, monedas, cajas sólidas, portales y efectos del agua. La nueva capa de magia usa geometrías/malla de proyectiles reutilizable con doce posiciones GPU para Android.
+
+### QA a realizar y límites del prototipo
+
+- `tests/mini-worlds-pocket.test.cjs`: 4 habitaciones, dos alturas, 6 transiciones de ida/vuelta, agua fija en cada sector y posición del ancla inmutable.
+- `tests/mini-worlds-magic.test.cjs`: lanzamiento real, colisión de proyectiles lejanos con cajas y monstruos, restauración de flora sin repetir premio, expiración de proyectiles, Mage en navegador, varita y botones.
+- Mantener tests del core, recorridos, 12 saltos laterales, cajas, combo/Furia, anclaje espacial y compositor.
+- **Pendiente:** prueba física en Chrome/ARCore para confirmar escala, visibilidad de portales, oclusión, tracking y dirección del joystick. Sin pruebas de FPS real no llamar esto versión final. Las cargas GLB externas siguen sujetas a disponibilidad CORS y eventual empaquetado local. No publicar en `main` ni alterar otros juegos o Supabase.
