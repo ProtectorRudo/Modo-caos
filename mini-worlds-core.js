@@ -207,6 +207,9 @@ function tick(s,input={},dt=1/60){
    // Crates are climbable: never apply side blocking when already above
    // their lid, or during the downward arc of a landing on the lid.
    if(p.y>=floor+BOX_TOP-.025||p.y+.65<floor)continue;
+   // The collision on a descending crossing must be resolved as a lid
+   // landing *before* side blocking would shove the knight outside.
+   if(p.vy<=0&&oldY>=floor+BOX_TOP-.035&&p.y<=floor+BOX_TOP)continue;
    const dx=p.x-box.x,dz=p.z-box.z;
    if(Math.abs(dx)>.47||Math.abs(dz)>.47)continue;
    const wasOutsideX=Math.abs(oldX-box.x)>=.47,wasOutsideZ=Math.abs(oldZ-box.z)>=.47;
