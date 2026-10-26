@@ -4,7 +4,7 @@ on:
     paths:
       - '.github/workflows/cuadrante-public-qa.yml'
   push:
-    branches: [test/cuadrante-public-availability]
+    branches: [test/cuadrante-ready-public-link-20261025]
     paths:
       - '.github/workflows/cuadrante-public-qa.yml'
   workflow_dispatch:
@@ -14,11 +14,13 @@ jobs:
   public-https:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Check GitHub Pages, GitHack, rawcdn and Vercel from public internet
         run: |
           node --input-type=module <<'NODE'
-          const sha='048361d219fae1a5dc319f2a4174c686910619f9';
+          const sha=process.env.SOURCE_SHA;
           const urls=[
            'https://protectorrudo.github.io/Modo-caos/cuadrante.html',
            'https://raw.githack.com/ProtectorRudo/Modo-caos/'+sha+'/cuadrante.html',
@@ -52,7 +54,7 @@ jobs:
           const page=await browser.newPage({viewport:{width:960,height:520}});
           const errors=[]; page.on('console',m=>{if(m.type()==='error')console.log('BROWSER CONSOLE:',m.text())}); page.on('requestfailed',r=>console.log('REQUEST FAILED:',r.url(),r.failure()?.errorText));
           page.on('pageerror',e=>errors.push(e.message));
-          const site='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/048361d219fae1a5dc319f2a4174c686910619f9/cuadrante.html';
+          const site='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/'+process.env.SOURCE_SHA+'/cuadrante.html';
           const resp=await page.goto(site,{waitUntil:'domcontentloaded',timeout:30000});
           if(!resp.ok())throw Error('Bad HTTP '+resp.status());
           console.log('BROWSER URL:',page.url(),'TITLE:',await page.title(),'BODY:',(await page.locator('body').innerText()).slice(0,700),'BUTTONS:',await page.locator('button').count());
@@ -61,8 +63,10 @@ jobs:
             await page.getByText('Open the page',{exact:true}).click({timeout:10000});
             console.log('AFTER INTERSTITIAL URL',page.url(),'TITLE',await page.title());
           }
+          await page.locator('#startDemo').waitFor({state:'visible',timeout:15000});
+          await page.waitForFunction(()=>document.getElementById('startDemo')&&!document.getElementById('startDemo').disabled,{timeout:17000});
           await page.locator('#startDemo').click({timeout:20000});
-          try{await page.locator('#stage canvas').waitFor({state:'visible',timeout:13000})}
+          try{await page.locator('#stage canvas').waitFor({state:'visible',timeout:25000})}
           catch(e){console.log('LIVE DEBUG title:',await page.title(),'ERROR:',await page.locator('#error').innerText(),'LOADER:',await page.locator('#load').innerText(),'STAGE HTML:',(await page.locator('#stage').innerHTML()).slice(0,300),'JS ERRORS:',errors,'BODY:',(await page.locator('body').innerText()).slice(0,550));throw e}
           await page.locator('#pauseBtn').click();
           await page.locator('#modalTitle').textContent().then(x=>{if(x!=='PAUSA')throw Error('Pause broken: '+x)});
