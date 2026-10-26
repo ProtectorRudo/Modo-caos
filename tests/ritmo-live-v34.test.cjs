@@ -64,7 +64,7 @@ test('dark worktop, sound controls, grounded platform and wrist FX are present',
  assert.ok(scene.includes("cuboid(mesh,fx,.014,fz"));
  assert.ok(scene.includes("const BACK=.22"));
  for(const name of ['ritmo-glb-props','ritmo-skinning','ritmo-exterior','ritmo-stage-showtime']){
-  assert.ok(html.includes('/'+name+'.js?v=34'),name);
+  assert.ok(html.includes('/'+name+'.js?v=35'),name);
  }
 });
 test('gameplay and virtual tracks are original V33 and not pushed by V34',()=>{
