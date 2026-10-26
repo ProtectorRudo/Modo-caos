@@ -112,6 +112,12 @@ root.MiniWorldsCharacters=function(T){
     if(x.type==='hero'){
      const p=game.player;
      x.rig.animate(p.attack>.03?['bite_front','attack','slash','one_handed','sword']:(!p.grounded?['jump','fall','idle']:Math.hypot(p.vx,p.vz)>.3?['walking','walking_a','walk','run']:['idle','idle_a']));
+     // Keep the entire articulated KayKit rig grounded. Subtle lean and
+     // gait bounce add life without moving the collision capsule.
+     const speed=Math.min(1,Math.hypot(p.vx,p.vz)/3.1);
+     x.rig.stand.rotation.z=-p.vx*.024;
+     x.rig.stand.rotation.x=p.grounded?p.vz*.018:-.065;
+     x.rig.stand.position.y=p.grounded?Math.sin(game.clock*13)*.014*speed:0;
     }else if(x.type==='enemy'){
      const enemy=game.map.enemies[x.id];
      if(!enemy.alive)continue;
