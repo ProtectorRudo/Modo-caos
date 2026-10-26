@@ -184,7 +184,20 @@ function makeStage(map){
   portal.visible=s.won;if(portal.visible)portal.rotation.y+=dt*.5;
   for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.life-=dt;f.vy-=8*dt;f.o.position.x+=f.vx*dt;f.o.position.y+=f.vy*dt;f.o.position.z+=f.vz*dt;f.o.scale.setScalar(Math.max(.1,f.life*2));if(f.life<=0){root.remove(f.o);f.o.geometry.dispose();effects.splice(i,1)}}
  }
- function dispose(){scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material?.isMeshBasicMaterial&&o.material!==M.water)o.material.dispose()}});Object.values(M).forEach(m=>m.dispose())}
+ function dispose(){
+  // A GLB may have dozens of meshes sharing the same material/geometry.
+  // Release each GPU resource once after removing the old stage.
+  const geometries=new Set(),materials=new Set();
+  scene.traverse(o=>{
+   if(!o.isMesh)return;
+   if(o.geometry)geometries.add(o.geometry);
+   if(Array.isArray(o.material))o.material.forEach(m=>materials.add(m));
+   else if(o.material)materials.add(o.material);
+  });
+  geometries.forEach(g=>g.dispose());
+  materials.forEach(m=>m.dispose());
+  Object.values(M).forEach(m=>m.dispose());
+ }
  return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,update,impact,dispose};
 }
 return {makeStage};
