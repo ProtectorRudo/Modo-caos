@@ -70,7 +70,7 @@ root.MiniWorldsCharacters=function(T){
  async function setup(stage,level){
   if(!stage||!stage.hero)return {loaded:0,failed:1};
   let alive=true;const visual=[],reasons=[];
-  stage.disposeCharacters=()=>{alive=false;visual.length=0};
+  stage.disposeCharacters=()=>{alive=false;visual.length=0;stage.updateCharacterAnimations=null};
   const pending=[load('Knight'),...new Set([...ENEMY[level||0],BOSS[level||0]])].map(v=>typeof v==='string'?load(v):v);
   const names=['Knight',...new Set([...ENEMY[level||0],BOSS[level||0]])];
   // Each model failure is isolated: other characters still load.
@@ -95,7 +95,7 @@ root.MiniWorldsCharacters=function(T){
   }
   const b=ready.get(BOSS[level||0]);
   if(b){
-   const rig=physicalRig(b,2.45,.02),boss=stage.boss;
+   const rig=physicalRig(b,3.10,.02),boss=stage.boss;
    replaceVisual(boss.root,rig.stand);
    rig.stand.name='CUTE MONSTERS · GIANT BOSS · '+BOSS[level||0];
    // The attackable weak core is a separate floating visual that preserves
@@ -106,19 +106,19 @@ root.MiniWorldsCharacters=function(T){
    boss.root.add(crystal,aura);boss.weak=crystal;boss.aura=aura;
    visual.push({type:'boss',rig});
   }
-  let timer=0;
   stage.updateCharacterAnimations=(game,dt)=>{
    if(!alive||!game)return;
-   timer+=dt;
    for(const x of visual){
     if(x.type==='hero'){
      const p=game.player;
      x.rig.animate(p.attack>.03?['bite_front','attack','slash','one_handed','sword']:(!p.grounded?['jump','fall','idle']:Math.hypot(p.vx,p.vz)>.3?['walking','walking_a','walk','run']:['idle','idle_a']));
     }else if(x.type==='enemy'){
      const enemy=game.map.enemies[x.id];
+     if(!enemy.alive)continue;
      x.rig.animate(enemy.flash>.03?['hitrecieve','hit']:enemy.stun>.01?['idle','flying']:['walk','flying','idle']);
     }else{
      const b=game.map.boss;
+     if(!b.active||!b.alive)continue;
      x.rig.animate(b.telegraph>.03?['bite_front','bite_inplace','attack']:b.weak>.03?['hitrecieve','hit']:['flying','idle','walk']);
     }
     x.rig.update(dt);
