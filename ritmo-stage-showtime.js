@@ -31,6 +31,25 @@ void main(){
  gl_FragColor=vec4(min(vec3(1.),vC.rgb*lit),vC.a);
 }`;
  const cap=(x,a,b)=>Math.max(a,Math.min(b,x));
+ // V38: light show and score pulse must reference the SAME audio chart clock.
+ // A separate animation clock at 106 BPM produced an off-rhythm light show.
+ function beatPulse(game,t=0){
+  if(game?.state!=='playing'||!Number.isFinite(game.elapsed))return .24+.12*Math.sin(t*2.4)**2;
+  const now=game.elapsed,song=game.song||{};
+  const cueTimes=song.noteTimes;
+  if(cueTimes?.length){
+   let closest=Infinity;
+   for(let i=0;i<cueTimes.length;i++){
+    const d=Math.abs(now-cueTimes[i]);
+    if(d<closest)closest=d;
+   }
+   return cap(Math.exp(-closest/.075),0,1);
+  }
+  const length=Number(game.beat)||60/(song.bpm||112);
+  const beatTime=(now-(Number(song.phaseSeconds)||0))/length;
+  const dist=Math.abs(beatTime-Math.round(beatTime))*length;
+  return cap(Math.exp(-dist/.082),0,1);
+ }
  const tint=(c,s)=>c.map(q=>Math.min(1,q*s));
  function multiply(A,B){const R=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)for(let k=0;k<4;k++)R[c*4+r]+=A[k*4+r]*B[c*4+k];return R}
  function project(M,x,y,z,w,h){const v=[x,y,z,1],q=[0,0,0,0];for(let r=0;r<4;r++)for(let k=0;k<4;k++)q[r]+=M[k*4+r]*v[k];return q[3]>.025?[(q[0]/q[3]+1)*w*.5,(1-q[1]/q[3])*h*.5]:null}
@@ -96,7 +115,7 @@ void main(){
    const mid=active?cap(Math.sqrt(band.mid??.08)*1.18,0,1):.15;
    const high=active?cap(Math.sqrt(band.high??.05)*1.15,0,1):.15;
    const back=-1.15,front=.94,left=-2*size,right=2*size;
-   const beat=(1+Math.sin(time*5.4))/2;
+   const beat=beatPulse(game,time);
    // Slim glass podium with shared machined metal outer body, not 4 black boxes.
    cuboid(mesh,0,.018,-.102,size*4.025,.025,2.20,[.011,.024,.037],[.052,.077,.098],.74);
    floor(illum,left,right,back,front,.048,[.015,.12,.18],.19,3);
@@ -216,7 +235,7 @@ void main(){
     lastSpot=C.map((v,i)=>project(P,(i-1.5)*size,.14,.65,root.innerWidth||390,root.innerHeight||850));
     gl.useProgram(gpu.program);gl.uniformMatrix4fv(gpu.mvp,false,P);
     gl.uniform1f(gpu.time,t*.001);gl.uniform1f(gpu.bass,bands.low||0);
-    gl.uniform1f(gpu.beat,(1+Math.sin((game?.elapsed||0)*(game?.bpm||106)*Math.PI/30))*.5);
+    gl.uniform1f(gpu.beat,beatPulse(game,t*.001));
     gl.enable(gl.BLEND);gl.disable(gl.CULL_FACE);gl.enable(gl.DEPTH_TEST);gl.depthMask(true);
     draw(gl,mesh,false);
     gl.depthMask(false);draw(gl,illum,true);
@@ -233,5 +252,5 @@ void main(){
   function setQuality(q){if(['auto','high','low'].includes(q)){mode=q;quality=q==='low'?0:2}return mode}
   return{render,hit,setQuality,mode:()=>mode,status:()=>status,quality:()=>quality,spot:i=>lastSpot[i]};
  }
- root.RitmoStageShowtime={create,version:'NEON PRISM V28'};
+ root.RitmoStageShowtime={create,beatPulse,version:'NEON PRISM V38 BEAT-LOCK'};
 })(window);
