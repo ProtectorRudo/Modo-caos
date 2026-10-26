@@ -1,0 +1,38 @@
+name: CUADRANTE · core and standalone static QA
+on:
+  push:
+    branches: [main, feature/cuadrante-20261025]
+    paths:
+      - 'cuadrante*'
+      - 'tests/cuadrante*'
+      - '.github/workflows/cuadrante-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-simulations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: JavaScript syntax check
+        run: |
+          node --check cuadrante-core.js
+          node --check cuadrante-art.js
+          node --check cuadrante-runtime.js
+      - name: Physics, scoring, progression and survival
+        run: node tests/cuadrante-core.test.cjs
+      - name: Check assets and links
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const html=fs.readFileSync('cuadrante.html','utf8');
+          for(const x of ['cuadrante-core.js','cuadrante-art.js','cuadrante-runtime.js']){
+            if(!html.includes('src="./'+x+'"'))throw Error('missing '+x);
+          }
+          const home=fs.readFileSync('index.html','utf8');
+          if(!home.includes('href="/cuadrante.html"'))throw Error('missing menu card');
+          console.log('PASS: static arcade integration');
+          NODE
