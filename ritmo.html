@@ -113,6 +113,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 #holdTrack{height:9px}
 #holdCount{font-size:10px}
 #gamePause{font-size:12px!important}
+#quality{font-size:10px!important;letter-spacing:0!important;min-width:58px;padding-left:5px!important;padding-right:5px!important;background:#0a2236dc!important;border-color:#8ecafc88!important}
 @media(max-height:700px){#calPanel{padding:7px}#pickLanes button{width:42px;height:42px}#holdHud{bottom:145px}}
 
 </style></head><body>
@@ -153,7 +154,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <div id="touchpad"></div><div id="toolbar"><button id="minus">−</button><button id="size" disabled>1,00 m</button><button id="plus">+</button><button id="rotate">↻</button></div>
 <div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
 <button id="lock" disabled>📍 FIJAR LOS 4 CARRILES</button>
-<div id="topActions"><button id="exit">← MENÚ</button><button id="gamePause">Ⅱ PAUSA</button><button id="sound">🔊</button></div>
+<div id="topActions"><button id="exit">← MENÚ</button><button id="gamePause">Ⅱ PAUSA</button><button id="quality" title="Calidad gráfica" aria-label="Calidad gráfica">✨ AUTO</button><button id="sound">🔊</button></div>
 <div id="hud"><div class="hudRow"><div>PUNTOS<strong id="score">0</strong></div><div>COMBO<strong id="combo">×0</strong></div><div>ENERGÍA<strong id="energy">55%</strong></div><div>TIEMPO<strong id="clock">00:00</strong></div></div>
 <div id="progress"><div id="progressFill"></div></div><div id="forecast"></div></div>
 <div id="where">📍 VOS · CENTRO</div><div id="toast" aria-live="polite"></div>
@@ -181,14 +182,14 @@ window.addEventListener('unhandledrejection',function(e){
  const status=document.getElementById('launchStatus');if(status){status.hidden=false;status.textContent='⚠️ No se completó el inicio: '+msg+'. Probá abrirlo en Chrome Android.'}
 });
 </script>
-<script defer src="/ritmo-engine.js?v=20"></script>
-<script defer src="/ritmo-core.js?v=20"></script>
-<script defer src="/ritmo-catalog.js?v=20"></script>
-<script defer src="/ritmo-licensed.js?v=20"></script>
-<script defer src="/ritmo-despacito.js?v=20"></script>
-<script defer src="/ritmo-audio.js?v=20"></script>
-<script defer src="/ritmo-art.js?v=20"></script>
-<script defer src="/ritmo-stage3d.js?v=20"></script>
-<script defer src="/ritmo-fx.js?v=20"></script>
-<script defer src="/ritmo-runtime.js?v=20"></script>
+<script defer src="/ritmo-engine.js?v=22"></script>
+<script defer src="/ritmo-core.js?v=22"></script>
+<script defer src="/ritmo-catalog.js?v=22"></script>
+<script defer src="/ritmo-licensed.js?v=22"></script>
+<script defer src="/ritmo-despacito.js?v=22"></script>
+<script defer src="/ritmo-audio.js?v=22"></script>
+<script defer src="/ritmo-art.js?v=22"></script>
+<script defer src="/ritmo-stage3d.js?v=22"></script>
+<script defer src="/ritmo-fx.js?v=22"></script>
+<script defer src="/ritmo-runtime.js?v=22"></script>
 </body></html>
