@@ -27,15 +27,18 @@ jobs:
           node --check cuadrante-core.js
           node --check cuadrante-art.js
           node --check cuadrante-lite.js
+          node --check cuadrante-premium.js
           node --check cuadrante-runtime.js
       - name: Physics, scoring, progression and survival
         run: node tests/cuadrante-core.test.cjs
+      - name: Verify licensed local 3D models, audio and PBR maps
+        run: python3 tests/cuadrante-assets.test.py
       - name: Check assets and links
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const html=fs.readFileSync('cuadrante.html','utf8');
-          for(const x of ['cuadrante-core.js','cuadrante-art.js','cuadrante-lite.js','cuadrante-runtime.js']){
+          for(const x of ['cuadrante-core.js','cuadrante-art.js','cuadrante-premium.js','cuadrante-lite.js','cuadrante-runtime.js']){
             if(!html.includes('src="./'+x+'"'))throw Error('missing '+x);
           }
           const home=fs.readFileSync('index.html','utf8');

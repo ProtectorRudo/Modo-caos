@@ -1,0 +1,29 @@
+name: Import licensed CUADRANTE CC0 assets
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feature/cuadrante-licensed-asset-pack-20261026
+          persist-credentials: true
+      - run: python3 -m pip install --user --disable-pip-version-check 'Pillow==11.3.0'
+      - name: Download, verify, optimize & select CC0 assets
+        run: python3 scripts/build-cuadrante-assets.py
+      - name: Commit vendored game assets to current feature branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/cuadrante
+          if git diff --cached --quiet; then echo "No asset changes"; exit 0; fi
+          git diff --cached --stat
+          git commit -m "assets(cuadrante): vendor 11 CC0 glTF props, 8 sounds, 4 optimized PBR maps"
+          git fetch origin feature/cuadrante-licensed-asset-pack-20261026
+          git rebase origin/feature/cuadrante-licensed-asset-pack-20261026
+          git push origin HEAD:feature/cuadrante-licensed-asset-pack-20261026
