@@ -267,7 +267,9 @@ function makeStage(map){
  const scene=new T.Scene();scene.background=new T.Color(map.n===0?0x96dae5:0x8e9cc2);scene.fog=new T.Fog(scene.background,12,49);
  const sun=new T.DirectionalLight(0xfff4d6,2.25);sun.position.set(-3,9,5);sun.castShadow=false;scene.add(sun);
  scene.add(new T.HemisphereLight(0xcaf5ff,0x70503d,2.0));
- const root=group(scene);
+ // Two transforms: the XR anchor NEVER moves; the world content changes
+ // only at explicit magic portals between small AR rooms.
+ const anchorRoot=group(scene),root=group(anchorRoot);
  const rand=rng(7403+map.n*719),platforms=[],windTargets=[];
  const ocean=sprawlingEnvironment(root,rand,Boolean(map.n));
  const shoreFoam=makeShoreFoam(root,map);
@@ -585,7 +587,7 @@ function makeStage(map){
   // premium detail, while a few Kenney/procedural palms retain island identity.
   windTargets.forEach((plant,i)=>{plant.visible=!enabled||i%4===0});
  };
- return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
+ return {scene,root:anchorRoot,worldRoot:root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,heroShadow,furyRing,ocean,shoreFoam,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
 }
 return {makeStage};
 }})(typeof window!=='undefined'?window:globalThis);
