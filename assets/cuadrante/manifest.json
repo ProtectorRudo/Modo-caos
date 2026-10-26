@@ -1,0 +1,124 @@
+{
+  "revision": 1,
+  "license": "CC0-1.0",
+  "source_urls": {
+    "quaternius": "https://opengameart.org/sites/default/files/modular_scifi_megakitstandard.zip",
+    "kenney": "https://kenney.nl/media/pages/assets/sci-fi-sounds/6b296f9ecf-1677589334/kenney_sci-fi-sounds.zip",
+    "ambientcg": "https://ambientcg.com/get?file=Metal032_1K-JPG.zip"
+  },
+  "models": {
+    "columnAstra": {
+      "url": "models/Columns/Column_Astra.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "columnHollow": {
+      "url": "models/Columns/Column_Hollow.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "columnPipes": {
+      "url": "models/Columns/Column_Pipes.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "columnSupport": {
+      "url": "models/Columns/Column_MetalSupport.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "frameSquare": {
+      "url": "models/Platforms/Door_Frame_Square.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "frameTall": {
+      "url": "models/Platforms/Door_Frame_SquareTall.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "darkDoor": {
+      "url": "models/Platforms/Door_DarkMetal.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "darkPlatform": {
+      "url": "models/Platforms/Platform_DarkPlates.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "metalPlatform": {
+      "url": "models/Platforms/Platform_Metal.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "plateSet": {
+      "url": "models/Platforms/Platform_3Plates.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    },
+    "railSet": {
+      "url": "models/Platforms/Platform_Rails_4.gltf",
+      "triangles": "from supplier original; render outside gameplay collision field"
+    }
+  },
+  "audio": {
+    "hit": {
+      "url": "audio/impactMetal_000.ogg",
+      "bytes": 15491,
+      "sha256": "956c6612a256aa1a67a2327fffe2454f6b1d82e4c1c2be28fd66916335d5b1d6"
+    },
+    "perfect": {
+      "url": "audio/forceField_000.ogg",
+      "bytes": 25672,
+      "sha256": "c2916f2a062c8ddd1aca2826d134fe90847037db31342726ffb0f9097afe339c"
+    },
+    "smash": {
+      "url": "audio/laserLarge_000.ogg",
+      "bytes": 25566,
+      "sha256": "a56d95794cd732d6c2d66ce488c14cf557fe526c282897c9a77675c2bd9b77e6"
+    },
+    "enemy": {
+      "url": "audio/laserSmall_002.ogg",
+      "bytes": 8973,
+      "sha256": "e70139466c3e801358c9041ee17db7ff82c0e9a9cdf44647ad0ea6b9f8458f63"
+    },
+    "wall": {
+      "url": "audio/impactMetal_003.ogg",
+      "bytes": 17303,
+      "sha256": "ef29c3943ee701616f65e3d596c13eb3ff6b11ca5b3ac01e7bc923366a5c6f76"
+    },
+    "goal": {
+      "url": "audio/lowFrequency_explosion_000.ogg",
+      "bytes": 14317,
+      "sha256": "3cb48d86dab63140cfb9aaeea4d4a6846abaca5831d157d8adbec0490da26343"
+    },
+    "conceded": {
+      "url": "audio/explosionCrunch_000.ogg",
+      "bytes": 28274,
+      "sha256": "4b597d658d0ae101f0a030fbeea5fc3a4292ab85f017470a8254a8e7959cbd69"
+    },
+    "transform": {
+      "url": "audio/computerNoise_000.ogg",
+      "bytes": 119024,
+      "sha256": "1527944e16eb14b48ee03fe3e7ce6aae94262833a4e1f83928d451a7414fe4e1"
+    }
+  },
+  "pbr": {
+    "color": {
+      "url": "pbr/metal032-color.webp",
+      "bytes": 920,
+      "sha256": "56f2ce5a4edb7575b2a50c1b640f79c9f2f43da445a1fd9f1ca0a9f831c95080"
+    },
+    "normal": {
+      "url": "pbr/metal032-normal.webp",
+      "bytes": 550,
+      "sha256": "07ac6117df5c8bbf07a1cc84ea85c3ac22495cf8a73fce27e08bdeccb6f2aa20"
+    },
+    "roughness": {
+      "url": "pbr/metal032-roughness.webp",
+      "bytes": 998,
+      "sha256": "28374b93e19cf78cb15ef09a812257ebd154546bfc52e2de12b1441d2cb38b0a"
+    },
+    "metalness": {
+      "url": "pbr/metal032-metalness.webp",
+      "bytes": 528,
+      "sha256": "fbf376a363b30d1c9148b4d929be4cbd53dbeae91ee2197010799d57715c7090"
+    }
+  },
+  "source_sha256": {
+    "quaternius": "4ca9acbc7a13e7baa48e24c4853b779889b7ab21587004c36668826e705c8a10",
+    "kenney": "119340f351a5098ad814f78719438c0da355a9ce8a4c8a3af6a8d48aa3d49e04",
+    "ambientcg": "9e4f363905a647958c273154fa125d2a6440892d0e583f9b3af24bb08b5afc3c"
+  }
+}
