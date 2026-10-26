@@ -22,7 +22,7 @@ function make(real){
   drawCharacter:(mesh,surface,t,l,q,combo)=>{calls.push({type:'body',t,l,q,combo});return true},
   draw:(mesh,surface)=>{calls.push({type:'desk'});return true}
  };
- const window={RitmoImportedProps:{create:()=>props}};
+ const window={RitmoImportedProps:{create:()=>props},RitmoSkeletalDJ:{create:()=>({draw:(mesh,surface,t,l,q,combo)=>{calls.push({type:'body',t,l,q,combo});return true}})}};
  new Function('window',exterior)(window);
  const scene=window.RitmoExterior.create(api);
  return{scene,tri,lit,pts,calls,panels};
@@ -32,58 +32,19 @@ test('V32 changes exterior only, keeps untouched scoring floor and input scripts
  assert.match(stage,/const trails=quality===0\?3:5/);
  assert.match(stage,/let z=\.65,r=size\*\.44/);
  assert.match(stage,/try\{exterior\?\.render\(size,time,game/);
- assert.match(page,/ritmo-glb-props\.js\?v=32/);
- assert.match(page,/ritmo-exterior\.js\?v=32/);
- assert.match(page,/ritmo-stage-showtime\.js\?v=32/);
+ assert.match(page,/ritmo-glb-props\.js\?v=33/);
+ assert.match(page,/ritmo-exterior\.js\?v=33/);
+ assert.match(page,/ritmo-stage-showtime\.js\?v=33/);
  assert.ok(page.includes('/ritmo-runtime.js?v=31'), 'core game behavior stays V31');
 });
-test('horse DJ elbow and wrist curve in toward the two CDJ targets',async()=>{
- const filename=path.join(root,'assets/ritmo/dj-quaternius-punk.glb');
- const world={fetch:async url=>({
-  ok:true,arrayBuffer:async()=>Uint8Array.from(fs.readFileSync(path.join(root,url))).buffer
- })};
- new Function('window',glb)(world);
- // fetch path's leading slash must be resolved under repository checkout.
- const originalFetch=world.fetch;
- world.fetch=async url=>({ok:true,arrayBuffer:async()=>{
-  const target=path.join(root,url.replace(/^\/+/,''));
-  return Uint8Array.from(fs.readFileSync(target)).buffer;
- }});
- const character=world.RitmoImportedProps.create();
- await new Promise(setImmediate);await new Promise(setImmediate);
- assert.ok(character.has('quaternius-punk'));
- const original=world.RitmoImportedProps.parse(
-  Uint8Array.from(fs.readFileSync(filename)).buffer,'Punk_Body'
- );
- let index=0,wrists=[],elbows=[],mesh=[];
- const output=[];
- const surface=(m,A,B,C,D,col)=>{assert.equal(m,mesh);output.push([A,B,C]);};
- assert.equal(character.drawCharacter(mesh,surface,3,.65,2,0),true);
- assert.equal(output.length,2958);
- for(let i=0;i<original.length;i++){
-  for(let j=0;j<3;j++){
-   const p=original[i][['A','B','C'][j]],v=output[i][j],d=Math.abs(p[0]);
-   if(d>.74)wrists.push(v);
-   if(d>.41&&d<.51)elbows.push(v);
-  }
- }
- assert.ok(wrists.length>100&&elbows.length>30);
- const wx=wrists.reduce((a,p)=>a+Math.abs(p[0]),0)/wrists.length;
- const ex=elbows.reduce((a,p)=>a+Math.abs(p[0]),0)/elbows.length;
- const wy=wrists.reduce((a,p)=>a+p[1],0)/wrists.length;
- assert.ok(wx>=.14&&wx<.225, 'hands near ±0.17m CDJs; got '+wx);
- assert.ok(ex>wx+.055,'elbows remain farther outward than hands');
- assert.ok(wy>.29&&wy<.43,'hands near mixer surface, got '+wy);
- for(const rows of output)for(const p of rows){assert.ok(p.every(Number.isFinite));assert.ok(p[2]<-1.15)}
-});
-test('reduced quality halves dynamic Punk polygons without changing coordinates',async()=>{
- const w={fetch:async url=>({ok:true,arrayBuffer:async()=>Uint8Array.from(fs.readFileSync(path.join(root,url.replace(/^\/+/,'')))).buffer})};
- new Function('window',glb)(w);
- const props=w.RitmoImportedProps.create();
- await new Promise(setImmediate);await new Promise(setImmediate);
- const tally=q=>{let count=0;props.drawCharacter([],()=>count++,1,.4,q);return count};
- assert.equal(tally(2),2958);
- assert.equal(tally(0),1479);
+test('V33 replaces manual XY warp with named GLB bones and weighted skinning',()=>{
+ const skin=read('ritmo-skinning.js');
+ assert.match(skin,/JOINTS_0/);
+ assert.match(skin,/WEIGHTS_0/);
+ assert.match(skin,/LowerArm\.L/);
+ assert.match(skin,/UpperArm\.R/);
+ assert.ok(exterior.includes('skeletal?.draw('));
+ assert.ok(!exterior.includes('props?.drawCharacter('));
 });
 test('grounded symmetric speakers, low fascia and single truss are behind floor',()=>{
  const x=make({quality:2});
@@ -101,7 +62,7 @@ test('grounded symmetric speakers, low fascia and single truss are behind floor'
  assert.equal(subs.settings[0].offset[0],-subs.settings[1].offset[0]);
  assert.equal(mids.settings[0].offset[0],-mids.settings[1].offset[0]);
  assert.equal(subs.settings[0].offset[1],.038);
- const decals=x.panels.filter(p=>Math.abs(p.z+1.811)<.009);
+ const decals=x.panels.filter(p=>Math.abs(p.z+2.031)<.009);
  const center=decals.filter(p=>Math.abs(p.x)<.13);
  const sides=decals.filter(p=>Math.abs(p.x)>.29);
  assert.ok(center.length>0&&sides.length>0);
