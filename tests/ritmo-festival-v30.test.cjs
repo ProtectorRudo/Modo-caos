@@ -17,7 +17,7 @@ test('all eight CC0 GLBs are installed locally with valid model geometry',()=>{
  for(const record of provenance){
   assert.match(record.cdnUrl,/^https:\/\/cdn\.3dassets\.dev\/assets\/\d+\/v1\/model\.glb$/);
   assert.equal(record.license,'CC0');
-  const key=record.file.replace(/^dj-|\.glb$/g,'');
+  const key=record.file==='dj-booth-facade.glb'?'facade':record.file.replace(/^dj-|\.glb$/g,'');
   const data=bytes(record.file);
   assert.equal(data.byteLength,record.size);
   const tris=parser(data);
