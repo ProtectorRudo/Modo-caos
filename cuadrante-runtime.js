@@ -4,6 +4,7 @@
 const $=id=>document.getElementById(id),C=window.CuadranteCore;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,state,modePlay='circuit';
+let arCompositor=null,nativeXRScene=null,arDrawFrames=0,arVisibleOutline=false,arCompositorReady=false,arRenderFaultAt=0;
 let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
 let floorSeconds=0,lastFloorHit=null;
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
@@ -102,6 +103,7 @@ function build(){
  if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement.remove();renderer=null}
  const container=$('stage');container.innerHTML='';
  renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:false});
+ nativeXRScene=new THREE.Scene();
  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
  renderer.setClearColor(0x080d14,0);renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');
  applyQuality();renderer.setSize(window.innerWidth,window.innerHeight,false);container.appendChild(renderer.domElement);
@@ -125,9 +127,67 @@ function buildLite(){
  renderer=kit.renderer;stage=kit.stage;camera=kit.camera;
  renderer.setAnimationLoop(frame);
 }
+function closeArWorld(){
+ arCompositor?.dispose();arCompositor=null;arCompositorReady=false;
+ arDrawFrames=0;arVisibleOutline=false;arRenderFaultAt=0;
+ $('arWorldOverlay').style.display='none';
+ $('placementSvg').style.display='none';$('arDrawStatus').style.display='none';
+}
+async function openArWorld(){
+ closeArWorld();
+ const {createCuadranteArCompositor}=await import('./cuadrante-ar-compositor.js');
+ if(!THREE||!stage?.scene)throw Error('Arena 3D no iniciada');
+ arCompositor=createCuadranteArCompositor(THREE,$('arWorldOverlay'),1.15);
+ $('arWorldOverlay').style.display='block';arCompositorReady=true;
+}
+function showArOutline(frame){
+ if(!session||!frame||!stage||!placing||!stage.root.visible){
+  arVisibleOutline=false;$('placementSvg').style.display='none';return;
+ }
+ const pose=frame.getViewerPose(renderer.xr.getReferenceSpace());
+ const view=pose?.views?.[0];
+ if(!view?.projectionMatrix||!view.transform?.inverse?.matrix){
+  arVisibleOutline=false;$('placementSvg').style.display='none';return;
+ }
+ stage.root.updateMatrixWorld(true);
+ const mvp=new THREE.Matrix4().fromArray(view.projectionMatrix)
+   .multiply(new THREE.Matrix4().fromArray(view.transform.inverse.matrix))
+   .multiply(stage.root.matrixWorld);
+ const width=innerWidth,height=innerHeight;
+ const project=(x,y,z)=>{
+  const v=new THREE.Vector4(x,y,z,1).applyMatrix4(mvp);
+  if(!Number.isFinite(v.w)||v.w<=.04)return null;
+  const px=(v.x/v.w*.5+.5)*width,py=(.5-v.y/v.w*.5)*height;
+  return Number.isFinite(px)&&Number.isFinite(py)?[px,py]:null;
+ };
+ const corners=[
+  [-1.74,.17,2.9],[1.74,.17,2.9],
+  [1.74,.17,-2.75],[-1.74,.17,-2.75]
+ ].map(q=>project(...q));
+ const center=project(0,.185,2.9);
+ const visible=corners.filter(p=>p&&p[0]>-width*.35&&p[0]<width*1.35&&p[1]>-height*.35&&p[1]<height*1.35).length;
+ const nearScreen=!!center&&center[0]>=0&&center[0]<=width&&center[1]>=0&&center[1]<=height;
+ arVisibleOutline=nearScreen||visible>=2;
+ const path=[],point=p=>p[0].toFixed(1)+','+p[1].toFixed(1);
+ for(let i=0;i<4;i++)if(corners[i]&&corners[(i+1)%4])path.push('M'+point(corners[i])+'L'+point(corners[(i+1)%4]));
+ const svg=$('placementSvg');svg.setAttribute('viewBox','0 0 '+width+' '+height);
+ $('placementBorder').setAttribute('d',path.join(''));
+ if(center){$('placementTarget').setAttribute('cx',center[0]);$('placementTarget').setAttribute('cy',center[1]);$('placementTarget').style.display='block'}
+ else $('placementTarget').style.display='none';
+ svg.style.display=arVisibleOutline?'block':'none';
+ $('placementBorder').style.stroke=hasHit?'#41ffd3':'#ffbe74';
+ $('placementTarget').style.fill=hasHit?'#41ffd3':'#ffbe74';
+}
 function setDemoCamera(){if(!camera||renderer?.isLite)return;const aspect=innerWidth/innerHeight;
  camera.fov=aspect<1?66:57;camera.aspect=aspect;camera.position.set(0,1.68,aspect<1?7.5:6.6);camera.lookAt(0,1.2,-.65);camera.updateProjectionMatrix()}
-function resize(){if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);applyQuality();if(!renderer.xr.isPresenting)setDemoCamera()}
+function resize(){
+ arCompositor?.resize();
+ if(!renderer||!camera)return;
+ // WebXR owns the camera and drawing-buffer resolution while presenting.
+ // Resizing the native XR canvas can silently break Android camera composition.
+ if(renderer.xr?.isPresenting)return;
+ renderer.setSize(innerWidth,innerHeight,false);applyQuality();setDemoCamera();
+}
 window.addEventListener('resize',resize);
 function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;floorSeconds=0;lastFloorHit=null;pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
@@ -191,7 +251,34 @@ function frame(t,xrFrame){
  if(state)stage.update(state,dt);
  if(state)refreshHud();
  if(toastUntil&&performance.now()>toastUntil){$('ticker').style.opacity='0';toastUntil=0}
- renderer.render(stage.scene,camera);
+ if(session&&renderer.xr.isPresenting){
+  // Same camera-matched DOM-overlay approach proven in Rodeados 360 and Rebote.
+  // Native XR keeps the real camera feed; the independently transparent canvas
+  // uses the native XR eye view/projection. World remains anchored to the floor.
+  renderer.render(nativeXRScene,camera);
+  if(arCompositor){
+   const good=arCompositor.render(stage.scene,renderer.xr.getCamera(camera));
+   if(good&&arCompositor.drawCalls>0){
+    arDrawFrames++;arRenderFaultAt=0;
+    if(placing){
+     showArOutline(xrFrame);
+     $('fixArena').disabled=!(hasHit&&arVisibleOutline);
+     if(hasHit&&!arVisibleOutline)$('labelPhase').textContent='ARENA FUERA DE LA VISTA · APUNTÁ AL MARCADOR';
+    }
+    $('arDrawStatus').style.display='none';
+   }else{
+    if(placing){$('fixArena').disabled=true;hasHit=false;arVisibleOutline=false;$('placementSvg').style.display='none'}
+    arRenderFaultAt ||= t;
+    if(t-arRenderFaultAt>700){
+     $('arDrawStatus').style.display='block';
+     $('arDrawStatus').textContent='⚠ ARENA 3D NO VISIBLE · RECENTRÁ O VOLVÉ A MODO 3D';
+    }
+    if(!placing&&t-arRenderFaultAt>2800&&state&&state.phase!=='paused'&&state.phase!=='finished'){
+     C.pause(state);$('labelPhase').textContent='GRÁFICOS AR NO VISIBLES · RECENTRÁ PARA RECUPERAR';
+    }
+   }
+  }else if(placing)$('fixArena').disabled=true;
+ }else renderer.render(stage.scene,camera);
 }
 function refreshHud(){
  $('youScore').textContent=state.score[0];$('rivalScore').textContent=state.score[1];
@@ -262,7 +349,7 @@ function recenter(){
 }
 $('recenterBtn').onclick=recenter;
 async function back(){
- if(!playing)return;playing=false;placing=false;recentering=false;$('ui').classList.remove('ar-placing');
+ if(!playing)return;playing=false;placing=false;recentering=false;closeArWorld();$('ui').classList.remove('ar-placing');
  try{if(session){const old=session;session=null;await old.end()}}catch(e){}
  if(hitSource){try{hitSource.cancel()}catch(e){}hitSource=null}
  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null}
@@ -271,7 +358,7 @@ async function back(){
  if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement.remove();renderer=null}if(stage)stage.dispose();stage=null;state=null;audioAt=0;prev=0;acc=0;
 }
 async function init(mode){
- if(playing)await back();$('load').style.display='flex';initAudio();autoQuality=window.innerWidth<700?'medium':'high';slowFrames=0;stableFrames=0;
+ if(playing)await back();closeArWorld();$('load').style.display='flex';initAudio();autoQuality=window.innerWidth<700?'medium':'high';slowFrames=0;stableFrames=0;
  let requestedXR=null;
  if(mode==='ar'&&navigator.xr){
   requestedXR=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['local-floor'],domOverlay:{root:document.body}});
@@ -313,17 +400,18 @@ async function init(mode){
 async function beginAR(requestedXR){
  if(!navigator.xr||!requestedXR)throw Error('Tu navegador no ofrece WebXR immersive-ar.');
  session=await requestedXR;
- session.addEventListener('end',()=>{if(playing&&inputMode==='ar'&&!placing){C.pause(state);modal('AR DESCONECTADA','SE CERRÓ LA CÁMARA','Reiniciá la arena para recuperar el seguimiento espacial.');button('VOLVER AL MENÚ',back,'blue')}})
+ session.addEventListener('end',()=>{closeArWorld();if(playing&&inputMode==='ar'&&!placing){C.pause(state);modal('AR DESCONECTADA','SE CERRÓ LA CÁMARA','Reiniciá la arena para recuperar el seguimiento espacial.');button('VOLVER AL MENÚ',back,'blue')}})
  await renderer.xr.setSession(session);
  const viewer=await session.requestReferenceSpace('viewer');
  hitSource=await session.requestHitTestSource({space:viewer});
+ await openArWorld();
  enter('ar');$('fixArena').disabled=true;note('BUSCÁ UNA SUPERFICIE',1850);
 }
 $('startAr').onclick=()=>init('ar');$('startDemo').onclick=()=>init('demo');
 function doFix(){
  if(!placing)return;
- if(inputMode==='ar'&&(!hasHit||floorSeconds<.60)){note('ESPERÁ A QUE EL PISO SE PONGA VERDE',1350);return}
- placing=false;hasHit=false;stage?.setPlacementPreview?.(false);$('ui').classList.remove('ar-placing');$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
+ if(inputMode==='ar'&&(!hasHit||!arCompositorReady||!arVisibleOutline||floorSeconds<.60)){note('APUNTÁ A LA MARCA VERDE Y ESPERÁ QUE APAREZCA LA ARENA',1800);return}
+ placing=false;hasHit=false;stage.root.visible=true;stage?.setPlacementPreview?.(false);$('placementSvg').style.display='none';$('ui').classList.remove('ar-placing');$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
  $('labelPhase').textContent=inputMode==='ar'?'AR REAL · ARRASTRÁ PARA DEFENDER':'CÁMARA SIN TRACKING · ARRASTRÁ PARA DEFENDER';
  $('recenterBtn').style.display=inputMode==='ar'?'block':'none';
  if(recentering){
