@@ -2,7 +2,7 @@
 (function(root){root.MiniWorldsArt=function(T){
 'use strict';
 const P=Math.PI,mat=(c,metal=0,rough=.76)=>new T.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
-const M={sand:mat('#e4bd78'),edge:mat('#ab7151'),soil:mat('#715342'),grass:mat('#64c688'),grass2:mat('#2f9d72'),leaf:mat('#16846d'),leaf2:mat('#44c889'),dark:mat('#203d54'),wood:mat('#b57742'),woodDark:mat('#653a2e'),gold:mat('#ffd25b',.68,.23),steel:mat('#72c0ca',.58,.34),coral:mat('#ff8469'),sky:mat('#a9f3e9'),white:mat('#faffed'),ink:mat('#142738'),red:mat('#ff695f'),stone:mat('#9eabb0'),purple:mat('#b67cff'),water:new T.MeshStandardMaterial({color:0x2dcca8,transparent:true,opacity:.56,roughness:.22,metalness:.16,side:T.DoubleSide})};
+const M={sand:mat('#e9ca8f'),edge:mat('#9d754e'),soil:mat('#685445'),grass:mat('#7abb84'),grass2:mat('#419a6d'),leaf:mat('#24795b'),leaf2:mat('#61b987'),dark:mat('#203d54'),wood:mat('#ad8150'),woodDark:mat('#653a2e'),gold:mat('#ffd25b',.68,.23),steel:mat('#72c0ca',.58,.34),coral:mat('#ff8469'),sky:mat('#a9f3e9'),white:mat('#faffed'),ink:mat('#142738'),red:mat('#ff695f'),stone:mat('#9eabb0'),purple:mat('#b67cff'),water:new T.MeshStandardMaterial({color:0x298ca9,transparent:true,opacity:.68,roughness:.35,metalness:0,side:T.DoubleSide})};
 const sphere=(r=1,w=12,h=9)=>new T.SphereGeometry(r,w,h);
 const cube=(x=1,y=1,z=1)=>new T.BoxGeometry(x,y,z);
 const geoCone=(r=.4,h=1,n=9)=>new T.ConeGeometry(r,h,n);
@@ -48,6 +48,22 @@ function platform(root,p,rand){
  if(p.kind==='arena'){let ring=mesh(new T.TorusGeometry(1.95,.07,8,64),M.gold,0,.04,0,g);ring.rotation.x=-P/2;
  for(let i=0;i<8;i++){const a=i*P/4;const ob=mesh(cyl(.08,.14,.45,7),M.stone,Math.cos(a)*2.28,.16,Math.sin(a)*2.05,g);ob.rotation.z=(rand()-.5)*.2}}
  return g;
+}
+// Graded visible terrain corridors mirror MiniWorldsCore's footprint.
+function causeway(root,w,i){
+ const dx=w.x2-w.x1,dz=w.z2-w.z1,len=Math.hypot(dx,dz);
+ if(len<.10)return null;
+ const grp=group(root,(w.x1+w.x2)/2,(w.y1+w.y2)/2,(w.z1+w.z2)/2);
+ grp.rotation.order='YXZ';grp.rotation.y=Math.atan2(dx,dz);
+ grp.rotation.x=-Math.atan2(w.y2-w.y1,len);
+ const material=i<7?(i<3?M.sand:i<5?M.grass:M.stone):M.grass2;
+ const top=mesh(cube(w.width,.22,len),material,0,-.11,0,grp);
+ top.castShadow=false;top.receiveShadow=true;
+ for(const side of [-1,1]){
+  const lip=mesh(cube(.12,.14,len),i<7?M.edge:M.soil,side*(w.width/2-.075),-.16,0,grp);
+  lip.castShadow=false;
+ }
+ return grp;
 }
 function makeCoin(parent,x,y,z){const g=group(parent,x,y,z);mesh(cyl(.18,.18,.052,16),M.gold,0,0,0,g).rotation.x=P/2;mesh(new T.TorusGeometry(.125,.023,6,16),M.white,0,0,.034,g);mesh(cube(.035,.16,.03),M.white,0,0,.036,g);return g}
 function makeStar(parent,x,y,z){
@@ -124,17 +140,17 @@ function sprawlingEnvironment(root,rand,cliff){
  sea.rotation.x=-P/2;sea.receiveShadow=false;sea.castShadow=false;
  const shore=cliff?M.stone:M.sand;
  for(const side of [-1,1]){
-  for(let j=0;j<7;j++){
+  for(let j=0;j<6;j++){
    const z=1.20-j*4.05,x=side*(6.45+rand()*.38);
    const isle=group(root,x,-.41,z);
    const width=1.65+rand()*.4,length=3.7+rand()*.5;
    const plate=mesh(cube(width,.54,length),shore,0,0,0,isle);
    plate.rotation.y=(rand()-.5)*.13;
-   for(let k=0;k<5;k++){
+   for(let k=0;k<3;k++){
     const dx=(rand()-.5)*width*.85,dz=(rand()-.5)*length*.85;
     addRock(isle,dx,.29,dz,.20+rand()*.16);
    }
-   if(j%2===0){addPalm(isle,side*.21,.1,.85+rand()*.3);addFlower(isle,-side*.5,-.25,j)}
+   if(j%3===0){addPalm(isle,side*.21,.1,.85+rand()*.22);addFlower(isle,-side*.5,-.25,j)}
    if(cliff){let spear=mesh(geoCone(.32,1.5+rand()*1.2,6),M.stone,side*.52,1.05,-.58,isle);spear.rotation.z=side*.18}
   }
  }
@@ -156,9 +172,10 @@ function makeStage(map){
  const rand=rng(7403+map.n*719),platforms=[];
  sprawlingEnvironment(root,rand,Boolean(map.n));
  for(const p of map.platforms)platforms.push(platform(root,p,rand));
+ for(let i=0;i<(map.walkways||[]).length;i++)causeway(root,map.walkways[i],i);
  for(let i=0;i<map.platforms.length;i++){
   const p=map.platforms[i],prev=map.platforms[i-1];
-  if(p.kind==='beach'||p.kind==='jungle')for(let n=0;n<3;n++){let x=p.x+(rand()>.5?1:-1)*(p.w*.45+.22);
+  if(p.kind==='beach'||p.kind==='jungle')for(let n=0;n<1;n++){let x=p.x+(rand()>.5?1:-1)*(p.w*.45+.22);
     let z=p.z+(rand()-.5)*p.d*.8;addPalm(root,x,z,.72+rand()*.30)}
   if(p.kind==='jungle'||p.kind==='ruins'){addRock(root,p.x+p.w*.5,p.y+.05,p.z,.22)}
   if(prev&&i!==2&&p.z-prev.z> -4.1){ /* bridging gaps intentionally remain jumpable */ }
@@ -183,6 +200,11 @@ function makeStage(map){
  const boxes=map.boxes.map(b=>makeBox(root,b,Math.max(0,...map.platforms.filter(p=>Math.abs(b.x-p.x)<p.w/2&&Math.abs(b.z-p.z)<p.d/2).map(p=>p.y))));
  const enemies=map.enemies.map(e=>makeEnemy(root,e,e.type==='flying'?1.25:(Math.max(0,...map.platforms.filter(p=>Math.abs(e.x-p.x)<p.w/2&&Math.abs(e.z-p.z)<p.d/2).map(p=>p.y)))));
  const hero=makeAvatar(root),boss=makeBoss(root,map.boss,Boolean(map.n));boss.root.visible=false;
+ // Cheap readable contact shadows: no expensive real-time shadow map in AR.
+ const shadowMat=new T.MeshBasicMaterial({color:0x0d2634,transparent:true,opacity:.27,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
+ const shadow=(x,z,size=1)=>{const o=mesh(new T.CircleGeometry(.35,24),shadowMat.clone(),x,.046,z,root);o.rotation.x=-P/2;o.scale.set(size,1,.67);o.castShadow=false;return o};
+ const heroShadow=shadow(0,0,1.1);
+ const enemyShadows=map.enemies.map(e=>shadow(e.x,e.z,.75));
  // A bright, depth-independent locator guarantees that a correctly rendered
  // WebXR scene always has a recognizable object at the detected floor point.
  const previewBeacon=group(root,0,.105,.10);
