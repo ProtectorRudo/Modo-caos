@@ -102,4 +102,23 @@ caseOf('invisible collider still reflects near-center shots and misses outside i
  s.ball={x:-1.6,y:.35,z:2.878,vx:0,vy:0,vz:5};s.phase='playing';C.step(s);
  assert.equal(s.score[1],1,'collider remains fair and does not cover the entire arena');
 });
+caseOf('long-court anchor pins near goal to one real-world hit under rotation',()=>{
+ for(const yaw of [-2,-.3,0,.95,2.6]){
+  const hit={x:.31,y:-.04,z:-.88},scale=.56,depthStretch=1.18;
+  const pose=C.anchoredArena(hit,yaw,0,{x:0,z:0},scale,depthStretch);
+  const depth=C.bounds.FRONT*scale*depthStretch;
+  assert.ok(Math.abs(pose.x+Math.sin(yaw)*depth-hit.x)<1e-8);
+  assert.ok(Math.abs(pose.z+Math.cos(yaw)*depth-hit.z)<1e-8);
+  assert.ok(Number.isFinite(pose.rotation));
+ }
+});
+caseOf('first rival is more readable and slower ball offers time to react',()=>{
+ assert.ok(C.profiles[0].pace<=3.65,'beginner flight should be tuned for real phone aiming');
+ assert.ok(C.profiles[0].pace<C.profiles[3].pace);
+ for(const pr of C.profiles)assert.ok(pr.pace<=5&&pr.pace>=3.5);
+ const s=C.create();C.start(s);s.phase='playing';
+ s.ball={x:0,y:1.2,z:0,vx:0,vy:0,vz:C.profiles[0].pace};
+ const expected=(C.bounds.FRONT-C.bounds.R)/C.profiles[0].pace;
+ assert.ok(expected>.79&&expected<.84,'first half of a center serve should provide ~.80 s to react');
+});
 console.log('CUADRANTE core PASS:',tests.length,'simulations');
