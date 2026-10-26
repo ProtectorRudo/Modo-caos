@@ -122,8 +122,18 @@
     else state[m.key]='fallback';
    }
   }
-  function load(){if(!root.fetch)return;for(const m of models)fetchModel(m)}
-  function ready(){return !!loaded.desk&&!!loaded.mixer}
+  // V36 mobile loading budget: only the active mixer/CDJ geometry is fetched.
+   // Horse skinning has its own single bounded GLB fetch. Legacy props remain
+   // in the parser catalogue for static provenance tests, but no scene uses them.
+   const active=new Set(['mixer','cdj','turntable']);
+   function load(){
+     if(!root.fetch)return;
+     for(const m of models){
+       if(active.has(m.key))fetchModel(m);
+       else state[m.key]='unused-v36';
+     }
+   }
+  function ready(){return !!loaded.mixer}
   function draw(mesh,surface,opts=null){
    if(!ready())return false;
    // V34 draws an independent dark worktop and relocates the mixer above it;

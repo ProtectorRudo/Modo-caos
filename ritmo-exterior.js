@@ -46,75 +46,62 @@
   }
   function led(x,y,z,c,r=.008){cuboid(illum,x,y,z,r,r,.006,c,c,.85,3)}
   function truss(size,t,pulse,quality){
-   // V35: remove the two huge side antenna poles seen in the Android
-   // screenshots. Compact stage-mounted light bar, with two visible
-   // brackets fixed TO the screen, not sticks protruding from the floor.
-   const side=size*1.45+.045,z=-1.89,roof=.99;
-   for(const sign of [-1,1]){
-    const x=sign*side;
-    beam([x,.760,z],[x,roof-.02,z],.010,[.29,.39,.47]);
-    cuboid(mesh,x,.745,z,.041,.027,.061,S,M,1);
-    const col=sign<0?P:C;
-    annulus(illum,x,roof-.058,z+.065,.020,.029,col,.32+.39*pulse,16,true);
-   }
-   if(!props?.drawPart('truss',mesh,surface,{
-     scale:.325,offset:[0,roof-.082,z]})){
-    beam([-side,roof,z],[side,roof,z],.014,M);
-    beam([-side,roof-.039,z],[side,roof-.039,z],.008,[.39,.49,.57]);
-   }
-   if(quality>0){
+    // Compact concert lighting positioned above the display.
+    const half=(size*4+.29)*.415,z=-1.98,roof=1.365;
     for(const sign of [-1,1]){
-     const x=sign*(side-.13),col=sign>0?C:P;
-     const shake=Math.sin(t*.85+sign*.60)*.042;
-     surface(illum,[x-.010,roof-.110,z+.065],
-       [x+.010,roof-.110,z+.065],
-       [sign*.15+shake,.57,-1.69],
-       [sign*.04+shake,.57,-1.69],
-       col,.028+.044*pulse,3);
+      const x=sign*half;
+      beam([x,.61,z],[x,roof,z],.011,[.17,.26,.34]);
+      cuboid(mesh,x,.605,z,.035,.026,.068,[.14,.20,.27],[.28,.37,.43],1);
+      annulus(illum,x,roof-.018,z+.033,.011,.023,sign<0?P:C,.32+.31*pulse,16,true);
     }
-   }
-  }
-  function ledWall(t,low,mid,combo,quality){
-   // Dim center / energized edges: the DJ horse stays readable against an
-   // animated music-wave background, not an overexposed checkerboard.
-   const y=.705,z=-1.873,w=.78,h=.405;
-   if(!props?.drawPart('led-panel',mesh,surface,[
-    {scale:.395,offset:[-.198,.500,-1.925]},
-    {scale:.395,offset:[ .198,.500,-1.925]}
-   ]))cuboid(mesh,0,y,z,w,h,.030,[.035,.065,.10],M,1);
-   // A dark central niche gives proper foreground / background separation.
-   cuboid(mesh,0,.690,z+.045,.288,.365,.006,[.011,.024,.049],[.027,.036,.064],1);
-   const cols=quality===0?12:18,rows=quality===0?5:7;
-   for(let i=0;i<cols;i++){
-    const x=(i+.5-cols/2)*w*.91/cols;
-    const edge=Math.min(1,Math.abs(x)/(.35));
-    const wave=.5+.5*Math.sin(t*3.65+i*.64);
-    const envelope=(.17+.44*low+.22*mid)+.18*wave;
-    const raised=Math.min(rows,Math.ceil(envelope*rows));
-    for(let j=0;j<rows;j++){
-     const yy=y-h*.41+j*h*.82/(rows-1);
-     const beat=.5+.5*Math.sin(t*6.2+i*.6+j*.33);
-     const col=(i+j)%6===0?P:i%5===0?V:C;
-     const on=j<=raised;
-     const alpha=(on?.13+.19*beat:.045)*(.20+.80*edge);
-     cuboid(illum,x,yy,z+.062,w*.61/cols,h*.47/rows,.006,col,col,alpha,3);
+    beam([-half,roof,z],[half,roof,z],.013,[.35,.43,.51]);
+    beam([-half,roof-.042,z+.032],[half,roof-.042,z+.032],.009,[.19,.28,.37]);
+    for(const sign of [-1,1]){
+      const x=sign*(half*.68),c=sign<0?P:C;
+      cuboid(mesh,x,roof-.118,z+.072,.079,.090,.083,[.034,.053,.071],[.22,.29,.35],1);
+      disc(mesh,x,roof-.080,z+.120,.023,[.075,.11,.16],1,16,true);
+      annulus(illum,x,roof-.080,z+.124,.012,.023,c,.63+.20*pulse,16,true);
+      if(quality>0){
+        const sway=.085*Math.sin(t*.9+sign);
+        surface(illum,[x-.020,roof-.097,z+.131],[x+.020,roof-.097,z+.131],
+          [x+sway+.065,.79,-1.65],[x+sway-.065,.79,-1.65],c,.034+.038*pulse,3);
+      }
     }
-   }
-   // Thin continuous waveform, travelling from the center to the edges.
-   for(let sign of [-1,1])for(let i=0;i<7;i++){
-    const x=sign*(.16+i*.029),amp=.015+.021*low;
-    const yy=.69+amp*Math.sin(t*6.8+i*.73+sign);
-    cuboid(illum,x,yy,z+.067,.014,.010,.008,sign>0?C:P,
-     sign>0?C:P,.26+.26*low,3);
-   }
-   if(combo>=10){
-    const c=combo>=25?P:C;
-    for(const sign of [-1,1])
-     cuboid(illum,sign*.366,y,z+.070,.010,.355,.006,c,c,
-      Math.min(.83,.32+combo*.009),3);
-   }
   }
-  function decks(t,low,quality){
+   function ledWall(size,t,low,mid,combo,quality){
+    // One elevated framed LED display, with no black central obstruction.
+    const z=-1.932,w=Math.min(1.06,size*4+.115),base=.57,h=.713,half=w*.5;
+    cuboid(mesh,0,base,z,w,h,.026,[.030,.046,.070],[.10,.17,.22],1);
+    cuboid(mesh,0,base+.021,z+.020,w-.041,h-.044,.009,[.012,.030,.056],[.021,.049,.081],1);
+    for(const sign of [-1,1]){
+      cuboid(mesh,sign*(half-.010),base-.010,z+.037,.020,h+.028,.045,[.22,.32,.39],[.38,.53,.61],1);
+      cuboid(illum,sign*(half-.024),base+.009,z+.048,.006,h-.018,.006,
+        sign<0?P:C,sign<0?P:C,.26+.18*low,3);
+    }
+    for(const yy of [base-.014,base+h-.004])
+      cuboid(mesh,0,yy,z+.041,w+.022,.022,.042,[.17,.25,.34],[.40,.51,.60],1);
+    cuboid(illum,0,base+h+.004,z+.047,w-.065,.006,.006,C,C,.31+.17*low,3);
+    const count=quality===0?18:28,usable=w*.84,barW=usable/count*.67;
+    for(let i=0;i<count;i++){
+      const x=(i+.5-count*.5)*(usable/count);
+      const wave=.5+.5*Math.sin(i*.72+t*4.3),texture=.5+.5*Math.sin(t*3.2-i*.35);
+      const energy=Math.min(1,.12+.48*low+.23*mid+.22*wave);
+      const high=.060+.41*(.45*energy+.35*wave+.20*texture);
+      const atten=.38+.62*Math.min(1,Math.abs(x)/(w*.28));
+      const c=i%9===0?P:i%7===0?V:C,y=base+.081;
+      cuboid(illum,x,y,z+.057,barW,high,.006,c,c,(.19+.40*energy)*atten,3);
+      cuboid(illum,x,y+high+.014,z+.058,barW,.010,.006,W,W,.16+.18*low,3);
+    }
+    for(let j=0;j<3;j++)
+      cuboid(illum,0,base+h-.122+j*.038,z+.059,w*.81-j*.067,.004,.007,
+        j===1?P:C,j===1?P:C,.12+.10*mid,3);
+    if(combo>=10)for(const sign of [-1,1]){
+      const c=combo>=25?P:C;
+      cuboid(illum,sign*(half-.034),base+.048,z+.065,.011,h-.090,.007,
+        c,c,.25+.28*Math.min(1,combo/30),3);
+    }
+  }
+   function decks(t,low,quality){
    const z=-1.35,y=.314;
    cuboid(mesh,0,.235,z,.59,.074,.247,S,M);
    cuboid(mesh,0,y-.005,z,.605,.014,.253,[.04,.07,.10],W);
@@ -205,17 +192,22 @@
    beam([0,h-.054,z+.080],[.019,h-.047,z+.079],.003,[.20,.13,.13]);
   }
   function fallbackBomber(t,low){
-   const bob=Math.sin(t*5.2)*(.004+.007*low),z=-1.54;
-   // Torso-only fallback. The horse mask stays the sole head if GLB fails.
-   cuboid(mesh,0,.460+bob,z,.205,.263,.105,[.045,.061,.097],[.10,.14,.21],1);
-   for(const sign of [-1,1]){
-    const shoulder=[sign*.113,.586+bob,z+.015];
-    const elbow=[sign*.273,.429+bob,z+.060];
-    const hand=[sign*.168,.338+bob,-1.403];
-    beam(shoulder,elbow,.041,[.050,.078,.127]);
-    beam(elbow,hand,.035,[.065,.098,.156]);
-    ball(hand[0],hand[1],hand[2],.016,[.68,.42,.27],8,5);
-   }
+    const bob=Math.sin(t*5.2)*(.004+.007*low),z=-1.545;
+    // Fallback is a real mixing pose: elbows close to the jacket, hands on
+    // their turntables. Previous wide elbows visibly resembled hands on hips.
+    cuboid(mesh,0,.455+bob,z,.206,.260,.105,
+      [.045,.061,.097],[.10,.14,.21],1);
+    for(const sign of [-1,1]){
+      const phase=t*5.0+(sign>0?1.65:0),sweep=Math.sin(phase);
+      const shoulder=[sign*.110,.585+bob,z+.012];
+      const elbow=[sign*(.196+.006*sweep),.492+bob,z+.071];
+      const hand=[sign*(.164+.013*sweep),.394+bob+.009*sweep,-1.403];
+      beam(shoulder,elbow,.036,[.051,.079,.130]);
+      beam(elbow,hand,.027,[.065,.099,.157]);
+      cuboid(mesh,hand[0],hand[1]+.005,hand[2]-.012,
+        .035,.021,.040,[.079,.11,.16],[.14,.18,.23],1);
+      ball(hand[0],hand[1],hand[2]+.017,.018,[.68,.42,.27],8,5);
+    }
   }
   // 3D horse-head mask, styled for the Quaternius Punk character.
   // Not falsely attributed to Quaternius: the mask is original procedural art.
@@ -272,32 +264,27 @@
     combo>=20?P:C,.35+.26*low,3);
   }
   function stacks(size,low,quality){
-   // Match x to the real stage width: speakers stand ON grounded plinths.
-   const positions=[-1,1].map(sign=>({x:sign*(size*2+.125),z:-1.56,sign}));
-   for(const {x,z,sign} of positions){
-    cuboid(mesh,x,.020,z,.190,.040,.223,[.030,.044,.066],[.24,.32,.38],1);
-    cuboid(mesh,x,.206,z-.064,.024,.32,.024,S,M,1);
-    // Bracket visibly connecting upper cabinet to the post.
-    beam([x,.200,z-.09],[x,.326,z-.09],.009,[.35,.43,.50]);
-   }
-   const subs=positions.map(({x,z})=>({scale:.21,offset:[x,.038,z]}));
-   const mids=positions.map(({x,z})=>({scale:.19,offset:[x,.252,z]}));
-   const sub=props?.drawPart('speaker-sub',mesh,surface,subs);
-   const mid=props?.drawPart('speaker-mid',mesh,surface,mids);
-   if(!sub||!mid)for(const {x,z} of positions){
-    if(!sub)cuboid(mesh,x,.105,z,.166,.178,.153,S,M,1);
-    if(!mid)cuboid(mesh,x,.302,z,.153,.142,.142,S,M,1);
-   }
-   for(const {x,z,sign} of positions)for(const y of [.139,.329]){
-    // Cabinet cones + inset grille, not hovering colored circles.
-    disc(mesh,x,y,z+.106,.050,[.035,.045,.061],1,20);
-    annulus(mesh,x,y,z+.109,.030,.045,[.20,.27,.32],1,20);
-    disc(mesh,x,y,z+.111,.021,[.069,.092,.110],1,18);
-    annulus(illum,x,y,z+.113,.033,.040,sign<0?P:C,
-     Math.min(.61,.20+.22*low),18,true);
-   }
+    // Rebuilt PA: both cabinets sit inside the riser, with vertical cones.
+    const half=(size*4+.29)/2,dx=Math.max(.36,half-.108),z=-1.57;
+    for(const sign of [-1,1]){
+      const x=sign*dx,c=sign<0?P:C;
+      cuboid(mesh,x,.095,z,.193,.027,.208,[.030,.042,.059],[.24,.31,.38],1);
+      for(const box of [{y:.125,h:.217,r:.052},{y:.356,h:.183,r:.045}]){
+        cuboid(mesh,x,box.y,z,.173,box.h,.166,[.026,.037,.054],[.12,.17,.22],1);
+        cuboid(mesh,x,box.y+.012,z+.087,.153,box.h-.025,.009,
+          [.018,.029,.041],[.031,.044,.058],1);
+        const cy=box.y+box.h*.57;
+        disc(mesh,x,cy,z+.095,box.r,[.043,.059,.077],1,22,true);
+        annulus(mesh,x,cy,z+.098,box.r*.65,box.r*.92,[.27,.34,.40],1,24,true);
+        disc(mesh,x,cy,z+.100,box.r*.47,[.065,.084,.107],1,20,true);
+        annulus(illum,x,cy,z+.104,box.r*.76,box.r*.87,c,.40+.31*low,24,true);
+      }
+      disc(mesh,x,.487,z+.105,.012,[.30,.39,.46],1,16,true);
+      cuboid(illum,x+sign*.085,.140,z+.065,.006,.373,.008,c,c,.32+.22*low,3);
+      cuboid(mesh,x,.544,z,.156,.015,.178,[.18,.24,.31],[.35,.43,.51],1);
+    }
   }
-  function render(size,t,game,a){
+   function render(size,t,game,a){
    if(!Number.isFinite(size)||size<.18||size>.40||!Number.isFinite(t))return;
    const quality=getQuality(),low=clamp(a.low||0,0,1),mid=clamp(a.mid||0,0,1);
    const combo=game?.combo||0,pulse=clamp((low+mid)*.63,0,1);
@@ -318,18 +305,11 @@
    cuboid(illum,0,.092,-1.268,stageWidth-.04,.008,.009,
     [.05,.72,.90],C,.43+.14*low,3);
    // CC0 riser supplies structural details but stays under the rest.
-   if(quality>0)props?.drawPart('riser',mesh,surface,{scale:[.34,.21,.36],offset:[0,.011,stageZ]});
-   ledWall(t,low,mid,combo,quality);
-   if(quality>0)props?.drawPart('led-magenta',mesh,surface,
-    {scale:.28,offset:[-.275,.508,-1.952]});
+   // The built-in riser already covers the entire stage footprint.
+   ledWall(size,t,low,mid,combo,quality);
+   // V36 uses one procedural display and one raised truss. Imported fixtures
+   // were crossing the display at different scales.
    truss(size,t,pulse,quality);
-   if(quality>0){
-    props?.drawPart('moving-head',mesh,surface,[
-     {scale:.18,offset:[-.31,.786,-1.78]},
-     {scale:.18,offset:[ .31,.786,-1.78]}
-    ]);
-    props?.drawPart('strobe',mesh,surface,{scale:.22,offset:[0,.91,-1.77]});
-   }
    stacks(size,low,quality);
    // Joint-weighted CPU skinning of Quaternius GLB. No UV-shredding or
    // hand-written world-space arm stretching. A solid bomber is the fallback.
@@ -345,12 +325,13 @@
      .009,[.15,.19,.27]);
    }
    beam([0,.590+bob,-1.462],[0,.438+bob,-1.456],.004,[.35,.44,.56]);
-   if(props?.ready()){
-    props.draw(mesh,surface,{deskOnly:true});
-   }else{
-    // Old fallback is still grounded but the new control deck sits higher.
-    cuboid(mesh,0,.286,-1.45,.58,.135,.285,S,M,1);
-   }
+   // A single closed console supports the turntables; the imported desk
+   // contained a duplicate pale tabletop and floating side shelves.
+   cuboid(mesh,0,.105,-1.450,.560,.235,.285,
+     [.034,.050,.071],[.14,.20,.26],1);
+   for(const sign of [-1,1])
+     cuboid(mesh,sign*.267,.111,-1.440,.016,.237,.273,
+       [.12,.17,.24],[.26,.35,.43],1);
    const workY=.355,workZ=-1.437,workWidth=.605,workDepth=.292;
    // Real visible black worktop + metal lip + subtle colored reflections.
    cuboid(mesh,0,workY,workZ,workWidth,.025,workDepth,
@@ -404,24 +385,25 @@
     cuboid(illum,xx,.385,-1.393,.045,.006,.022,col,col,.25+.35*low,3);
    }
    // Narrow dark facade, ~34% shorter than V31; controls remain visible.
-   const facade=props?.drawPart('facade',mesh,surface,{
-    scale:[.36,.220,.35],offset:[0,-.016,-1.283]});
-   if(!facade)cuboid(mesh,0,.061,-1.28,.54,.142,.045,S,M,1);
-   cuboid(illum,0,.147,-1.256,.46,.009,.008,P,P,.39+.20*low,3);
+   // A single flush fascia; removed the oversized imported front slab.
+   cuboid(mesh,0,.105,-1.294,.500,.193,.023,
+     [.039,.060,.084],[.16,.23,.31],1);
+   cuboid(mesh,0,.123,-1.277,.462,.148,.008,
+     [.025,.035,.057],[.055,.076,.11],1);
+   cuboid(illum,0,.267,-1.262,.449,.008,.006,P,P,.39+.20*low,3);
    // A reactive, visible front equalizer replaces the nearly flat magenta
    // box. Animated even during positioning (uses the stage clock).
    for(let i=0;i<17;i++){
     const x=(i-8)*.025,phase=t*6.3+i*.62;
     const height=.013+.069*(.35+.65*Math.sin(phase)*Math.sin(phase))*(.6+.4*low);
     const col=i%4===0?C:i%4===1?P:V;
-    cuboid(illum,x,.068,-1.230,.012,height,.007,col,col,.34+.27*low,3);
+    cuboid(illum,x,.137,-1.261,.012,height,.007,col,col,.34+.27*low,3);
    }
-   if(quality>0){
-    props?.drawPart('laptop',mesh,surface,{scale:.155,offset:[-.258,.378,-1.63]});
-    props?.drawPart('headphones',mesh,surface,{scale:.15,offset:[.245,.374,-1.49]});
-    props?.drawPart('monitor',mesh,surface,{scale:.18,offset:[.31,.106,-1.66]});
-    props?.drawPart('laser',mesh,surface,{scale:.19,offset:[-.395,.103,-1.78]});
-    props?.drawPart('smoke',mesh,surface,{scale:.17,offset:[.400,.102,-1.79]});
+   // Empty sides are intentional: no accessory crosses the PA or the DJ.
+   if(quality>0)for(const sign of [-1,1]){
+     const x=sign*.328,c=sign<0?P:C;
+     cuboid(mesh,x,.108,-1.731,.082,.047,.072,[.06,.09,.12],[.22,.29,.35],1);
+     annulus(illum,x,.164,-1.728,.020,.030,c,.23+.19*low,14);
    }
    if(combo>=10){
     for(const sign of [-1,1]){
@@ -439,7 +421,7 @@
     }
    }
   }
-  return{render,version:'HORSE DJ V35'};
+  return{render,version:'HORSE DJ V36'};
  }
- root.RitmoExterior={create,version:'HORSE DJ V35'};
+ root.RitmoExterior={create,version:'HORSE DJ V36'};
 })(window);
