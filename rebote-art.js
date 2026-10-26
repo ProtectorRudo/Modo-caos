@@ -140,6 +140,25 @@ export function createReboteArt(T,scene){
  const screenMat=new T.MeshBasicMaterial({map:scoreTexture,transparent:true,side:T.DoubleSide,depthWrite:false});
  const screenG=useGeometry(new T.PlaneGeometry(1.75,.39));
  deco(scoreboard,screenG,screenMat,0,0,.058);
+ // The arena scoreboard is a real 3D texture and updates only when the
+ // opponent changes, never by rasterizing text on each animation frame.
+ let scoreKey='';
+ function syncArenaBillboard(g){
+  const cfg=g.mode==='duelo'&&g.enemies?.find(e=>e.alive&&e.duel);
+  const label=cfg?('RIVAL '+(g.duelLevel+1)+'/6 · '+cfg.name):
+    g.state==='finished'?(g.victory?'CAMPEÓN DEL CAOS':'REVANCHA'):
+    'REBOTE MORTAL';
+  if(label===scoreKey)return;
+  scoreKey=label;
+  c.clearRect(0,0,512,128);
+  c.fillStyle='#071b29';c.fillRect(0,0,512,128);
+  c.strokeStyle='#57fbe4';c.lineWidth=5;c.strokeRect(8,8,496,112);
+  c.fillStyle='#66eeda';c.font='900 25px system-ui,sans-serif';
+  c.textAlign='center';c.textBaseline='middle';c.fillText('MODO CAOS',256,32);
+  c.fillStyle='#edfff9';c.font='900 42px system-ui,sans-serif';
+  c.fillText(label,256,87,472);
+  scoreTexture.needsUpdate=true;
+ }
  const worldGlimmers=[rivalRing,clearanceRing,...pylons.map(p=>p.userData.bulb)];
  const worldPropsCount=arenaWorld.children.length+tiles.children.length+rivalDeck.children.length+
    pylons.reduce((sum,p)=>sum+p.children.length,0)+scoreboard.children.length;
@@ -361,6 +380,9 @@ export function createReboteArt(T,scene){
   clearanceRing.material.opacity=.54+.23*Math.sin(time*1.4)**2;
   for(const p of pylons)p.userData.bulb.scale.setScalar(.84+.11*Math.sin(time*2+p.position.x));
   arenaWorld.visible=preview||g.state==='ready'||g.state==='playing'||g.state==='finished';
+  syncArenaBillboard(g);
+  const rivalTint=[0x54f0db,0xffb453,0xd98fff,0x5c9aff,0xff704e,0xffd76b];
+  scAmber.color.setHex(g.mode==='duelo'?rivalTint[g.duelLevel%rivalTint.length]:0xffba65);
   beaconHead.rotation.y=time*2.2;
   beaconHead.position.y=.98+Math.sin(time*4)*.08;
   ringMat.opacity=pulse;center.rotation.y=time*.24;
