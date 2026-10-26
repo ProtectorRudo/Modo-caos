@@ -14,8 +14,8 @@ root.CuadranteArt=function(T){
   const tealGlow=new T.MeshBasicMaterial({color:C,transparent:true,opacity:.2,depthWrite:false,blending:T.AdditiveBlending});
   const amberGlow=new T.MeshBasicMaterial({color:O,transparent:true,opacity:.23,depthWrite:false,blending:T.AdditiveBlending});
   scene.add(new T.HemisphereLight(0xb8e7ff,0x08121b,2.0));
-  const overhead=new T.DirectionalLight(0xd9f0ff,2.8);overhead.position.set(-3,8,5);scene.add(overhead);
-  const backlight=new T.PointLight(0xff6a20,15,8,1.8);backlight.position.set(0,1.25,-2.9);root.add(backlight);
+  const overhead=new T.DirectionalLight(0xd9f0ff,1.75);overhead.position.set(-3,8,5);scene.add(overhead);
+  const backlight=new T.PointLight(0xff7438,4.0,5.5,1.8);backlight.position.set(0,1.25,-2.9);root.add(backlight);
   // NEON ARENA: an OPEN arena anchored to the real floor. No ceiling,
   // opaque rear wall or full-height side walls blocking the AR camera.
   const openArena=new T.Group();openArena.name='cuadrante-open-arena';root.add(openArena);
@@ -128,15 +128,15 @@ root.CuadranteArt=function(T){
   defenseShield.visible=false;defenseShield.position.set(0,1.2,2.84);
   const shieldFaceMat=new T.MeshBasicMaterial({color:0x28f9ed,transparent:true,
    opacity:0,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
-  const shieldFace=new T.Mesh(new T.PlaneGeometry(.76,.76),shieldFaceMat);
+  const shieldFace=new T.Mesh(new T.CircleGeometry(.52,6),shieldFaceMat);
   defenseShield.add(shieldFace);
   const shieldEdgeMat=new T.LineBasicMaterial({color:0x9bffff,transparent:true,
    opacity:0,depthWrite:false,blending:T.AdditiveBlending});
-  const shieldEdges=new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(.78,.78,.055)),shieldEdgeMat);
+  const shieldEdges=new T.LineSegments(new T.EdgesGeometry(new T.CylinderGeometry(.52,.52,.035,6,1)),shieldEdgeMat);
   defenseShield.add(shieldEdges);
   const shieldRingMat=new T.MeshBasicMaterial({color:0x88ffff,transparent:true,
    opacity:0,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
-  const shieldRing=new T.Mesh(new T.RingGeometry(.36,.38,48),shieldRingMat);
+  const shieldRing=new T.Mesh(new T.RingGeometry(.39,.41,6),shieldRingMat);
   shieldRing.position.z=-.065;defenseShield.add(shieldRing);
   // An anchored, tiny reticle inside the tunnel shows what the phone is
   // defending. The on-screen sight is only UI; this marker is world-locked.
@@ -155,11 +155,37 @@ root.CuadranteArt=function(T){
    aimMarker.visible=aimMode;defenseShield.visible=false;shieldLife=0;
   }
   const orb=new T.Group();root.add(orb);
-  const coreBall=material(0x14202b,.78,.17,0x39200a,.68);
-  const sphere=new T.Mesh(new T.IcosahedronGeometry(.115,3),coreBall);orb.add(sphere);
-  const shell=new T.Mesh(new T.IcosahedronGeometry(.132,2),new T.MeshBasicMaterial({color:O,wireframe:true,transparent:true,opacity:.28}));orb.add(shell);
-  for(const rot of [0,Math.PI/2,Math.PI*.3]){const ring=new T.Mesh(new T.TorusGeometry(.134,.013,6,40),orange);ring.rotation.set(rot,rot*.35,rot*.55);orb.add(ring)}
-  const ballLight=new T.PointLight(0xff8d3b,2.8,2.5,2);orb.add(ballLight);
+  // Energy sphere: readable solid core, thin corona, restrained accent rings.
+  // Physics radius remains exactly CuadranteCore.R = .117 metres.
+  const coreBall=new T.MeshStandardMaterial({color:0xffd5a5,metalness:.19,roughness:.15,
+   emissive:0xff681e,emissiveIntensity:1.9});
+  const sphere=new T.Mesh(new T.IcosahedronGeometry(.113,3),coreBall);orb.add(sphere);
+  const shell=new T.Mesh(new T.IcosahedronGeometry(.121,2),new T.MeshBasicMaterial({
+   color:0xffae71,wireframe:true,transparent:true,opacity:.29,depthWrite:false
+  }));orb.add(shell);
+  const energyRingMat=new T.MeshBasicMaterial({color:0xffd49c,transparent:true,opacity:.62,
+   depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending});
+  const orbitRings=[];
+  for(const rot of [0,Math.PI*.55]){
+   const ring=new T.Mesh(new T.TorusGeometry(.143,.005,5,36),energyRingMat);
+   ring.rotation.set(rot,rot*.20,rot*.46);orb.add(ring);orbitRings.push(ring);
+  }
+  const haloCanvas=typeof document!=='undefined'?document.createElement('canvas'):null;
+  let corona=null;
+  if(haloCanvas){
+   haloCanvas.width=64;haloCanvas.height=64;
+   const ctx=haloCanvas.getContext('2d');
+   if(ctx){
+    const g=ctx.createRadialGradient(32,32,2,32,32,32);
+    g.addColorStop(0,'rgba(255,255,238,.8)');g.addColorStop(.23,'rgba(255,173,76,.52)');
+    g.addColorStop(.51,'rgba(255,106,26,.17)');g.addColorStop(1,'rgba(255,80,25,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,64,64);
+    corona=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(haloCanvas),
+     transparent:true,depthWrite:false,opacity:.78,blending:T.AdditiveBlending}));
+    corona.scale.set(.55,.55,1);orb.add(corona);
+   }
+  }
+  const ballLight=new T.PointLight(0xff9944,1.35,1.6,2);orb.add(ballLight);
   const trail=[];for(let i=0;i<25;i++){
    const m=new T.Mesh(new T.SphereGeometry(.064*(1-i/33),6,5),new T.MeshBasicMaterial({color:i%4?0xff6a1c:0xffd5a1,transparent:true,opacity:Math.pow(1-i/25,1.8)*.39,depthWrite:false,blending:T.AdditiveBlending}));
    m.visible=false;root.add(m);trail.push(m)
@@ -228,7 +254,10 @@ root.CuadranteArt=function(T){
     targetMat.opacity=.68+.22*Math.sin(previewTime*4);
    }
    const b=s.ball;orb.position.set(b.x,b.y,b.z);sphere.rotation.y+=dt*3.5;shell.rotation.x+=dt*1.25;shell.rotation.y+=dt*2.3;
-   orb.scale.setScalar(1+Math.sin(s.clock*16)*.04+smashPulse*.11);you.position.x=s.player.x;you.position.y=s.player.y;
+   orb.scale.setScalar(1+Math.sin(s.clock*13)*.023+smashPulse*.08);
+   if(corona)corona.material.opacity=.61+smashPulse*.23;
+   orbitRings[0].rotation.y+=dt*1.7;orbitRings[1].rotation.x+=dt*1.2;
+   you.position.x=s.player.x;you.position.y=s.player.y;
    smashPulse=Math.max(0,smashPulse-dt*3.3);
    aimMarker.visible=aimMode&&(s.phase==='playing'||s.phase==='serve');
    if(aimMode){
@@ -268,7 +297,8 @@ root.CuadranteArt=function(T){
    enemy.position.x=s.enemy.x;enemy.position.y=s.enemy.y;
    you.userData.core.rotation.y+=dt*3.4;enemy.userData.core.rotation.z-=dt*2.7;
    impact=Math.max(0,impact-dt*4.5);you.userData.halo.material.opacity=.07+impact*.29;
-   backlight.intensity=11+Math.sin(s.clock*2)*3+(s.score[0]===4||s.score[1]===4?6:0);
+   backlight.intensity=4.0+Math.sin(s.clock*2)*.55+(s.score[0]===4||s.score[1]===4?1.1:0);
+   portalAura.material.opacity=.18+.14*Math.sin(s.clock*2.2)+(s.score[0]===4||s.score[1]===4?.12:0);
    if((previousPhase==='playing'&&s.phase==='serve')||s.tick<previousTick){history.length=0;trailSample=0}
    previousPhase=s.phase;previousTick=s.tick;
    trailSample+=dt;
@@ -300,6 +330,7 @@ root.CuadranteArt=function(T){
   function setQuality(level){
    const basic=level==='low';
    ballLight.visible=!basic;backlight.visible=!basic;
+   if(corona)corona.visible=!basic;
    const count=basic?9:level==='medium'?16:25;
    trail.forEach((m,i)=>{if(i>=count)m.visible=false});
    scene.userData.trailLimit=count;
