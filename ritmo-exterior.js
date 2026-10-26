@@ -5,11 +5,22 @@
  */
 (function(root){
  function create(api){
-  const {mesh,illum,surface,cuboid,annulus,disc,getQuality}=api;
+  const {mesh,illum,getQuality}=api;
+  // Scenery-only spatial recession. Score lane back edge is z=-1.15;
+  // a 22 cm empty depth gap keeps arriving notes clear of the facade.
+  // The AR board, hit tests, camera and pads are not translated.
+  const BACK=.22;
+  const move=p=>[p[0],p[1],p[2]-BACK];
+  const surface=(dst,A,B,C,D,...rest)=>
+    api.surface(dst,move(A),move(B),move(C),move(D),...rest);
+  const cuboid=(dst,x,y,z,...rest)=>api.cuboid(dst,x,y,z-BACK,...rest);
+  const annulus=(dst,x,y,z,...rest)=>api.annulus(dst,x,y,z-BACK,...rest);
+  const disc=(dst,x,y,z,...rest)=>api.disc(dst,x,y,z-BACK,...rest);
   const M=[.28,.37,.46],S=[.014,.025,.046],C=[.08,.84,1],P=[1,.19,.46],V=[.48,.21,1],W=[.85,.95,1];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   // Locally vendored CC0 props are optional; procedural DJ booth remains fallback.
   const props=root.RitmoImportedProps?.create();
+  const skeletal=root.RitmoSkeletalDJ?.create();
   function ball(x,y,z,r,color,seg=10,rings=7){
    for(let j=0;j<rings;j++){
     const th=j*Math.PI/rings,ph=(j+1)*Math.PI/rings;
@@ -35,15 +46,15 @@
   }
   function led(x,y,z,c,r=.008){cuboid(illum,x,y,z,r,r,.006,c,c,.85,3)}
   function truss(size,t,pulse,quality){
-   const side=size*2+.12,z=-1.78,roof=.985;
+   const side=size*2+.12,z=-1.78,roof=1.08;
    // One continuous premium frame. No duplicate old truss crossing the DJ.
    for(const sign of [-1,1]){
     const x=sign*side;
     cuboid(mesh,x,.018,z,.105,.034,.145,S,M,1);
     beam([x,.035,z],[x,roof,z],.015,[.18,.26,.32]);
     beam([x-sign*.027,.035,z],[x-sign*.027,roof,z],.006,[.41,.49,.54]);
-    for(let j=0;j<3;j++){
-     const yy=.22+j*.22;
+    for(let j=0;j<2;j++){
+     const yy=.32+j*.25;
      beam([x,yy,z],[x-sign*.027,yy+.19,z],.004,[.39,.45,.52]);
     }
    }
@@ -269,7 +280,7 @@
    const positions=[-1,1].map(sign=>({x:sign*(size*2+.125),z:-1.56,sign}));
    for(const {x,z,sign} of positions){
     cuboid(mesh,x,.020,z,.190,.040,.223,[.030,.044,.066],[.24,.32,.38],1);
-    cuboid(mesh,x,.242,z-.028,.035,.43,.035,S,M,1);
+    cuboid(mesh,x,.206,z-.064,.024,.32,.024,S,M,1);
     // Bracket visibly connecting upper cabinet to the post.
     beam([x,.200,z-.09],[x,.326,z-.09],.009,[.35,.43,.50]);
    }
@@ -282,8 +293,12 @@
     if(!mid)cuboid(mesh,x,.302,z,.153,.142,.142,S,M,1);
    }
    for(const {x,z,sign} of positions)for(const y of [.139,.329]){
-    annulus(illum,x,y,z+.100,.028,.038,sign<0?P:C,
-      Math.min(.77,.24+.33*low),18,true);
+    // Cabinet cones + inset grille, not hovering colored circles.
+    disc(mesh,x,y,z+.106,.050,[.035,.045,.061],1,20);
+    annulus(mesh,x,y,z+.109,.030,.045,[.20,.27,.32],1,20);
+    disc(mesh,x,y,z+.111,.021,[.069,.092,.110],1,18);
+    annulus(illum,x,y,z+.113,.033,.040,sign<0?P:C,
+     Math.min(.61,.20+.22*low),18,true);
    }
   }
   function render(size,t,game,a){
@@ -313,7 +328,9 @@
     props?.drawPart('strobe',mesh,surface,{scale:.22,offset:[0,.91,-1.77]});
    }
    stacks(size,low,quality);
-   if(!props?.drawCharacter(mesh,surface,t,low,quality,combo))
+   // Joint-weighted CPU skinning of Quaternius GLB. No UV-shredding or
+   // hand-written world-space arm stretching. A solid bomber is the fallback.
+   if(!skeletal?.draw(mesh,surface,t,low,quality,combo))
     fallbackBomber(t,low);
    horseHead(t,low,combo,quality);
    // Bomber collar, neckline, zipper and ribbing are visible against the LCD.
@@ -375,7 +392,7 @@
     }
    }
   }
-  return{render,version:'HORSE DJ V32'};
+  return{render,version:'HORSE DJ V33'};
  }
- root.RitmoExterior={create,version:'HORSE DJ V32'};
+ root.RitmoExterior={create,version:'HORSE DJ V33'};
 })(window);
