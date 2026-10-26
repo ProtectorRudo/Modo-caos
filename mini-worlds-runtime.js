@@ -8,7 +8,7 @@ let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNot
 let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=null;
 let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
 let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePointers=new Map(),pinch=null;
-let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0;
+let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0,arDebugVisible=false;
 let level=0,progress={unlocked:0,best:[null,null],coins:0},settings={sound:true,music:true};
 try{progress={...progress,...JSON.parse(localStorage.getItem('mc-mini-worlds-save-v1')||'{}')}}catch(_){}
 try{settings={...settings,...JSON.parse(localStorage.getItem('mc-mini-worlds-config-v1')||'{}')}}catch(_){}
@@ -44,7 +44,7 @@ async function import3D(){
  return T;
 }
 function clear(){
- renderer?.setAnimationLoop(null);arGuide?.hide();arGuide=null;if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
+ renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
  camera=null;view=null;game=null;placing=false;lockedPose=null;source=null;hasHit=false;
 }
 function renderSetup(){
@@ -102,6 +102,7 @@ function layout(state){
  $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';
  $('recenter').hidden=mode!=='ar'||(state!=='playing'&&state!=='paused');
+ $('arStatus').hidden=mode!=='ar'||(state!=='playing'&&state!=='paused');
  $('positionPad').style.pointerEvents=state==='placing'?'auto':'none';
  if(state==='home')hideModal();
 }
@@ -122,6 +123,11 @@ async function play(modeRequested){
   if(mode==='ar'){
    session=await xrPending;
    await renderer.xr.setSession(session);
+   // THREE draws to XRWebGLLayer, not the DOM-overlay canvas. Keeping
+   // that canvas visible can obscure the native 3D over camera passthrough.
+   document.body.classList.add('mw-immersive-ar');
+   renderer.domElement.style.display='none';
+   console.info('[MINI WORLDS] Immersive native framebuffer; canvas hidden:',!!renderer.xr.getBaseLayer?.());
    const viewer=await session.requestReferenceSpace('viewer');
    hitSource=await session.requestHitTestSource({space:viewer});
    session.addEventListener('end',()=>{if(phase!=='home'){error('El seguimiento AR terminó. Regresando al menú.');home(true)}});
@@ -283,7 +289,13 @@ function frame(t,xrFrame){
  try{renderer.render(view,camera);webglCalls=renderer.info.render.calls}
  catch(e){frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.error('[MINI WORLDS] XR WebGL:',e)}}
  if(mode==='ar'&&xrFrame&&arGuide&&animFrames%3===0){
-  guideState=arGuide.draw(xrFrame,renderer.xr.getReferenceSpace(),stage,placing||phase==='ready',webglCalls===0);
+  guideState=arGuide.draw(xrFrame,renderer.xr.getReferenceSpace(),stage,placing||phase==='ready'||arDebugVisible,webglCalls===0);
+ }
+ if(mode==='ar'&&(phase==='playing'||phase==='paused')&&animFrames%30===0){
+  const presenting=renderer.xr.isPresenting;
+  const layer=!!renderer.xr.getBaseLayer?.();
+  const actual=webglCalls<0?'—':webglCalls;
+  $('arStatus').textContent='AR '+(presenting&&layer?'OK':'SIN CAPA')+' · OBJETOS 3D '+actual+' · '+(arDebugVisible?'OCULTAR GUÍA':'MOSTRAR GUÍA')+(frameFaults?' · ERROR '+frameFaults:'');
  }
  if(mode==='ar'&&placing&&hasHit&&performance.now()-lastDiagnostics>900){
   lastDiagnostics=performance.now();
@@ -302,6 +314,11 @@ function fillLanding(){
 $('demoPlay').addEventListener('click',()=>play('demo'));$('arPlay').addEventListener('click',()=>play('ar'));
 $('fixWorld').onclick=fixWorld;$('begin').onclick=startGame;
 $('pause').onclick=pause;$('recenter').onclick=recenter;$('menuBtn').onclick=()=>home();
+$('arStatus').onclick=()=>{
+ if(mode!=='ar')return;
+ arDebugVisible=!arDebugVisible;
+ notice(arDebugVisible?'GUÍA VERDE ACTIVADA SOBRE EL PISO':'GUÍA VERDE OCULTA',1500);
+};
 $('scaleLess').onclick=()=>{scale=clamp(scale*.84,.19,.62);notice('PISTA '+(scale*33).toFixed(1)+' m DE LARGO',1400)};
 $('scaleMore').onclick=()=>{scale=clamp(scale*1.16,.19,.62);notice('PISTA '+(scale*33).toFixed(1)+' m DE LARGO',1400)};
 $('turnLeft').onclick=()=>{yaw-=P()/12;worldYaw-=P()/12};
