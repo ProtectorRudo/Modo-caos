@@ -21,13 +21,18 @@ root.CuadranteArt=function(T){
   const rear=box(3.6,2.33,.10,dark);rear.position.set(0,1.17,-3.07);root.add(rear);
   const matTile=material(0x182632,.83,.36),altTile=material(0x101e2b,.82,.41);
   const tinyBar=new T.MeshBasicMaterial({color:0x224a5d});
+  // GPU instancing turns the court floor into two draw calls (instead of >80).
+  const floorGeometry=new T.BoxGeometry(.526,.012,.495),tilesA=[],tilesB=[];
+  const dummy=new T.Object3D();
   for(let z=-2.8;z<3;z+=.52){
-   for(let x=-1.6;x<1.7;x+=.55){
-    const tile=box(.526,.012,.495,Math.round((x+z)*10)%4===0?altTile:matTile);
-    tile.position.set(x,.132,z);root.add(tile);
-    if(Math.round((x-z)*11)%6===0){const bolt=box(.07,.013,.012,tinyBar);bolt.position.set(x-.19,.14,z-.18);root.add(bolt)}
-   }
+   for(let x=-1.6;x<1.7;x+=.55)
+    (Math.round((x+z)*10)%4===0?tilesB:tilesA).push([x,.132,z]);
    const seam=box(3.58,.006,.008,tinyBar);seam.position.set(0,.145,z+.26);root.add(seam);
+  }
+  for(const [mat,list] of [[matTile,tilesA],[altTile,tilesB]]){
+   const mesh=new T.InstancedMesh(floorGeometry,mat,list.length);
+   list.forEach((p,i)=>{dummy.position.set(...p);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix)});
+   mesh.instanceMatrix.needsUpdate=true;root.add(mesh);
   }
   for(const sign of [-1,1]){
    const wall=box(.095,2.28,6.16,steel);wall.position.set(sign*1.84,1.19,0);root.add(wall);
@@ -81,28 +86,79 @@ root.CuadranteArt=function(T){
    const m=new T.Mesh(new T.SphereGeometry(.064*(1-i/33),6,5),new T.MeshBasicMaterial({color:i%4?0xff6a1c:0xffd5a1,transparent:true,opacity:Math.pow(1-i/25,1.8)*.39,depthWrite:false,blending:T.AdditiveBlending}));
    m.visible=false;root.add(m);trail.push(m)
   }
+  // Impact rings, defense prediction and energy projection are world-locked.
+  const ringMaterial=(color)=>new T.MeshBasicMaterial({color,transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending});
+  const waves=[];
+  for(let i=0;i<4;i++){
+   const m=new T.Mesh(new T.TorusGeometry(.18,.012,6,42),ringMaterial(i%2?C:O));
+   m.visible=false;root.add(m);waves.push({mesh:m,life:0});
+  }
+  const forecast=new T.Mesh(new T.RingGeometry(.16,.215,44),ringMaterial(C));
+  forecast.position.z=2.747;root.add(forecast);forecast.visible=false;
+  const aimCross=new T.Mesh(new T.RingGeometry(.34,.35,44),ringMaterial(0x91faff));
+  aimCross.position.z=2.746;root.add(aimCross);aimCross.visible=false;
+  const reflection=new T.Mesh(new T.CircleGeometry(.27,24),ringMaterial(O));
+  reflection.rotation.x=-Math.PI/2;reflection.position.y=.162;root.add(reflection);
+  const echoes=[];
+  for(let i=0;i<2;i++){
+   const m=new T.Mesh(new T.IcosahedronGeometry(.108,1),new T.MeshBasicMaterial({color:0x40d8ff,wireframe:true,transparent:true,opacity:.1,depthWrite:false}));
+   m.visible=false;root.add(m);echoes.push(m)
+  }
   const history=[],shards=[];
   for(let i=0;i<16;i++){
    const m=new T.Mesh(new T.OctahedronGeometry(.013+i%3*.004,0),new T.MeshBasicMaterial({color:i%3===0?0x86ffff:0xffa047,transparent:true,opacity:0,depthWrite:false}));
    root.add(m);shards.push({mesh:m,v:new T.Vector3(),life:0})
   }
   const obstacleMap=new Map();
-  let impact=0,flash=0,lastMode=-1,lastBall=[0,1.2,0],recentT=0,despawn=0;
+  let impact=0,flash=0,lastMode=-1,trailSample=0,previousPhase='',previousTick=-1,smashPulse=0,impactPos=new T.Vector3();
   function spawnImpact(x,y,z,kind){
-   impact=1;flash=.35;for(let i=0;i<shards.length;i++){
+   impact=1;flash=.35;smashPulse=kind==='smash'?1:0;impactPos.set(x,y,z);
+   const first=waves.find(w=>w.life<=0)||waves[0];first.life=kind==='smash'?.55:.35;first.mesh.position.set(x,y,z);first.mesh.scale.setScalar(.75);
+   first.mesh.material.color.setHex(kind==='rival'?O:C);first.mesh.visible=true;
+   for(let i=0;i<shards.length;i++){
     const q=shards[i];q.mesh.position.set(x,y,z);q.v.set((Math.random()-.5)*3.0,(Math.random()-.5)*3,(Math.random()-.5)*3);q.life=.20+Math.random()*.25;q.mesh.material.opacity=.9;
    }
   }
   function update(s,dt){
    if(!s)return;
    const b=s.ball;orb.position.set(b.x,b.y,b.z);sphere.rotation.y+=dt*3.5;shell.rotation.x+=dt*1.25;shell.rotation.y+=dt*2.3;
-   orb.scale.setScalar(1+Math.sin(s.clock*16)*.04);you.position.x=s.player.x;you.position.y=s.player.y;
+   orb.scale.setScalar(1+Math.sin(s.clock*16)*.04+smashPulse*.11);you.position.x=s.player.x;you.position.y=s.player.y;
+   smashPulse=Math.max(0,smashPulse-dt*3.3);
+   const nearBall=Math.max(.08,Math.min(1,(b.y-.10)/1.1));
+   reflection.position.x=b.x;reflection.position.z=b.z;
+   reflection.scale.setScalar(.6+nearBall*.8);
+   reflection.material.opacity=s.phase==='playing'?.17*(1-nearBall*.3):0;
+   const landing=window.CuadranteCore.predictedLanding(s);
+   const showForecast=landing?.reliable&&s.duel===0&&s.phase==='playing'&&landing.seconds<1.20;
+   forecast.visible=!!showForecast;aimCross.visible=!!showForecast;
+   if(showForecast){
+    forecast.position.x=aimCross.position.x=landing.x;
+    forecast.position.y=aimCross.position.y=landing.y;
+    const alpha=.13+.22*(1-landing.seconds/1.2);
+    forecast.material.opacity=alpha;aimCross.material.opacity=alpha*.65;
+    forecast.scale.setScalar(1+.09*Math.sin(s.clock*9));
+   }
+   for(let i=0;i<echoes.length;i++){
+    const q=echoes[i];q.visible=s.duel===3&&s.phase==='playing'&&b.z<1.8;
+    if(q.visible){q.position.set(b.x+(i===0?.28:-.33)*Math.sin(s.clock*2.5+i),b.y+(i===0?.22:-.26)*Math.cos(s.clock*2+i),b.z-.20-i*.14);q.material.opacity=.18+.05*Math.sin(s.clock*5+i)}
+   }
+   for(const w of waves){if(w.life>0){w.life=Math.max(0,w.life-dt);w.mesh.visible=w.life>0;w.mesh.scale.multiplyScalar(1+dt*5);w.mesh.material.opacity=Math.min(.70,w.life*1.8)}else w.mesh.visible=false}
    enemy.position.x=s.enemy.x;enemy.position.y=s.enemy.y;
    you.userData.core.rotation.y+=dt*3.4;enemy.userData.core.rotation.z-=dt*2.7;
    impact=Math.max(0,impact-dt*4.5);you.userData.halo.material.opacity=.07+impact*.29;
    backlight.intensity=11+Math.sin(s.clock*2)*3+(s.score[0]===4||s.score[1]===4?6:0);
-   history.unshift([b.x,b.y,b.z]);if(history.length>75)history.pop();
-   const stride=2;for(let i=0;i<trail.length;i++){let h=history[(i+1)*stride];trail[i].visible=!!h&&s.phase==='playing';if(h)trail[i].position.set(...h)}
+   if((previousPhase==='playing'&&s.phase==='serve')||s.tick<previousTick){history.length=0;trailSample=0}
+   previousPhase=s.phase;previousTick=s.tick;
+   trailSample+=dt;
+   if(s.phase==='playing'&&trailSample>.015){
+     trailSample=0;history.unshift([b.x,b.y,b.z]);
+     if(history.length>65)history.pop()
+   }
+   for(let i=0;i<trail.length;i++){
+     const h=i<(scene.userData.trailLimit||25)?history[i+2]:null;
+     trail[i].visible=!!h&&s.phase==='playing';
+     if(h)trail[i].position.set(...h)
+   }
    for(const q of shards){if(q.life>0){q.life-=dt;q.mesh.position.addScaledVector(q.v,dt);q.mesh.material.opacity=Math.max(0,q.life/.45);q.mesh.visible=true}else q.mesh.visible=false}
    const active=new Set();
    for(const o of window.CuadranteCore.geometry(s)){
@@ -112,15 +168,21 @@ root.CuadranteArt=function(T){
      g.add(body);root.add(g);mesh=g;obstacleMap.set(o.id,g);
     }
     mesh.visible=true;mesh.position.set(o.x,o.y,o.z);mesh.rotation.z=o.ang||0;
-    const growing=Math.max(.05,Math.min(1,(s.clock%99)*2));mesh.scale.setScalar(growing);
+    mesh.scale.setScalar(1); // physics and visuals must always share the exact collider dimensions
    }
    for(const [id,m] of obstacleMap)if(!active.has(id))m.visible=false;
    if(s.mode!==lastMode){lastMode=s.mode;flash=.3;sideLamps.forEach((m,i)=>{m.material=(i+s.mode)%2?cyan:orange})}
-   recentT+=dt;
    for(const m of sideLamps){const bright=.91+.09*Math.sin(s.clock*5+m.position.z*3);m.scale.y=bright}
-   lastBall=[b.x,b.y,b.z];flash=Math.max(0,flash-dt);
+   flash=Math.max(0,flash-dt);
   }
-  return {scene,root,you,enemy,orb,spawnImpact,update,dispose(){scene.traverse(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}}
+  function setQuality(level){
+   const basic=level==='low';
+   ballLight.visible=!basic;backlight.visible=!basic;
+   const count=basic?9:level==='medium'?16:25;
+   trail.forEach((m,i)=>{if(i>=count)m.visible=false});
+   scene.userData.trailLimit=count;
+  }
+  return {scene,root,you,enemy,orb,spawnImpact,update,setQuality,dispose(){scene.traverse(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}}
  }
  return {makeStage};
 }

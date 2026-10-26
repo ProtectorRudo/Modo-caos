@@ -2,6 +2,7 @@
 (function(root){
 'use strict';
 const W=1.76, LOW=.17, HIGH=2.23, FRONT=3.0, BACK=-3.0, R=.117;
+const EPS=.012;
 const CLAMP=(v,a,b)=>Math.max(a,Math.min(b,v));
 const profiles=[
 {name:'PULSO',reaction:.33,skill:.48,speed:2.0,error:.27,pace:4.15,mode:0},
@@ -16,7 +17,26 @@ const rand=(s)=>{s.rng=(1664525*s.rng+1013904223)>>>0;return s.rng/4294967296};
 function ballSpeed(b){return Math.hypot(b.vx,b.vy,b.vz)}
 function speedLimit(s){return Math.min(9,6.6+s.level*.28)}
 function setSpeed(b,v){const n=ballSpeed(b)||1;b.vx*=v/n;b.vy*=v/n;b.vz*=v/n}
-function configMode(s){return s.duel===0?0:Math.min(6,profiles[s.duel].mode+Math.floor(s.rally/7)%2)}
+function configMode(s){
+ // Make the arena feel alive even if rallies are short; initial rival teaches plain Pong.
+ if(s.duel===0)return 0;
+ const base=profiles[s.duel].mode;
+ const interval=14-Math.min(4,s.duel); // telegraphed changes around every 10–13 s
+ const phase=Math.floor(Math.max(0,s.clock-s.startedAt)/interval);
+ return Math.min(6,base+(phase%2));
+}
+function safeGeometry(s,mode){
+ if(Math.abs(s.ball.z)<.48)return false;
+ const preview=geometry({...s,mode});
+ for(const o of preview){
+  // Do not materialize a panel around the energy ball.
+  const theta=o.ang||0,cs=Math.cos(theta),sn=Math.sin(theta);
+  const dx=s.ball.x-o.x,dy=s.ball.y-o.y;
+  const xx=dx*cs+dy*sn,yy=-dx*sn+dy*cs;
+  if(Math.abs(xx)<o.w/2+R+EPS&&Math.abs(yy)<o.h/2+R+EPS&&Math.abs(s.ball.z-o.z)<o.d/2+R+EPS)return false;
+ }
+ return true;
+}
 function geometry(s){
  let mode=s.mode, phase=s.clock, arr=[];
  if(mode===0)return arr;
@@ -31,11 +51,11 @@ function geometry(s){
 }
 function create(opts={}){
  const s={rng:opts.seed||493801,clock:0,phase:'ready',mode:0,modeName:'CLÁSICA',duel:0,
-  player:{x:0,y:1.2,lastX:0,lastY:1.2,vx:0,vy:0},enemy:{x:0,y:1.2,targetX:0,targetY:1.2,think:0},
+  player:{x:0,y:1.2,lastX:0,lastY:1.2,vx:0,vy:0,motionAge:0},enemy:{x:0,y:1.2,targetX:0,targetY:1.2,think:0},
   ball:{x:0,y:1.2,z:0,vx:0,vy:0,vz:0},score:[0,0],rally:0,combo:0,bestCombo:0,
   totalHits:0,bestRally:0,arcade:0,scoreServe:0,serveTimer:0,level:0,winner:null,
   modePlay:opts.modePlay==='survival'?'survival':'circuit',tick:0,events:[],warning:0,
-  wins:0,matches:0,startedAt:0,autoplay:false,survivalLives:3};
+  wins:0,matches:0,startedAt:0,autoplay:false,survivalLives:3,pendingMode:-1};
  s.mode=0;return s;
 }
 function event(s,type,info){s.events.push({type,info,tick:s.tick});if(s.events.length>50)s.events.shift()}
@@ -46,13 +66,14 @@ function newServe(s,initial=false){
  let dir=fromOpponent?1:-1,spd=p.pace+(rand(s)-.5)*.45;
  s.ball.vz=dir*spd;s.ball.vx=(rand(s)-.5)*1.32;s.ball.vy=(rand(s)-.5)*.79;
  setSpeed(s.ball,spd);s.rally=0;s.combo=0;s.serveTimer=initial?.85:.52;s.phase='serve';
- s.enemy.think=0;event(s,'serve',fromOpponent?'enemy':'player');
+ s.enemy.think=0;s.warning=0;s.pendingMode=-1;event(s,'serve',fromOpponent?'enemy':'player');
 }
 function target(s,x,y){s.player.x=CLAMP(x,-W+.37,W-.37);s.player.y=CLAMP(y,LOW+.37,HIGH-.37)}
 function returnBall(s,isPlayer){
  const b=s.ball,p=isPlayer?s.player:s.enemy;
  const ux=CLAMP((b.x-p.x)/.43,-1,1),uy=CLAMP((b.y-p.y)/.43,-1,1), prof=profiles[s.duel];
  const previous=ballSpeed(b),side=isPlayer?-.1:.12;
+ const smash=isPlayer&&Math.abs(p.vx)+Math.abs(p.vy)>3.8&&Math.abs(ux)<.7&&Math.abs(uy)<.7;
  let vx=ux*2.20 + (isPlayer?s.player.vx*.21:(rand(s)-.5)*(.8+s.duel*.08));
  let vy=uy*1.48 + (isPlayer?s.player.vy*.14:(rand(s)-.5)*(.65+s.duel*.06));
  if(!isPlayer){
@@ -62,14 +83,15 @@ function returnBall(s,isPlayer){
  }
  b.vz=(isPlayer?-1:1)*Math.max(3.35,Math.abs(b.vz)*.92);
  b.vx=CLAMP(vx+side,-3.15,3.15);b.vy=CLAMP(vy,-2.05,2.05);
- const spd=Math.min(speedLimit(s),Math.max(prof.pace,previous*1.018+.07));
+ const spd=Math.min(speedLimit(s),Math.max(prof.pace,previous*1.018+.07+(smash?.38:0)));
+ if(smash){b.vx+=p.vx*.1;b.vy+=p.vy*.08}
  setSpeed(b,spd);
  if(Math.abs(b.vz)<2.4){b.vz=Math.sign(b.vz)*2.4;setSpeed(b,spd)}
  s.rally++;s.bestRally=Math.max(s.bestRally,s.rally);
  if(isPlayer){s.totalHits++;s.combo++;s.bestCombo=Math.max(s.bestCombo,s.combo);
   const perfect=Math.abs(ux)<.25&&Math.abs(uy)<.25;
   s.arcade+=100+Math.min(300,s.combo*18)+(perfect?100:0);
-  event(s,perfect?'perfect':'hit',{combo:s.combo,rally:s.rally,edge:Math.max(Math.abs(ux),Math.abs(uy))>.76});
+  event(s,smash?'smash':perfect?'perfect':'hit',{combo:s.combo,rally:s.rally,edge:Math.max(Math.abs(ux),Math.abs(uy))>.76,smash});
  } else event(s,'rivalHit',{rally:s.rally});
 }
 function collisionAABB(b,v,dt,o){
@@ -162,7 +184,7 @@ function point(s,playerWon){
  newServe(s);
 }
 function next(s){if(s.phase!=='finished'||s.winner!=='player'||s.duel>=profiles.length-1)return false;
- s.duel++;s.level=s.duel;s.score=[0,0];s.winner=null;s.mode=profiles[s.duel].mode;s.phase='ready';
+ s.duel++;s.level=s.duel;s.score=[0,0];s.winner=null;s.mode=profiles[s.duel].mode;s.modeName=modes[s.mode];s.phase='ready';
  start(s);event(s,'nextRival',profiles[s.duel].name);return true}
 function retry(s){const fresh=create({seed:(s.rng+777)>>>0,modePlay:s.modePlay});
  fresh.duel=s.duel;fresh.level=s.level;fresh.wins=s.wins;fresh.arcade=s.arcade;
@@ -170,7 +192,16 @@ function retry(s){const fresh=create({seed:(s.rng+777)>>>0,modePlay:s.modePlay})
 function step(s,dt=1/120){
  if(s.phase==='paused'||s.phase==='ready'||s.phase==='finished')return;
  dt=CLAMP(dt,0,1/30);s.clock+=dt;s.tick++;
- const p=s.player;p.vx=CLAMP((p.x-p.lastX)/dt,-11,11);p.vy=CLAMP((p.y-p.lastY)/dt,-11,11);
+ const p=s.player;
+ const mx=p.x-p.lastX,my=p.y-p.lastY;
+ if(Math.abs(mx)+Math.abs(my)>1e-5){
+  p.vx=CLAMP(mx/dt,-11,11);p.vy=CLAMP(my/dt,-11,11);p.motionAge=0;
+ }else{
+  p.motionAge+=dt;
+  const fade=Math.exp(-dt/0.065);
+  p.vx*=fade;p.vy*=fade;
+  if(p.motionAge>.20){p.vx=0;p.vy=0}
+ }
  p.lastX=p.x;p.lastY=p.y;
  const e=s.enemy,b=s.ball,pr=profiles[s.duel];e.think-=dt;
  if(e.think<=0){
@@ -185,14 +216,42 @@ function step(s,dt=1/120){
  let max=pr.speed*dt;
  e.x+=CLAMP(e.targetX-e.x,-max,max);e.y+=CLAMP(e.targetY-e.y,-max,max);
  if(s.phase==='serve'){s.serveTimer-=dt;if(s.serveTimer<=0){s.phase='playing';event(s,'launch')}return}
- // slow fair reaction for geometry transitions: no teleporting collider changes
- let nextMode=configMode(s);
- if(nextMode!==s.mode&&Math.abs(b.z)>.65){s.warning+=dt;if(s.warning>.42){s.mode=nextMode;s.modeName=modes[nextMode];s.warning=0;event(s,'transform',s.modeName)}}
- else s.warning=0;
+ // Telegraph arena shifts and wait until moving solid geometry cannot trap the ball.
+ const nextMode=configMode(s);
+ if(nextMode!==s.mode){
+  if(s.pendingMode!==nextMode){s.pendingMode=nextMode;s.warning=0;event(s,'transformWarning',modes[nextMode]);}
+  s.warning+=dt;
+  if(s.warning>.72&&safeGeometry(s,nextMode)){
+   s.mode=nextMode;s.modeName=modes[nextMode];s.warning=0;s.pendingMode=-1;
+   event(s,'transform',s.modeName);
+  }
+ }else{s.warning=0;s.pendingMode=-1;}
  advance(s,dt);
 }
 function pause(s){if(s.phase==='playing'||s.phase==='serve'){s.oldPhase=s.phase;s.phase='paused';event(s,'pause')}}
 function resume(s){if(s.phase==='paused'){s.phase=s.oldPhase||'playing';event(s,'resume')}}
 function drain(s){return s.events.splice(0)}
-root.CuadranteCore={create,start,step,target,pause,resume,next,retry,drain,geometry,profiles,modes,bounds:{W,LOW,HIGH,FRONT,BACK,R}};
+function anchoredArena(hit,baseYaw,rotation,offset,scale){
+ // The player's defending plane is at local z=+3; position the room
+ // so that plane coincides with the detected floor target, not behind us.
+ const theta=baseYaw+rotation;
+ const depth=3*scale+(offset.z||0);
+ const side=offset.x||0;
+ return {
+  x:hit.x+Math.cos(theta)*side-Math.sin(theta)*depth,
+  y:hit.y+.06,
+  z:hit.z-Math.sin(theta)*side-Math.cos(theta)*depth,
+  rotation:theta
+ };
+}
+function predictedLanding(s){
+ const b=s.ball;if(b.vz<=.03)return null;
+ const t=(FRONT-R-b.z)/b.vz;
+ if(t<=0||t>3.4)return null;
+ const bounce=(v,lo,hi)=>{const size=hi-lo,w=2*size;const z=((v-lo)%w+w)%w;return lo+(z>size?w-z:z)};
+ return {x:bounce(b.x+b.vx*t,-W+R,W-R),y:bounce(b.y+b.vy*t,LOW+R,HIGH-R),seconds:t,
+  // Obstacles can alter the future trajectory: only promise precision in the empty arena.
+  reliable:s.mode===0};
+}
+root.CuadranteCore={create,start,step,target,pause,resume,next,retry,drain,geometry,predictedLanding,anchoredArena,profiles,modes,bounds:{W,LOW,HIGH,FRONT,BACK,R}};
 })(typeof window!=='undefined'?window:globalThis);
