@@ -68,7 +68,7 @@ function create(T,stage){
  }
  function switchRoom(next,reason='portal'){
   next=clamp(next,0,ROOMS.length-1);
-  if(next===active){reindex();return false}
+  if(next===active)return false
   active=next;transitionCount++;
   stage.room=next;world.position.z=ROOMS[active].offset;
   // Two stacked virtual floors; the upper gardens are intentionally elevated
