@@ -261,13 +261,13 @@ test('el buffer no permite un rebote fantasma al cambiar de rival',()=>{
 
 test('pulsar nuevamente NO cancela un rebote cargado y nunca duplica intentos',()=>{
  const g=G.make({mode:'duelo',seed:92});G.begin(g);g.nextShot=999;g.projectiles=[];
- const e=g.enemies[0],ball={id:871,type:'normal',pos:G.V(0,1.55,-1.59),
-  prev:G.V(0,1.55,-1.59),velocity:G.V(0,0,2.1),speed:2.1,
+ const e=g.enemies[0],ball={id:871,type:'normal',pos:G.V(0,1.55,-1.75),
+  prev:G.V(0,1.55,-1.75),velocity:G.V(0,0,1.8),speed:1.8,
   radius:.17,age:.3,returning:false,dead:false,targetId:e.id};
  g.projectiles=[ball];G.setView(g,G.V(0,1.55,.05),G.V(0,0,-1));
  const first=G.returnShot(g);assert.equal(first.queued,true);
  const token=g.bufferedShot;
- g.elapsed+=.155;
+ G.tick(g,.155);
  const second=G.returnShot(g);
  assert.equal(second.queued,true);
  assert.equal(g.bufferedShot,token,'same ball buffer remains armed after second tap');
