@@ -1,0 +1,78 @@
+{
+  "avatar": {
+    "file": "dj-quaternius-punk.glb",
+    "author": "Quaternius",
+    "original_pack": "Ultimate Modular Men, February 2022",
+    "source": "https://raw.githubusercontent.com/yerdaulet-damir/liminal/main/client/public/models/figure_Punk.glb",
+    "mirror": "yerdaulet-damir/liminal",
+    "size": 702512,
+    "license": "CC0 1.0",
+    "asset": "Punk_Body; head excluded, horse mask modeled natively"
+  },
+  "props": [
+    {
+      "file": "dj-cdj.glb",
+      "source": "https://cdn.3dassets.dev/assets/34091/v1/model.glb",
+      "title": "CDJ Media Player (Nightclub and DJ Booth)",
+      "size": 40648,
+      "triangles": 908,
+      "license": "CC0 1.0"
+    },
+    {
+      "file": "dj-laptop.glb",
+      "source": "https://cdn.3dassets.dev/assets/34092/v1/model.glb",
+      "title": "Laptop on a DJ Stand (Nightclub and DJ Booth)",
+      "size": 22660,
+      "triangles": 458,
+      "license": "CC0 1.0"
+    },
+    {
+      "file": "dj-headphones.glb",
+      "source": "https://cdn.3dassets.dev/assets/34094/v1/model.glb",
+      "title": "DJ Headphones on the Desk (Nightclub and DJ Booth)",
+      "size": 33600,
+      "triangles": 792,
+      "license": "CC0 1.0"
+    },
+    {
+      "file": "dj-monitor.glb",
+      "source": "https://cdn.3dassets.dev/assets/34093/v1/model.glb",
+      "title": "DJ Booth Monitor Wedge (Nightclub and DJ Booth)",
+      "size": 14988,
+      "triangles": 272,
+      "license": "CC0 1.0"
+    },
+    {
+      "file": "dj-riser.glb",
+      "source": "https://cdn.3dassets.dev/assets/34096/v1/model.glb",
+      "title": "Riser Platform Module (Nightclub and DJ Booth)",
+      "size": 35088,
+      "triangles": 768,
+      "license": "CC0 1.0"
+    },
+    {
+      "file": "dj-laser.glb",
+      "source": "https://cdn.3dassets.dev/assets/34107/v1/model.glb",
+      "title": "Laser Effect Unit (Nightclub and DJ Booth)",
+      "size": 33788,
+      "triangles": 712,
+      "license": "CC0 1.0"
+    },
+    {
+      "file": "dj-smoke.glb",
+      "source": "https://cdn.3dassets.dev/assets/34109/v1/model.glb",
+      "title": "Smoke Machine (Nightclub and DJ Booth)",
+      "size": 43332,
+      "triangles": 976,
+      "license": "CC0 1.0"
+    },
+    {
+      "file": "dj-led-magenta.glb",
+      "source": "https://cdn.3dassets.dev/assets/34098/v1/model.glb",
+      "title": "Backdrop LED Panel Module (Nightclub and DJ Booth)",
+      "size": 46152,
+      "triangles": 1024,
+      "license": "CC0 1.0"
+    }
+  ]
+}
