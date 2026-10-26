@@ -1,12 +1,12 @@
 /* MINI WORLDS · production character rig bridge. KayKit + Quaternius (CC0).
  * Keep gameplay/collisions in mini-worlds-core.js. These assets are visual only.
- * All Quaternius characters are vendored locally. KayKit Knight is loaded directly
+ * All Quaternius characters are vendored locally. KayKit Mage is loaded directly
  * from its official public CC0 GitHub source, with a complete fallback avatar.
  */
 (function(root){
 'use strict';
 const BASE='./assets/mini-worlds/characters/';
-const KNIGHT='https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/main/addons/kaykit_character_pack_adventures/Characters/gltf/Knight.glb';
+const MAGE='https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/main/addons/kaykit_character_pack_adventures/Characters/gltf/Mage.glb';
 const ENEMY=[['Alien','Bat','Cyclops','Cactus'],['Mushroom','Ghost','Cyclops','Cactus']];
 const BOSS=['YellowDragon','Yeti'];
 const FILES=Object.freeze(['Alien','Bat','Cactus','Cyclops','Mushroom','Ghost','YellowDragon','Yeti']);
@@ -25,7 +25,7 @@ root.MiniWorldsCharacters=function(T){
   if(!cache.has(name)){
    const result=(async()=>{
     const loader=await initialize();
-    const uri=name==='Knight'?KNIGHT:BASE+name+'.gltf';
+    const uri=name==='Mage'?MAGE:BASE+name+'.gltf';
     const obj=await loader.loadAsync(uri);
     if(!obj?.scene)throw Error('GLTF scene missing: '+name);
     const bounds=new T.Box3().setFromObject(obj.scene),size=new T.Vector3();bounds.getSize(size);
@@ -71,17 +71,17 @@ root.MiniWorldsCharacters=function(T){
   if(!stage||!stage.hero)return {loaded:0,failed:1};
   let alive=true;const visual=[],reasons=[];
   stage.disposeCharacters=()=>{alive=false;visual.length=0;stage.updateCharacterAnimations=null};
-  const pending=[load('Knight'),...new Set([...ENEMY[level||0],BOSS[level||0]])].map(v=>typeof v==='string'?load(v):v);
-  const names=['Knight',...new Set([...ENEMY[level||0],BOSS[level||0]])];
+  const pending=[load('Mage'),...new Set([...ENEMY[level||0],BOSS[level||0]])].map(v=>typeof v==='string'?load(v):v);
+  const names=['Mage',...new Set([...ENEMY[level||0],BOSS[level||0]])];
   // Each model failure is isolated: other characters still load.
   const results=await Promise.allSettled(pending);
   if(!alive)return {loaded:0,failed:0};
   const ready=new Map();
   results.forEach((v,i)=>{if(v.status==='fulfilled')ready.set(names[i],v.value);else reasons.push(names[i]+': '+String(v.reason?.message||v.reason))});
-  if(ready.has('Knight')){
-   const rig=physicalRig(ready.get('Knight'),1.17);
+  if(ready.has('Mage')){
+   const rig=physicalRig(ready.get('Mage'),1.17);
    replaceVisual(stage.hero.root,rig.stand,[...stage.hero.root.children.filter(o=>o.isMesh&&o.geometry?.type==='CircleGeometry')]);
-   rig.stand.name='KAYKIT KNIGHT · CC0';
+   rig.stand.name='KAYKIT MAGE · MAGIA · CC0';
    visual.push({type:'hero',rig});
   }
   let enemiesDone=0;
@@ -111,7 +111,7 @@ root.MiniWorldsCharacters=function(T){
    for(const x of visual){
     if(x.type==='hero'){
      const p=game.player;
-     x.rig.animate(p.attack>.03?['bite_front','attack','slash','one_handed','sword']:(!p.grounded?['jump','fall','idle']:Math.hypot(p.vx,p.vz)>.3?['walking','walking_a','walk','run']:['idle','idle_a']));
+     x.rig.animate(p.attack>.03?['spell','cast','attack','one_handed','magic']:(!p.grounded?['jump','fall','idle']:Math.hypot(p.vx,p.vz)>.3?['walking','walking_a','walk','run']:['idle','idle_a']));
      // Keep the entire articulated KayKit rig grounded. Subtle lean and
      // gait bounce add life without moving the collision capsule.
      const speed=Math.min(1,Math.hypot(p.vx,p.vz)/3.1);
@@ -131,9 +131,9 @@ root.MiniWorldsCharacters=function(T){
    }
   };
   if(reasons.length)console.warn('[MINI WORLDS] Model fallbacks active:',reasons);
-  stage.characterStats={hero:ready.has('Knight'),enemies:enemiesDone,boss:!!b,failed:reasons};
+  stage.characterStats={hero:ready.has('Mage'),enemies:enemiesDone,boss:!!b,failed:reasons};
   return stage.characterStats;
  }
- return {setup,FILES,KNIGHT};
+ return {setup,FILES,MAGE};
 };
 })(typeof window!=='undefined'?window:globalThis);
