@@ -395,7 +395,7 @@
    }
    // Bracelet LEDs now follow the ACTUAL joint-driven hands over the mixer.
    // Never draw detached fixed cartoon fists around the belly.
-   const hands=skeletal?.hands(t,low,combo);
+   const hands=skeletal?.hands?.(t,low,combo);
    if(hands)for(const key of ['L','R']){
     const at=hands[key],col=key==='L'?P:C;
     annulus(illum,at[0],at[1]+.003,at[2],.012,.020,col,.45+.20*low,14,true);
