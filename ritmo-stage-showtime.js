@@ -138,38 +138,10 @@ void main(){
    }
    // Only a thin scoring marker, anchored at EXACT z=.65 note/receptor position.
    floor(illum,left-.035,right+.035,.645,.654,.110,[.71,1,1],.16+.10*low,3);
-   // A clearly different music-machine silhouette: curved portal towers, floating
-   // equalizer bars and luminous signature circle above the console.
-   for(const side of [-1,1]){
-    const xx=side*(right-.045),z=back-.10;
-    cuboid(mesh,xx,.018,z,.050,.52,.075,[.075,.10,.14],[.29,.34,.40]);
-    cuboid(illum,xx,.025,z+.033,.014,.48,.013,[.16,.75,1],[.16,.75,1],.80,3);
-    // Strong elevated corner rings, not just square floor rectangles.
-    annulus(illum,xx,.55,z+.042,.040,.061,[1,.76,.30],.70+.15*low,18,true);
-    speaker(side*(size*1.73),.104,back-.11,low);
-   }
-   cuboid(mesh,0,.548,back-.10,right-left-.07,.046,.075,[.080,.10,.14],[.22,.32,.37]);
-   cuboid(illum,0,.60,back-.10,right-left-.08,.012,.035,[.12,.84,1],[.12,.84,1],.88,3);
-   // 3D levitating illuminated crown behind the mixing station.
-   annulus(illum,0,.375,back-.115,.185,.205,[.18,.80,1],.31+.23*mid,42,true);
-   annulus(illum,0,.375,back-.111,.136,.147,[.82,.95,1],.23,42,true);
-   // Console is now light-transparent instead of huge unlit black square.
-   cuboid(mesh,0,.020,back-.17,.43,.125,.12,[.02,.05,.07],[.06,.14,.18]);
-   cuboid(illum,0,.055,back-.10,.365,.054,.008,[.09,.40,.52],[.09,.40,.52],.32,3);
-   for(let i=0;i<15;i++){
-    const xx=(i-7)*.024,k=i%3===0?low:i%2?mid:high;
-    const height=.035+.21*(.14+.62*k+.16*Math.sin(time*6.3+i*.73));
-    let c=i%3===0?[.24,1,.61]:i%3===1?[1,.37,.64]:[.19,.68,1];
-    cuboid(illum,xx,.13,back-.070,.014,height,.012,c,c,.74,3);
-   }
-   if(quality>0&&active){
-    // Four short cone-shaped concert spotlights kept BEHIND the notes.
-    for(let lane=0;lane<4;lane++){
-     const x=(lane-1.5)*size,c=C[lane],opacity=.07+.10*low;
-     surface(illum,[x-.025,.56,back-.08],[x+.025,.56,back-.08],
-      [x+.095,.08,back+.39],[x-.095,.08,back+.39],c,opacity,3);
-    }
-   }
+   // V30 removes the old duplicated portal, speakers, spectrum console and
+   // spotlight fans. Only the exterior decorator owns the concert set now.
+   // Crucially, all code above (floor, LED flow, four receptors and scoring
+   // marker) and all code below (notes, holds, hits) is unchanged.
    try{exterior?.render(size,time,game,{low,mid,high,beat})}catch(_){/* safe fallback */}
    if(!game)return;
    // The player's own lane glows with a responsive halo, not a screen-fixed sprite.
