@@ -13,7 +13,12 @@
    scale:.304,offset:[0,.012,-1.44]},
   {key:'mixer',local:'/assets/ritmo/dj-mixer.glb',
    remote:'https://cdn.3dassets.dev/assets/34090/v1/model.glb',
-   scale:.304,offset:[0,.321,-1.44]}
+   scale:.304,offset:[0,.321,-1.44]},
+  // Individual verified CC0 stage props. Never load the complete nightclub.
+  ...['facade','turntable','led-panel','speaker-sub','speaker-mid',
+      'moving-head','strobe','truss'].map(key=>({
+   key,local:'/assets/ritmo/dj-'+key+'.glb',remote:null
+  }))
  ];
  function mult(A,B){const R=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)for(let k=0;k<4;k++)R[c*4+r]+=A[k*4+r]*B[c*4+k];return R}
  function identity(){return new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}
@@ -99,7 +104,7 @@
   return triangles;
  }
  function create(){
-  const loaded={},state={desk:'pending',mixer:'pending'};
+  const loaded={},state=Object.fromEntries(models.map(m=>[m.key,'pending']));
   async function fetchModel(m){
    async function grab(url){
     const response=await root.fetch(url,{mode:'cors',cache:'force-cache'});
@@ -107,14 +112,17 @@
     return parse(await response.arrayBuffer());
    }
    try{loaded[m.key]=await grab(m.local);state[m.key]='local'}
-   catch(_){try{loaded[m.key]=await grab(m.remote);state[m.key]='cdn'}
-    catch(e){state[m.key]='fallback';}}
+   catch(_){
+    if(m.remote){try{loaded[m.key]=await grab(m.remote);state[m.key]='cdn'}
+     catch(e){state[m.key]='fallback';}}
+    else state[m.key]='fallback';
+   }
   }
   function load(){if(!root.fetch)return;for(const m of models)fetchModel(m)}
-  function ready(){return models.every(m=>!!loaded[m.key])}
+  function ready(){return !!loaded.desk&&!!loaded.mixer}
   function draw(mesh,surface){
    if(!ready())return false;
-   for(const m of models){
+   for(const m of models.slice(0,2)){
     const scale=m.scale,off=m.offset;
     for(const tr of loaded[m.key]){
      const p=v=>v.map((x,i)=>x*scale+off[i]);
@@ -126,8 +134,25 @@
    }
    return true;
   }
+
+  function drawPart(key,mesh,surface,placements){
+   const triangles=loaded[key];
+   if(!triangles)return false;
+   const instances=Array.isArray(placements)?placements:[placements];
+   if(!instances.length||instances.length>4)return false;
+   for(const tr of triangles){
+    for(const cfg of instances){
+     if(!cfg)continue;
+     const scale=cfg.scale||.3,offset=cfg.offset||[0,0,0];
+     const p=v=>v.map((x,i)=>x*scale+offset[i]);
+     surface(mesh,p(tr.A),p(tr.B),p(tr.C),p(tr.C),tr.color,1,0);
+    }
+   }
+   return true;
+  }
+  function has(key){return !!loaded[key]}
   load();
-  return{ready,draw,status:()=>({...state})};
+  return{ready,draw,drawPart,has,status:()=>({...state})};
  }
  root.RitmoImportedProps={create,parse};
 })(window);
