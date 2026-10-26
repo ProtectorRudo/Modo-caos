@@ -165,7 +165,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <h1>RITMO <span>CAOS</span></h1>
 <p class="intro">🎸 Las notas vienen hacia vos. <b>Vos sos el joystick:</b> movete de costado hasta el color justo cuando suene.</p>
 <div class="hero"><div class="stage"><i></i><i></i><i></i><i></i></div><strong>EL ESCENARIO ES TU CASA</strong></div>
-<div class="features"><b>🐴 HORSE DJ V37 — STAGE REBUILD</b><b>🎼 DESPACITO + 11 TEMAS · NEON PRISM</b><b>🟢 4 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
+<div class="features"><b>🐴 HORSE DJ V37 · ♫ BEAT LOCK V38</b><b>🎼 DESPACITO + 11 TEMAS · NEON PRISM</b><b>🟢 4 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
 <div class="config"><label>CANCIÓN<select id="song"><option value="despacito_remix_justin" selected>🔥 DESPACITO (REMIX) · Fonsi, Daddy Yankee y Justin Bieber · 80 s</option><option value="neon">⚡ Neón sin freno</option><option value="fuego">🎸 Fuego en el escenario</option><option value="solar">☀️ Solar latino</option><optgroup label="MELODÍAS CONOCIDAS · INCLUIDAS">
 <option value="alegria">🎻 Oda a la Alegría · Beethoven</option>
 <option value="elise">🎹 Para Elisa · Beethoven</option>
@@ -185,7 +185,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <div id="bestIntro">RÉCORD PERSONAL · —</div>
 <details class="details"><summary>🎚 Ajuste fino de sincronización</summary>
 <p>Si las notas llegan antes o después del sonido, ajustá la compensación. Predeterminado: 0 ms.</p>
-<label>Latencia: <span id="latencyValue">0 ms</span><input id="latency" type="range" min="-300" max="300" value="0" step="10"></label></details>
+<label>Ajuste manual de ritmo: <span id="latencyValue">0 ms</span><input id="latency" type="range" min="-300" max="300" value="0" step="10"></label></details>
 <p id="precheck">📱 Para jugar en AR abrí este enlace <b>directamente en Chrome Android</b>, no dentro de ChatGPT o WhatsApp (menú ⋮ → Abrir en Chrome). Requiere ARCore y un piso despejado; la demo 2D funciona sin AR. Ajustá la pista entre 0,8 y 1,28 m. No corras ni saltes: se sigue el <b>celular</b>, no tus pies.</p>
 </div></main>
 <div id="overlay">
@@ -197,7 +197,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <div id="touchpad"></div><div id="toolbar"><button id="minus">−</button><button id="size" disabled>1,00 m</button><button id="plus">+</button><button id="rotate">↻</button></div>
 <div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
 <button id="lock" disabled>📍 FIJAR LOS 4 CARRILES</button>
-<div id="topActions"><button id="exit">← MENÚ</button><button id="gamePause">Ⅱ PAUSA</button><button id="quality" title="Calidad gráfica" aria-label="Calidad gráfica">✨ AUTO · V37</button><button id="sound">🔊</button></div>
+<div id="topActions"><button id="exit">← MENÚ</button><button id="gamePause">Ⅱ PAUSA</button><button id="quality" title="Calidad gráfica" aria-label="Calidad gráfica">✨ AUTO · V38</button><button id="sound">🔊</button></div>
 <div id="sceneVersion" aria-label="Versión del escenario">V37 · VERIFICANDO RENDER</div>
 <div id="hud"><div class="hudRow"><div>PUNTOS<strong id="score">0</strong></div><div>COMBO<strong id="combo">×0</strong></div><div>ENERGÍA<strong id="energy">100%</strong></div><div>TIEMPO<strong id="clock">00:00</strong></div></div>
 <div id="progress"><div id="progressFill"></div></div><div id="forecast"></div></div>
@@ -238,20 +238,21 @@ window.addEventListener('unhandledrejection',function(e){
 });
 </script>
 <script defer src="/ritmo-engine.js?v=28"></script>
-<script defer src="/ritmo-core.js?v=28"></script>
+<script defer src="/ritmo-core.js?v=38"></script>
+<script defer src="/ritmo-tracking.js?v=38"></script>
 <script defer src="/ritmo-catalog.js?v=28"></script>
 <script defer src="/ritmo-licensed.js?v=28"></script>
-<script defer src="/ritmo-despacito.js?v=28"></script>
-<script defer src="/ritmo-audio.js?v=28"></script>
+<script defer src="/ritmo-despacito.js?v=38"></script>
+<script defer src="/ritmo-audio.js?v=38"></script>
 <script defer src="/ritmo-art.js?v=28"></script>
 <script defer src="/ritmo-stage3d.js?v=28"></script>
 <script defer src="/ritmo-stage-premium.js?v=28"></script>
 <script defer src="/ritmo-glb-props.js?v=37"></script>
 <script defer src="/ritmo-skinning.js?v=37"></script>
 <script defer src="/ritmo-exterior.js?v=37"></script>
-<script defer src="/ritmo-stage-showtime.js?v=37"></script>
+<script defer src="/ritmo-stage-showtime.js?v=38"></script>
 <script defer src="/ritmo-kenney-vfx.js?v=28"></script>
 <script defer src="/ritmo-fx.js?v=28"></script>
 <script defer src="/ritmo-haptics.js?v=28"></script>
-<script defer src="/ritmo-runtime.js?v=37"></script>
+<script defer src="/ritmo-runtime.js?v=38"></script>
 </body></html>
