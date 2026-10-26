@@ -38,6 +38,8 @@ void main(){
  function create(){
   let gpu=null,gpuGL=null,quality=2,mode='auto',meanMs=16,prevMs=0,frames=0,status='ESPERANDO AR',lastSpot=[null,null,null,null];
   const mesh=[],illum=[],waves=[];
+   // Independent decorator: errors cannot prevent rhythm gameplay.
+   const exterior=root.RitmoExterior?.create({mesh,illum,surface,cuboid,annulus,disc,getQuality:()=>quality});
   function vertex(target,p,n,col,a,mat){target.push(...p,...n,...col,a,mat)}
   function surface(target,A,B,Cc,D,col,a=.99,mat){
    const v=[B[0]-A[0],B[1]-A[1],B[2]-A[2]],w=[Cc[0]-A[0],Cc[1]-A[1],Cc[2]-A[2]];
@@ -165,6 +167,7 @@ void main(){
       [x+.095,.08,back+.39],[x-.095,.08,back+.39],c,opacity,3);
     }
    }
+   try{exterior?.render(size,time,game,{low,mid,high,beat})}catch(_){/* safe fallback */}
    if(!game)return;
    // The player's own lane glows with a responsive halo, not a screen-fixed sprite.
    const player=cap(game.lane,0,3),x=(player-1.5)*size,c=C[player];
