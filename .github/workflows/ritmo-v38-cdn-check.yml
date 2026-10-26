@@ -1,0 +1,38 @@
+name: Ritmo V38 - Live playable HTTPS verification
+on:
+  push:
+    branches: [feat/ritmo-v38-beat-lock-tracking-20261026]
+    paths: ['.github/workflows/ritmo-v38-cdn-check.yml', 'ritmo-v38-cdn.html']
+  pull_request:
+    paths: ['.github/workflows/ritmo-v38-cdn-check.yml', 'ritmo-v38-cdn.html']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Ensure HTTPS game responds with HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a225085ddaddaa8ff351db41fc3671c6679d4724/ritmo-v38-cdn.html'
+          curl --retry 3 --retry-delay 3 -fLsS -D /tmp/headers -o /tmp/index.html "$PAGE"
+          grep -qi '^content-type: *text/html' /tmp/headers
+          grep -q 'BEAT LOCK V38' /tmp/index.html
+          grep -q 'ritmo-tracking.js?v=38' /tmp/index.html
+          grep -q 'ritmo-stage-showtime.js?v=38' /tmp/index.html
+          grep -q 'window.fetch=function(resource,options)' /tmp/index.html
+          printf 'LIVE HTML '%s' bytes with V38 pinned scripts\n' "$(wc -c </tmp/index.html)"
+      - name: Verify every V38 script and authenticated supplied audio loads
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854'
+          for file in ritmo-engine.js ritmo-core.js ritmo-tracking.js ritmo-runtime.js ritmo-audio.js ritmo-despacito.js ritmo-licensed.js ritmo-stage-showtime.js ritmo-exterior.js ritmo-glb-props.js ritmo-skinning.js ritmo-haptics.js ritmo-art.js assets/ritmo/dj-quaternius-punk.glb assets/ritmo/dj-mixer.glb assets/ritmo/dj-cdj.glb media/ritmo/despacito-remix-80s.ogg.b64; do
+            curl --retry 3 --retry-delay 2 -fLsS -o /tmp/file "$BASE/$file"
+            bytes=$(wc -c </tmp/file)
+            if [ "$bytes" -lt 100 ]; then echo "Too small: $file"; exit 1; fi
+            printf 'OK %s %s bytes\n' "$file" "$bytes"
+          done
+          echo 'LIVE V38 HTTPS assets all reachable'
