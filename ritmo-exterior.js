@@ -168,6 +168,33 @@
    }
    beam([-.080,.55+bob,z+.058],[0,.562+bob,z+.059],.007,P);
    beam([0,.562+bob,z+.059],[.080,.55+bob,z+.058],.007,C);
+   // V30 DJ appearance polish: sculpted fringe, face, jacket seams and
+   // color accents are real 3D geometry, not flat screen overlays.
+   for(let i=-3;i<=3;i++){
+    const x=i*.018;
+    const hairY=h+.088+Math.cos(i*.38)*.007;
+    beam([x,hairY,z+.041],[x+.008*Math.sin(t*.9+i),h+.044,z+.070],.008,[.035,.045,.074]);
+   }
+   for(const sign of [-1,1]){
+    ball(sign*.082,h-.015,z+.005,.017,[.74,.45,.34],8,5);
+    const shoulder=sign*.087;
+    beam([shoulder,.515+bob,z+.06],[sign*.079,.404+bob,z+.066],
+     .006,sign<0?P:C);
+    cuboid(illum,sign*.071,.354+bob,z+.088,.011,.015,.006,
+     sign<0?P:C,sign<0?P:C,.30+.32*mid,3);
+    // Luminous bracelet moves with mixing hands.
+    const wristX=sign*(.113+.025*Math.cos(t*5.4+sign));
+    const wristY=.330+bob+(combo>=15?.17*(.5+.5*Math.sin(t*4.5))*(sign>0?1:0):0);
+    ball(wristX,wristY+.014,z+.152,.011,sign<0?P:C,8,5);
+   }
+   // Backlit zipper, pocket shapes, and face expressions.
+   cuboid(mesh,0,.428+bob,z+.073,.012,.095,.008,[.42,.52,.66],[.72,.79,.85]);
+   for(const sign of [-1,1]){
+    cuboid(mesh,sign*.049,.398+bob,z+.080,.041,.006,.008,[.21,.27,.45],M);
+    cuboid(mesh,sign*.034,h-.042,z+.075,.024,.006,.005,[.29,.19,.22],M);
+   }
+   beam([-.019,h-.047,z+.079],[0,h-.054,z+.080],.003,[.20,.13,.13]);
+   beam([0,h-.054,z+.080],[.019,h-.047,z+.079],.003,[.20,.13,.13]);
   }
   function stacks(size,low,quality){
    const positions=[-1,1].map(s=>({
