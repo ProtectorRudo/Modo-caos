@@ -29,7 +29,7 @@ test('V37 must be identifiable at AR render and assets bust obsolete caches',()=
   assert.ok(html.includes('/'+name+'.js?v=38'),name);
  assert.ok(html.includes('id="sceneVersion"'));
  assert.match(runtime,/NEON PRISM/);
- assert.match(runtime,/V37 · /);
+ assert.match(runtime,/V38 · /);
  assert.match(art,/HORSE DJ V37/);
 });
 test('LED is elevated and continuous: 1.51 m top, truss higher, no legacy GLB facade',()=>{
