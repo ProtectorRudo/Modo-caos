@@ -131,3 +131,27 @@ El archivo `ogg.b64` pesa 460.800 caracteres, decodifica a 345.600 bytes Ogg Opu
 - `ritmo.html` incluye `ritmo-despacito.js` antes del runtime, y el runtime inserta el primer tema autorizado al inicio del selector.
 - **Pendiente**: ensayo físico con Chrome Android ARCore para confirmar latencia audible, desempeño/FPs y sensibilidad lateral; pruebas Web Audio simuladas y respuesta 200 **no son** prueba de reproducción física.
 - Calidad: para evitar uploads binarios, esta versión utiliza Opus estéreo ~34,6 kbps; la fuente MP3 y su fragmento original permanecen disponibles en el paquete local para una futura mejora de bitrate. No se finge calidad sin pérdidas ni una grabación máster sin alterar.
+
+
+## Actualización de experiencia — 25/10/2026, sostenidas y satisfacción
+
+### Error reproducido y corregido
+Las notas largas quedaban activas, pero `tick()` aplicaba igualmente el umbral de expiración de nota corta (**360 ms**) aunque la cola sostenida siguiera en curso. Esto causaba `FALLO` incluso estando quieto en el carril. Se corrigió con `if(g.holdActive?.id===n.id)break` antes del chequeo de expiración, más un sistema robusto para seguimiento AR:
+- Sostenerse en el carril inicia automáticamente la nota hasta 200 ms antes del impacto, sin tocar pantalla.
+- `holdActive` mantiene progreso y tiempo fuera de carril. Tolera 240 ms de salida continua o pequeñas oscilaciones de posición; abandonar realmente el carril sigue dando FALLO.
+- La nota larga no se evalúa como nota normal hasta completar su cola. Al completarse, `PERFECTO`, puntos, evento `hold_complete` y vibración.
+
+### Mejoras visuales y sensoriales
+- `ritmo-art.js`: cintas luminosas para notas largas sobre piso AR y demo, texto **MANTENÉ**, progreso en aro junto al jugador, línea de impactos que pulsa con la música y resplandor del carril ocupado.
+- `ritmo-fx.js` nuevo: capa Canvas 2D independiente sobre la AR, partículas, destellos, anillos expansivos, combos, puntos flotantes, celebración de rachas. Limita sprites activos para mantener trabajo acotado en móviles; respeta preferencia de movimiento reducido.
+- `ritmo.html`: medidor HUD **¡MANTENÉ TU COLOR!** con porcentaje, colores y efectos en combos.
+- `ritmo-runtime.js`: feedback diferenciado para comienzo y final de sostenidas, haptics no esenciales, festival de combo 10/20/30/50, recuperación y ocultación limpia de efectos al terminar.
+- `ritmo-audio.js`: microconfirmaciones musicales sintetizadas en WebAudio que se mezclan con Despacito sin reemplazar ni adelantar su audio; sin sonido de fallo excesivo. No se altera el `AudioContext` maestro para evaluar los golpes.
+
+### Verificación
+- `tests/ritmo.test.cjs`: regresión de 192 mapas de combinaciones.
+- `tests/ritmo-sustain-fx.test.cjs`: 204 variaciones de sostenidas (17 canciones/perfiles x 4 dificultades x 3 anchos), con jitter simulado y cruce de 360 ms, más abandono real y recuperación.
+- `tests/ritmo-experience.test.cjs`: prueba de render simulado, FX y HUD. Simulación integrada de Despacito: sostuvo una nota larga, mostró barra, ganó puntos, activó confirmación y terminó.
+- **Aún no sustituye prueba física WebXR en Android**. No modificar la física de posicionamiento compartida con otros minijuegos.
+
+Desplegar vía la ruta aislada de Ritmo Caos en Vercel apuntando al nuevo SHA de GitHub, agregando el archivo `ritmo-fx.js` a la regla de JavaScript y **conservando la CSP activa** `script-src 'self' 'unsafe-inline'` en HTML; la antigua cabecera de GitHub `default-src 'none'; sandbox` rompió el inicio del juego en versiones anteriores. Verificar primero staging y luego producción, audio, 4 carriles y regresiones de rutas.
