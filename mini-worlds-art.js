@@ -9,7 +9,7 @@ const M={sand:mat('#e9ca8f'),edge:mat('#9d754e'),soil:mat('#685445'),grass:mat('
 const groundTextures=[];
 function groundTexture(kind,seed){
  const c=document.createElement('canvas');c.width=128;c.height=128;
- const g=c.getContext('2d');const random=rng(seed);
+ const g=c.getContext('2d');let state=seed;const random=()=>{state=(state*1664525+1013904223)>>>0;return state/4294967296};
  g.fillStyle='#f1eee7';g.fillRect(0,0,128,128);
  for(let i=0;i<440;i++){
   const x=random()*128,y=random()*128,size=.5+random()*2.1;
