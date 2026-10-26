@@ -34,4 +34,4 @@ jobs:
           node --check ritmo-exterior.js
           node --check ritmo-stage-showtime.js
           node --check ritmo-runtime.js
-          node --test tests/ritmo-glb-v29.test.cjs tests/ritmo-exterior.test.cjs tests/ritmo-prism-v28.test.cjs
+          node --test tests/ritmo-floor-flow-v29.test.cjs tests/ritmo-glb-v29.test.cjs tests/ritmo-exterior.test.cjs tests/ritmo-prism-v28.test.cjs
