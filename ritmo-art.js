@@ -32,11 +32,11 @@ function create(svg,canvas){
    if(c&&r){lastSpots[i]=c;const rad=Math.max(9,Math.min(54,Math.hypot(r[0]-c[0],r[1]-c[1])));html+='<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+(rad*1.3)+'" fill="'+color+'" opacity=".20" filter="url(#rbGlow)"/><circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+rad+'" fill="'+(lit?'#efffff':color)+'" stroke="'+color+'" stroke-width="3" opacity=".92"/>';}
   }
   const pulse=playing?.72+.22*Math.cos(elapsed*2*Math.PI/(g?.beat||.67)):.72;
-  html+=worldQuad(P,-1.99*size,.59,1.99*size,.70,.075,w,h,'#e5ffff','#ffffff',2,pulse);
+  html+=worldQuad(P,-1.99*size,.644,1.99*size,.656,.075,w,h,'#aaf8ff','#9ffbff',1,pulse*.55);
   if(g&&(playing||g.state==='finished')){
    for(const n of g.notes){
     const delta=n.at-elapsed;if(delta>lead||delta<-.22||n.status!=='pending')continue;
-    const z=.63-clamp(delta/lead,0,1)*1.79;
+    const z=.65-clamp(delta/lead,0,1)*1.79;
     const col=C[n.lane],cx=x(n.lane),sz=size*.28;
     if(n.type==='slide'){const fromX=x(n.fromLane),startZ=z-n.slideDuration/lead*1.79;
      html+=worldQuad(P,Math.min(fromX,cx)-sz*.2,startZ,Math.max(fromX,cx)+sz*.2,z,.11,w,h,col,'#ffffff',1,.36);}
