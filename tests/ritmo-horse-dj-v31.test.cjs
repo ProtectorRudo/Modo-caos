@@ -60,7 +60,7 @@ test('horse head and stage are anchored decorations; no duplicated giant miss ov
  assert.ok(art.includes('function horseHead('));
  assert.ok(art.includes("props?.drawCharacter(mesh,surface,t,low,quality)"));
  assert.ok(art.includes("props?.drawPart('riser'"));
- assert.ok(art.includes("props?.drawPart('cdj'"));
+ assert.ok(art.includes("props.drawPart('cdj'"));
  assert.ok(art.includes("props?.drawPart('laser'"));
  assert.ok(art.includes("props?.drawPart('smoke'"));
  assert.ok(!runtime.includes('notify(msg,470)'));
