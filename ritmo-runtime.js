@@ -4,7 +4,7 @@
 const E=id=>document.getElementById(id),G=window.RitmoCore,A=window.RitmoArt,audio=window.RitmoAudio.create();
 if(!G||!A)throw Error('Ritmo Caos requiere core y art');
 const art=A.create(E('rtSvg'),E('gameCanvas')),fx=window.RitmoFx?.create(E('fxCanvas')),
- stage3d=window.RitmoStage3D?.create(),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+ stage3d=window.RitmoStage3D?.create(),haptics=window.RitmoHaptics?.create(navigator),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let stage3dOK=false;
 window.modoCaosCustomRender=function(gl,view,W,t){
  const success=!!stage3d?.render(gl,view,W,t,locked?game:null,boardSize,audio.spectrum);
@@ -205,13 +205,13 @@ function onEvents(){
   lastEventCount=ev.seq;
   if(ev.type==='hold_start'){
    notify('🎸 ¡MANTENÉ ESE COLOR!',520);
-   try{navigator.vibrate?.(20)}catch(_){}
+   // The sustain START is only a preview, not a scored note. Do not vibrate yet.
    try{audio.feedback?.('HOLD_START',ev.lane,game.combo)}catch(_){}
   }else if(ev.type==='hold_complete'){
    fx?.burst(ev.lane,noteSpot(ev.lane),'HOLD',ev.combo,ev.points);
    stage3d?.hit(ev.lane,'HOLD');
    try{audio.feedback?.('HOLD_COMPLETE',ev.lane,ev.combo)}catch(_){}
-   try{navigator.vibrate?.([30,24,45])}catch(_){}
+   haptics?.scored(ev.note); // Exactly one miniature vibration on completed sustain
    notify('🌟 ¡SOSTENIDA PERFECTA! + PUNTOS',920);
   }else if(ev.type==='hold_break'){
    notify('↻ MANTENÉ TU COLOR MÁS TIEMPO',740);
@@ -227,13 +227,13 @@ function onEvents(){
     if(note?.type!=='hold'){
      notify(msg,470);
      try{audio.feedback?.(ev.rating,ev.lane,ev.combo)}catch(_){}
-     try{navigator.vibrate?.(ev.rating==='PERFECTO'?[12,12,28]:15)}catch(_){}
+     haptics?.scored(ev.note); // Every scored normal/slide/bonus note
     }
     for(const n of [10,20,30,50]){
      if(game.combo>=n&&!playedMilestones.has(n)){
       playedMilestones.add(n);fx?.celebrate(n);
       notify('🔥 COMBO '+n+' · ¡EL ESCENARIO EXPLOTA!',1000);
-      try{navigator.vibrate?.([30,25,30])}catch(_){}
+      // Combo gets visual/audio celebration but no second overlapping vibration.
      }
     }
    }else if(note?.type!=='hold')notify(msg,440);
@@ -248,7 +248,7 @@ async function begin(){
  G.setPosition(game,demo?demoLane:selected,0);G.start(game);game.paused=true;
  E('result').style.display='none';E('hud').style.display='block';E('forecast').style.display='flex';E('gamePause').style.display='block';E('where').style.display='block';
  E('head').style.display='none';E('rtStart').disabled=true;
- running=true;manualPause=false;lost=false;lastEventCount=0;playedMilestones.clear();fx?.reset();
+ running=true;manualPause=false;lost=false;lastEventCount=0;playedMilestones.clear();haptics?.reset();fx?.reset();
  E('holdHud').style.display='none';
  if(!demo){E('prepare').style.display='none';if(reference){reference.selected=selected;reference.worldWidth=boardSize}filtered=selected;lane=selected;}
  notify('♫ PREPARANDO LA CANCIÓN',1400);
