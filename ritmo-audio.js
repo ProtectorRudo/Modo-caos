@@ -6,7 +6,15 @@
   let ctx=null,timer=null,startAt=0,nextBeat=0,nextMelody=0,melodyQueue=[],sourceNodes=new Set(),gain=null,mute=false,track='neon',ended=false;
   let personalBuffer=null,personalSong=null,personalSource=null,analysis=null;
   const licensedBuffers=new Map(),licensedLoading=new Map();
-  function init(){ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();if(!gain){gain=ctx.createGain();gain.gain.value=mute?0:.25;gain.connect(ctx.destination)}return ctx}
+  let analyser=null,spectrumBytes=null;
+  function init(){ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();if(!gain){gain=ctx.createGain();gain.gain.value=mute?0:.25;if(typeof ctx.createAnalyser==='function'){
+   try{
+    analyser=ctx.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=.76;
+    spectrumBytes=new Uint8Array(analyser.frequencyBinCount);
+    gain.connect(analyser);analyser.connect(ctx.destination);
+   }catch(_){analyser=null;gain.connect(ctx.destination)}
+  }else gain.connect(ctx.destination);
+ }return ctx}
   function oscillator(freq,start,dur,wave='sine',vol=.14,slide=null){
    const o=ctx.createOscillator(),g=ctx.createGain();o.type=wave;o.frequency.setValueAtTime(freq,start);
    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),start+dur);
@@ -193,9 +201,17 @@
    oscillator(base*(bright?2:1),time,bright?.22:.13,'sine',bright?.055:.038);
    if(bright)oscillator(base*3,time+.04,.20,'triangle',.026);
   }
+  // Music analysis drives ONLY colors/lighting; the score uses song timestamps.
+  function spectrum(){
+   if(!analyser||!spectrumBytes)return {low:.27,mid:.30,high:.26};
+   try{analyser.getByteFrequencyData(spectrumBytes)}catch(_){return {low:.27,mid:.30,high:.26}}
+   const n=spectrumBytes.length;
+   const avg=(from,to)=>{let sum=0;for(let i=from;i<to;i++)sum+=spectrumBytes[i];return sum/Math.max(1,to-from)/255};
+   return {low:avg(1,Math.min(n,10)),mid:avg(10,Math.min(n,40)),high:avg(40,Math.min(n,92))};
+  }
   function volume(v){mute=!!v;if(gain)gain.gain.value=mute?0:.25}
   function state(){return {muted:mute,playing:!!timer&&!ended,started:startAt,track}}
-  return {init,preload,start,now,pause,resume,stop,volume,state,feedback,loadLocal,localStatus};
+  return {init,preload,start,now,pause,resume,stop,volume,state,feedback,spectrum,loadLocal,localStatus};
  }
  root.RitmoAudio={create};
 })(window);
