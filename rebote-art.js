@@ -45,6 +45,7 @@ export function createReboteArt(T,scene){
  // AR ARENA 3D / world-space only: the environment is a child of the same
  // calibrated root as the opponent. Never pin scenic objects to the phone.
  const arenaWorld=new T.Group();root.add(arenaWorld);
+ const playerGround=new T.Group();arenaWorld.add(playerGround);
  const scenicMaterials=[
   new T.MeshStandardMaterial({color:0x152333,metalness:.66,roughness:.40}),
   new T.MeshStandardMaterial({color:0x294052,metalness:.64,roughness:.29}),
@@ -66,7 +67,7 @@ export function createReboteArt(T,scene){
  };
  // Industrial modular flooring on the user's ring, with real gaps. Geometry is
  // paper-thin above the detected floor, intentionally not a false physical step.
- const tiles=new T.Group();arenaWorld.add(tiles);
+ const tiles=new T.Group();playerGround.add(tiles);
  for(let i=0;i<12;i++){
   const arc=(i+.5)*Math.PI/6;
   const panelG=useGeometry(new T.RingGeometry(.84,1.17,1,1,i*Math.PI/6+.025,Math.PI/6-.05));
@@ -79,10 +80,10 @@ export function createReboteArt(T,scene){
  }
  // Holographic centre target: player location remains transparent and readable.
  const groundDisk=useGeometry(new T.CircleGeometry(.36,36));
- const disk=deco(arenaWorld,groundDisk,scGlass,0,.081,0);
+ const disk=deco(playerGround,groundDisk,scGlass,0,.081,0);
  disk.rotation.x=-Math.PI/2;
  const clearance=useGeometry(new T.TorusGeometry(1.38,.011,5,72));
- const clearanceRing=deco(arenaWorld,clearance,scCyan,0,.087,0);
+ const clearanceRing=deco(playerGround,clearance,scCyan,0,.087,0);
  clearanceRing.rotation.x=-Math.PI/2;
  // A physical-looking opponent launch pad at z=-2.30, where the enemy stands.
  const rivalDeck=new T.Group();rivalDeck.position.z=-2.30;arenaWorld.add(rivalDeck);
@@ -493,7 +494,7 @@ export function createReboteArt(T,scene){
   for(const geometry of scenicGeometries)geometry.dispose();
   for(const m of sharedRobotMaterials)m.dispose();
  }
- return {root,plane,update,effect,dispose,setSize(v){plane.userData.size=Math.max(.7,Math.min(1.45,v))},
+ return {root,plane,update,effect,dispose,setSize(v){const size=Math.max(.7,Math.min(1.45,v));plane.userData.size=size;playerGround.scale.setScalar(size)},
   getRobotCount(){return bots.size},getShotCount(){return shots.size},
   getTexturedBalls(){return [...shots.values()].filter(group=>!!group.userData.material?.map).length},
   getRobotFacingDot(eye){
@@ -505,6 +506,8 @@ export function createReboteArt(T,scene){
   },
   getRicochetRipples(){return ripples.length},
   getArenaPropsCount(){return worldPropsCount},
+  getArenaGeometryCount(){return scenicGeometries.length},
+  getArenaAnchored(){return arenaWorld.parent===root},
   getArenaWorld(){return arenaWorld},
   getRivalDeck(){return rivalDeck},
   getScoreboard(){return scoreboard}
