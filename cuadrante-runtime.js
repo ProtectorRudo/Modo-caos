@@ -93,10 +93,9 @@ function placeFromFrame(frame){
  hasHit=true;
  const pos=p.transform.position,cam=renderer.xr.getCamera(camera);let dir=new THREE.Vector3();cam.getWorldDirection(dir);
  let baseYaw=Math.atan2(-dir.x,-dir.z);yaw=baseYaw;
- stage.root.rotation.y=baseYaw+(offset.rot||0);
- const side=new THREE.Vector3(Math.cos(baseYaw),0,-Math.sin(baseYaw));
- const away=new THREE.Vector3(-Math.sin(baseYaw),0,-Math.cos(baseYaw));
- stage.root.position.set(pos.x+side.x*offset.x+away.x*offset.z,pos.y+.06,pos.z+side.z*offset.x+away.z*offset.z);
+ const world=C.anchoredArena(pos,baseYaw,offset.rot||0,offset,arenaScale);
+ stage.root.rotation.y=world.rotation;
+ stage.root.position.set(world.x,world.y,world.z);
  stage.root.scale.setScalar(arenaScale);
  $('fixArena').disabled=false;$('labelPhase').textContent='SUPERFICIE DETECTADA · AJUSTÁ TU ARENA';
 }
