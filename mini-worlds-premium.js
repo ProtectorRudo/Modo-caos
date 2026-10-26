@@ -8,7 +8,7 @@
  */
 (function(root){
 'use strict';
-root.MiniWorldsPremium=function(T){
+root.MiniWorldsPremium=function(T,options={}){
  const BASE='https://raw.githubusercontent.com/anshaneja5/skyline-run/0c41526d8d4130c37c15e219c2c3737fa8cb4ad8/public/assets/models/';
  const SOURCES=Object.freeze({
   canopyA:{url:BASE+'tree1.glb',size:516044,sha:'80bd662cc51f983986f4e201463dc3a729a6cd4a'},
@@ -49,7 +49,7 @@ root.MiniWorldsPremium=function(T){
   stage.disposePremium=()=>{alive=false};
   const templateMap=new Map(),results={loaded:0,placed:0,failed:0,source:'Quaternius Stylized Nature MegaKit Standard / CC0'};
   let gltf;
-  try{gltf=await loader()}catch(e){
+  try{gltf=options.loadModel?{loadAsync:options.loadModel}:await loader()}catch(e){
    layer.parent?.remove(layer);results.failed=4;console.warn('[MINI WORLDS PREMIUM] GLTFLoader unavailable',e);
    return results;
   }
@@ -84,15 +84,16 @@ root.MiniWorldsPremium=function(T){
   const palettes=level
    ? ['canopyC','canopyB','canopyA','canopyC']
    : ['canopyA','canopyB','canopyC','canopyA'];
+  let treeCount=0;
   const place=(name,x,y,z,height,angle)=>{
    const target=templateMap.get(name);if(!target)return false;
-   if(locate(layer,target,x,y,z,height,angle)){results.placed++;return true}
+   if(locate(layer,target,x,y,z,height,angle)){results.placed++;if(name!=='shrub')treeCount++;return true}
    return false;
   };
   // Gameplay/physics traverse the centers. Canopy is placed exclusively
   // against the OUTER CORNERS of real islands; it cannot resemble a new,
   // non-collidable walkway or cover the joystick player's clear route.
-  const treeTiles=[0,1,3,4,5,6,8,9,10,11,12,13];
+  const treeTiles=level?[3,4,5,6,9,11,12,13]:[0,1,3,4,5,6,8,9,10,11,12,13];
   for(let i=0;i<treeTiles.length;i++){
    const p=stageTiles[treeTiles[i]],side=i%2?-1:1;
    const key=palettes[(i+(level?2:0))%palettes.length];
@@ -110,13 +111,14 @@ root.MiniWorldsPremium=function(T){
    place('canopyC',a.x-a.w*.44,a.y+.03,a.z-a.d*.42,2.7,.7);
    place('shrub',p.x+p.w*.43,p.y+.02,p.z-p.d*.4,.53,.4);
   }
-  if(results.placed>0){
+  if(treeCount>=3){
    stage.premiumNativeActive=true;
    // Suppress redundant Kenney tree/bush dressing ONLY after imported models
    // actually loaded. The waterfall, crates, bridges and pickups stay.
    if(stage.kenneyFoliage)stage.kenneyFoliage.visible=false;
    if(typeof stage.setPremiumFoliage==='function')stage.setPremiumFoliage(true);
   }
+  results.canopies=treeCount;
   stage.premiumStats=results;
   return results;
  }
