@@ -67,7 +67,7 @@ def main():
  z,hashval,length=archive(SOURCES["quaternius"]);manifest["source_sha256"]["quaternius"]=hashval
  print("Downloaded Quaternius free standard pack:",length, "bytes",flush=True)
  names=set(z.namelist());prefix="Modular SciFi MegaKit[Standard]/glTF/"
- deps=set();patched={}
+ deps=set();patched={};generated={}
  for key,name in SELECTION.items():
   member=prefix+name+".gltf"
   if member not in names: raise RuntimeError("Not in free pack: "+member)
@@ -83,9 +83,14 @@ def main():
     # The standard archive has shared textures in one common folder rather
     # than next to each .gltf. Repair only unique verified basename matches.
     candidates=[n for n in names if n.startswith(prefix) and n.endswith("/"+PurePosixPath(uri).name)]
-    if len(candidates)!=1:raise ValueError("Ambiguous or missing glTF dependency: "+path+" matches="+repr(candidates))
-    path=candidates[0]
-    part["uri"]=posixpath.relpath(path,posixpath.dirname(member))
+    if len(candidates)==1:
+     path=candidates[0]
+     part["uri"]=posixpath.relpath(path,posixpath.dirname(member))
+    elif len(candidates)==0 and path.lower().endswith((".png",".jpg",".jpeg")):
+     # The free tier omits some Quaternius shader trim maps. Generate tiny
+     # neutral, local placeholders so genuine meshes still load correctly.
+     generated[path]=str(uri)
+    else:raise ValueError("Ambiguous or missing glTF dependency: "+path+" matches="+repr(candidates))
    if not path.startswith(prefix):raise ValueError("Unsafe glTF dependency: "+path)
    used.add(path)
   patched[member]=json.dumps(gltf,separators=(",",":"),ensure_ascii=False).encode("utf-8")
@@ -93,7 +98,14 @@ def main():
   manifest["models"][key]={"url":"models/"+name+".gltf","triangles":"from supplier original; render outside gameplay collision field"}
  for member in sorted(deps):
   target=MODEL_DIR/Path(member[len(prefix):])
-  if member in patched:
+  if member in generated:
+   target.parent.mkdir(parents=True,exist_ok=True)
+   nm=generated[member].lower()
+   rgb=(128,128,255) if "normal" in nm else (0,0,0) if "emissive" in nm else (170,180,190) if any(x in nm for x in ("color","albedo","diffuse")) else (225,225,225)
+   Image.new("RGB",(8,8),rgb).save(target)
+   size=target.stat().st_size
+   print("NEUTRAL MAP GENERATED",member[len(prefix):],rgb,flush=True)
+  elif member in patched:
    target.parent.mkdir(parents=True,exist_ok=True)
    target.write_bytes(patched[member])
    size=len(patched[member])
