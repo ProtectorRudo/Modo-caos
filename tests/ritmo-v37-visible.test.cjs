@@ -23,8 +23,10 @@ test('Chrome preserves preview host and share bypass, never sends visitors to pr
  assert.doesNotMatch(html,/href="intent:\/\/modo-caos-eta/);
 });
 test('V37 must be identifiable at AR render and assets bust obsolete caches',()=>{
- for(const name of ['ritmo-exterior','ritmo-runtime','ritmo-stage-showtime','ritmo-glb-props','ritmo-skinning'])
+ for(const name of ['ritmo-exterior','ritmo-glb-props','ritmo-skinning'])
   assert.ok(html.includes('/'+name+'.js?v=37'),name);
+ for(const name of ['ritmo-runtime','ritmo-stage-showtime','ritmo-core','ritmo-audio','ritmo-despacito','ritmo-tracking'])
+  assert.ok(html.includes('/'+name+'.js?v=38'),name);
  assert.ok(html.includes('id="sceneVersion"'));
  assert.match(runtime,/NEON PRISM/);
  assert.match(runtime,/V37 · /);
