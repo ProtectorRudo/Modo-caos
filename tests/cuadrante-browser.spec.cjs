@@ -7,7 +7,9 @@ test('3D arcade loads, plays, pauses and returns to menu',async({page})=>{
  await expect(page.locator('#startDemo')).toBeVisible();
  await page.locator('#settingsBtn').click();
  await expect(page.locator('#touchSense')).toBeVisible();
- await page.locator('#touchSense').fill('80');
+ await page.locator('#touchSense').evaluate(el=>{
+  el.value='80';el.dispatchEvent(new Event('input',{bubbles:true}));
+ });
  await expect(page.locator('#senseVal')).toHaveText('80%');
  await page.locator('#settingsBtn').click();
  await page.locator('#startDemo').click();
