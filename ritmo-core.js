@@ -41,6 +41,10 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
   let when=Number.isFinite(noteEvent?.at)?noteEvent.at:phase+beatIndex*beat,dt=when-lastAt;
   if(when>=duration-.6)break;
   let maxHops=Math.max(0,Math.floor((dt*.70-.12)/laneWidth));
+   // Playing a known recording should FEEL like a dance, not teleporting
+   // two colored squares between consecutive audible accents. Adjacent
+   // lane flow on Easy/Normal/Hard, while CAOS retains long safe leaps.
+   if(song.licensedRecording&&difficulty!=='caos')maxHops=Math.min(1,maxHops);
   const possible=active.filter(c=>Math.abs(c-lane)<=maxHops);
   const options=possible.length?possible:[lane];
   const phrase=Math.floor(beatIndex/4),desired=song.lead[(phrase+Math.floor(rand()*3))%song.lead.length]%LANES;
