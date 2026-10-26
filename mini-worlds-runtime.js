@@ -12,7 +12,7 @@ let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=n
 let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
 let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePointers=new Map(),pinch=null;
 let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0,arDebugVisible=false;
-let mapOpen=false,arQuality=1.12;
+let mapOpen=false,arQuality=1.12,comboVisibleUntil=0,coinPulseUntil=0;
 let arCompositor=null,xrEmptyScene=null,arCompositorError='',arFpsTotal=0,arFpsFrames=0;
 let level=0,progress={unlocked:0,best:[null,null],coins:0},settings={sound:true,music:true};
 try{progress={...progress,...JSON.parse(localStorage.getItem('mc-mini-worlds-save-v1')||'{}')}}catch(_){}
@@ -43,9 +43,10 @@ function beep(name){
 }
 function song(){
  if(!ctx||!settings.music||phase!=='playing'||ctx.currentTime<musicAt)return;
+ const fury=game.chaos?.fury>0;
  const boss=game.map.boss.active,seq=boss?[110,146,130,164,123,164,196,146]:[220,277,330,277,247,330,370,330,220,247,294,330,247,277,330,440];
- const beat=boss?.215:.265,now=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();o.type=boss?'sawtooth':'triangle';o.frequency.value=seq[musicStep++%seq.length];
- g.gain.setValueAtTime(.0001,now);g.gain.linearRampToValueAtTime(boss?.026:.022,now+.01);g.gain.exponentialRampToValueAtTime(.0001,now+beat*.82);
+ const beat=boss?.205:fury?.18:.265,now=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();o.type=boss||fury?'sawtooth':'triangle';o.frequency.value=seq[musicStep++%seq.length]*(fury?1.25:1);
+ g.gain.setValueAtTime(.0001,now);g.gain.linearRampToValueAtTime(boss?.027:fury?.027:.022,now+.01);g.gain.exponentialRampToValueAtTime(.0001,now+beat*.82);
  o.connect(g).connect(ctx.destination);o.start(now);o.stop(now+beat*.84);musicAt=now+beat;
 }
 function showModal(tag,title,desc,buttons){
@@ -142,6 +143,8 @@ function layout(state){
  phase=state;const active=state==='playing'||state==='paused'||state==='ready'||state==='placing'||state==='won';
  $('landing').hidden=state!=='home';$('viewport').hidden=!active;$('hud').hidden=state==='home'||state==='placing';
  $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';
+ $('chaosMeter').hidden=state==='home'||state==='placing';
+ if(state==='home')document.body.classList.remove('fury-mode');
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';
  $('recenter').hidden=mode!=='ar'||(state!=='playing'&&state!=='paused');
  $('mapToggle').hidden=state!=='playing'&&state!=='paused';
@@ -317,29 +320,48 @@ function updateHUD(){
  const b=game.map.boss;$('bossHud').hidden=!b.active||!b.alive;
  $('bossLabel').textContent=game.map.definition.boss+' · FASE '+b.phase;
  $('bossFill').style.width=(b.hp/b.maxHp*100)+'%';
+ const q=game.chaos;
+ if(q){
+  const fury=q.fury>0;
+  $('chaosFill').style.width=(fury?q.fury/7*100:q.charge)+'%';
+  $('chaosCaption').textContent=fury?'⚡ FURIA · '+q.fury.toFixed(1)+'s':'⚡ CAOS '+Math.floor(q.charge)+'%';
+  document.body.classList.toggle('fury-mode',fury&&phase==='playing');
+  const comboVisible=q.chain>=2&&q.window>.01&&phase==='playing';
+  if(comboVisible){
+   $('comboBanner').textContent='COMBO ×'+q.chain+(q.chain>=5?' ¡IMPARABLE!':'');
+   $('comboBanner').classList.add('show');
+  }else $('comboBanner').classList.remove('show');
+ }
+ const counter=$('coinCount');counter.classList.toggle('pop',performance.now()<coinPulseUntil);
 }
 function events(){
  for(const e of C.drain(game)){
   const x=game.player.x,y=game.player.y+.7,z=game.player.z;
   // Spatially accurate FX at the impact target instead of the avatar.
   stage.combatFx?.(e,game.player);
-  if(e.type==='coin'){beep('coin');haptic(7);if(e.combo%10===0)notice('¡'+e.combo+' MONEDAS RECOGIDAS!',850)}
+  if(e.type==='coin'){beep('coin');haptic(7);coinPulseUntil=performance.now()+190;
+    if(e.combo%15===0)notice('¡'+e.combo+' MONEDAS!',800)}
   else if(e.type==='star'){beep('star');haptic([15,35,25]);notice('✦ ESTRELLA SECRETA '+game.stars+'/3',2200);stage.impact(x,y,z,'#ffe56b',25)}
   else if(e.type==='jump')beep(e.double?'double':'jump');
   else if(e.type==='swing'){beep('attack');haptic(8)}
   else if(e.type==='boxHit'){beep('hit');haptic(12)}
   else if(e.type==='boxBreak'){beep('smash');haptic([18,25,20])}
+  else if(e.type==='treasure'){beep('star');haptic(22)}
+  else if(e.type==='orb'){beep('star');haptic([10,30,10])}
   else if(e.type==='enemyHit'){beep('hit');haptic(17)}
   else if(e.type==='enemyDown'){beep('smash');haptic([23,28,34]);if(e.combo%3===0)notice('¡TRIPLE CAOS! · '+e.combo+' ENEMIGOS',930)}
+  else if(e.type==='combo'){beep('checkpoint');haptic([12,28,12])}
+  else if(e.type==='furyStart'){beep('star');haptic([30,50,40,50,60]);notice('⚡ ¡MODO FURIA ACTIVADO!',1450)}
+  else if(e.type==='furyEnd'){beep('checkpoint');notice('FURIA TERMINADA · ¡SEGUÍ SUMANDO!',850)}
   else if(e.type==='hurt'){beep('damage');haptic([40,50,30]);notice('¡CUIDADO! · '+game.player.hearts+' CORAZONES',1050)}
   else if(e.type==='fall'){beep('fail');notice('¡AL AGUA! · VOLVÉS AL CHECKPOINT',1300)}
   else if(e.type==='checkpoint'){beep('checkpoint');haptic(20);notice('⚑ CHECKPOINT · CORAZÓN RECUPERADO',1800);stage.impact(x,y,z,'#b5ffec',24)}
-  else if(e.type==='bossIntro'){beep('boss');notice('⚠ ¡APARECE '+game.map.definition.boss+'!',2700)}
+  else if(e.type==='bossIntro'){beep('boss');haptic([32,60,38]);notice('⚠ ¡APARECE '+game.map.definition.boss+'!',2400)}
   else if(e.type==='bossWarn'){notice('⚠ ¡SALTÁ O ESQUIVÁ!',700)}
   else if(e.type==='bossSmash'){beep('smash');haptic(20);stage.impact(game.map.boss.x,2,-23.2,'#ff7050',20)}
-  else if(e.type==='bossPhase'){notice('¡FASE '+e.phase+' · SE ENFURECE!',2000)}
+  else if(e.type==='bossPhase'){beep('boss');haptic([25,35,25]);notice('¡FASE '+e.phase+' · SE ENFURECE!',1750)}
   else if(e.type==='bossHit'){beep('hit');haptic(32);stage.impact(game.map.boss.x,2,-24,'#b9fcf4',20)}
-  else if(e.type==='bossDown'){stage.impact(0,2,-24,'#f4df87',54)}
+  else if(e.type==='bossDown'){beep('win');haptic([40,65,35,65,90]);stage.impact(0,2,-24,'#f4df87',45)}
   else if(e.type==='win')victory();
  }
 }
