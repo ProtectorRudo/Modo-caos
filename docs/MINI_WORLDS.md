@@ -47,8 +47,15 @@ La versión contiene núcleo y contenidos jugables de dos aventuras pero **no co
 - Personaje principal seleccionado: **Knight de KayKit Adventurers**, GLB con rig y animaciones, cargado automáticamente desde GitHub público (aún pendiente de redistribución local por tamaño).
 - Enemigos: **Cute Animated Monsters** de Quaternius, 6 especies en 4 roles. Ocho modelos `.gltf` integrados en GitHub incluyendo jefes, todos con esqueletos, animaciones y recursos embebidos (modelos validados estructuralmente).
 - **Nivel 1: DRAGÓN DORADO** (YellowDragon), **Nivel 2: REY YETI** (Yeti); los dos gigantes tienen interfaz de núcleo vulnerable y conservan 3 fases del motor.
-- Escenario ampliado: fondo acuático de **14 × 33 unidades**, islas laterales y ambientación de punta a punta, anclado sobre el piso físico. Escala AR inicial `0.36`: aproximadamente **5,04 m de ancho × 11,88 m de largo**, escalable entre `0.19` y `0.62`, sin alterar físicas lógicas. El usuario no necesita caminar por esa distancia: el desplazamiento del caballero es virtual, por joystick. WebXR sigue físicamente al teléfono y no ofrece seguimiento corporal; girar el dispositivo para apuntar es normal.
+- Escenario ampliado: fondo acuático de **14 × 33 unidades**, islas laterales y ambientación de punta a punta, anclado sobre el piso físico. Escala AR inicial `0.36`: aproximadamente **6,66 m de ancho × 11,88 m de largo**, escalable entre `0.19` y `0.62`, sin alterar físicas lógicas. El usuario no necesita caminar por esa distancia: el desplazamiento del caballero es virtual, por joystick. WebXR sigue físicamente al teléfono y no ofrece seguimiento corporal; girar el dispositivo para apuntar es normal.
 - Modo 3D: cámara libre orbital con zoom, joystick relativo a la cámara y ajuste dinámico de calidad.
 - Archivos: `mini-worlds-characters.js`, `assets/mini-worlds/characters/*.gltf`, `tests/mini-worlds-characters.test.cjs`.
 - Todo se conserva en el PR de previsualización **#69**, sin tocar `main` ni Supabase compartido.
 - **Pendiente antes de producción:** test real en Chrome Android, ARCore hit-test/ancla, calidad de las animaciones, CORS de Knight GLB, FPS/temperatura y confirmación de un deployment Vercel de esta revisión exacta.
+
+## Ampliación del recorrido jugable (misma rama)
+- Cada nivel tiene ahora **14 plataformas jugables**, 8 de la ruta principal más 6 islas laterales conectadas.
+- **64 monedas**, **18 cajas** (incluidas reforzadas, sorpresas y secretos), **9 enemigos normales**, **3 estrellas escondidas** y un jefe de tres fases por nivel.
+- Los límites interiores y las posiciones de monedas y enemigos se validan en **ambos niveles**; la función `ensureLand` proyecta coleccionables mal ubicados sobre una plataforma disponible, conservando hitboxes y la física.
+- Los segmentos laterales realmente permiten caminar y recolectar; no son meramente decorativos. El mar y las orillas exteriores ocupan 18,5 × 33 unidades en el render de Three.js.
+- `tests/mini-worlds.test.cjs` incluye ahora un décimo control: todas las islas opcionales tienen conexión y no existen monedas, cajas, estrellas ni enemigos terrestres sin piso; 10/10 simulaciones aprobadas.
