@@ -59,3 +59,13 @@ La versión contiene núcleo y contenidos jugables de dos aventuras pero **no co
 - Los límites interiores y las posiciones de monedas y enemigos se validan en **ambos niveles**; la función `ensureLand` proyecta coleccionables mal ubicados sobre una plataforma disponible, conservando hitboxes y la física.
 - Los segmentos laterales realmente permiten caminar y recolectar; no son meramente decorativos. El mar y las orillas exteriores ocupan 18,5 × 33 unidades en el render de Three.js.
 - `tests/mini-worlds.test.cjs` incluye ahora un décimo control: todas las islas opcionales tienen conexión y no existen monedas, cajas, estrellas ni enemigos terrestres sin piso; 10/10 simulaciones aprobadas.
+
+## Corrección de AR vacío — captura de prueba del usuario (26/10/2026)
+- Evidencia física: Chrome Android y ARCore encuentran piso, muestran texto de pista de ~11,9×6,7m y botón FIJAR MUNDO, pero el escenario 3D no se ve en el encuadre. **No se declara solucionado en un teléfono hasta repetir prueba en ARCore**.
+- Nuevo `mini-worlds-ar-guide.js` proyecta en el DOM overlay el polígono de la isla inicial y otras siete plataformas, usando exactamente la matriz del frame XR (viewer projection × inverse camera pose × stage.root.matrixWorld). No es un mock de cámara: solo se usa la pose nativa del dispositivo; el polígono debe aparecer donde se sitúa físicamente el objeto.
+- Retícula física adicional como tres meshes visibles en `stage.previewBeacon` con materiales `MeshBasicMaterial` y `depthTest:false` para diagnosticar render WebGL, sin tapar UI.
+- El rumbo del escenario ahora se fija con `frame.getViewerPose(...)` en la primera lectura válida del piso. El mundo deja de girar cuando el usuario mueve el teléfono durante la colocación.
+- El botón FIJAR MUNDO requiere que el inicio se encuentre en el campo visual cuando la pose nativa está disponible. La calibración no mueve el mundo una vez fijado.
+- Fallos de animaciones o GLTF no deben detener el `renderer.render`; el HUD muestra el número de llamadas de dibujo de WebGL en colocación. **Si el contador indica cero**, aislar render WebGL sin confundirlo con hit-test.
+- Tests: `tests/mini-worlds-ar-visibility.test.cjs` con escenario proyectado dentro/fuera de cámara y presencia de callbacks nativos, separado de simulaciones del motor físico.
+- Este cambio sigue en PR #69; ninguna modificación a otros minijuegos o producción.
