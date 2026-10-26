@@ -28,6 +28,7 @@ jobs:
           node --check cuadrante-art.js
           node --check cuadrante-lite.js
           node --check cuadrante-premium.js
+          node --input-type=module --check <cuadrante-ar-compositor.js
           node --check cuadrante-runtime.js
       - name: Physics, scoring, progression and survival
         run: node tests/cuadrante-core.test.cjs
