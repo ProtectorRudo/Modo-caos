@@ -98,7 +98,7 @@ function create(n=0){
  const player={x:0,z:1.2,y:0,vy:0,vx:0,vz:0,face:Math.PI,hearts:3,invuln:0,grounded:true,jumps:0,attack:0,attackId:0,coyote:0,buffer:0};
  return {map,player,phase:'ready',clock:0,coins:0,stars:0,kills:0,combo:0,checkpoint:{x:0,z:1.2,y:0},events:[],hazards:[],projectiles:[],lastInput:{x:0,z:0},won:false,deadCount:0,travel:0};
 }
-function emit(s,type,data={}){s.events.push({type,...data})}
+function emit(s,type,data={}){s.events.push({...data,type})} // event name always wins over entity.kind
 function damage(s,source){
  const p=s.player;if(p.invuln>0||s.phase!=='playing')return;
  p.hearts--;p.invuln=1.45;p.vy=3.5;p.grounded=false;emit(s,'hurt',{source,hearts:p.hearts});
@@ -115,8 +115,8 @@ function attack(s){
  function inArc(obj,r=1.10){let dx=obj.x-p.x,dz=obj.z-p.z,dist=Math.hypot(dx,dz);return dist<r&&(dist<.5||(dx*dir.x+dz*dir.z)/Math.max(.01,dist)>.08)}
  let hit=0;
  for(const b of s.map.boxes)if(b.alive&&inArc(b,.94)&&Math.abs(p.y-(platformY(s,b.x,b.z)||0))<2){
- b.hp--;b.flash=.25;hit++;emit(s,'boxHit',{id:b.id,type:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
- if(b.hp<=0){b.alive=false;emit(s,'boxBreak',{id:b.id,type:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
+ b.hp--;b.flash=.25;hit++;emit(s,'boxHit',{id:b.id,kind:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
+ if(b.hp<=0){b.alive=false;emit(s,'boxBreak',{id:b.id,kind:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
  const bounty=b.type==='coins'?6:b.type==='reinforced'?4:2;
  s.coins+=bounty;emit(s,'bonus',{count:bounty});
  if(b.type==='mystery'&&p.hearts<3&&b.id%2===0){p.hearts++;emit(s,'heart')}
@@ -124,9 +124,9 @@ function attack(s){
  }}
  for(const e of s.map.enemies)if(e.alive&&inArc(e,1.05)&&Math.abs(e.y-p.y)<2.1){
  e.hp--;e.stun=.45;e.flash=.22;hit++;
- emit(s,'enemyHit',{id:e.id,type:e.type,x:e.x,y:e.y,z:e.z,hp:e.hp});
+ emit(s,'enemyHit',{id:e.id,kind:e.type,x:e.x,y:e.y,z:e.z,hp:e.hp});
  if(e.hp<=0){e.alive=false;s.kills++;s.coins+=3;
-  emit(s,'enemyDown',{id:e.id,type:e.type,x:e.x,y:e.y,z:e.z,reward:3,combo:s.kills})}
+  emit(s,'enemyDown',{id:e.id,kind:e.type,x:e.x,y:e.y,z:e.z,reward:3,combo:s.kills})}
  }
  const b=s.map.boss;if(b.active&&b.alive&&b.weak>0&&b.invuln<=0&&inArc(b,2.0)){
  b.hp--;b.invuln=.38;b.weak=Math.max(.25,b.weak-.22);hit++;emit(s,'bossHit',{hp:b.hp});
