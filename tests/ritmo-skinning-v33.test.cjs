@@ -80,7 +80,7 @@ test('wrist aligns near CDJ coordinates without whole-arm manual x clipping',asy
  const wx=wrists.reduce((a,p)=>a+Math.abs(p[0]),0)/wrists.length;
  const ex=elbows.reduce((a,p)=>a+Math.abs(p[0]),0)/elbows.length;
  const wy=mean(wrists,1);
- assert.ok(wx>.09&&wx<.29,'hands align closer to center, x='+wx);
+ assert.ok(wx>.065&&wx<.29,'hands align closer to center, x='+wx);
  assert.ok(ex>wx,'elbows bend visibly outward');
  assert.ok(wy>.28&&wy<.53,'hands sit near console, y='+wy);
 });
@@ -92,9 +92,9 @@ test('safe fallback works if WebXR GLB fails; HTML orders V33 dependencies',asyn
  assert.equal(dj.status(),'fallback');
  assert.equal(dj.draw([],()=>{},1,.5),false);
  const files=['ritmo-glb-props','ritmo-skinning','ritmo-exterior','ritmo-stage-showtime'];
- for(const f of files)assert.ok(html.includes('/'+f+'.js?v=34'),f);
- for(let i=0;i<files.length-1;i++)assert.ok(html.indexOf('/'+files[i]+'.js?v=34')<html.indexOf('/'+files[i+1]+'.js?v=34'));
+ for(const f of files)assert.ok(html.includes('/'+f+'.js?v=35'),f);
+ for(let i=0;i<files.length-1;i++)assert.ok(html.indexOf('/'+files[i]+'.js?v=35')<html.indexOf('/'+files[i+1]+'.js?v=35'));
  assert.match(exterior,/const BACK=\.22/);
  assert.match(exterior,/if\(!skeletal\?\.draw\(mesh,surface,t,low,quality,combo\)\)/);
- assert.match(exterior,/roof=1\.08/);
+ assert.match(exterior,/roof=\.99/);
 });

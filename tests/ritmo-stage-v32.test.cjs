@@ -32,9 +32,9 @@ test('V32 changes exterior only, keeps untouched scoring floor and input scripts
  assert.match(stage,/const trails=quality===0\?3:5/);
  assert.match(stage,/let z=\.65,r=size\*\.44/);
  assert.match(stage,/try\{exterior\?\.render\(size,time,game/);
- assert.match(page,/ritmo-glb-props\.js\?v=34/);
- assert.match(page,/ritmo-exterior\.js\?v=34/);
- assert.match(page,/ritmo-stage-showtime\.js\?v=34/);
+ assert.match(page,/ritmo-glb-props\.js\?v=35/);
+ assert.match(page,/ritmo-exterior\.js\?v=35/);
+ assert.match(page,/ritmo-stage-showtime\.js\?v=35/);
  assert.ok(page.includes('/ritmo-runtime.js?v=31'), 'core game behavior stays V31');
 });
 test('V33 replaces manual XY warp with named GLB bones and weighted skinning',()=>{

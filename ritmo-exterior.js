@@ -46,35 +46,31 @@
   }
   function led(x,y,z,c,r=.008){cuboid(illum,x,y,z,r,r,.006,c,c,.85,3)}
   function truss(size,t,pulse,quality){
-   const side=size*2+.12,z=-1.78,roof=1.08;
-   // One continuous premium frame. No duplicate old truss crossing the DJ.
+   // V35: remove the two huge side antenna poles seen in the Android
+   // screenshots. Compact stage-mounted light bar, with two visible
+   // brackets fixed TO the screen, not sticks protruding from the floor.
+   const side=size*1.45+.045,z=-1.89,roof=.99;
    for(const sign of [-1,1]){
     const x=sign*side;
-    cuboid(mesh,x,.018,z,.105,.034,.145,S,M,1);
-    beam([x,.035,z],[x,roof,z],.015,[.18,.26,.32]);
-    beam([x-sign*.027,.035,z],[x-sign*.027,roof,z],.006,[.41,.49,.54]);
-    for(let j=0;j<2;j++){
-     const yy=.32+j*.25;
-     beam([x,yy,z],[x-sign*.027,yy+.19,z],.004,[.39,.45,.52]);
-    }
+    beam([x,.760,z],[x,roof-.02,z],.010,[.29,.39,.47]);
+    cuboid(mesh,x,.745,z,.041,.027,.061,S,M,1);
+    const col=sign<0?P:C;
+    annulus(illum,x,roof-.058,z+.065,.020,.029,col,.32+.39*pulse,16,true);
    }
-   // The imported CC0 truss replaces rather than overlaps the procedural roof.
-   if(!props?.drawPart('truss',mesh,surface,{scale:.445,offset:[0,roof-.085,z]})){
-    beam([-side,roof,z],[side,roof,z],.019,M);
-    beam([-side,roof-.047,z],[side,roof-.047,z],.008,[.47,.55,.62]);
+   if(!props?.drawPart('truss',mesh,surface,{
+     scale:.325,offset:[0,roof-.082,z]})){
+    beam([-side,roof,z],[side,roof,z],.014,M);
+    beam([-side,roof-.039,z],[side,roof-.039,z],.008,[.39,.49,.57]);
    }
-   for(const sign of [-1,1]){
-    const x=sign*(side-.21),col=sign>0?C:P;
-    if(!props?.has('moving-head')){
-     cuboid(mesh,x,roof-.111,z+.055,.065,.056,.076,S,M,1);
-    }
-    annulus(illum,x,roof-.13,z+.104,.023,.031,col,.25+.43*pulse,16,true);
-    if(quality>0){
-     // Low-cost simulated spotlight fans stop BEHIND the note spawn.
-     const shake=Math.sin(t*.92+sign*.70)*.065;
-     surface(illum,[x-.012,roof-.155,z+.096],[x+.012,roof-.155,z+.096],
-       [sign*.17+shake,.48,-1.475],[sign*.04+shake,.48,-1.475],
-       col,.025+.055*pulse,3);
+   if(quality>0){
+    for(const sign of [-1,1]){
+     const x=sign*(side-.13),col=sign>0?C:P;
+     const shake=Math.sin(t*.85+sign*.60)*.042;
+     surface(illum,[x-.010,roof-.110,z+.065],
+       [x+.010,roof-.110,z+.065],
+       [sign*.15+shake,.57,-1.69],
+       [sign*.04+shake,.57,-1.69],
+       col,.028+.044*pulse,3);
     }
    }
   }
@@ -379,6 +375,11 @@
       }
     }
    }
+   // V35: wider readable platters, pulsing mixer feedback clearly visible.
+   for(const sign of [-1,1]){
+    const col=sign<0?P:C;
+    annulus(illum,sign*.168,controlsY+.020,-1.42,.060,.070,col,.55+.23*low,24);
+   }
    // The glossy platter rings and central faders remain readable on Android,
    // even when a CC0 asset has an untextured metal face.
    for(const sign of [-1,1]){
@@ -393,18 +394,28 @@
     cuboid(illum,x,controlsY+.033,workZ+.012,.006,.005,.018,k%2?C:P,
      k%2?C:P,.28+.29*low,3);
    }
-   // Bracelet LEDs now follow the ACTUAL joint-driven hands over the mixer.
-   // Never draw detached fixed cartoon fists around the belly.
+   // True skinning wrist positions, two distinct moving hand markers.
+   // Deck presses flash where the fingers meet the controls, not near the waist.
    const hands=skeletal?.hands?.(t,low,combo);
    if(hands)for(const key of ['L','R']){
     const at=hands[key],col=key==='L'?P:C;
-    annulus(illum,at[0],at[1]+.003,at[2],.012,.020,col,.45+.20*low,14,true);
+    const xx=at[0],yy=at[1],zz=at[2];
+    annulus(illum,xx,yy+.003,zz,.012,.022,col,.49+.31*low,16,true);
+    cuboid(illum,xx,.385,-1.393,.045,.006,.022,col,col,.25+.35*low,3);
    }
    // Narrow dark facade, ~34% shorter than V31; controls remain visible.
    const facade=props?.drawPart('facade',mesh,surface,{
     scale:[.36,.220,.35],offset:[0,-.016,-1.283]});
    if(!facade)cuboid(mesh,0,.061,-1.28,.54,.142,.045,S,M,1);
    cuboid(illum,0,.147,-1.256,.46,.009,.008,P,P,.39+.20*low,3);
+   // A reactive, visible front equalizer replaces the nearly flat magenta
+   // box. Animated even during positioning (uses the stage clock).
+   for(let i=0;i<17;i++){
+    const x=(i-8)*.025,phase=t*6.3+i*.62;
+    const height=.013+.069*(.35+.65*Math.sin(phase)*Math.sin(phase))*(.6+.4*low);
+    const col=i%4===0?C:i%4===1?P:V;
+    cuboid(illum,x,.068,-1.230,.012,height,.007,col,col,.34+.27*low,3);
+   }
    if(quality>0){
     props?.drawPart('laptop',mesh,surface,{scale:.155,offset:[-.258,.378,-1.63]});
     props?.drawPart('headphones',mesh,surface,{scale:.15,offset:[.245,.374,-1.49]});
@@ -428,7 +439,7 @@
     }
    }
   }
-  return{render,version:'HORSE DJ V34'};
+  return{render,version:'HORSE DJ V35'};
  }
- root.RitmoExterior={create,version:'HORSE DJ V34'};
+ root.RitmoExterior={create,version:'HORSE DJ V35'};
 })(window);
