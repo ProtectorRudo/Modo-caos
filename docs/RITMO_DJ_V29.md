@@ -26,7 +26,7 @@
 ## Validaciones
 - Sintaxis JavaScript validada para módulos modificados.
 - Pruebas simuladas con geometrías finitas, luz, combos, fallback `quality=0` y ausencia de intrusión en cuatro carriles.
-- Test de regresión específico: `node --test tests/ritmo-exterior.test.cjs` (agregado al repositorio, debe ejecutarse en entorno Node).
+- CI GitHub Actions `Ritmo Caos V29 — AR render and vendored DJ GLB checks`: **SUCCESS** sobre commit `ccda6dfc856a8e984eb878c6ad3ced559f5b83d1`. Incluye `node --check` de cuatro módulos y `node --test tests/ritmo-glb-v29.test.cjs tests/ritmo-exterior.test.cjs tests/ritmo-prism-v28.test.cjs`. https://github.com/ProtectorRudo/Modo-caos/actions/runs/40332901121
 - Falta ejecutar Chrome Android + ARCore con Hit Test real, verificar FPS y presencia de manos/visera y calibración física.
 
 ## Despliegue
