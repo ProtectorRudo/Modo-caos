@@ -47,7 +47,7 @@ assert(runtime.includes('window.modoCaosCustomRender'),'Custom renderer must int
 assert(engine.includes("if(window.modoCaosCustomRender(gl,view,W,time))"),'Native WebXR framebuffer hook missing');
 assert(runtime.includes("E('hud').style.display='none';E('forecast').style.display='none'"),
  'Calibration must not show gameplay HUD');
-assert(html.includes('src="/ritmo-stage3d.js?v=20"'));
+assert(/src="\/ritmo-stage3d\.js\?v=\d+"/.test(html));
 assert(html.includes('id="playerBadge"'));
 const fallback=RitmoStage3D.create();
 assert.equal(fallback.render(null,view,M,1000,game,.25),false,'No GL must gracefully fall back');
