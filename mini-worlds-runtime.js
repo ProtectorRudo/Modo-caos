@@ -68,7 +68,7 @@ function clear(){
  spatialLock=null;lockedPose=null;steeringYaw=null;heldSteeringYaw=null;
  arCompositor?.dispose();arCompositor=null;arCompositorError='';
  $('arWorldOverlay').style.display='none';xrEmptyScene=null;
- renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
+ renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
  camera=null;view=null;game=null;placing=false;lockedPose=null;source=null;hasHit=false;
 }
 function renderSetup(){
@@ -85,7 +85,7 @@ function renderSetup(){
  renderer.setAnimationLoop(frame);
 }
 function newStage(){
- if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose()}
+ if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose()}
  game=C.create(level);stage=window.MiniWorldsArt(T).makeStage(game.map);
  const stageRef=stage;
  // Native, bundled CC0 assets never block controls. Keep the original art if any GLB cannot load.
@@ -95,6 +95,16 @@ function newStage(){
     console.info('[MINI WORLDS] Imported '+stats.loaded+' licensed GLB models, '+stats.count+' decorative instances.');
    }
   }).catch(e=>console.warn('[MINI WORLDS] Procedural world remains available:',e.message));
+ }
+ // Quaternius (genuine CC0 GLBs): visually distinct premium biomes,
+ // with automatic Kenney/procedural fallback on any failed download.
+ // This decoration never owns physics, spatial pose or controls.
+ if(window.MiniWorldsPremium){
+  Promise.resolve().then(()=>window.MiniWorldsPremium(T).decorate(stageRef,level)).then(stats=>{
+   if(stage!==stageRef)return;
+   if(stats?.placed)console.info('[MINI WORLDS] Real Quaternius nature scene:',stats);
+   else console.info('[MINI WORLDS] Kenney/procedural fallback retained:',stats);
+  }).catch(e=>console.warn('[MINI WORLDS] Optional Quaternius scenery not available:',e.message));
  }
  // Animated characters are optional and NEVER delay or replace physics.
  if(window.MiniWorldsCharacters){
