@@ -183,6 +183,16 @@ function makeStage(map){
  const boxes=map.boxes.map(b=>makeBox(root,b,Math.max(0,...map.platforms.filter(p=>Math.abs(b.x-p.x)<p.w/2&&Math.abs(b.z-p.z)<p.d/2).map(p=>p.y))));
  const enemies=map.enemies.map(e=>makeEnemy(root,e,e.type==='flying'?1.25:(Math.max(0,...map.platforms.filter(p=>Math.abs(e.x-p.x)<p.w/2&&Math.abs(e.z-p.z)<p.d/2).map(p=>p.y)))));
  const hero=makeAvatar(root),boss=makeBoss(root,map.boss,Boolean(map.n));boss.root.visible=false;
+ // A bright, depth-independent locator guarantees that a correctly rendered
+ // WebXR scene always has a recognizable object at the detected floor point.
+ const previewBeacon=group(root,0,.105,.10);
+ const beaconM=new T.MeshBasicMaterial({color:0x79ffdb,transparent:true,opacity:.85,depthWrite:false,depthTest:false,side:T.DoubleSide});
+ const glowRing=mesh(new T.RingGeometry(.48,.56,44),beaconM,0,.02,0,previewBeacon);
+ glowRing.rotation.x=-P/2;glowRing.renderOrder=1999;glowRing.castShadow=false;
+ const footprint=mesh(new T.CircleGeometry(.12,24),new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false,depthTest:false,side:T.DoubleSide}),0,.027,0,previewBeacon);
+ footprint.rotation.x=-P/2;footprint.renderOrder=2000;footprint.castShadow=false;
+ const column=mesh(new T.CylinderGeometry(.015,.045,.8,8),beaconM,0,.4,0,previewBeacon);
+ column.renderOrder=2000;column.castShadow=false;previewBeacon.visible=false;
  const flags=map.checkpoints.map(c=>{let g=group(root,c.x,c.y,c.z);mesh(cyl(.038,.04,.95,8),M.steel,0,.46,0,g);mesh(geoCone(.19,.4,3),M.gold,.19,.78,0,g).rotation.z=P/2;return g});
  let portal=group(root,0,1.45,-25.35);let ring=mesh(new T.TorusGeometry(.56,.12,11,35),M.purple,0,.60,0,portal);ring.rotation.y=.2;let center=mesh(sphere(.45,18,13),new T.MeshBasicMaterial({color:0x92ffe2,transparent:true,opacity:.25}),0,.59,0,portal);center.scale.z=.18;portal.visible=false;
  const warning=mesh(new T.RingGeometry(.84,1.3,40),new T.MeshBasicMaterial({color:0xff513e,transparent:true,opacity:.45,side:T.DoubleSide,depthWrite:false}),0,1.20,-23.2,root);warning.rotation.x=-P/2;warning.visible=false;
@@ -233,7 +243,7 @@ function makeStage(map){
   materials.forEach(m=>m.dispose());
   Object.values(M).forEach(m=>m.dispose());
  }
- return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,update,impact,dispose,bindCharacters};
+ return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,update,impact,dispose,bindCharacters};
 }
 return {makeStage};
 }})(typeof window!=='undefined'?window:globalThis);
