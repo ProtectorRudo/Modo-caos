@@ -7,7 +7,7 @@ let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,sta
 let arCompositor=null,nativeXRScene=null,arDrawFrames=0,arVisibleOutline=false,arCompositorReady=false,arRenderFaultAt=0;
 let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
 let floorSeconds=0,lastFloorHit=null;
-let aimNeutral=null,aimFiltered={x:0,y:1.2},aimInvalidTime=0,aimPausedForTracking=false;
+let aimNeutral=null,aimFiltered={x:0,y:1.2},aimInvalidTime=0,aimPausedForTracking=false,aimCalibration=null,aimResumeAfterCalibration=false;
 let aimVector=null,aimOrigin=null,aimQuat=null,aimInv=null;
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
 let bank=null,assetsPromise=null,pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
@@ -192,7 +192,7 @@ function resize(){
 }
 window.addEventListener('resize',resize);
 function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;floorSeconds=0;lastFloorHit=null;
- aimNeutral=null;aimFiltered={x:0,y:1.2};aimInvalidTime=0;aimPausedForTracking=false;
+ aimNeutral=null;aimFiltered={x:0,y:1.2};aimInvalidTime=0;aimPausedForTracking=false;aimCalibration=null;aimResumeAfterCalibration=false;
  stage?.setAimMode?.(mode==='ar');pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
  $('ui').classList.toggle('ar-placing',mode==='ar');$('ui').classList.remove('ar-aim');$('aimReticle').classList.remove('lost');
@@ -273,6 +273,23 @@ function aimFromXR(frame,dt){
  }
  if(raw){
   aimInvalidTime=0;$('aimReticle').classList.remove('lost');
+  if(aimCalibration){
+   const previous=aimCalibration.last;
+   const shake=previous?Math.hypot(raw.x-previous.x,raw.y-previous.y):0;
+   aimCalibration.seconds=shake<.15?aimCalibration.seconds+Math.min(dt,.05):0;
+   aimCalibration.last={x:raw.x,y:raw.y};
+   $('labelPhase').textContent='MANTENÉ LA MIRA EN EL RIVAL · '+Math.round(Math.min(1,aimCalibration.seconds/.80)*100)+'%';
+   if(aimCalibration.seconds>=.80){
+    aimNeutral={x:raw.x,y:raw.y};aimFiltered={x:0,y:1.2};
+    aimCalibration=null;
+    if(aimResumeAfterCalibration)C.resume(state);
+    else C.start(state);
+    aimResumeAfterCalibration=false;prev=0;acc=0;
+    $('labelPhase').textContent='AR REAL · APUNTÁ CON EL CELULAR';
+    note('✓ MIRA CALIBRADA · ¡A JUGAR!',1150);
+   }
+   return;
+  }
   if(!aimNeutral){aimNeutral={x:raw.x,y:raw.y};aimFiltered={x:0,y:1.2}}
   const target=C.aimedDefense(raw,aimNeutral,opts.sensitivity);
   if(target){
@@ -290,6 +307,11 @@ function aimFromXR(frame,dt){
   }
  }else{
   aimInvalidTime+=dt;$('aimReticle').classList.add('lost');
+  if(aimCalibration){
+   aimCalibration.seconds=0;aimCalibration.last=null;
+   $('labelPhase').textContent='MIRÁ HACIA LA ARENA PARA CALIBRAR';
+   return;
+  }
   if(aimInvalidTime>1.25&&state.phase!=='paused'&&state.phase!=='finished'){
    C.pause(state);aimPausedForTracking=true;
    $('labelPhase').textContent='MIRA PERDIDA · GIRÁ HACIA LA ARENA · PARTIDA PAUSADA';
@@ -396,7 +418,7 @@ function pause(){if(!state||placing)return;if(state.phase==='paused'){C.resume(s
 $('pauseBtn').onclick=pause;$('exitBtn').onclick=()=>back();
 function recenter(){
  if(!playing||placing||inputMode!=='ar'||!renderer?.xr?.isPresenting||!state||state.phase==='finished')return;
- C.pause(state);stage.root.visible=false;recentering=true;placing=true;hasHit=false;aimNeutral=null;aimPausedForTracking=false;aimInvalidTime=0;$('ui').classList.remove('ar-aim');floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
+ C.pause(state);stage.root.visible=false;recentering=true;placing=true;hasHit=false;aimNeutral=null;aimPausedForTracking=false;aimInvalidTime=0;aimCalibration=null;$('ui').classList.remove('ar-aim');floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
  pointers.clear();stage?.setPlacementPreview?.(false);$('overlay').style.display='none';$('pauseBtn').textContent='Ⅱ';$('pauseBtn').style.display='none';
  $('recenterBtn').style.display='none';$('hud').style.display='none';
  $('placeTitle').style.display='block';$('placeTitle').firstChild.textContent='RECENTRAR ARENA';
@@ -470,6 +492,8 @@ function doFix(){
  if(inputMode==='ar'&&(!hasHit||!arCompositorReady||!arVisibleOutline||floorSeconds<.60)){note('APUNTÁ A LA MARCA VERDE Y ESPERÁ QUE APAREZCA LA ARENA',1800);return}
  placing=false;hasHit=false;stage.root.visible=true;stage?.setPlacementPreview?.(false);$('placementSvg').style.display='none';$('ui').classList.remove('ar-placing');
  aimNeutral=null;aimFiltered={x:0,y:1.2};aimInvalidTime=0;aimPausedForTracking=false;
+ aimResumeAfterCalibration=inputMode==='ar'&&recentering;
+ aimCalibration=inputMode==='ar'?{seconds:0,last:null}:null;
  if(inputMode==='ar'){
   $('ui').classList.add('ar-aim');
   $('aimReticle').classList.remove('lost');
@@ -478,11 +502,14 @@ function doFix(){
  $('labelPhase').textContent=inputMode==='ar'?'AR REAL · APUNTÁ CON EL CELULAR':'MODO 3D · ARRASTRÁ PARA DEFENDER';
  $('recenterBtn').style.display=inputMode==='ar'?'block':'none';
  if(recentering){
-  recentering=false;C.resume(state);acc=0;prev=0;
-  note('ARENA RECENTRADA · ¡SEGUÍ JUGANDO!',1550);
+  recentering=false;acc=0;prev=0;
+  note('🎯 MIRÁ AL RIVAL Y MANTENÉ 1 SEGUNDO',1800);
+ }else if(inputMode==='ar'){
+  note('🎯 MIRÁ AL RIVAL Y MANTENÉ 1 SEGUNDO',1800);
  }else{
-  C.start(state);note(inputMode==='ar'?'🎯 MOVÉ EL CELULAR PARA APUNTAR':'¡ARRASTRÁ PARA DEFENDER!',1700);
+  C.start(state);note('¡ARRASTRÁ PARA DEFENDER!',1700);
  }
+ if(inputMode==='ar')$('labelPhase').textContent='MIRÁ AL RIVAL · CALIBRANDO MIRA';
  $('placeTitle').firstChild.textContent='DETECTÁ EL PISO';
  $('fixArena').textContent='FIJAR ARENA';
 }
