@@ -5,12 +5,12 @@ const W=1.76, LOW=.17, HIGH=2.23, FRONT=3.0, BACK=-3.0, R=.117;
 const EPS=.012;
 const CLAMP=(v,a,b)=>Math.max(a,Math.min(b,v));
 const profiles=[
-{name:'PULSO',reaction:.33,skill:.48,speed:2.0,error:.27,pace:4.15,mode:0},
-{name:'ÁNGULO',reaction:.28,skill:.59,speed:2.30,error:.19,pace:4.45,mode:1},
-{name:'ECO',reaction:.24,skill:.70,speed:2.58,error:.16,pace:4.68,mode:2},
-{name:'ESPEJO',reaction:.21,skill:.75,speed:2.83,error:.13,pace:4.86,mode:3},
-{name:'VECTOR',reaction:.16,skill:.86,speed:3.10,error:.10,pace:5.06,mode:4},
-{name:'NÚCLEO',reaction:.12,skill:.91,speed:3.35,error:.07,pace:5.22,mode:5}
+{name:'PULSO',reaction:.37,skill:.48,speed:1.93,error:.27,pace:3.58,mode:0},
+{name:'ÁNGULO',reaction:.29,skill:.59,speed:2.24,error:.19,pace:3.93,mode:1},
+{name:'ECO',reaction:.25,skill:.70,speed:2.54,error:.16,pace:4.19,mode:2},
+{name:'ESPEJO',reaction:.22,skill:.75,speed:2.80,error:.13,pace:4.40,mode:3},
+{name:'VECTOR',reaction:.17,skill:.86,speed:3.08,error:.10,pace:4.62,mode:4},
+{name:'NÚCLEO',reaction:.13,skill:.91,speed:3.32,error:.07,pace:4.83,mode:5}
 ];
 const modes=['CLÁSICA','MARCOS','DIAGONALES','VENTANAS','DESPLAZAMIENTO','LABERINTO','TRANSFORMACIÓN'];
 const rand=(s)=>{s.rng=(1664525*s.rng+1013904223)>>>0;return s.rng/4294967296};
@@ -231,11 +231,11 @@ function step(s,dt=1/120){
 function pause(s){if(s.phase==='playing'||s.phase==='serve'){s.oldPhase=s.phase;s.phase='paused';event(s,'pause')}}
 function resume(s){if(s.phase==='paused'){s.phase=s.oldPhase||'playing';event(s,'resume')}}
 function drain(s){return s.events.splice(0)}
-function anchoredArena(hit,baseYaw,rotation,offset,scale){
+function anchoredArena(hit,baseYaw,rotation,offset,scale,depthStretch=1){
  // The player's defending plane is at local z=+3; position the room
  // so that plane coincides with the detected floor target, not behind us.
  const theta=baseYaw+rotation;
- const depth=3*scale+(offset.z||0);
+ const depth=FRONT*scale*depthStretch+(offset.z||0);
  const side=offset.x||0;
  return {
   x:hit.x+Math.cos(theta)*side-Math.sin(theta)*depth,

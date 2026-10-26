@@ -5,10 +5,12 @@ const $=id=>document.getElementById(id),C=window.CuadranteCore;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,state,modePlay='circuit';
 let arCompositor=null,nativeXRScene=null,arDrawFrames=0,arVisibleOutline=false,arCompositorReady=false,arRenderFaultAt=0;
+const COURT_STRETCH=1.18; // world length only: XY hit boxes remain unchanged
+let lockedArena=null;
 let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.56;
 let floorSeconds=0,lastFloorHit=null;
 let aimNeutral=null,aimFiltered={x:0,y:1.2},aimInvalidTime=0,aimPausedForTracking=false,aimCalibration=null,aimResumeAfterCalibration=false;
-let aimVector=null,aimOrigin=null,aimQuat=null,aimInv=null;
+let aimVector=null,aimOrigin=null,aimQuat=null,aimInv=null,aimWorldInverse=null;
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
 let bank=null,assetsPromise=null,pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
 try{records={...records,...JSON.parse(localStorage.getItem('cuadrante-records')||'{}')}}catch(e){}
@@ -163,10 +165,10 @@ function showArOutline(frame){
   return Number.isFinite(px)&&Number.isFinite(py)?[px,py]:null;
  };
  const corners=[
-  [-1.74,.17,2.9],[1.74,.17,2.9],
-  [1.74,.17,-2.75],[-1.74,.17,-2.75]
+  [-1.74,.17,C.bounds.FRONT-.1],[1.74,.17,C.bounds.FRONT-.1],
+  [1.74,.17,C.bounds.BACK+.25],[-1.74,.17,C.bounds.BACK+.25]
  ].map(q=>project(...q));
- const center=project(0,.185,2.9);
+ const center=project(0,.185,C.bounds.FRONT-.1);
  const visible=corners.filter(p=>p&&p[0]>-width*.35&&p[0]<width*1.35&&p[1]>-height*.35&&p[1]<height*1.35).length;
  const nearScreen=!!center&&center[0]>=0&&center[0]<=width&&center[1]>=0&&center[1]<=height;
  arVisibleOutline=nearScreen||visible>=2;
@@ -191,7 +193,7 @@ function resize(){
  renderer.setSize(innerWidth,innerHeight,false);applyQuality();setDemoCamera();
 }
 window.addEventListener('resize',resize);
-function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.56;floorSeconds=0;lastFloorHit=null;
+function enter(mode){lockedArena=null;inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.56;floorSeconds=0;lastFloorHit=null;
  aimNeutral=null;aimFiltered={x:0,y:1.2};aimInvalidTime=0;aimPausedForTracking=false;aimCalibration=null;aimResumeAfterCalibration=false;
  stage?.setAimMode?.(mode==='ar');pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
@@ -201,8 +203,8 @@ function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;noti
  $('overlay').style.display='none';$('ticker').style.opacity='0';$('placeControls').style.display='none';$('placeTitle').style.display='none';
  $('labelPhase').style.display='block';$('hud').style.display='flex';$('pauseBtn').style.display='block';$('touchLayer').style.pointerEvents='auto';
  $('cameraFeed').style.display='none';$('labelPhase').textContent=(renderer?.isLite?'MODO LIGERO · ARRASTRÁ PARA DEFENDER':'ARRASTRÁ PARA MOVER EL CUADRADO');$('load').style.display='none';
- if(inputMode==='demo'){stage.root.visible=true;stage.root.position.set(0,0,0);stage.root.scale.setScalar(1);C.start(state);note('ARRASTRÁ PARA DEFENDER',2100)}
- else{placing=true;stage.root.visible=false;stage.root.position.set(0,0,-1);stage.root.scale.setScalar(arenaScale);
+ if(inputMode==='demo'){stage.root.visible=true;stage.root.position.set(0,0,0);if(renderer?.isLite)stage.root.scale.setScalar(1);else stage.root.scale.set(1,1,COURT_STRETCH);C.start(state);note('ARRASTRÁ PARA DEFENDER',2100)}
+ else{placing=true;stage.root.visible=false;stage.root.position.set(0,0,-1);stage.root.scale.set(arenaScale,arenaScale,arenaScale*COURT_STRETCH);
  $('placeControls').style.display='flex';$('placeTitle').style.display='block';$('hud').style.display='none';$('pauseBtn').style.display='none';
  $('labelPhase').textContent=inputMode==='ar'?'BUSCANDO EL PISO · APUNTÁ EL CELULAR':'CÁMARA SIN SEGUIMIENTO ESPACIAL';}
 }
@@ -235,10 +237,10 @@ function placeFromFrame(frame,dt){
  const cam=renderer.xr.getCamera(camera),dir=new THREE.Vector3();
  cam.getWorldDirection(dir);
  const baseYaw=Math.atan2(-dir.x,-dir.z);yaw=baseYaw;
- const world=C.anchoredArena(lastFloorHit,baseYaw,offset.rot||0,offset,arenaScale);
+ const world=C.anchoredArena(lastFloorHit,baseYaw,offset.rot||0,offset,arenaScale,COURT_STRETCH);
  stage.root.visible=true;stage.root.rotation.y=world.rotation;
  stage.root.position.set(world.x,world.y,world.z);
- stage.root.scale.setScalar(arenaScale);
+ stage.root.scale.set(arenaScale,arenaScale,arenaScale*COURT_STRETCH);
  hasHit=floorSeconds>=.60;
  stage.setPlacementPreview?.(true,hasHit);
  $('fixArena').disabled=!hasHit;
@@ -265,9 +267,13 @@ function aimFromXR(frame,dt){
    // The collider remains in arena-local coordinates while the world stays
    // spatially anchored. No objects follow the phone's view matrix.
    stage.root.updateWorldMatrix(true,false);
-   stage.root.getWorldQuaternion(aimInv).invert();
-   const localOrigin=stage.root.worldToLocal(aimOrigin);
-   const localDirection=aimVector.applyQuaternion(aimInv);
+   // The longer arena uses non-uniform local Z scale. Apply the COMPLETE
+   // inverse world matrix to the ray, not just its rotation, or steering
+   // will be inaccurate after resizing the court.
+   aimWorldInverse??=new THREE.Matrix4();
+   aimWorldInverse.copy(stage.root.matrixWorld).invert();
+   const localOrigin=aimOrigin.applyMatrix4(aimWorldInverse);
+   const localDirection=aimVector.transformDirection(aimWorldInverse);
    raw=C.aimRayToArena(localOrigin,localDirection,0);
   }
  }
@@ -318,9 +324,18 @@ function aimFromXR(frame,dt){
   }
  }
 }
+function preserveWorldAnchor(){
+ if(!lockedArena||!stage?.root||placing||inputMode!=='ar')return;
+ const root=stage.root;
+ // Protect against accidental transform mutations on render or orientation.
+ if(root.position.distanceToSquared(lockedArena.position)>1e-10)root.position.copy(lockedArena.position);
+ if(1-Math.abs(root.quaternion.dot(lockedArena.quaternion))>1e-9)root.quaternion.copy(lockedArena.quaternion);
+ if(root.scale.distanceToSquared(lockedArena.scale)>1e-10)root.scale.copy(lockedArena.scale);
+}
 function frame(t,xrFrame){
  if(!renderer||!stage||!camera)return;
  const dt=clamp((t-prev)/1000||.016,0,.07);prev=t;measureFrame(dt);
+ preserveWorldAnchor();
  if(placing&&inputMode==='ar')placeFromFrame(xrFrame,dt);
  else if(inputMode==='ar'&&!placing)aimFromXR(xrFrame,dt);
  if(state&&state.phase!=='ready'&&state.phase!=='paused'&&state.phase!=='finished'){
@@ -366,7 +381,17 @@ function refreshHud(){
  // Contact-pressure meter uses proximity, not an unreliable future intercept
  // through moving obstacles; it never lies about the projected landing.
  const approaching=state.phase==='playing'&&state.ball.vz>.05;
- const danger=approaching?clamp((state.ball.z+.2)/3.1,0,1):0;
+ const danger=approaching?clamp((state.ball.z+.2)/(C.bounds.FRONT+.1),0,1):0;
+ if(inputMode==='ar'&&!placing&&!aimCalibration){
+  const hint=approaching?C.predictedLanding(state):null;
+  const close=hint?.reliable&&hint.seconds<1.55;
+  const aligned=close&&Math.hypot(hint.x-state.player.x,hint.y-state.player.y)<.45;
+  const aim=$('aimReticle'),cue=$('aimCue');
+  aim.classList.toggle('incoming',Boolean(close&&!aligned));
+  aim.classList.toggle('aligned',Boolean(aligned));
+  cue.textContent=aligned?'EN LÍNEA':close?'APUNTÁ A LA PELOTA':'';
+  cue.style.display=close?'block':'none';
+ }
  const meter=$('contactFill');
  meter.style.transform='scaleX('+danger.toFixed(3)+')';
  meter.style.opacity=danger>.03?'1':'0';
@@ -418,7 +443,7 @@ function pause(){if(!state||placing)return;if(state.phase==='paused'){C.resume(s
 $('pauseBtn').onclick=pause;$('exitBtn').onclick=()=>back();
 function recenter(){
  if(!playing||placing||inputMode!=='ar'||!renderer?.xr?.isPresenting||!state||state.phase==='finished')return;
- C.pause(state);stage.root.visible=false;recentering=true;placing=true;hasHit=false;aimNeutral=null;aimPausedForTracking=false;aimInvalidTime=0;aimCalibration=null;$('ui').classList.remove('ar-aim');floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
+ lockedArena=null;C.pause(state);stage.root.visible=false;recentering=true;placing=true;hasHit=false;aimNeutral=null;aimPausedForTracking=false;aimInvalidTime=0;aimCalibration=null;$('ui').classList.remove('ar-aim');floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
  pointers.clear();stage?.setPlacementPreview?.(false);$('overlay').style.display='none';$('pauseBtn').textContent='Ⅱ';$('pauseBtn').style.display='none';
  $('recenterBtn').style.display='none';$('hud').style.display='none';
  $('placeTitle').style.display='block';$('placeTitle').firstChild.textContent='RECENTRAR ARENA';
@@ -428,7 +453,7 @@ function recenter(){
 }
 $('recenterBtn').onclick=recenter;
 async function back(){
- if(!playing)return;playing=false;placing=false;recentering=false;closeArWorld();$('ui').classList.remove('ar-placing','ar-aim');
+ if(!playing)return;lockedArena=null;playing=false;placing=false;recentering=false;closeArWorld();$('ui').classList.remove('ar-placing','ar-aim');
  try{if(session){const old=session;session=null;await old.end()}}catch(e){}
  if(hitSource){try{hitSource.cancel()}catch(e){}hitSource=null}
  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null}
@@ -490,7 +515,16 @@ $('startAr').onclick=()=>init('ar');$('startDemo').onclick=()=>init('demo');
 function doFix(){
  if(!placing)return;
  if(inputMode==='ar'&&(!hasHit||!arCompositorReady||!arVisibleOutline||floorSeconds<.60)){note('APUNTÁ A LA MARCA VERDE Y ESPERÁ QUE APAREZCA LA ARENA',1800);return}
- placing=false;hasHit=false;stage.root.visible=true;stage?.setPlacementPreview?.(false);$('placementSvg').style.display='none';$('ui').classList.remove('ar-placing');
+ placing=false;hasHit=false;stage.root.visible=true;stage?.setPlacementPreview?.(false);
+ if(inputMode==='ar'){
+  // Capture precisely one transform. Later XR tracking updates the viewer,
+  // not the board; a new anchor may only be chosen with RECENTRAR.
+  lockedArena={
+   position:stage.root.position.clone(),
+   quaternion:stage.root.quaternion.clone(),
+   scale:stage.root.scale.clone()
+  };
+ }$('placementSvg').style.display='none';$('ui').classList.remove('ar-placing');
  aimNeutral=null;aimFiltered={x:0,y:1.2};aimInvalidTime=0;aimPausedForTracking=false;
  aimResumeAfterCalibration=inputMode==='ar'&&recentering;
  aimCalibration=inputMode==='ar'?{seconds:0,last:null}:null;
@@ -514,7 +548,7 @@ function doFix(){
  $('fixArena').textContent='FIJAR ARENA';
 }
 $('fixArena').onclick=doFix;
-function adjustScale(k){arenaScale=clamp(arenaScale*k,.4,1.12);if(stage)stage.root.scale.setScalar(arenaScale)}
+function adjustScale(k){arenaScale=clamp(arenaScale*k,.4,1.12);if(stage)stage.root.scale.set(arenaScale,arenaScale,arenaScale*COURT_STRETCH)}
 $('sizeMinus').onclick=()=>adjustScale(.89);$('sizePlus').onclick=()=>adjustScale(1.12);
 $('rotateLeft').onclick=()=>{offset.rot=(offset.rot||0)-.14;if(stage)stage.root.rotation.y+=-.14};
 $('rotateRight').onclick=()=>{offset.rot=(offset.rot||0)+.14;if(stage)stage.root.rotation.y+=.14};
