@@ -1,0 +1,44 @@
+const {test,expect}=require('@playwright/test');
+test.use({viewport:{width:960,height:560}});
+test('CUADRANTE renders a visible 3D world with the proven transparent AR DOM compositor',async({page})=>{
+ test.setTimeout(90000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:8765/cuadrante.html',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#startDemo')).toBeEnabled();
+ const result=await page.evaluate(async()=>{
+  const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js');
+  const {createCuadranteArCompositor}=await import('./cuadrante-ar-compositor.js');
+  const host=document.getElementById('arWorldOverlay');host.style.display='block';
+  document.getElementById('ui').style.display='block';
+  const stage=window.CuadranteArt(THREE).makeStage();
+  stage.root.position.set(0,0,0);
+  stage.root.scale.setScalar(1);
+  const eye=new THREE.PerspectiveCamera(61,960/560,.025,40);
+  eye.position.set(0,1.7,6);
+  eye.lookAt(0,1.2,-.5);
+  eye.updateMatrixWorld(true);eye.updateProjectionMatrix();
+  const compositor=createCuadranteArCompositor(THREE,host,1);
+  const visible=compositor.render(stage.scene,eye);
+  const calls=compositor.drawCalls;
+  const canvas=compositor.canvas;
+  const rect=canvas.getBoundingClientRect();
+  const gl=canvas.getContext('webgl2')||canvas.getContext('webgl');
+  const alpha=gl?.getContextAttributes()?.alpha;
+  const hasCanvas=host.contains(canvas);
+  compositor.dispose();stage.dispose();
+  return {visible,calls,hasCanvas,alpha,rectW:rect.width,rectH:rect.height,removed:!host.contains(canvas)};
+ });
+ expect(result.visible).toBe(true);expect(result.calls).toBeGreaterThan(30);
+ expect(result.hasCanvas).toBe(true);expect(result.alpha).toBe(true);
+ expect(result.rectW).toBeGreaterThan(400);expect(result.rectH).toBeGreaterThan(300);
+ expect(result.removed).toBe(true);
+ expect(errors).toEqual([]);
+});
+test('CUADRANTE baseline demo keeps 3D gameplay separate from AR overlay',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/cuadrante.html',{waitUntil:'domcontentloaded'});
+ await page.locator('#startDemo').click();
+ await expect(page.locator('#stage canvas')).toBeVisible({timeout:27000});
+ await expect(page.locator('#arWorldOverlay')).toBeHidden();
+ await expect(page.locator('#placementSvg')).toBeHidden();
+ await page.locator('#exitBtn').click();await expect(page.locator('#home')).toBeVisible();
+});
