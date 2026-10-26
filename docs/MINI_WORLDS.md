@@ -159,3 +159,27 @@ El usuario confirmó con captura AR real la composición exitosa del mundo y el 
 **Regresión:** `tests/mini-worlds-spatial.test.cjs` valida 400 movimientos simulados de cámara, las direcciones en varios ángulos e inversiones respecto del mundo, rumbo estable durante la pulsación y un rumbo nuevo al volver a tocar. 10 tests previos y pruebas de islas/cajas continúan aprobados.
 
 **Precaución física:** una transformación virtual fija no garantiza precisión espacial absoluta: ARCore/WebXR pueden sufrir drift o saltos de relocalización según textura, iluminación y movimiento del móvil. No afirmar 100% de estabilidad hasta test presencial sobre un camino real. Mantener al usuario atento a obstáculos físicos; NO pedir que siga físicamente el avatar ni que camine grandes distancias mirando la pantalla.
+
+## Pasada de diversión, impacto y ritmo — 26/10/2026
+
+**Objetivo aprobado:** pasar de un plataformas funcional a una aventura AR con recompensa continua, golpes con feedback claro, cajas sorpresa, combos visibles, Furia temporal y ambientación viva. Se mantiene la cámara XR, anclaje espacial, joystick relativo a cámara y física de suelo/cajas.
+
+### Core determinista (mini-worlds-core.js)
+- `chaos:{charge,fury,chain,window,best,bonusCoins}` por partida. Las monedas cargan +3, las cajas destruidas +16, los enemigos derrotados +25 y las estrellas +32. Con 100 puntos comienza **Furia durante 7 s**; no puede recargarse durante Furia.
+- Rachas de acciones encadenadas (`advanceChain`) con reloj de 1,55 s para monedas y 3,3 s para cajas/enemigos; bonus en cadenas 3/5/8 por +3/+5/+8 monedas, respectivamente. Recibir daño corta cadena. La barra Furia se reinicia al activarse.
+- Furia aumenta desplazamiento moderadamente (3,1→3,65 unidades/s), amplía el alcance de espada un 22%, aplica doble daño a enemigos/cajas, duplica monedas recogidas y recompensas de KO y cajas. Sigue sin inmortalidad ni teletransporte.
+- Algunas cajas dan +5 monedas adicionales, un corazón si hace falta o un orbe de +18 de carga. Los resultados se eligen con una fórmula determinista por caja y nivel: **sin servicios remotos, dinero real ni azar de pago**.
+- Magnetismo corto de monedas dentro de ~0,92 unidades, con velocidad acotada; el objeto 3D sigue las mismas coordenadas reales usadas para recogerlo.
+- Eventos de estrellas, caídas y jefes entregan coordenadas 3D para efectos alineados al mundo.
+
+### Arte, sonidos y UI (mini-worlds-art.js / -runtime.js / .html)
+- Barra compacta **CAOS/FURIA**, temporizador y banner de combo. Contador de monedas reacciona con animación. Durante Furia se ilumina el botón ATACAR y el HUD recibe un acento dorado.
+- Aura 3D de Furia con anillo y 8 chispas, vegetación con viento sutil, repliegue visual de enemigos al ser golpeados, ondas de choque sobre piso/agua, textos 3D de combos y premios.
+- Intro, transición de fases y derrota del jefe con impactos anclados a la arena, coronas concéntricas, partículas y mensaje breve. Al caer al agua se produce una salpicadura en la ubicación original.
+- Música original sintetizada acelera y cambia el timbre durante Furia; sonidos y vibración por combo, tesoros, KO y fases de jefe. No se añadieron canciones protegidas.
+- Efectos de partículas optimizados: tope de 74 chispas simultáneas, geometría y materiales compartidos. Texturas de texto recompensas cacheadas. Se evita congelar cuadros de la cámara AR por «hit stop», que resultaría incómodo al caminar.
+
+### Pruebas y límites
+- `tests/mini-worlds-juice.test.cjs` valida determinismo de premios, rachas, Furia una vez por ciclo, no-recarga, duración de siete segundos, duplicación de monedas, interrupción por daño y conexiones con HUD/efectos.
+- Se conservaron/regresaron tests de motor (10 casos), recorrido de dos niveles, física de cajas e islas, compositor AR y orientación espacial. Sintaxis JS y referencias DOM verificadas.
+- **Sin simulación física de FPS ni prueba visual real en Android después de esta pasada.** No declarar 10/10 o calidad de consola hasta capturas y jugabilidad del usuario. Mantener PR #69 draft, sin fusionar main ni publicar sobre el arcade original.
