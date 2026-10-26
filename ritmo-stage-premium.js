@@ -123,8 +123,8 @@
     }
     // Precision-machined frame + slim inner prism under each translucent plate.
     bevelRail(x,.023,-.119,size*.925,2.10,[.34,.67,.89]);
-    quad(glow,x-size*.15,x-size*.135,far+.02,near-.10,.077,c,.21+.15*low);
-    quad(glow,x+size*.135,x+size*.15,far+.02,near-.10,.077,c,.21+.15*low);
+    quad(glow,x-size*.15,x-size*.135,f+.02,n-.10,.077,c,.21+.15*low);
+    quad(glow,x+size*.135,x+size*.15,f+.02,n-.10,.077,c,.21+.15*low);
     // Extruded target pad and layered neon annuli
     let z=.65,r=size*.39;
     box(solid,x,.029,z,size*.85,.049,size*.84,[.025,.046,.068],[.075,.105,.147]);
