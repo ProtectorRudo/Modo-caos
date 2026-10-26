@@ -26,6 +26,7 @@ jobs:
         run: |
           node --check cuadrante-core.js
           node --check cuadrante-art.js
+          node --check cuadrante-lite.js
           node --check cuadrante-runtime.js
       - name: Physics, scoring, progression and survival
         run: node tests/cuadrante-core.test.cjs
@@ -34,7 +35,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const html=fs.readFileSync('cuadrante.html','utf8');
-          for(const x of ['cuadrante-core.js','cuadrante-art.js','cuadrante-runtime.js']){
+          for(const x of ['cuadrante-core.js','cuadrante-art.js','cuadrante-lite.js','cuadrante-runtime.js']){
             if(!html.includes('src="./'+x+'"'))throw Error('missing '+x);
           }
           const home=fs.readFileSync('index.html','utf8');
@@ -49,7 +50,7 @@ jobs:
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/cuadrante-http.log 2>&1 &
           sleep 2
-          npx playwright test tests/cuadrante-browser.spec.cjs --reporter=line
+          npx playwright test tests/cuadrante-*.spec.cjs --reporter=line
         env:
           CI: true
       - name: Probe public HTTPS CDN for deployment fallback
