@@ -38,4 +38,17 @@ caseOf('AR stage is placed ahead of phone, with player paddle on detected target
   assert.ok(Math.abs(frontal.x-hit.x)<1e-6&&Math.abs(frontal.z-hit.z)<1e-6);
  }
 });
+caseOf('AR recenter preserves the same duel, scoring and ball trajectory',()=>{
+ const s=C.create({seed:1234});s.duel=3;C.start(s);
+ for(let i=0;i<150;i++)C.step(s);
+ s.score=[3,2];s.arcade=2300;s.combo=4;
+ const prior={clock:s.clock,ball:{...s.ball},score:[...s.score],duel:s.duel,arcade:s.arcade,combo:s.combo};
+ C.pause(s);const pose=C.anchoredArena({x:1.5,y:0,z:-2},.4,.2,{x:.1,z:.1},.65);
+ assert.ok(Number.isFinite(pose.x)&&Number.isFinite(pose.z));
+ for(let i=0;i<120;i++)C.step(s);
+ assert.equal(s.clock,prior.clock);assert.deepEqual(s.ball,prior.ball);
+ C.resume(s);assert.deepEqual(s.score,prior.score);
+ assert.equal(s.duel,prior.duel);assert.equal(s.arcade,prior.arcade);assert.equal(s.combo,prior.combo);
+ C.step(s);assert.ok(s.clock>prior.clock);
+});
 console.log('CUADRANTE core PASS:',tests.length,'simulations');
