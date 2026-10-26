@@ -63,7 +63,7 @@ function chart(songId='neon',difficulty='normal',laneWidth=.31){
 function make(songId='neon',difficulty='normal',laneWidth=.31){
  const c=chart(songId,difficulty,laneWidth);
  return {...c,state:'ready',elapsed:0,cursor:0,lane:1,offset:1,score:0,combo:0,bestCombo:0,perfect:0,great:0,good:0,miss:0,
- energy:55,events:[],eventSeq:0,judged:0,holdActive:null,slideActive:null,enteredAt:0,lastLane:1,paused:false};
+ energy:100,events:[],eventSeq:0,judged:0,holdActive:null,slideActive:null,enteredAt:0,lastLane:1,paused:false};
 }
 function reset(g){Object.assign(g,make(g.songId,g.difficulty,g.laneWidth));return g}
 function start(g){if(g.state!=='ready')return false;g.state='playing';return true}
@@ -78,7 +78,7 @@ function resolve(g,n,rating){
  if(n.status!=='pending')return;
  const previousScore=g.score;
  n.status=rating;n.hitAt=g.elapsed;g.judged++;
- if(rating==='FALLO'){g.miss++;g.combo=0;g.energy=clamp(g.energy-12,0,100)}
+ if(rating==='FALLO'){g.miss++;g.combo=0;g.energy=clamp(g.energy-7,0,100)}
  else{
   g.combo++;g.bestCombo=Math.max(g.combo,g.bestCombo);
   if(rating==='PERFECTO')g.perfect++;
