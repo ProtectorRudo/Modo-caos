@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#080d14"><title>CUADRANTE · MODO CAOS</title>
+<style>
+:root{--cyan:#00dfff;--orange:#ff762d;--paper:#eaf9ff;--metal:#141d2a}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080d14;color:var(--paper);font:14px/1.4 system-ui,-apple-system,Arial,sans-serif}
+button,select{font:900 13px system-ui;letter-spacing:.3px;cursor:pointer;touch-action:manipulation}button{border:1px solid #ff9b5c;border-radius:10px;background:linear-gradient(140deg,#ffa15e,#ff7227);color:#201308;padding:11px 17px;min-height:45px;box-shadow:0 6px 30px #ff592a28}button:active{transform:scale(.98)}
+button.alt{background:#172635;color:#dffcff;border-color:#3f7992;box-shadow:none}button.blue{border-color:#76f8ff;background:linear-gradient(140deg,#9bffff,#00cce8);color:#05212c}button:disabled{opacity:.45}
+a{color:#b5f7ff}.hide{display:none!important}
+#cameraFeed{position:fixed;inset:0;height:100%;width:100%;object-fit:cover;z-index:0;display:none}
+#stage{position:fixed;inset:0;display:none;z-index:1;touch-action:none}
+#home{position:fixed;inset:0;z-index:30;overflow:auto;background:radial-gradient(ellipse at 60% 30%,#263445,#101724 56%,#080d14 95%);display:flex;justify-content:center;align-items:center;padding:16px}
+.wrap{width:min(97%,800px);display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:26px}
+.heroArt{position:relative;aspect-ratio:1.07;border-radius:25px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#174355,#0a111d 70%);box-shadow:inset 0 0 0 1px #387385aa,0 20px 90px #010814}
+.tunnel{position:absolute;inset:17% 20%;transform:perspective(380px) rotateX(7deg);border:7px solid #193542;box-shadow:inset 0 0 36px #00dfff63,inset 0 0 0 3px #10ceec,0 0 28px #10d1d75b;background:repeating-linear-gradient(0deg,#14273a7a 0 14%,#02111b 14.6% 15%),linear-gradient(130deg,#0c3346,#081520)}
+.tunnel:before,.tunnel:after{content:'';position:absolute;inset:14% 12%;border:4px solid #ff873f;box-shadow:0 0 16px #ff873c,0 0 28px #ff873c4d;transform:scale(.72)}
+.tunnel:after{inset:27% 25%;border-color:#19cbe5;transform:scale(.56);box-shadow:0 0 20px #31ebff}
+.previewBall{position:absolute;top:34%;left:47%;width:38px;height:38px;border:7px double #ffaf74;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fff5b4,#ff7a29 30%,#261b1c 80%);box-shadow:0 0 25px #ff7b32,0 0 65px #ff7b327e;transform:rotate(-29deg)}
+.previewPaddle{position:absolute;bottom:16%;left:35%;width:30%;height:26%;border:6px solid #66f8ff;background:#0e8bac43;box-shadow:0 0 30px #00cfff, inset 0 0 23px #41eaff;border-radius:8px;transform:perspective(160px) rotateX(-12deg)}
+.previewPaddle:after{content:'◆';color:#9dffff;position:absolute;top:24%;left:40%;font-size:22px}
+.tag{color:#a2e9fa;letter-spacing:2.5px;font-weight:900;font-size:10px}h1{font-size:clamp(42px,7vw,72px);letter-spacing:-3px;line-height:1.03;margin:7px 0 4px;font-weight:1000}h1 span{color:#ff883f}
+.sub{font-size:15px;color:#c7d7e4;margin:8px 0 12px}.desc{font-size:12px;color:#94b2c0;line-height:1.6;max-width:410px}.stats{display:flex;gap:9px;margin:16px 0;flex-wrap:wrap}.stats span{font-weight:800;font-size:10px;border:1px solid #345368;background:#121f2b;border-radius:8px;padding:7px 9px;color:#b4dbed}
+.modeBtns{display:flex;gap:8px;margin:12px 0}.modeBtns button{flex:1;min-height:42px;padding:8px;border-color:#366074}.modeBtns button.active{border-color:#75fcff;background:#143d50;color:#b9ffff}
+.actions{display:grid;gap:9px;margin-top:10px}.actions button{font-size:15px;min-height:50px}.fine{font-size:10px;line-height:1.5;color:#8ba5b4}
+#ui{position:fixed;z-index:9;inset:0;display:none;pointer-events:none}#ui button{pointer-events:auto}
+#hud{position:absolute;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(490px,72%);height:51px;background:linear-gradient(90deg,#0b1524db,#1c2939dd,#0b1524db);border:1px solid #395a6f;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:15px;text-shadow:0 2px 12px #0009;backdrop-filter:blur(8px);font-weight:1000;white-space:nowrap}
+#youScore,#rivalScore{font-size:29px;font-weight:1000;font-variant-numeric:tabular-nums;letter-spacing:-1px}#youScore{color:#90ffff}#rivalScore{color:#ffab78}
+#rivalName{font-size:10px;letter-spacing:1.7px;color:#bed0d8}#rivalName b{display:block;color:#fff;letter-spacing:0;font-size:12px}
+#pauseBtn{position:absolute;right:10px;top:max(10px,env(safe-area-inset-top));width:43px;height:43px;padding:0;background:#101f2edb;border-color:#3a778e;color:#e4faff;font-size:18px;z-index:13}
+#exitBtn{z-index:13;position:absolute;top:max(10px,env(safe-area-inset-top));left:10px;min-height:42px;padding:6px 10px;background:#101e2ed9;color:#d7fbff;border-color:#39546b;font-size:11px}
+#combo{position:absolute;right:18px;top:74px;font-size:13px;font-weight:1000;color:#ffe2a0;letter-spacing:1px;text-align:right;text-shadow:0 0 15px #f90;display:none}
+#ticker{position:absolute;top:22%;left:4%;right:4%;text-align:center;font-weight:1000;font-size:clamp(22px,4vw,39px);letter-spacing:1.5px;text-shadow:0 3px 26px #000;transition:opacity .22s}
+#labelPhase{position:absolute;bottom:max(7px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);white-space:nowrap;padding:6px 13px;border:1px solid #385f70;border-radius:99px;background:#071727b7;color:#bee9f4;font-size:10px;letter-spacing:.6px;font-weight:900}
+#touchLayer{position:absolute;inset:0;z-index:1;pointer-events:auto;touch-action:none}
+#placeControls{z-index:15;pointer-events:auto;position:absolute;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));display:none;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+#placeControls button{font-size:12px;padding:7px 11px;min-height:43px}
+#placeControls .primary{min-width:154px;font-size:15px}
+#placeTitle{z-index:12;position:absolute;top:77px;left:5%;right:5%;text-align:center;font-weight:1000;color:#d9f9ff;display:none;text-shadow:0 4px 8px #000}
+#placeTitle small{display:block;font-size:11px;color:#acd0dd;font-weight:650}
+#overlay{position:absolute;inset:0;z-index:17;background:#08101de8;display:none;align-items:center;justify-content:center;pointer-events:auto;padding:16px;backdrop-filter:blur(8px)}
+.modal{width:min(420px,94vw);max-height:94vh;overflow:auto;text-align:center;background:linear-gradient(160deg,#203046,#0d1725);border:1px solid #597083;border-radius:20px;padding:21px;box-shadow:0 18px 75px #000c}
+.modal h2{font-size:32px;margin:4px 0 8px;letter-spacing:-1px}.modal p{color:#c6d6e1;font-size:13px;line-height:1.5}.modal .buttons{display:grid;gap:10px;margin-top:15px}
+#intro{font-size:11px;color:#96ddeb;padding:6px 0 0}
+#error{position:fixed;z-index:50;bottom:10px;left:10px;right:10px;text-align:center;padding:13px;background:#521b23;border:1px solid #f66;border-radius:12px;display:none;font-size:12px}
+#load{position:fixed;z-index:40;inset:0;display:none;background:#081321e8;align-items:center;justify-content:center;text-align:center;font-weight:900;letter-spacing:2px;color:#96fcff}
+#quality{font-size:11px;background:#15263a;color:#b8dce7;border:1px solid #42677e;border-radius:9px;padding:7px;max-width:100%}
+#settings{display:none;margin:11px auto;padding:10px;border:1px solid #375469;background:#101a28;border-radius:12px;color:#bee3ea;font-size:12px}
+#settings label{display:block;margin:7px 0}#settings input{width:130px;vertical-align:middle;accent-color:#ff9046}
+@media(max-width:690px){.wrap{grid-template-columns:1fr;max-width:460px;gap:8px}.heroArt{height:145px;aspect-ratio:auto;margin-top:14px}.tunnel{inset:9% 31%}.previewPaddle{width:20%;height:33%;left:40%;bottom:7%}.previewBall{top:33%}.copy{text-align:center}h1{font-size:45px}.sub{font-size:13px}.desc{display:none}.stats{justify-content:center;margin:9px 0}.modeBtns{margin:8px 0}.actions{margin-top:6px}.fine{font-size:9px}}
+@media(max-height:480px) and (orientation:landscape){.wrap{grid-template-columns:1fr 1fr;max-width:770px}.heroArt{height:auto;aspect-ratio:1.2}.copy{text-align:left}.desc{display:none}.stats{justify-content:flex-start}.heroArt{margin:0}h1{font-size:42px}.fine{display:none}.actions{grid-template-columns:1fr 1fr}.modeBtns{margin:6px 0}}
+</style></head><body>
+<video id="cameraFeed" autoplay muted playsinline></video><div id="stage"></div>
+<div id="home"><div class="wrap"><div class="heroArt" aria-label="Túnel futurista con pelota de energía naranja y cuadrado defensivo cian"><div class="tunnel"></div><div class="previewBall"></div><div class="previewPaddle"></div></div>
+<div class="copy"><div class="tag">MODO CAOS · ARENA HOLOGRÁFICA</div><h1>CUAD<span>RANTE</span></h1><div class="sub">Dominá el rebote. Controlá la arena.</div>
+<div class="desc">Tu cuadrado contra seis defensores geométricos. Rebotes físicos, estructuras que cambian y duelos a cinco puntos. La pelota nunca juega dos veces igual.</div>
+<div class="stats"><span>◈ FÍSICA 3D</span><span>◉ 6 RIVALES</span><span>▦ ARENA VIVA</span></div>
+<div class="modeBtns"><button class="alt active" id="modeCircuit">CIRCUITO · 6 DUELOS</button><button class="alt" id="modeSurvive">SUPERVIVENCIA</button></div>
+<div class="actions"><button id="startAr" class="blue">◈ JUGAR EN REALIDAD AUMENTADA</button><button id="startDemo" class="alt">JUGAR AHORA · MODO 3D</button><button id="settingsBtn" class="alt">AJUSTES Y RÉCORDS</button></div>
+<div id="settings"><label>SONIDO <input type="range" id="sfxVol" min="0" max="100" value="65"></label><label>MÚSICA <input type="range" id="musicVol" min="0" max="100" value="24"></label><label>CALIDAD <select id="quality"><option value="auto">AUTOMÁTICA</option><option value="high">ALTA</option><option value="medium">EQUILIBRADA</option><option value="low">RENDIMIENTO</option></select></label><div id="records"></div></div>
+<p class="fine">Arrastrá el dedo desde cualquier lugar para mover tu defensa en dos ejes. En AR usá Chrome Android compatible con ARCore, en un espacio despejado. También podés jugar el modo 3D sin cámara.</p>
+<a href="./index.html" class="fine">‹ VOLVER A MODO CAOS</a></div></div></div>
+<div id="ui"><div id="touchLayer"></div><div id="hud"><span>VOS <strong id="youScore">0</strong></span><div id="rivalName">RIVAL 1<b>PULSO</b></div><span><strong id="rivalScore">0</strong> RIVAL</span></div><button id="exitBtn">‹ MENÚ</button><button id="pauseBtn" aria-label="Pausar juego">Ⅱ</button><div id="combo"></div><div id="ticker"></div><div id="placeTitle">FIJÁ TU ARENA<small>Apuntá al piso · mové, girá o ajustá la escala con dos dedos</small></div><div id="placeControls"><button class="alt" id="sizeMinus">−</button><button class="alt" id="rotateLeft">↶</button><button class="primary blue" id="fixArena">FIJAR ARENA</button><button class="alt" id="rotateRight">↷</button><button class="alt" id="sizePlus">＋</button></div><div id="labelPhase"></div>
+<div id="overlay"><div class="modal"><div class="tag" id="modalTag">CUADRANTE</div><h2 id="modalTitle">PAUSA</h2><p id="modalDesc"></p><div id="modalStats"></div><div class="buttons" id="modalButtons"></div><div id="intro"></div></div></div></div>
+<div id="load">PREPARANDO ARENA 3D…</div><div id="error" role="alert"></div>
+<script src="./cuadrante-core.js"></script><script src="./cuadrante-art.js"></script><script src="./cuadrante-runtime.js"></script>
+</body></html>
