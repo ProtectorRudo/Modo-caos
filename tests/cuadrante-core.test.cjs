@@ -73,4 +73,33 @@ caseOf('XR hit-test floor gate rejects walls, bad poses and missing camera-only 
  const invalid={transform:{position:{x:Infinity,y:0,z:0},orientation:{x:0,y:0,z:0,w:1}}};
  assert.equal(C.horizontalHit(invalid),false);
 });
+caseOf('phone aim calibrates to defender center then moves with ray in both axes',()=>{
+ const origin={x:0,y:1.8,z:3.25},neutral=C.aimRayToArena(origin,{x:0,y:-.13,z:-1});
+ assert.ok(neutral&&Number.isFinite(neutral.x)&&Number.isFinite(neutral.y));
+ const centered=C.aimedDefense(neutral,neutral);
+ assert.deepEqual({x:centered.x,y:centered.y},{x:0,y:1.2});
+ const right=C.aimRayToArena(origin,{x:.15,y:-.13,z:-1});
+ const up=C.aimRayToArena(origin,{x:0,y:0,z:-1});
+ const a=C.aimedDefense(right,neutral,1),b=C.aimedDefense(up,neutral,1);
+ assert.ok(a.x>0&&Math.abs(a.y-1.2)<.001);
+ assert.ok(b.y>1.2);
+ assert.equal(C.aimedDefense(right,neutral,.6).x<a.x,true);
+ assert.equal(C.aimedDefense(right,neutral,1.45).x>a.x,true);
+});
+caseOf('phone aim ignores backwards, missing or invalid camera poses',()=>{
+ const o={x:0,y:1,z:3};
+ assert.equal(C.aimRayToArena(o,{x:0,y:0,z:1}),null);
+ assert.equal(C.aimRayToArena(o,{x:0,y:0,z:0}),null);
+ assert.equal(C.aimRayToArena(o,{x:NaN,y:0,z:-1}),null);
+ assert.equal(C.aimRayToArena(null,{x:0,y:0,z:-1}),null);
+ assert.equal(C.aimRayToArena(o,{x:1,y:0,z:-.01}),null);
+});
+caseOf('invisible collider still reflects near-center shots and misses outside its area',()=>{
+ const s=C.create();C.start(s);s.phase='playing';C.target(s,.8,1.5);
+ s.ball={x:.8,y:1.5,z:2.878,vx:0,vy:0,vz:5};C.step(s);
+ assert.ok(s.ball.vz<0,'hidden collider must still rebound');
+ C.drain(s);
+ s.ball={x:-1.6,y:.35,z:2.878,vx:0,vy:0,vz:5};s.phase='playing';C.step(s);
+ assert.equal(s.score[1],1,'collider remains fair and does not cover the entire arena');
+});
 console.log('CUADRANTE core PASS:',tests.length,'simulations');

@@ -256,6 +256,26 @@ function horizontalHit(pose,minimum=.72){
  const up=1-2*(q.x*q.x+q.z*q.z)/len;
  return up>=minimum;
 }
+function aimRayToArena(origin,direction,z=0){
+ // Viewer world ray must be converted to arena local meters by the runtime.
+ // The aiming plane sits inside the tunnel, not on the near paddle, where
+ // the phone could be just centimeters from the surface.
+ if(!origin||!direction)return null;
+ const a=[origin.x,origin.y,origin.z,direction.x,direction.y,direction.z,z];
+ if(a.some(n=>!Number.isFinite(n))||direction.z>=-.045)return null;
+ const t=(z-origin.z)/direction.z;
+ if(!(t>.035&&t<16))return null;
+ return {x:origin.x+direction.x*t,y:origin.y+direction.y*t,z,meters:t};
+}
+function aimedDefense(raw,neutral,sensitivity=1){
+ if(!raw||!neutral)return null;
+ const dx=raw.x-neutral.x,dy=raw.y-neutral.y;
+ if(!Number.isFinite(dx)||!Number.isFinite(dy))return null;
+ const gain=CLAMP(sensitivity,.60,1.45);
+ const x=dx*gain,y=1.20+dy*gain;
+ return {x:CLAMP(x,-W+.37,W-.37),y:CLAMP(y,LOW+.37,HIGH-.37),
+  edge:x< -W+.37||x>W-.37||y<LOW+.37||y>HIGH-.37};
+}
 function touchDelta(dx,dy,width,height,sensitivity=1){
  // Same physical swipe has comparable steering at different screen sizes.
  // Saturate huge pointer jumps, not slow deliberate fine movements.
@@ -276,5 +296,5 @@ function predictedLanding(s){
   // Obstacles can alter the future trajectory: only promise precision in the empty arena.
   reliable:s.mode===0};
 }
-root.CuadranteCore={create,start,step,target,pause,resume,next,retry,drain,geometry,predictedLanding,anchoredArena,horizontalHit,touchDelta,profiles,modes,bounds:{W,LOW,HIGH,FRONT,BACK,R}};
+root.CuadranteCore={create,start,step,target,pause,resume,next,retry,drain,geometry,predictedLanding,anchoredArena,horizontalHit,aimRayToArena,aimedDefense,touchDelta,profiles,modes,bounds:{W,LOW,HIGH,FRONT,BACK,R}};
 })(typeof window!=='undefined'?window:globalThis);

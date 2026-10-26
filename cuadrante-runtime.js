@@ -7,6 +7,8 @@ let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,sta
 let arCompositor=null,nativeXRScene=null,arDrawFrames=0,arVisibleOutline=false,arCompositorReady=false,arRenderFaultAt=0;
 let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
 let floorSeconds=0,lastFloorHit=null;
+let aimNeutral=null,aimFiltered={x:0,y:1.2},aimInvalidTime=0,aimPausedForTracking=false,aimCalibration=null,aimResumeAfterCalibration=false;
+let aimVector=null,aimOrigin=null,aimQuat=null,aimInv=null;
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
 let bank=null,assetsPromise=null,pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
 try{records={...records,...JSON.parse(localStorage.getItem('cuadrante-records')||'{}')}}catch(e){}
@@ -189,9 +191,11 @@ function resize(){
  renderer.setSize(innerWidth,innerHeight,false);applyQuality();setDemoCamera();
 }
 window.addEventListener('resize',resize);
-function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;floorSeconds=0;lastFloorHit=null;pointers.clear();
+function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;floorSeconds=0;lastFloorHit=null;
+ aimNeutral=null;aimFiltered={x:0,y:1.2};aimInvalidTime=0;aimPausedForTracking=false;aimCalibration=null;aimResumeAfterCalibration=false;
+ stage?.setAimMode?.(mode==='ar');pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
- $('ui').classList.toggle('ar-placing',mode==='ar');
+ $('ui').classList.toggle('ar-placing',mode==='ar');$('ui').classList.remove('ar-aim');$('aimReticle').classList.remove('lost');
  $('recenterBtn').style.display='none';$('hitFlash').className='';
  stage?.setPlacementPreview?.(false);$('fixArena').disabled=true;
  $('overlay').style.display='none';$('ticker').style.opacity='0';$('placeControls').style.display='none';$('placeTitle').style.display='none';
@@ -240,10 +244,85 @@ function placeFromFrame(frame,dt){
  $('fixArena').disabled=!hasHit;
  $('labelPhase').textContent=hasHit?'PISO DETECTADO ✓ · AHORA FIJÁ LA ARENA':'PISO ENCONTRADO · CALIBRANDO '+Math.round(floorSeconds/.6*100)+'%';
 }
+// The real phone camera pose drives the hidden collision plane. No body,
+// hand or foot tracking is inferred from ARCore: only the camera orientation.
+function aimFromXR(frame,dt){
+ if(!state||placing||inputMode!=='ar'||!stage?.root?.visible||!frame||!session||!renderer?.xr?.isPresenting)return;
+ const space=renderer.xr.getReferenceSpace();
+ let pose;
+ try{pose=space&&frame.getViewerPose(space)}catch(_){pose=null}
+ let raw=null;
+ if(pose?.transform){
+  const p=pose.transform.position,q=pose.transform.orientation;
+  if(p&&q&&[p.x,p.y,p.z,q.x,q.y,q.z,q.w].every(Number.isFinite)){
+   aimOrigin??=new THREE.Vector3();
+   aimVector??=new THREE.Vector3();
+   aimQuat??=new THREE.Quaternion();
+   aimInv??=new THREE.Quaternion();
+   aimOrigin.set(p.x,p.y,p.z);
+   aimQuat.set(q.x,q.y,q.z,q.w);
+   aimVector.set(0,0,-1).applyQuaternion(aimQuat).normalize();
+   // The collider remains in arena-local coordinates while the world stays
+   // spatially anchored. No objects follow the phone's view matrix.
+   stage.root.updateWorldMatrix(true,false);
+   stage.root.getWorldQuaternion(aimInv).invert();
+   const localOrigin=stage.root.worldToLocal(aimOrigin);
+   const localDirection=aimVector.applyQuaternion(aimInv);
+   raw=C.aimRayToArena(localOrigin,localDirection,0);
+  }
+ }
+ if(raw){
+  aimInvalidTime=0;$('aimReticle').classList.remove('lost');
+  if(aimCalibration){
+   const previous=aimCalibration.last;
+   const shake=previous?Math.hypot(raw.x-previous.x,raw.y-previous.y):0;
+   aimCalibration.seconds=shake<.15?aimCalibration.seconds+Math.min(dt,.05):0;
+   aimCalibration.last={x:raw.x,y:raw.y};
+   $('labelPhase').textContent='MANTENÉ LA MIRA EN EL RIVAL · '+Math.round(Math.min(1,aimCalibration.seconds/.80)*100)+'%';
+   if(aimCalibration.seconds>=.80){
+    aimNeutral={x:raw.x,y:raw.y};aimFiltered={x:0,y:1.2};
+    aimCalibration=null;
+    if(aimResumeAfterCalibration)C.resume(state);
+    else C.start(state);
+    aimResumeAfterCalibration=false;prev=0;acc=0;
+    $('labelPhase').textContent='AR REAL · APUNTÁ CON EL CELULAR';
+    note('✓ MIRA CALIBRADA · ¡A JUGAR!',1150);
+   }
+   return;
+  }
+  if(!aimNeutral){aimNeutral={x:raw.x,y:raw.y};aimFiltered={x:0,y:1.2}}
+  const target=C.aimedDefense(raw,aimNeutral,opts.sensitivity);
+  if(target){
+   // Gentle low-latency smoothing with an explicit per-frame jump ceiling.
+   const blend=1-Math.exp(-Math.min(dt,.05)/.045);
+   const maxStep=Math.min(.24,Math.max(.07,dt*8));
+   aimFiltered.x+=clamp((target.x-aimFiltered.x)*blend,-maxStep,maxStep);
+   aimFiltered.y+=clamp((target.y-aimFiltered.y)*blend,-maxStep,maxStep);
+   C.target(state,aimFiltered.x,aimFiltered.y);
+  }
+  if(aimPausedForTracking){
+   aimPausedForTracking=false;C.resume(state);
+   $('labelPhase').textContent='AR REAL · APUNTÁ CON EL CELULAR';
+   note('✓ MIRA RECUPERADA · ¡CONTINUÁ!',900);
+  }
+ }else{
+  aimInvalidTime+=dt;$('aimReticle').classList.add('lost');
+  if(aimCalibration){
+   aimCalibration.seconds=0;aimCalibration.last=null;
+   $('labelPhase').textContent='MIRÁ HACIA LA ARENA PARA CALIBRAR';
+   return;
+  }
+  if(aimInvalidTime>1.25&&state.phase!=='paused'&&state.phase!=='finished'){
+   C.pause(state);aimPausedForTracking=true;
+   $('labelPhase').textContent='MIRA PERDIDA · GIRÁ HACIA LA ARENA · PARTIDA PAUSADA';
+  }
+ }
+}
 function frame(t,xrFrame){
  if(!renderer||!stage||!camera)return;
  const dt=clamp((t-prev)/1000||.016,0,.07);prev=t;measureFrame(dt);
  if(placing&&inputMode==='ar')placeFromFrame(xrFrame,dt);
+ else if(inputMode==='ar'&&!placing)aimFromXR(xrFrame,dt);
  if(state&&state.phase!=='ready'&&state.phase!=='paused'&&state.phase!=='finished'){
   acc+=dt;let steps=0;while(acc>=1/120&&steps++<9){C.step(state,1/120);acc-=1/120}if(steps>=9)acc=0;
   const events=C.drain(state);handleEvents(events);music();
@@ -291,7 +370,7 @@ function refreshHud(){
  const meter=$('contactFill');
  meter.style.transform='scaleX('+danger.toFixed(3)+')';
  meter.style.opacity=danger>.03?'1':'0';
- if(modePlay==='survival'&&state.phase!=='ready'&&!placing)$('labelPhase').textContent='SUPERVIVENCIA · '+state.survivalLives+' VIDAS · ARRASTRÁ PARA DEFENDER';
+ if(modePlay==='survival'&&state.phase!=='ready'&&!placing&&!aimCalibration&&!aimPausedForTracking)$('labelPhase').textContent='SUPERVIVENCIA · '+state.survivalLives+' VIDAS · '+(inputMode==='ar'?'APUNTÁ CON EL CELULAR':'ARRASTRÁ PARA DEFENDER');
 }
 function handleEvents(events){
  for(const ev of events){const type=ev.type;
@@ -339,7 +418,7 @@ function pause(){if(!state||placing)return;if(state.phase==='paused'){C.resume(s
 $('pauseBtn').onclick=pause;$('exitBtn').onclick=()=>back();
 function recenter(){
  if(!playing||placing||inputMode!=='ar'||!renderer?.xr?.isPresenting||!state||state.phase==='finished')return;
- C.pause(state);stage.root.visible=false;recentering=true;placing=true;hasHit=false;floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
+ C.pause(state);stage.root.visible=false;recentering=true;placing=true;hasHit=false;aimNeutral=null;aimPausedForTracking=false;aimInvalidTime=0;aimCalibration=null;$('ui').classList.remove('ar-aim');floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
  pointers.clear();stage?.setPlacementPreview?.(false);$('overlay').style.display='none';$('pauseBtn').textContent='Ⅱ';$('pauseBtn').style.display='none';
  $('recenterBtn').style.display='none';$('hud').style.display='none';
  $('placeTitle').style.display='block';$('placeTitle').firstChild.textContent='RECENTRAR ARENA';
@@ -349,7 +428,7 @@ function recenter(){
 }
 $('recenterBtn').onclick=recenter;
 async function back(){
- if(!playing)return;playing=false;placing=false;recentering=false;closeArWorld();$('ui').classList.remove('ar-placing');
+ if(!playing)return;playing=false;placing=false;recentering=false;closeArWorld();$('ui').classList.remove('ar-placing','ar-aim');
  try{if(session){const old=session;session=null;await old.end()}}catch(e){}
  if(hitSource){try{hitSource.cancel()}catch(e){}hitSource=null}
  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null}
@@ -411,15 +490,26 @@ $('startAr').onclick=()=>init('ar');$('startDemo').onclick=()=>init('demo');
 function doFix(){
  if(!placing)return;
  if(inputMode==='ar'&&(!hasHit||!arCompositorReady||!arVisibleOutline||floorSeconds<.60)){note('APUNTÁ A LA MARCA VERDE Y ESPERÁ QUE APAREZCA LA ARENA',1800);return}
- placing=false;hasHit=false;stage.root.visible=true;stage?.setPlacementPreview?.(false);$('placementSvg').style.display='none';$('ui').classList.remove('ar-placing');$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
- $('labelPhase').textContent=inputMode==='ar'?'AR REAL · ARRASTRÁ PARA DEFENDER':'CÁMARA SIN TRACKING · ARRASTRÁ PARA DEFENDER';
+ placing=false;hasHit=false;stage.root.visible=true;stage?.setPlacementPreview?.(false);$('placementSvg').style.display='none';$('ui').classList.remove('ar-placing');
+ aimNeutral=null;aimFiltered={x:0,y:1.2};aimInvalidTime=0;aimPausedForTracking=false;
+ aimResumeAfterCalibration=inputMode==='ar'&&recentering;
+ aimCalibration=inputMode==='ar'?{seconds:0,last:null}:null;
+ if(inputMode==='ar'){
+  $('ui').classList.add('ar-aim');
+  $('aimReticle').classList.remove('lost');
+  C.target(state,0,1.2);
+ }$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
+ $('labelPhase').textContent=inputMode==='ar'?'AR REAL · APUNTÁ CON EL CELULAR':'MODO 3D · ARRASTRÁ PARA DEFENDER';
  $('recenterBtn').style.display=inputMode==='ar'?'block':'none';
  if(recentering){
-  recentering=false;C.resume(state);acc=0;prev=0;
-  note('ARENA RECENTRADA · ¡SEGUÍ JUGANDO!',1550);
+  recentering=false;acc=0;prev=0;
+  note('🎯 MIRÁ AL RIVAL Y MANTENÉ 1 SEGUNDO',1800);
+ }else if(inputMode==='ar'){
+  note('🎯 MIRÁ AL RIVAL Y MANTENÉ 1 SEGUNDO',1800);
  }else{
-  C.start(state);note('¡ARRASTRÁ PARA MOVER EL CUADRADO!',1700);
+  C.start(state);note('¡ARRASTRÁ PARA DEFENDER!',1700);
  }
+ if(inputMode==='ar')$('labelPhase').textContent='MIRÁ AL RIVAL · CALIBRANDO MIRA';
  $('placeTitle').firstChild.textContent='DETECTÁ EL PISO';
  $('fixArena').textContent='FIJAR ARENA';
 }
@@ -430,10 +520,10 @@ $('rotateLeft').onclick=()=>{offset.rot=(offset.rot||0)-.14;if(stage)stage.root.
 $('rotateRight').onclick=()=>{offset.rot=(offset.rot||0)+.14;if(stage)stage.root.rotation.y+=.14};
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 const layer=$('touchLayer');
-layer.addEventListener('pointerdown',e=>{if(!playing)return;e.preventDefault();try{layer.setPointerCapture(e.pointerId)}catch(_){}pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+layer.addEventListener('pointerdown',e=>{if(!playing||(inputMode==='ar'&&!placing))return;e.preventDefault();try{layer.setPointerCapture(e.pointerId)}catch(_){}pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(placing&&pointers.size===2){const [a,b]=[...pointers.values()];placeDistance=distance(a,b);placeAngle=Math.atan2(b.y-a.y,b.x-a.x)}});
 layer.addEventListener('pointermove',e=>{
- if(!pointers.has(e.pointerId)||!playing||!state)return;e.preventDefault();
+ if(!pointers.has(e.pointerId)||!playing||!state||(inputMode==='ar'&&!placing))return;e.preventDefault();
  const prev=pointers.get(e.pointerId),dx=e.clientX-prev.x,dy=e.clientY-prev.y;
  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(placing){

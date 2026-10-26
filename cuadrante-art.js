@@ -76,6 +76,38 @@ root.CuadranteArt=function(T){
   }
   const you=paddle(false),enemy=paddle(true);
   you.position.set(0,1.2,2.90);enemy.position.set(0,1.2,-2.90);
+  // In real AR the player is not a permanent square. Its physics collider
+  // stays active, while the player's visual shield appears only on impact.
+  const defenseShield=new T.Group();defenseShield.name='cuadrante-impact-shield';root.add(defenseShield);
+  defenseShield.visible=false;defenseShield.position.set(0,1.2,2.84);
+  const shieldFaceMat=new T.MeshBasicMaterial({color:0x28f9ed,transparent:true,
+   opacity:0,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
+  const shieldFace=new T.Mesh(new T.PlaneGeometry(.76,.76),shieldFaceMat);
+  defenseShield.add(shieldFace);
+  const shieldEdgeMat=new T.LineBasicMaterial({color:0x9bffff,transparent:true,
+   opacity:0,depthWrite:false,blending:T.AdditiveBlending});
+  const shieldEdges=new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(.78,.78,.055)),shieldEdgeMat);
+  defenseShield.add(shieldEdges);
+  const shieldRingMat=new T.MeshBasicMaterial({color:0x88ffff,transparent:true,
+   opacity:0,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
+  const shieldRing=new T.Mesh(new T.RingGeometry(.36,.38,48),shieldRingMat);
+  shieldRing.position.z=-.065;defenseShield.add(shieldRing);
+  // An anchored, tiny reticle inside the tunnel shows what the phone is
+  // defending. The on-screen sight is only UI; this marker is world-locked.
+  const aimMarker=new T.Group();aimMarker.name='cuadrante-aim-marker';root.add(aimMarker);
+  const aimMaterial=new T.MeshBasicMaterial({color:0x80fff5,transparent:true,
+   opacity:.72,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
+  const aimDot=new T.Mesh(new T.RingGeometry(.085,.113,32),aimMaterial);aimMarker.add(aimDot);
+  for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]){
+   const t=new T.Mesh(new T.BoxGeometry(.085,.013,.008),aimMaterial);
+   t.position.set(Math.cos(a)*.177,Math.sin(a)*.177,0);t.rotation.z=a;aimMarker.add(t);
+  }
+  aimMarker.position.set(0,1.2,-.15);aimMarker.visible=false;
+  let aimMode=false,shieldLife=0;
+  function setAimMode(on){
+   aimMode=!!on;you.visible=!aimMode;
+   aimMarker.visible=aimMode;defenseShield.visible=false;shieldLife=0;
+  }
   const orb=new T.Group();root.add(orb);
   const coreBall=material(0x14202b,.78,.17,0x39200a,.68);
   const sphere=new T.Mesh(new T.IcosahedronGeometry(.115,3),coreBall);orb.add(sphere);
@@ -132,6 +164,10 @@ root.CuadranteArt=function(T){
   let impact=0,flash=0,lastMode=-1,trailSample=0,previousPhase='',previousTick=-1,smashPulse=0,impactPos=new T.Vector3();
   function spawnImpact(x,y,z,kind){
    impact=1;flash=.35;smashPulse=kind==='smash'?1:0;impactPos.set(x,y,z);
+   if(aimMode&&(kind==='you'||kind==='smash')){
+    shieldLife=kind==='smash'?.28:.21;
+    defenseShield.position.set(x,y,2.84);defenseShield.visible=true;
+   }
    const first=waves.find(w=>w.life<=0)||waves[0];first.life=kind==='smash'?.55:.35;first.mesh.position.set(x,y,z);first.mesh.scale.setScalar(.75);
    first.mesh.material.color.setHex(kind==='rival'?O:C);first.mesh.visible=true;
    for(let i=0;i<shards.length;i++){
@@ -148,6 +184,22 @@ root.CuadranteArt=function(T){
    const b=s.ball;orb.position.set(b.x,b.y,b.z);sphere.rotation.y+=dt*3.5;shell.rotation.x+=dt*1.25;shell.rotation.y+=dt*2.3;
    orb.scale.setScalar(1+Math.sin(s.clock*16)*.04+smashPulse*.11);you.position.x=s.player.x;you.position.y=s.player.y;
    smashPulse=Math.max(0,smashPulse-dt*3.3);
+   aimMarker.visible=aimMode&&(s.phase==='playing'||s.phase==='serve');
+   if(aimMode){
+    aimMarker.position.x=s.player.x;aimMarker.position.y=s.player.y;
+    aimMarker.rotation.z+=dt*1.5;
+    aimMaterial.opacity=.52+.22*Math.sin(s.clock*6);
+    defenseShield.position.x=s.player.x;defenseShield.position.y=s.player.y;
+   }
+   if(shieldLife>0){
+    shieldLife=Math.max(0,shieldLife-dt);
+    const k=Math.min(1,shieldLife/.20);
+    defenseShield.visible=shieldLife>0&&aimMode;
+    shieldFaceMat.opacity=.25*k;
+    shieldEdgeMat.opacity=.90*k;
+    shieldRingMat.opacity=.66*k;
+    defenseShield.scale.setScalar(1+(1-k)*.19);
+   }else defenseShield.visible=false;
    const nearBall=Math.max(.08,Math.min(1,(b.y-.10)/1.1));
    reflection.position.x=b.x;reflection.position.z=b.z;
    reflection.scale.setScalar(.6+nearBall*.8);
@@ -206,7 +258,7 @@ root.CuadranteArt=function(T){
    trail.forEach((m,i)=>{if(i>=count)m.visible=false});
    scene.userData.trailLimit=count;
   }
-  return {scene,root,you,enemy,orb,surfaceMaterials:{matTile,altTile,steel,panel,dark},spawnImpact,update,setQuality,setPlacementPreview,dispose(){scene.traverse(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}}
+  return {scene,root,you,enemy,orb,surfaceMaterials:{matTile,altTile,steel,panel,dark},spawnImpact,update,setQuality,setPlacementPreview,setAimMode,dispose(){scene.traverse(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}}
  }
  return {makeStage};
 }
