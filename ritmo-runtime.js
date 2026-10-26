@@ -31,7 +31,7 @@ window.modoCaosCustomRender=function(gl,view,W,t){
  const indicator=E('sceneVersion');
  if(indicator){
   const rendererName=!success?'2D DE RESPALDO':renderer===stageShowtime?'NEON PRISM':renderer===stagePremium?'ESCENARIO LEGACY':'WEBGL CLÁSICO';
-  const current='V37 · '+rendererName;
+  const current='V38 · '+rendererName+' · ♫ BEAT LOCK';
   if(indicator.textContent!==current)indicator.textContent=current;
  }
  E('rtSvg').style.display=success?'none':'block';
