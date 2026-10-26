@@ -428,7 +428,13 @@ function makeStage(map){
    crateShards(evt.x,evt.y,evt.z);
    rewardPop('CRACK!',evt.x,evt.y+1,evt.z);
   }
-  if(evt.type==='enemyHit'&&Number.isFinite(evt.x))rewardPop('HIT!',evt.x,evt.y+1.2,evt.z);
+  if(evt.type==='enemyHit'&&Number.isFinite(evt.x)){
+   rewardPop('HIT!',evt.x,evt.y+1.2,evt.z);
+   shockwave(evt.x,evt.y+.12,evt.z,0x82ffdd,.32,.44);
+  }
+  if(evt.type==='boxHit'&&Number.isFinite(evt.x)){
+   shockwave(evt.x,evt.y+.08,evt.z,0xffd0a0,.27,.33);
+  }
   if(evt.type==='enemyDown'){
    koTimers.set(evt.id,.55);
    rewardPop('KO! +3',evt.x,evt.y+1.05,evt.z);
@@ -498,12 +504,20 @@ function makeStage(map){
    o.visible=e.alive||death>0;
    enemyShadows[i].visible=e.alive&&e.type!=='flying';
    enemyShadows[i].position.set(e.x,(window.MiniWorldsCore?.platformY(s,e.x,e.z)??0)+.045,e.z);
-   if(o.visible){o.position.x=e.x;o.position.z=e.z;
+   if(o.visible){
+    o.position.x=e.x;o.position.z=e.z;
+    // A visual recoil only: physics and collision remain deterministic.
+    if(e.flash>0&&death<=0){
+     const away=Math.atan2(e.x-p.x,e.z-p.z),impactPower=Math.sin(Math.PI*e.flash/.22);
+     o.position.x+=Math.sin(away)*.18*impactPower;
+     o.position.z+=Math.cos(away)*.18*impactPower;
+     o.position.y+=.11*impactPower;
+    }
    if(e.type==='flying')o.position.y=e.y;else o.position.y=Math.max(0,...map.platforms.filter(p=>Math.abs(e.x-p.x)<p.w/2&&Math.abs(e.z-p.z)<p.d/2).map(p=>p.y))+.42;
    o.rotation.y=Math.atan2(p.x-e.x,p.z-e.z);
     if(death>0){const t=1-death/.55;o.position.y+=Math.sin(t*Math.PI)*.80;
       o.rotation.z=t*1.5;o.scale.setScalar(Math.max(.02,1-t*t));}
-    else{o.scale.setScalar(1);o.rotation.z=e.flash>0?.22*Math.sin(elapsed*44):Math.sin(elapsed*4+i)*.035}
+    else{o.scale.setScalar(e.flash>0?1+.14*Math.sin(Math.PI*e.flash/.22):1);o.rotation.z=e.flash>0?.31*Math.sin(elapsed*44):Math.sin(elapsed*4+i)*.035}
    }
    if(death>0){const next=death-dt;if(next<=0)koTimers.delete(e.id);else koTimers.set(e.id,next)}
   }
