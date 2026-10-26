@@ -244,6 +244,17 @@ function anchoredArena(hit,baseYaw,rotation,offset,scale){
   rotation:theta
  };
 }
+function touchDelta(dx,dy,width,height,sensitivity=1){
+ // Same physical swipe has comparable steering at different screen sizes.
+ // Saturate huge pointer jumps, not slow deliberate fine movements.
+ const w=Math.max(260,width),h=Math.max(260,height);
+ const portrait=h>=w;
+ const factor=CLAMP(Number(sensitivity)||1,.60,1.45);
+ return {
+  x:CLAMP(dx/w*(portrait?4.02:4.38)*factor,-.92,.92),
+  y:CLAMP(-dy/h*(portrait?2.92:3.1)*factor,-.55,.55)
+ };
+}
 function predictedLanding(s){
  const b=s.ball;if(b.vz<=.03)return null;
  const t=(FRONT-R-b.z)/b.vz;
@@ -253,5 +264,5 @@ function predictedLanding(s){
   // Obstacles can alter the future trajectory: only promise precision in the empty arena.
   reliable:s.mode===0};
 }
-root.CuadranteCore={create,start,step,target,pause,resume,next,retry,drain,geometry,predictedLanding,anchoredArena,profiles,modes,bounds:{W,LOW,HIGH,FRONT,BACK,R}};
+root.CuadranteCore={create,start,step,target,pause,resume,next,retry,drain,geometry,predictedLanding,anchoredArena,touchDelta,profiles,modes,bounds:{W,LOW,HIGH,FRONT,BACK,R}};
 })(typeof window!=='undefined'?window:globalThis);
