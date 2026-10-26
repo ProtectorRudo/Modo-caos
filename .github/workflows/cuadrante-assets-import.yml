@@ -33,4 +33,6 @@ jobs:
           if git diff --cached --quiet; then echo "No asset changes"; exit 0; fi
           git diff --cached --stat
           git commit -m "assets(cuadrante): vendor 11 CC0 glTF props, 8 sounds, 4 optimized PBR maps"
+          git fetch origin feature/cuadrante-licensed-asset-pack-20261026
+          git rebase origin/feature/cuadrante-licensed-asset-pack-20261026
           git push origin HEAD:feature/cuadrante-licensed-asset-pack-20261026
