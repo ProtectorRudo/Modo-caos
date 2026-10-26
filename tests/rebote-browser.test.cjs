@@ -107,6 +107,11 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>document.querySelector('#strikeGauge')?.style.display==='block',null,{timeout:8500});
  assert.match(await page.locator('#strikeGauge').evaluate(el=>el.style.getPropertyValue('--charge')),/%$/,'timing meter reacts to incoming 3D shot');
  assert(await page.evaluate(()=>__ReboteDebug.renderedRobots)>0,'articulated 3D enemy appears');
+ assert(await page.evaluate(()=>__ReboteDebug.arenaWorldAnchored),'surroundings belong to anchored AR scene, never camera');
+ assert(await page.evaluate(()=>__ReboteDebug.arenaProps>=40),'premium arena contains platform, segmented floor and props');
+ assert(await page.evaluate(()=>__ReboteDebug.arenaGeometries>=12),'stadium has independent 3D floor and set dressing');
+ assert.equal(await page.evaluate(()=>__ReboteDebug.rivalDeckZ),-2.3,'rival stands on its own rear platform');
+
  assert(await page.locator('#hud').isVisible(),'HUD active');
  await page.locator('#pauseBtn').click();
  assert.equal(await page.evaluate(()=>__ReboteDebug.stage),'paused');

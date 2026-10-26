@@ -96,6 +96,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#fix').isDisabled(),false,'fix placement only after visible renderer emitted draw calls');
  const a=await page.evaluate(()=>({scale:__ReboteDebug.scale,root:__ReboteDebug.root}));
  await page.locator('#plus').click();
+ assert(await page.evaluate(()=>__ReboteDebug.arenaScaleWorld)>a.scale,'segmented scenic floor scales with calibrated ring');
  assert((await page.evaluate(()=>__ReboteDebug.scale))>a.scale,'scale edited');
  await page.locator('#turn').click();
  await page.locator('#fix').click();
@@ -115,6 +116,9 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__ReboteDebug.stage==='playing',null,{timeout:2000});
  await page.waitForFunction(()=>__ReboteDebug.renderedRobots>0,null,{timeout:5000});
  assert(await page.evaluate(()=>__ReboteDebug.arDrawCalls)>8,'rounded mech and arena contribute visible WebGL geometry');
+ assert(await page.evaluate(()=>__ReboteDebug.arenaProps>=40),'XR scene renders physical-feeling rails, columns, pad and LED floor');
+ assert(await page.evaluate(()=>__ReboteDebug.arenaWorldAnchored),'world decorations share the calibrated floor anchor');
+
 
  assert(await page.locator('#returnBtn').isVisible(),'return button active in real XR overlay');
  assert(await page.locator('#tapZone').isVisible(),'AR can parry by tapping anywhere in the lower zone');
