@@ -358,12 +358,24 @@ function frame(t,xrFrame){
   }
  }
  if(placing&&mode==='ar')applyHit(xrFrame);
- if(mode==='ar')updateAnchor(xrFrame);
+ if(mode==='ar'&&xrFrame){
+  const pose=xrFrame.getViewerPose(renderer.xr.getReferenceSpace());
+  const heading=S.headingFromQuaternion(pose?.views?.[0]?.transform?.orientation);
+  if(heading!==null)steeringYaw=heading;
+  maintainWorldLock(xrFrame);
+ }
  if(phase==='playing'){
   acc+=dt;let loops=0;
-  while(acc>=1/60&&loops++<4){C.tick(game,{x:mode==='demo'?input.x*Math.cos(orbitYaw)+input.z*Math.sin(orbitYaw):input.x,
-      z:mode==='demo'?input.z*Math.cos(orbitYaw)-input.x*Math.sin(orbitYaw):input.z,
-      jump:jumpQueued,punch:punchQueued},1/60);jumpQueued=false;punchQueued=false;acc-=1/60}
+  while(acc>=1/60&&loops++<4){
+   // During a thumb hold, retain the sampled camera heading: turning
+   // the phone to look at the avatar does not rotate the input vector.
+   const move=mode==='demo'
+     ?{x:input.x*Math.cos(orbitYaw)+input.z*Math.sin(orbitYaw),
+       z:input.z*Math.cos(orbitYaw)-input.x*Math.sin(orbitYaw)}
+     :S.cameraRelative(input.x,input.z,heldSteeringYaw??steeringYaw??worldYaw,spatialLock?.yaw??worldYaw);
+   C.tick(game,{x:move.x,z:move.z,jump:jumpQueued,punch:punchQueued},1/60);
+   jumpQueued=false;punchQueued=false;acc-=1/60;
+  }
   if(loops>=4)acc=0;
   events();song();
  }else{acc=0;jumpQueued=false;punchQueued=false}
@@ -453,9 +465,13 @@ function joyAt(e){
  input.x=xx;input.z=zz;
  stick.style.transform='translate('+Math.round(xx*39)+'px,'+Math.round(zz*39)+'px)';
 }
-pad.addEventListener('pointerdown',e=>{e.preventDefault();if(joyPointer!==null)return;joyPointer=e.pointerId;pad.setPointerCapture(e.pointerId);joyAt(e)});
+pad.addEventListener('pointerdown',e=>{
+ e.preventDefault();if(joyPointer!==null)return;
+ heldSteeringYaw=mode==='ar'?(steeringYaw??worldYaw):null;
+ joyPointer=e.pointerId;pad.setPointerCapture(e.pointerId);joyAt(e)
+});
 pad.addEventListener('pointermove',e=>{if(joyPointer===e.pointerId){e.preventDefault();joyAt(e)}});
-function resetJoy(e){if(joyPointer===e.pointerId){joyPointer=null;input.x=0;input.z=0;stick.style.transform='translate(0,0)'}}
+function resetJoy(e){if(joyPointer===e.pointerId){joyPointer=null;heldSteeringYaw=null;input.x=0;input.z=0;stick.style.transform='translate(0,0)'}}
 pad.addEventListener('pointerup',resetJoy);pad.addEventListener('pointercancel',resetJoy);pad.addEventListener('lostpointercapture',resetJoy);
 for(const [id,event] of [['jumpBtn','jump'],['punchBtn','punch']]){$(id).addEventListener('pointerdown',e=>{
  e.preventDefault();if(phase!=='playing')return;if(event==='jump')jumpQueued=true;else punchQueued=true;
