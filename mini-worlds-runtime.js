@@ -9,6 +9,7 @@ let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=n
 let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
 let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePointers=new Map(),pinch=null;
 let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0,arDebugVisible=false;
+let arCompositor=null,xrEmptyScene=null,arCompositorError='',arFpsTotal=0,arFpsFrames=0;
 let level=0,progress={unlocked:0,best:[null,null],coins:0},settings={sound:true,music:true};
 try{progress={...progress,...JSON.parse(localStorage.getItem('mc-mini-worlds-save-v1')||'{}')}}catch(_){}
 try{settings={...settings,...JSON.parse(localStorage.getItem('mc-mini-worlds-config-v1')||'{}')}}catch(_){}
@@ -44,6 +45,8 @@ async function import3D(){
  return T;
 }
 function clear(){
+ arCompositor?.dispose();arCompositor=null;arCompositorError='';
+ $('arWorldOverlay').style.display='none';xrEmptyScene=null;
  renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
  camera=null;view=null;game=null;placing=false;lockedPose=null;source=null;hasHit=false;
 }
@@ -55,6 +58,7 @@ function renderSetup(){
  renderer.shadowMap.enabled=false;renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');renderer.setClearColor(0x000000,0);
  $('viewport').appendChild(renderer.domElement);
  camera=new T.PerspectiveCamera(60,innerWidth/innerHeight,.018,160);
+ xrEmptyScene=new T.Scene(); // native framebuffer keeps WebXR pose in sync
  newStage();
  arGuide=window.MiniWorldsARGuide?window.MiniWorldsARGuide(T,$('arFloorGuide')):null;
  renderer.setAnimationLoop(frame);
@@ -127,7 +131,20 @@ async function play(modeRequested){
    // that canvas visible can obscure the native 3D over camera passthrough.
    document.body.classList.add('mw-immersive-ar');
    renderer.domElement.style.display='none';
-   console.info('[MINI WORLDS] Immersive native framebuffer; canvas hidden:',!!renderer.xr.getBaseLayer?.());
+   // Same proven compositor path as Rodeados 360. Native framebuffer
+   // stays empty; the tracked virtual world is rendered into a transparent
+   // DOM-overlay WebGL canvas (never stuck to the phone).
+   try{
+    arCompositor=window.MiniWorldsARCompositor(T,$('arWorldOverlay'),1.12);
+    $('arWorldOverlay').style.display='block';
+    arCompositorError='';
+    console.info('[MINI WORLDS] Rodeados-style AR compositor ready.');
+   }catch(e){
+    arCompositor=null;arCompositorError=e?.message||String(e);
+    console.error('[MINI WORLDS] Compositor initialization:',e);
+    $('arWorldOverlay').style.display='none';
+    notice('CAPA AR NO DISPONIBLE · REINTENTÁ EN CHROME',3500);
+   }
    const viewer=await session.requestReferenceSpace('viewer');
    hitSource=await session.requestHitTestSource({space:viewer});
    session.addEventListener('end',()=>{if(phase!=='home'){error('El seguimiento AR terminó. Regresando al menú.');home(true)}});
@@ -286,8 +303,29 @@ function frame(t,xrFrame){
  if(mode==='demo')setCamera();
  if(animFrames%6===0)updateHUD();
  if(toastUntil&&performance.now()>toastUntil){$('toast').classList.remove('show');toastUntil=0}
- try{renderer.render(view,camera);webglCalls=renderer.info.render.calls}
- catch(e){frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.error('[MINI WORLDS] XR WebGL:',e)}}
+ try{
+  if(mode==='ar'&&renderer.xr.isPresenting){
+   // Three.js updates the XR camera here while rendering an empty native
+   // scene, so Android can composite passthrough behind the DOM overlay.
+   renderer.render(xrEmptyScene,camera);
+   if(arCompositor){
+    const ok=arCompositor.render(view,renderer.xr.getCamera(camera));
+    webglCalls=ok?arCompositor.drawCalls:0;
+    if(!ok){
+     frameFaults++;
+     arCompositorError=arCompositor.error;
+     if(frameFaults===1||frameFaults%90===0)console.error('[MINI WORLDS] AR compositor:',arCompositorError);
+    }
+   }else{
+    // Platform-safe fallback; visibly report missing compositing path.
+    renderer.render(view,camera);
+    webglCalls=renderer.info.render.calls;
+   }
+  }else{
+   renderer.render(view,camera);
+   webglCalls=renderer.info.render.calls;
+  }
+ }catch(e){frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.error('[MINI WORLDS] XR WebGL:',e)}}
  if(mode==='ar'&&xrFrame&&arGuide&&animFrames%3===0){
   guideState=arGuide.draw(xrFrame,renderer.xr.getReferenceSpace(),stage,placing||phase==='ready'||arDebugVisible,webglCalls===0);
  }
@@ -295,7 +333,11 @@ function frame(t,xrFrame){
   const presenting=renderer.xr.isPresenting;
   const layer=!!renderer.xr.getBaseLayer?.();
   const actual=webglCalls<0?'—':webglCalls;
-  $('arStatus').textContent='AR '+(presenting&&layer?'OK':'SIN CAPA')+' · OBJETOS 3D '+actual+' · '+(arDebugVisible?'OCULTAR GUÍA':'MOSTRAR GUÍA')+(frameFaults?' · ERROR '+frameFaults:'');
+  const composite=!!arCompositor&&arCompositor.frames>0;
+  $('arStatus').textContent=(composite?'AR VISIBLE':presenting&&layer?'AR SIN COMPOSITOR':'AR SIN CAPA')+
+  ' · DIBUJO 3D '+actual+(arCompositorError?' · ERROR CAPA':'')+
+  ' · '+(arDebugVisible?'OCULTAR GUÍA':'MOSTRAR GUÍA');
+  $('arStatus').style.borderColor=composite&&webglCalls>0?'#6effc9':'#ffb38a';
  }
  if(mode==='ar'&&placing&&hasHit&&performance.now()-lastDiagnostics>900){
   lastDiagnostics=performance.now();
@@ -383,6 +425,6 @@ touch.addEventListener('pointermove',e=>{
 for(const ev of ['pointerup','pointercancel'])touch.addEventListener(ev,e=>{placePointers.delete(e.pointerId);pinch=null});
 document.body.addEventListener('beforexrselect',e=>e.preventDefault());
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&phase==='playing')pause()});
-window.addEventListener('resize',()=>{if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
+window.addEventListener('resize',()=>{if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);arCompositor?.resize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
 fillLanding();detectXR();
 })();
