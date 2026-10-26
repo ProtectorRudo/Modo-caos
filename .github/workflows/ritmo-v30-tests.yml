@@ -1,0 +1,43 @@
+name: Ritmo Caos V30 — festival real assets, AR floor and regression
+on:
+  push:
+    branches: [feat/ritmo-neon-festival-v30-20261026]
+    paths:
+      - 'ritmo-*.js'
+      - 'ritmo.html'
+      - 'assets/ritmo/**'
+      - 'tests/ritmo-*.test.cjs'
+      - '.github/workflows/ritmo-v30-tests.yml'
+  pull_request:
+    paths:
+      - 'ritmo-*.js'
+      - 'ritmo.html'
+      - 'assets/ritmo/**'
+      - 'tests/ritmo-*.test.cjs'
+      - '.github/workflows/ritmo-v30-tests.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - name: Verify executable JavaScript
+        run: |
+          node --check ritmo-glb-props.js
+          node --check ritmo-exterior.js
+          node --check ritmo-stage-showtime.js
+          node --check ritmo-runtime.js
+      - name: Models, quality fallback, note lane invariants, visuals
+        run: |
+          node --test \
+            tests/ritmo-festival-v30.test.cjs \
+            tests/ritmo-exterior.test.cjs \
+            tests/ritmo-glb-v29.test.cjs \
+            tests/ritmo-floor-flow-v29.test.cjs \
+            tests/ritmo-prism-v28.test.cjs
+          node -e "global.window=globalThis; require('./tests/ritmo-impact-alignment.test.cjs')"

@@ -1,0 +1,74 @@
+name: Ritmo V30 — import verified CC0 festival GLBs
+on:
+  push:
+    branches: [feat/ritmo-neon-festival-v30-20261026]
+    paths: ['.github/workflows/ritmo-v30-assets.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: true
+          ref: feat/ritmo-neon-festival-v30-20261026
+      - name: Select and download small published CC0 models
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/ritmo
+          python3 - <<'PY'
+          import json,urllib.request,struct,pathlib
+          url='https://3dassets.dev/api/v1/packs/nightclub-and-dj-booth'
+          with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'ModoCaos/1.0'}),timeout=35) as response:
+              payload=json.load(response)
+          data=payload.get('data',payload)
+          assert data['licenseLabel']=='CC0 1.0 Universal'
+          items=data['assets']
+          wanted={
+              'dj-booth-facade.glb':'DJ Booth Facade Panel (',
+              'dj-turntable.glb':'Turntable Deck (',
+              'dj-led-panel.glb':'Backdrop LED Panel Module, Cyan (',
+              'dj-speaker-sub.glb':'Speaker Stack Sub Cabinet (',
+              'dj-speaker-mid.glb':'Speaker Stack Mid Cabinet (',
+              'dj-moving-head.glb':'Moving Head Light (',
+              'dj-strobe.glb':'Strobe Bar (',
+              'dj-truss.glb':'Lighting Truss, Straight Bay (',
+          }
+          report=[]
+          for name,prefix in wanted.items():
+              matches=[x for x in items if x['title'].startswith(prefix)]
+              assert len(matches)==1,(name,prefix,len(matches))
+              obj=matches[0]
+              assert obj['license']['slug']=='cc0-1.0'
+              uri=obj['cdnUrl']
+              assert uri.startswith('https://cdn.3dassets.dev/assets/') and uri.endswith('/model.glb')
+              with urllib.request.urlopen(urllib.request.Request(uri,headers={'User-Agent':'ModoCaos/1.0'}),timeout=45) as response:
+                  binary=response.read()
+              assert 1000<len(binary)<500000,(name,len(binary))
+              magic,version,total=struct.unpack_from('<III',binary,0)
+              assert (magic,version,total)==(0x46546C67,2,len(binary))
+              length,chunk_type=struct.unpack_from('<II',binary,12)
+              assert chunk_type==0x4E4F534A
+              doc=json.loads(binary[20:20+length])
+              assert doc['asset']['version']=='2.0'
+              tris=obj['stats']['triangles']
+              assert 100<=tris<=2500,(name,tris)
+              pathlib.Path('assets/ritmo',name).write_bytes(binary)
+              report.append({'file':name,'cdnUrl':uri,'size':len(binary),'triangles':tris,'license':'CC0'})
+              print(f"OK CC0 {name} {len(binary)} bytes {tris} tris {uri}")
+          pathlib.Path('assets/ritmo/V30_ASSET_PROVENANCE.json').write_text(json.dumps(report,indent=2)+'\n')
+          PY
+      - name: Commit assets on feature branch only
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ritmo/*.glb assets/ritmo/V30_ASSET_PROVENANCE.json
+          if ! git diff --cached --quiet; then
+            git commit -m "asset(ritmo): vendor eight verified CC0 festival objects"
+            git push origin HEAD:feat/ritmo-neon-festival-v30-20261026
+          fi

@@ -67,19 +67,44 @@
    }
   }
   function ledWall(t,low,mid,combo,quality){
-   const x=0,y=.695,z=-1.86,w=.72,h=.47;
-   cuboid(mesh,x,y,z,w,h,.025,S,M);
-   cuboid(mesh,x,y,z+.018,w-.022,h-.024,.009,[.014,.036,.068],[.021,.055,.096]);
-   const N=quality?15:9,rows=quality?8:5;
-   for(let i=0;i<N;i++){
-    const a=.19+.31*low+.17*mid+.22*(.5+.5*Math.sin(t*5.8+i*.92));
-    const n=Math.max(1,Math.floor(a*rows));
-    for(let j=0;j<n;j++){
-     const xx=(i/(N-1)-.5)*w*.83,yy=y-h*.35+j*h*.64/rows;
-     led(xx,yy,z+.026,i%3===0?C:i%3===1?P:V,quality?.008:.012);
+   // Bright, layered LED wall instead of the previous giant unlit black box.
+   // Two real GLB panel frames add depth; emissive visuals remain shader-driven.
+   const y=.70,z=-1.84,w=.80,h=.43;
+   if(!props?.drawPart('led-panel',mesh,surface,[
+    {scale:.41,offset:[-.203,.485,-1.910]},
+    {scale:.41,offset:[ .203,.485,-1.910]}
+   ])){
+    cuboid(mesh,0,y,z,w,h,.025,[.035,.072,.12],M,1);
+   }
+   const cols=quality===0?10:14,rows=quality===0?6:8,seconds=t*1.48;
+   for(let i=0;i<cols;i++){
+    for(let j=0;j<rows;j++){
+     const x=(i+.5-cols/2)*w*.89/cols;
+     const yy=y+(j+.5-rows/2)*h*.87/rows;
+     const wave=Math.sin(i*.69+j*.51-seconds*3.1);
+     const surge=.5+.5*Math.sin(t*5.7+i*.79);
+     const bass=low*.4+mid*.26;
+     const power=.30+.32*surge+.26*wave*wave+.28*bass;
+     const col=(i+j)%5===0?P:i%4===0?V:C;
+     const shade=power*(j<=Math.round((.25+.55*surge)*(rows-1))?1:.32);
+     cuboid(illum,x,yy,z+.054,w*.78/cols,h*.74/rows,.006,col,col,
+      Math.min(.81,Math.max(.10,shade)),3);
     }
    }
-   if(combo>=10)annulus(illum,0,y+.155,z+.030,.028,.038,combo>=30?P:C,.33+.25*low,20,true);
+   // Moving luminous signature; reacts to streaks without covering the DJ.
+   for(let i=0;i<7;i++){
+    const xx=(i-3)*.086;
+    const lift=.032*Math.sin(t*7.4+i*.68);
+    cuboid(illum,xx,y+.145+lift,z+.061,.038,.009,.007,i%2?C:P,
+     i%2?C:P,.40+.31*low,3);
+   }
+   if(combo>=10){
+    const intensity=Math.min(.9,.30+combo*.012);
+    for(const sign of [-1,1]){
+     cuboid(illum,sign*.365,y,z+.063,.011,.41,.007,combo>=25?P:C,
+      combo>=25?P:C,intensity,3);
+    }
+   }
   }
   function decks(t,low,quality){
    const z=-1.35,y=.314;
@@ -143,39 +168,94 @@
    }
    beam([-.080,.55+bob,z+.058],[0,.562+bob,z+.059],.007,P);
    beam([0,.562+bob,z+.059],[.080,.55+bob,z+.058],.007,C);
+   // V30 DJ appearance polish: sculpted fringe, face, jacket seams and
+   // color accents are real 3D geometry, not flat screen overlays.
+   for(let i=-3;i<=3;i++){
+    const x=i*.018;
+    const hairY=h+.088+Math.cos(i*.38)*.007;
+    beam([x,hairY,z+.041],[x+.008*Math.sin(t*.9+i),h+.044,z+.070],.008,[.035,.045,.074]);
+   }
+   for(const sign of [-1,1]){
+    ball(sign*.082,h-.015,z+.005,.017,[.74,.45,.34],8,5);
+    const shoulder=sign*.087;
+    beam([shoulder,.515+bob,z+.06],[sign*.079,.404+bob,z+.066],
+     .006,sign<0?P:C);
+    cuboid(illum,sign*.071,.354+bob,z+.088,.011,.015,.006,
+     sign<0?P:C,sign<0?P:C,.30+.32*mid,3);
+    // Luminous bracelet moves with mixing hands.
+    const wristX=sign*(.113+.025*Math.cos(t*5.4+sign));
+    const wristY=.330+bob+(combo>=15?.17*(.5+.5*Math.sin(t*4.5))*(sign>0?1:0):0);
+    ball(wristX,wristY+.014,z+.152,.011,sign<0?P:C,8,5);
+   }
+   // Backlit zipper, pocket shapes, and face expressions.
+   cuboid(mesh,0,.428+bob,z+.073,.012,.095,.008,[.42,.52,.66],[.72,.79,.85]);
+   for(const sign of [-1,1]){
+    cuboid(mesh,sign*.049,.398+bob,z+.080,.041,.006,.008,[.21,.27,.45],M);
+    cuboid(mesh,sign*.034,h-.042,z+.075,.024,.006,.005,[.29,.19,.22],M);
+   }
+   beam([-.019,h-.047,z+.079],[0,h-.054,z+.080],.003,[.20,.13,.13]);
+   beam([0,h-.054,z+.080],[.019,h-.047,z+.079],.003,[.20,.13,.13]);
   }
   function stacks(size,low,quality){
-   for(const s of [-1,1]){
-    const x=s*(size*2+.245),z=-1.44;
-    cuboid(mesh,x,.018,z,.159,.311,.164,S,M);
-    cuboid(mesh,x,.055,z+.087,.135,.255,.005,[.04,.055,.087],S);
-    for(const y of [.113,.229]){
-     annulus(mesh,x,y,z+.091,.032,.052,M,.98,18,true);
-     disc(mesh,x,y,z+.093,.029,[.039,.056,.085],1,18,true);
-     annulus(illum,x,y,z+.099,.036,.048,s>0?C:V,.50+.30*low,18,true);
-     disc(illum,x,y,z+.096,.015,C,.19+.35*low,16,true);
-    }
-    if(quality)for(let k=0;k<3;k++)led(x-s*.068,.07+k*.082,z+.089,C,.010);
+   const positions=[-1,1].map(s=>({
+     x:s*(size*2+.21),z:-1.54,s
+   }));
+   const sub=positions.map(({x,z})=>({scale:.22,offset:[x,.026,z]}));
+   const mid=positions.map(({x,z})=>({scale:.22,offset:[x,.269,z]}));
+   const okSub=props?.drawPart('speaker-sub',mesh,surface,sub);
+   const okMid=props?.drawPart('speaker-mid',mesh,surface,mid);
+   if(!okSub||!okMid)for(const {x,z,s} of positions){
+     if(!okSub)cuboid(mesh,x,.03,z,.16,.22,.16,S,M);
+     if(!okMid)cuboid(mesh,x,.258,z,.15,.17,.14,S,M);
    }
+   // Visible bass pulse even though the physical GLB driver is rigid.
+   for(const {x,z,s} of positions)for(const y of [.14,.355])
+    annulus(illum,x,y,z+.092,.024,.036,s<0?P:C,
+      Math.min(.72,.27+.42*low),18,true);
   }
   function render(size,t,game,a){
    if(!Number.isFinite(size)||size<.18||size>.40||!Number.isFinite(t))return;
    const quality=getQuality(),low=clamp(a.low||0,0,1),mid=clamp(a.mid||0,0,1);
-   const pulse=clamp((low+mid)*.63,0,1);
-   // All added geometry is BEHIND the back edge (z < -1.15), or outside
-   // the four-lane board. Existing note targets and collision rules unchanged.
-   ledWall(t,low,mid,game?.combo||0,quality);
+   const combo=game?.combo||0,pulse=clamp((low+mid)*.63,0,1);
+   // Only scenery outside the -1.15m spawn line. Gameplay geometry untouched.
+   ledWall(t,low,mid,combo,quality);
    truss(size,t,pulse,quality);
+   if(quality>0){
+    props?.drawPart('truss',mesh,surface,{scale:.45,offset:[0,.87,-1.815]});
+    props?.drawPart('moving-head',mesh,surface,[
+     {scale:.22,offset:[-.36,.785,-1.72]},
+     {scale:.22,offset:[ .36,.785,-1.72]}
+    ]);
+    props?.drawPart('strobe',mesh,surface,{scale:.30,offset:[0,.922,-1.745]});
+   }
    stacks(size,low,quality);
-   avatar(t,low,mid,game?.combo||0);
-   if(!props?.draw(mesh,surface))decks(t,low,quality);
-   if(quality)for(const s of [-1,1]){
-    const x=s*(2*size+.36),z=-1.67;
-    cuboid(mesh,x,.014,z,.052,.41,.066,S,M);
-    for(let j=0;j<5;j++)cuboid(illum,x,.07+j*.071,z+.039,.021,.028,.008,j%2?P:C,j%2?P:C,.24+.37*pulse,3);
+   avatar(t,low,mid,combo);
+   if(props?.ready()){
+    props.draw(mesh,surface); // original desk and mixer, unchanged proven GLBs
+    if(!props.drawPart('turntable',mesh,surface,[
+     {scale:.30,offset:[-.171,.314,-1.443]},
+     {scale:.30,offset:[ .171,.314,-1.443]}
+    ])){
+     for(const x of [-.17,.17]){
+      annulus(mesh,x,.34,-1.443,.050,.064,M,1,20);
+      disc(illum,x,.345,-1.443,.044,C,.40+.23*low,20);
+     }
+    }
+   }else decks(t,low,quality);
+   const facade=props?.drawPart('facade',mesh,surface,{scale:.36,offset:[0,.012,-1.282]});
+   if(!facade)cuboid(mesh,0,.028,-1.275,.53,.227,.036,S,M,1);
+   // Illuminated facia aligned with the genuine desk; no second podium crossing DJ.
+   cuboid(illum,0,.201,-1.251,.46,.013,.006,P,P,.45+.26*low,3);
+   if(combo>=20){
+    const cc=combo>=50?P:C;
+    for(const side of [-1,1])for(let i=0;i<4;i++){
+      const x=side*(size*2+.43),y=.20+i*.11,z=-1.65;
+      cuboid(illum,x,y,z,.018,.037,.009,cc,cc,
+       Math.min(.8,.30+combo*.007),3);
+    }
    }
   }
-  return{render,version:'DJ LIVE V29'};
+  return{render,version:'NEON FESTIVAL V30'};
  }
- root.RitmoExterior={create,version:'DJ LIVE V29'};
+ root.RitmoExterior={create,version:'NEON FESTIVAL V30'};
 })(window);

@@ -1,0 +1,58 @@
+[
+  {
+    "file": "dj-booth-facade.glb",
+    "cdnUrl": "https://cdn.3dassets.dev/assets/34087/v1/model.glb",
+    "size": 18624,
+    "triangles": 384,
+    "license": "CC0"
+  },
+  {
+    "file": "dj-turntable.glb",
+    "cdnUrl": "https://cdn.3dassets.dev/assets/34088/v1/model.glb",
+    "size": 40736,
+    "triangles": 848,
+    "license": "CC0"
+  },
+  {
+    "file": "dj-led-panel.glb",
+    "cdnUrl": "https://cdn.3dassets.dev/assets/34097/v1/model.glb",
+    "size": 46188,
+    "triangles": 1024,
+    "license": "CC0"
+  },
+  {
+    "file": "dj-speaker-sub.glb",
+    "cdnUrl": "https://cdn.3dassets.dev/assets/34099/v1/model.glb",
+    "size": 28744,
+    "triangles": 624,
+    "license": "CC0"
+  },
+  {
+    "file": "dj-speaker-mid.glb",
+    "cdnUrl": "https://cdn.3dassets.dev/assets/34100/v1/model.glb",
+    "size": 20152,
+    "triangles": 396,
+    "license": "CC0"
+  },
+  {
+    "file": "dj-moving-head.glb",
+    "cdnUrl": "https://cdn.3dassets.dev/assets/34104/v1/model.glb",
+    "size": 35448,
+    "triangles": 724,
+    "license": "CC0"
+  },
+  {
+    "file": "dj-strobe.glb",
+    "cdnUrl": "https://cdn.3dassets.dev/assets/34105/v1/model.glb",
+    "size": 30052,
+    "triangles": 656,
+    "license": "CC0"
+  },
+  {
+    "file": "dj-truss.glb",
+    "cdnUrl": "https://cdn.3dassets.dev/assets/34102/v1/model.glb",
+    "size": 49568,
+    "triangles": 1120,
+    "license": "CC0"
+  }
+]
