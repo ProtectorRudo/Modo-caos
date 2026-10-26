@@ -125,12 +125,12 @@
    const S=[s[0],s[1]],E=[e[0],e[1]],W=[w[0],w[1]];
    const raise=combo>=25&&key==='R' ? .048*smooth(.5+.5*Math.sin(time*2.3)):0;
    // V35 unmistakable mixing action: wrists move over the INNER half of the
-   // CDJ platter and occasionally the central faders. A ~3cm alternating
+   // CDJ platter and occasionally the central faders. A ~1.7cm alternating
    // sweep is visible even on a tiny mobile screen.
    const sweep=Math.sin(phase+offset*1.75);
-   const handX=sign*(.137+.028*(.5+.5*sweep));
+   const handX=sign*(.151+.017*(.5+.5*sweep));
    const handY=.414+.033*Math.sin(phase+offset*1.75)+raise;
-   const handZ=-1.389+.017*Math.cos(phase+offset);
+   const handZ=-1.413+.008*Math.cos(phase+offset);
    const T=[handX/.86,1+(handY-.300-.030)/.60];
    const upperLen=Math.hypot(E[0]-S[0],E[1]-S[1]);
    const lowerLen=Math.hypot(W[0]-E[0],W[1]-E[1]);
@@ -169,7 +169,7 @@
   // This prevents the characteristic "hands on hips" silhouette of V33/V34.
   return [acc[0]*.86+groove,
    (acc[1]-1)*.60+.300+bob+.030*armWeight,
-   -1.55+(acc[2]+.081*shoulderWeight+.162*forearmWeight)*.68];
+   -1.55+(acc[2]+.042*shoulderWeight+.121*forearmWeight)*.68];
  }
  function create(){
   let model=null,status='loading';
