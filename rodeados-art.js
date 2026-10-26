@@ -585,9 +585,14 @@ export function createRodeadosArt(THREE,scene,camera){
   actors.clear();robotAdapter=adapter;
  }
  function getRobotAdapterStatus(){
-  let external=0,fallback=0;
-  for(const a of actors.values())if(a.external)external++;else if(a.kind!=='spider')fallback++;
-  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
+  let external=0,fallback=0,spiders=0;const variants={standard:0,heavy:0};
+  for(const a of actors.values()){
+   if(a.kind==='spider'){spiders++;continue}
+   if(a.external){external++;const v=a.external.variant||'standard';variants[v]=(variants[v]||0)+1}
+   else fallback++;
+  }
+  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,spiders,variants,
+   robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
  return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,getRobotAdapterStatus,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
