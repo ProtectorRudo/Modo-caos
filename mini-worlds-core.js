@@ -77,6 +77,11 @@ function level(n=0){
  ]).map(([x,z,type],i)=>({id:i,x,z,baseX:x,baseZ:z,y:type==='flying'?1.75:0,hp:type==='defender'?3:type==='flying'?2:2,type,alive:true,t:0,attack:0,stun:0,flash:0,armed:false}));
  const stars=[{id:0,x:-3.0,z:-10.0,y:1.55,taken:false},{id:1,x:3.9,z:-13.1,y:1.78,taken:false},{id:2,x:-3.0,z:-18.8,y:1.7,taken:false}];
  const checkpoints=[{x:.5,z:-12.3,y:.78},{x:0,z:-19.0,y:1.18}];
+ // Cursed flowers can be restored by the witch's light spell; inspired by
+ // transformation puzzles, using 100% original rune/scenario visuals.
+ const runes=[3,4,6].map((id,i)=>{
+  const p=platforms[id];return {id:i,x:p.x+(i%2?-.55:.55),z:p.z-.37,y:p.y+.95,restored:false};
+ });
  const boss={x:0,z:-24.2,y:1.15,hp:9,maxHp:9,phase:1,active:false,alive:true,weak:0,telegraph:0,attack:0,t:0,invuln:0};
  // Protect collection gameplay from objects stranded between winding islands.
  function ensureLand(obj){
@@ -92,7 +97,7 @@ function level(n=0){
  }
  boxes.forEach(ensureLand);coins.forEach(ensureLand);
  enemies.filter(e=>e.type!=='flying').forEach(ensureLand);
- return {n,definition:LEVELS[n],platforms,walkways,boxes,coins,enemies,stars,checkpoints,boss};
+ return {n,definition:LEVELS[n],platforms,walkways,boxes,coins,enemies,stars,checkpoints,boss,runes};
 }
 function create(n=0){
  const map=level(n);
@@ -176,6 +181,11 @@ function spellDamage(s,target,kind,shot){
    emit(s,'enemyDown',{id:target.id,kind:target.type,x:target.x,y:target.y,z:target.z,reward,combo:s.kills,fury});
    advanceChain(s,'enemy');gainChaos(s,25,'enemy');
   }
+ }else if(kind==='rune'){
+  if(target.restored)return false;
+  target.restored=true;
+  s.coins+=5;gainChaos(s,14,'restore');
+  emit(s,'runeRestored',{id:target.id,x:target.x,y:target.y,z:target.z,reward:5});
  }else if(kind==='boss'){
   if(!target.active||!target.alive||target.weak<=0||target.invuln>0)return false;
   target.hp-=amount;target.invuln=.38;target.weak=Math.max(.25,target.weak-.22);
@@ -237,6 +247,13 @@ function updateMagicShots(s,dt){
     if(!enemy.alive||q.ignore.includes('enemy'+enemy.id))continue;
     if(Math.hypot(q.x-enemy.x,q.z-enemy.z)<.54&&Math.abs(q.y-(enemy.y+.5))<1.5){
      collided=spellDamage(s,enemy,'enemy',q);if(collided)break;
+    }
+   }
+   if(collided)break;
+   for(const rune of s.map.runes){
+    if(rune.restored)continue;
+    if(Math.hypot(q.x-rune.x,q.z-rune.z)<.52&&Math.abs(q.y-rune.y)<1.6){
+     collided=spellDamage(s,rune,'rune',q);if(collided)break;
     }
    }
    if(collided)break;
