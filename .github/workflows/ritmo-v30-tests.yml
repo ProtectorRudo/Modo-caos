@@ -39,5 +39,5 @@ jobs:
             tests/ritmo-exterior.test.cjs \
             tests/ritmo-glb-v29.test.cjs \
             tests/ritmo-floor-flow-v29.test.cjs \
-            tests/ritmo-prism-v28.test.cjs \
-            tests/ritmo-impact-alignment.test.cjs
+            tests/ritmo-prism-v28.test.cjs
+          node -e "global.window=globalThis; require('./tests/ritmo-impact-alignment.test.cjs')"
