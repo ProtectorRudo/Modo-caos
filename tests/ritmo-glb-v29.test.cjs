@@ -29,8 +29,9 @@ test('load two locally vendored GLBs and draw them with original WebXR batch sur
  const props=make(world).create();
  await new Promise(setImmediate);await new Promise(setImmediate);
  assert.equal(props.ready(),true);
- assert.deepEqual(props.status(),{desk:'local',mixer:'local'});
- assert.equal(visited.length,2);
+ assert.equal(props.status().desk,'local');
+ assert.equal(props.status().mixer,'local'); // V30 also loads optional extra CC0 props
+ assert.ok(visited.length>=2);
  assert.ok(visited.every(url=>url.startsWith('/assets/ritmo/')));
  let vertices=0;
  const mesh=[];
