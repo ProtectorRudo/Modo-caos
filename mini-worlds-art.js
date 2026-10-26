@@ -496,7 +496,7 @@ function makeStage(map){
   hero.body.rotation.z=Math.sin(t*.5)*.055*run+(p.attack>.03?-.26:0);
   hero.head.rotation.y=Math.sin(elapsed*1.6)*.04;
   for(let k=0;k<2;k++){hero.legs[k].rotation.x=p.grounded?Math.sin(t+k*P)*.8*run:-.28;hero.arms[k].rotation.x=p.attack>.02?(k===1?-1.9:-.25):Math.sin(t+k*P+P)*.58*run}
-  for(let i=0;i<coins.length;i++){const c=map.coins[i],o=coins[i];o.visible=!c.taken;if(o.visible){o.rotation.y=elapsed*2.6+i;o.position.y=c.y+Math.sin(elapsed*3+i)*.09}}
+  for(let i=0;i<coins.length;i++){const c=map.coins[i],o=coins[i];o.visible=!c.taken;if(o.visible){o.rotation.y=elapsed*2.6+i;o.position.set(c.x,c.y+Math.sin(elapsed*3+i)*.09,c.z)}}
   for(let i=0;i<stars.length;i++){const c=map.stars[i],o=stars[i];o.visible=!c.taken;if(o.visible){o.rotation.y=elapsed*1.5;o.position.y=c.y+Math.sin(elapsed*2+i)*.13}}
   for(let i=0;i<boxes.length;i++){const b=map.boxes[i],o=boxes[i];o.visible=b.alive;if(o.visible){o.rotation.z=b.flash>0?Math.sin(elapsed*50)*.09:0;o.scale.setScalar(b.flash>0?1.10:1)}}
   for(let i=0;i<enemies.length;i++){
