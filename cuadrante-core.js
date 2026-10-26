@@ -231,6 +231,19 @@ function step(s,dt=1/120){
 function pause(s){if(s.phase==='playing'||s.phase==='serve'){s.oldPhase=s.phase;s.phase='paused';event(s,'pause')}}
 function resume(s){if(s.phase==='paused'){s.phase=s.oldPhase||'playing';event(s,'resume')}}
 function drain(s){return s.events.splice(0)}
+function anchoredArena(hit,baseYaw,rotation,offset,scale){
+ // The player's defending plane is at local z=+3; position the room
+ // so that plane coincides with the detected floor target, not behind us.
+ const theta=baseYaw+rotation;
+ const depth=3*scale+(offset.z||0);
+ const side=offset.x||0;
+ return {
+  x:hit.x+Math.cos(theta)*side-Math.sin(theta)*depth,
+  y:hit.y+.06,
+  z:hit.z-Math.sin(theta)*side-Math.cos(theta)*depth,
+  rotation:theta
+ };
+}
 function predictedLanding(s){
  const b=s.ball;if(b.vz<=.03)return null;
  const t=(FRONT-R-b.z)/b.vz;
@@ -240,5 +253,5 @@ function predictedLanding(s){
   // Obstacles can alter the future trajectory: only promise precision in the empty arena.
   reliable:s.mode===0};
 }
-root.CuadranteCore={create,start,step,target,pause,resume,next,retry,drain,geometry,predictedLanding,profiles,modes,bounds:{W,LOW,HIGH,FRONT,BACK,R}};
+root.CuadranteCore={create,start,step,target,pause,resume,next,retry,drain,geometry,predictedLanding,anchoredArena,profiles,modes,bounds:{W,LOW,HIGH,FRONT,BACK,R}};
 })(typeof window!=='undefined'?window:globalThis);
