@@ -231,6 +231,11 @@ function makeStage(map){
    o.rotation.y=angle;o.rotation.z=-.55;o.renderOrder=1800;o.castShadow=false;
    combatBursts.push({o,t:0,life:.19,kind:'slash'});
   }
+  if(evt.type==='enemyAlert'){
+   const o=mesh(new T.ConeGeometry(.17,.38,4),material(0xffea72),evt.x,(evt.y||0)+1.44,evt.z,root);
+   o.renderOrder=1803;o.castShadow=false;
+   combatBursts.push({o,t:0,life:.7,kind:'alert'});
+  }
   if(evt.type==='enemyDown')koTimers.set(evt.id,.55);
   if(['enemyHit','enemyDown','boxBreak','bossHit'].includes(evt.type)){
    const target=evt.type==='bossHit'?{x:map.boss.x,y:map.boss.y+1.5,z:map.boss.z}:evt;
