@@ -14,6 +14,11 @@ function level(n=0){
  [-.55,-6.7,2.2,3,.45,'bridge'],[-1.0,-9.5,2.6,2.9,.55,'jungle'],
  [.65,-12.35,3.5,3.1,.78,'jungle'],[.9,-15.75,3.1,3.1,1.08,'ruins'],
  [-.45,-18.9,2.75,3.0,1.18,'waterfall'],[0,-22.7,5.5,5.2,1.15,'arena']];
+ if(n){
+  P[0][5]='ruins';P[1][5]='bridge';P[2][5]='bridge';
+  P[3][5]='ruins';P[4][5]='bridge';P[5][5]='ruins';P[6][5]='jungle';
+  P[1][4]=.36;P[2][4]=.53;P[3][4]=.65;P[4][4]=.88;P[5][4]=1.14;
+ }
  const platforms=P.map(([x,z,w,d,y,kind],i)=>({id:i,x:x+(i>1&&i<7?shift*Math.sin(i*1.4):0),z,w,d,y,kind,move:i===5?(.6):0}));
  const boxes=[
  [0,-1.15,'normal'],[.9,-2.35,'coins'],[-.8,-3.9,'normal'],
@@ -31,10 +36,13 @@ function level(n=0){
  for(let k=0;k<6;k++)push(-.1+(k%3)*.63,-15.1-k*.63,1.68);
  for(let k=0;k<6;k++)push(-.7+(k%3)*.70,-18.1-k*.65,1.78);
  for(let k=0;k<5;k++)push(-1+(k%5)*.5,-21.55,1.78);
- const enemies=[
+ const enemies=(n?[
+ [0,-4.15,'flying'],[-1.0,-9.15,'thrower'],[.6,-11.7,'defender'],
+ [.7,-15.3,'flying'],[-.2,-18.55,'thrower'],[-1.1,-20.1,'defender']
+ ]:[
  [0,-4.15,'patrol'],[-1.0,-9.15,'flying'],[.6,-11.7,'defender'],
  [.7,-15.3,'thrower'],[-.2,-18.55,'patrol'],[-1.1,-20.1,'flying']
- ].map(([x,z,type],i)=>({id:i,x,z,baseX:x,baseZ:z,y:type==='flying'?1.75:0,hp:type==='defender'?3:type==='flying'?2:2,type,alive:true,t:0,attack:0,stun:0,flash:0,armed:false}));
+ ]).map(([x,z,type],i)=>({id:i,x,z,baseX:x,baseZ:z,y:type==='flying'?1.75:0,hp:type==='defender'?3:type==='flying'?2:2,type,alive:true,t:0,attack:0,stun:0,flash:0,armed:false}));
  const stars=[{id:0,x:-1.1,z:-10.35,y:1.6,taken:false},{id:1,x:1.75,z:-16.0,y:2.1,taken:false},{id:2,x:-1.65,z:-18.8,y:1.7,taken:false}];
  const checkpoints=[{x:.5,z:-12.3,y:.78},{x:0,z:-19.0,y:1.18}];
  const boss={x:0,z:-24.2,y:1.15,hp:9,maxHp:9,phase:1,active:false,alive:true,weak:0,telegraph:0,attack:0,t:0,invuln:0};
