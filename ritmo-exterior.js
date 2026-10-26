@@ -307,9 +307,16 @@
    const combo=game?.combo||0,pulse=clamp((low+mid)*.63,0,1);
    // Strictly scenery behind z=-1.15. Never edit board mesh/note physics.
    const stageZ=-1.57,stageWidth=size*4+.29;
+   // Stage feet and their short shadows are scenery-only; the actual WebXR
+   // hit-tested physical floor remains at y=0 and never moves.
    // Fake ground-contact shadow with a clearly elevated, solid dark riser.
    cuboid(mesh,0,.008,stageZ,stageWidth+.12,.016,.645,
     [.023,.034,.050],[.072,.09,.12],.70,1);
+   for(const sign of [-1,1])for(const depth of [-1,1]){
+    const fx=sign*(stageWidth*.43),fz=stageZ+depth*.227;
+    cuboid(mesh,fx,.014,fz,.095,.028,.092,[.025,.033,.045],[.15,.18,.23],1);
+    cuboid(mesh,fx,.003,fz,.138,.006,.134,[.016,.021,.030],[.025,.032,.041],.38);
+   }
    cuboid(mesh,0,.047,stageZ,stageWidth,.080,.585,
     [.026,.038,.058],[.25,.31,.36],1,1);
    cuboid(illum,0,.092,-1.268,stageWidth-.04,.008,.009,
@@ -333,45 +340,74 @@
    if(!skeletal?.draw(mesh,surface,t,low,quality,combo))
     fallbackBomber(t,low);
    horseHead(t,low,combo,quality);
-   // Bomber collar, neckline, zipper and ribbing are visible against the LCD.
+   // Bomber collar and genuine dark DJ worktop are separate from the
+   // CC0 desk, so the CDJs are not swallowed by a white table surface.
    const bob=Math.sin(t*5.2)*(.004+.007*low);
    for(const sign of [-1,1]){
     const neon=sign<0?P:C;
-    beam([sign*.10,.625+bob,-1.50],[sign*.037,.591+bob,-1.469],
-      .009,[.13,.19,.27]);
-    beam([sign*.174,.43+bob,-1.44],[sign*.168,.335+bob,-1.399],
-      .004,neon);
-    // Hands stay close to the mixer/CDJ wheels, not stretched sideways.
-    ball(sign*.169,.338+bob,-1.408,.014,[.63,.38,.25],8,5);
-    annulus(illum,sign*.167,.346+bob,-1.396,.010,.017,neon,
-      .36+.26*low,12,true);
+    beam([sign*.099,.628+bob,-1.50],[sign*.034,.589+bob,-1.471],
+     .009,[.15,.19,.27]);
    }
-   beam([0,.592+bob,-1.463],[0,.414+bob,-1.455],.004,
-    [.48,.56,.68]);
-   // Existing authentic desk/mixer: slightly lower so controller faces show.
+   beam([0,.590+bob,-1.462],[0,.438+bob,-1.456],.004,[.35,.44,.56]);
    if(props?.ready()){
-    props.draw(mesh,surface);
+    props.draw(mesh,surface,{deskOnly:true});
+   }else{
+    // Old fallback is still grounded but the new control deck sits higher.
+    cuboid(mesh,0,.286,-1.45,.58,.135,.285,S,M,1);
+   }
+   const workY=.355,workZ=-1.437,workWidth=.605,workDepth=.292;
+   // Real visible black worktop + metal lip + subtle colored reflections.
+   cuboid(mesh,0,workY,workZ,workWidth,.025,workDepth,
+    [.028,.040,.057],[.23,.31,.37],1);
+   cuboid(mesh,0,workY+.015,workZ-.004,workWidth-.023,.007,workDepth-.026,
+    [.044,.060,.080],[.13,.19,.25],1);
+   cuboid(illum,0,workY+.012,workZ+.139,workWidth-.08,.004,.006,
+    C,C,.35+.23*low,3);
+   const controlsY=workY+.029;
+   if(props?.ready()){
+    props.drawPart('mixer',mesh,surface,{scale:.262,offset:[0,controlsY,-1.437]});
     if(!(props.drawPart('cdj',mesh,surface,[
-      {scale:.295,offset:[-.171,.314,-1.438]},
-      {scale:.295,offset:[ .171,.314,-1.438]}
+       {scale:.292,offset:[-.168,controlsY,-1.438]},
+       {scale:.292,offset:[ .168,controlsY,-1.438]}
     ]) || props.drawPart('turntable',mesh,surface,[
-      {scale:.28,offset:[-.171,.314,-1.438]},
-      {scale:.28,offset:[ .171,.314,-1.438]}
+       {scale:.278,offset:[-.168,controlsY,-1.438]},
+       {scale:.278,offset:[ .168,controlsY,-1.438]}
     ]))){
-      for(const x of [-.171,.171]){
-       annulus(mesh,x,.342,-1.438,.050,.064,M,1,20);
-       disc(illum,x,.345,-1.438,.045,C,.39+.19*low,20);
+      for(const x of [-.168,.168]){
+       annulus(mesh,x,controlsY+.008,workZ,.052,.070,[.19,.24,.30],1,24);
+       disc(illum,x,controlsY+.011,workZ,.041,C,.30+.24*low,20);
       }
     }
-   }else decks(t,low,quality);
+   }
+   // The glossy platter rings and central faders remain readable on Android,
+   // even when a CC0 asset has an untextured metal face.
+   for(const sign of [-1,1]){
+    const x=sign*.168,shade=sign<0?P:C;
+    annulus(illum,x,controlsY+.013,workZ+.007,.045,.051,shade,.34+.17*low,22);
+    for(let k=0;k<3;k++)cuboid(illum,x+sign*.060,controlsY+.016,
+     workZ-.055+k*.035,.008,.007,.011,k%2?C:P,k%2?C:P,.39+.16*mid,3);
+   }
+   for(let k=0;k<5;k++){
+    const x=(k-2)*.016;
+    cuboid(mesh,x,controlsY+.022,workZ+.016,.009,.015,.011,[.33,.39,.45],W);
+    cuboid(illum,x,controlsY+.033,workZ+.012,.006,.005,.018,k%2?C:P,
+     k%2?C:P,.28+.29*low,3);
+   }
+   // Bracelet LEDs now follow the ACTUAL joint-driven hands over the mixer.
+   // Never draw detached fixed cartoon fists around the belly.
+   const hands=skeletal?.hands(t,low,combo);
+   if(hands)for(const key of ['L','R']){
+    const at=hands[key],col=key==='L'?P:C;
+    annulus(illum,at[0],at[1]+.003,at[2],.012,.020,col,.45+.20*low,14,true);
+   }
    // Narrow dark facade, ~34% shorter than V31; controls remain visible.
    const facade=props?.drawPart('facade',mesh,surface,{
-    scale:[.36,.235,.35],offset:[0,-.016,-1.283]});
-   if(!facade)cuboid(mesh,0,.066,-1.28,.54,.145,.045,S,M,1);
+    scale:[.36,.220,.35],offset:[0,-.016,-1.283]});
+   if(!facade)cuboid(mesh,0,.061,-1.28,.54,.142,.045,S,M,1);
    cuboid(illum,0,.147,-1.256,.46,.009,.008,P,P,.39+.20*low,3);
    if(quality>0){
-    props?.drawPart('laptop',mesh,surface,{scale:.19,offset:[-.255,.315,-1.62]});
-    props?.drawPart('headphones',mesh,surface,{scale:.17,offset:[.249,.323,-1.47]});
+    props?.drawPart('laptop',mesh,surface,{scale:.155,offset:[-.258,.378,-1.63]});
+    props?.drawPart('headphones',mesh,surface,{scale:.15,offset:[.245,.374,-1.49]});
     props?.drawPart('monitor',mesh,surface,{scale:.18,offset:[.31,.106,-1.66]});
     props?.drawPart('laser',mesh,surface,{scale:.19,offset:[-.395,.103,-1.78]});
     props?.drawPart('smoke',mesh,surface,{scale:.17,offset:[.400,.102,-1.79]});
@@ -392,7 +428,7 @@
     }
    }
   }
-  return{render,version:'HORSE DJ V33'};
+  return{render,version:'HORSE DJ V34'};
  }
  root.RitmoExterior={create,version:'HORSE DJ V33'};
 })(window);
