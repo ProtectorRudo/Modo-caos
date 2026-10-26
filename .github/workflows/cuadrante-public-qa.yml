@@ -36,6 +36,10 @@ jobs:
               const valid=r.ok&&type.includes('text/html')&&html.includes('CUADRANTE')&&html.includes('cuadrante-runtime.js');
               const jsurl=new URL('./cuadrante-runtime.js',url);
               const js=valid?await fetch(jsurl,{signal:AbortSignal.timeout(20000)}):null;
+              const jsBody=js?await js.text():'';
+              const lite=valid?await fetch(new URL('./cuadrante-lite.js',url),{signal:AbortSignal.timeout(20000)}):null;
+              const liteBody=lite?await lite.text():'';
+              console.log('SOURCE DIAGNOSTIC',JSON.stringify({url,hasCurrentRuntime:jsBody.includes('buildLite'),hasBoundedLoader:jsBody.includes('El CDN tardó demasiado'),hasLiteScript:html.includes('cuadrante-lite.js'),liteStatus:lite?.status,liteEngine:liteBody.includes('CuadranteLite')}));
               const playable=valid&&js?.ok&&(js.headers.get('content-type')||'').includes('javascript');
               console.log(JSON.stringify({url,status:r.status,contentType:type,bytes:html.length,jsStatus:js?.status,jsMime:js?.headers.get('content-type'),playable}));
               if(playable)pass++;
@@ -54,6 +58,7 @@ jobs:
           const page=await browser.newPage({viewport:{width:960,height:520}});
           const errors=[]; page.on('console',m=>{if(m.type()==='error')console.log('BROWSER CONSOLE:',m.text())}); page.on('requestfailed',r=>console.log('REQUEST FAILED:',r.url(),r.failure()?.errorText));
           page.on('pageerror',e=>errors.push(e.message));
+          page.on('request',r=>{if(/three\.module|cuadrante-(art|runtime|lite)/.test(r.url()))console.log('RESOURCE',r.url())});
           const site='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/'+process.env.SOURCE_SHA+'/cuadrante.html';
           const resp=await page.goto(site,{waitUntil:'domcontentloaded',timeout:30000});
           if(!resp.ok())throw Error('Bad HTTP '+resp.status());
@@ -64,7 +69,9 @@ jobs:
             console.log('AFTER INTERSTITIAL URL',page.url(),'TITLE',await page.title());
           }
           await page.locator('#startDemo').click({timeout:20000});
-          try{await page.locator('#stage canvas').waitFor({state:'visible',timeout:27000})}
+          await page.waitForTimeout(14500);
+          console.log('START DEBUG',await page.evaluate(()=>({lite:!!window.CuadranteLite,core:!!window.CuadranteCore,canvas:document.querySelectorAll('#stage canvas').length,loading:getComputedStyle(document.getElementById('load')).display,home:getComputedStyle(document.getElementById('home')).display,err:document.getElementById('error').textContent})));
+          try{await page.locator('#stage canvas').waitFor({state:'visible',timeout:11000})}
           catch(e){console.log('LIVE DEBUG title:',await page.title(),'ERROR:',await page.locator('#error').innerText(),'LOADER:',await page.locator('#load').innerText(),'STAGE HTML:',(await page.locator('#stage').innerHTML()).slice(0,300),'JS ERRORS:',errors,'BODY:',(await page.locator('body').innerText()).slice(0,550));throw e}
           await page.locator('#pauseBtn').click();
           await page.locator('#modalTitle').textContent().then(x=>{if(x!=='PAUSA')throw Error('Pause broken: '+x)});
