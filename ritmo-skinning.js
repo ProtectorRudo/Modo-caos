@@ -194,7 +194,7 @@
   function hands(time=0,low=0,combo=0){
    if(!model)return null;
    const frame=poseFrame(model.bones,time,low,combo);
-   return {L:frame.L.wristWorld,R:frame.R.wristWorld};
+   return {L:posePoint(model.bones.L.wrist,[0,0,1,0,0],model.bones,time,low,combo,frame),R:posePoint(model.bones.R.wrist,[0,0,0,0,1],model.bones,time,low,combo,frame)};
   }
   return{draw,hands,status:()=>status,info:()=>model&&{skinJointCount:model.skinJointCount,triangles:model.triangles.length}};
  }
