@@ -6,6 +6,8 @@
  const PALETTE=['#4cff85','#ff5274','#ffd34c','#438eff'];
  function create(canvas){
   const ctx=canvas.getContext('2d',{alpha:true}),particles=[],labels=[],rings=[];
+  const sprites=root.RitmoKenneyVFX||null;
+  sprites?.load();
   let last=0,w=1,h=1,flash=0,flashTint='#ffffff',comboPulse=0;
   let reduced=false;try{reduced=matchMedia('(prefers-reduced-motion: reduce)').matches}catch(_){}
   function size(){
@@ -27,7 +29,8 @@
    for(let i=0;i<n&&particles.length<175;i++){
     const angle=Math.random()*Math.PI*2,speed=miss?55+Math.random()*70:(bonus?115:80)+Math.random()*170;
     particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-50,life:0,ttl:.45+Math.random()*.55,
-     r:miss?2:2+Math.random()*3,color:miss?'#ff6680':i%5===0?'#fff':color});
+     r:miss?2:2+Math.random()*3,color:miss?'#ff6680':i%5===0?'#fff':color,
+     sprite:!miss&&i%4===0});
    }
    rings.push({x,y,r:12,age:0,ttl:miss?.32:.54,color:miss?'#ff6670':color});
    if(rings.length>12)rings.shift();
@@ -62,12 +65,24 @@
     p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=180*dt;
     const fade=1-p.life/p.ttl;
     ctx.globalAlpha=fade*.92;ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=7;
-    ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.3,p.r*fade),0,Math.PI*2);ctx.fill();
+    const image=p.sprite&&sprites?.colored('spark',p.color);
+    if(image&&typeof ctx.drawImage==='function'){
+     const diameter=Math.max(5,p.r*9*fade);
+     ctx.drawImage(image,p.x-diameter/2,p.y-diameter/2,diameter,diameter);
+    }else{
+     ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.3,p.r*fade),0,Math.PI*2);ctx.fill();
+    }
    }
    ctx.shadowBlur=0;ctx.globalAlpha=1;
    for(let i=rings.length-1;i>=0;i--){
     const r=rings[i];r.age+=dt;if(r.age>=r.ttl){rings.splice(i,1);continue}
     const p=r.age/r.ttl;ctx.globalAlpha=(1-p)*.7;ctx.strokeStyle=r.color;ctx.lineWidth=5*(1-p)+.5;
+    const halo=sprites?.colored('light',r.color);
+    if(halo&&typeof ctx.drawImage==='function'){
+     const sz=(r.r+66*p)*3.25;
+     ctx.globalAlpha=(1-p)*.29;ctx.drawImage(halo,r.x-sz/2,r.y-sz/2,sz,sz);
+     ctx.globalAlpha=(1-p)*.7;
+    }
     ctx.beginPath();ctx.arc(r.x,r.y,r.r+66*p,0,Math.PI*2);ctx.stroke();
    }
    ctx.globalAlpha=1;
