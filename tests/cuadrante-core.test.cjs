@@ -51,4 +51,14 @@ caseOf('AR recenter preserves the same duel, scoring and ball trajectory',()=>{
  assert.equal(s.duel,prior.duel);assert.equal(s.arcade,prior.arcade);assert.equal(s.combo,prior.combo);
  C.step(s);assert.ok(s.clock>prior.clock);
 });
+caseOf('touch input is precise, resolution-independent, and jump bounded',()=>{
+ const a=C.touchDelta(80,-80,390,780,1),b=C.touchDelta(160,-160,780,1560,1);
+ assert.ok(Math.abs(a.x-b.x)<1e-12);assert.ok(Math.abs(a.y-b.y)<1e-12);
+ const gentle=C.touchDelta(80,-80,390,780,.60);
+ assert.ok(gentle.x<a.x&&gentle.y<a.y);
+ const fast=C.touchDelta(80,-80,390,780,1.45);
+ assert.ok(fast.x>a.x);
+ const jump=C.touchDelta(1800,-1800,390,780,1);
+ assert.ok(jump.x<=.92&&jump.y<=.55);
+});
 console.log('CUADRANTE core PASS:',tests.length,'simulations');
