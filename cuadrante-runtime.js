@@ -193,9 +193,9 @@ function resize(){
  renderer.setSize(innerWidth,innerHeight,false);applyQuality();setDemoCamera();
 }
 window.addEventListener('resize',resize);
-function enter(mode){lockedArena=null;inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.56;floorSeconds=0;lastFloorHit=null;
+function enter(mode){lockedArena=null;inputMode=mode;state=C.create({modePlay,arDefense:mode==='ar'});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.56;floorSeconds=0;lastFloorHit=null;
  aimNeutral=null;aimFiltered={x:0,y:1.2};aimInvalidTime=0;aimPausedForTracking=false;aimCalibration=null;aimResumeAfterCalibration=false;
- stage?.setAimMode?.(mode==='ar');pointers.clear();
+ stage?.setAimMode?.(mode==='ar');pointers.clear();$('defenseZone').style.display='none';
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
  $('ui').classList.toggle('ar-placing',mode==='ar');$('ui').classList.remove('ar-aim');$('aimReticle').classList.remove('lost');
  $('recenterBtn').style.display='none';$('hitFlash').className='';
@@ -332,6 +332,35 @@ function preserveWorldAnchor(){
  if(1-Math.abs(root.quaternion.dot(lockedArena.quaternion))>1e-9)root.quaternion.copy(lockedArena.quaternion);
  if(root.scale.distanceToSquared(lockedArena.scale)>1e-10)root.scale.copy(lockedArena.scale);
 }
+// Render the TRUE physics defender in screen space. This is different
+// from the optical-center sight because neutral calibration adds an offset.
+function updateDefenseZone(frame){
+ const el=$('defenseZone');
+ if(!frame||!session||inputMode!=='ar'||placing||!state||!stage?.root?.visible){
+  el.style.display='none';return;
+ }
+ let viewer;
+ try{viewer=frame.getViewerPose(renderer.xr.getReferenceSpace())}catch(_){viewer=null}
+ const view=viewer?.views?.[0];
+ if(!view?.projectionMatrix||!view.transform?.inverse?.matrix){
+  el.style.display='none';return;
+ }
+ stage.root.updateMatrixWorld(true);
+ const projection=new THREE.Matrix4().fromArray(view.projectionMatrix)
+  .multiply(new THREE.Matrix4().fromArray(view.transform.inverse.matrix))
+  .multiply(stage.root.matrixWorld);
+ const v=new THREE.Vector4(state.player.x,state.player.y,C.bounds.FRONT-C.bounds.R,1)
+  .applyMatrix4(projection);
+ if(!Number.isFinite(v.w)||v.w<=.04){el.style.display='none';return}
+ const x=(.5+.5*v.x/v.w)*innerWidth,y=(.5-.5*v.y/v.w)*innerHeight;
+ if(!Number.isFinite(x)||!Number.isFinite(y)){el.style.display='none';return}
+ const margin=38,clampedX=clamp(x,margin,innerWidth-margin),
+       clampedY=clamp(y,margin,innerHeight-margin);
+ el.style.left=clampedX.toFixed(1)+'px';
+ el.style.top=clampedY.toFixed(1)+'px';
+ el.classList.toggle('edge',Math.abs(x-clampedX)+Math.abs(y-clampedY)>3);
+ el.style.display='block';
+}
 function frame(t,xrFrame){
  if(!renderer||!stage||!camera)return;
  const dt=clamp((t-prev)/1000||.016,0,.07);prev=t;measureFrame(dt);
@@ -343,6 +372,7 @@ function frame(t,xrFrame){
   const events=C.drain(state);handleEvents(events);music();
  }else if(state&&state.phase==='paused'){acc=0}
  if(state)stage.update(state,dt);
+ if(inputMode==='ar'&&!placing)updateDefenseZone(xrFrame);
  if(state)refreshHud();
  if(toastUntil&&performance.now()>toastUntil){$('ticker').style.opacity='0';toastUntil=0}
  if(session&&renderer.xr.isPresenting){
@@ -387,8 +417,9 @@ function refreshHud(){
   const close=hint?.reliable&&hint.seconds<1.55;
   const aligned=close&&Math.hypot(hint.x-state.player.x,hint.y-state.player.y)<.45;
   const aim=$('aimReticle'),cue=$('aimCue');
-  aim.classList.toggle('incoming',Boolean(close&&!aligned));
-  aim.classList.toggle('aligned',Boolean(aligned));
+  aim.classList.remove('incoming','aligned');
+  const ring=$('defenseZone');ring.classList.toggle('incoming',Boolean(close&&!aligned));
+  ring.classList.toggle('aligned',Boolean(aligned));
   cue.textContent=aligned?'EN LÍNEA':close?'APUNTÁ A LA PELOTA':'';
   cue.style.display=close?'block':'none';
  }
@@ -411,6 +442,7 @@ function handleEvents(events){
   if(type==='transform'){sound('transform');note('ARENA: '+ev.info,1150)}
   if(type==='goal'){sound('goal');haptic([35,30,55]);impactFlash('goal');note('¡PUNTO PARA VOS!',1100)}
   if(type==='conceded'){sound('conceded');haptic(70);impactFlash('miss');note('PUNTO DEL RIVAL',850)}
+  if(type==='graceHit')note('⚡ ¡SALVADA JUSTO A TIEMPO!',950);
   if(type==='launch')sound('launch');
   if(type==='nextRival')note('¡SUBE LA DIFICULTAD! '+ev.info,1200);
  }
@@ -443,6 +475,7 @@ function pause(){if(!state||placing)return;if(state.phase==='paused'){C.resume(s
 $('pauseBtn').onclick=pause;$('exitBtn').onclick=()=>back();
 function recenter(){
  if(!playing||placing||inputMode!=='ar'||!renderer?.xr?.isPresenting||!state||state.phase==='finished')return;
+ $('defenseZone').style.display='none';
  lockedArena=null;C.pause(state);stage.root.visible=false;recentering=true;placing=true;hasHit=false;aimNeutral=null;aimPausedForTracking=false;aimInvalidTime=0;aimCalibration=null;$('ui').classList.remove('ar-aim');floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
  pointers.clear();stage?.setPlacementPreview?.(false);$('overlay').style.display='none';$('pauseBtn').textContent='Ⅱ';$('pauseBtn').style.display='none';
  $('recenterBtn').style.display='none';$('hud').style.display='none';
@@ -453,7 +486,7 @@ function recenter(){
 }
 $('recenterBtn').onclick=recenter;
 async function back(){
- if(!playing)return;lockedArena=null;playing=false;placing=false;recentering=false;closeArWorld();$('ui').classList.remove('ar-placing','ar-aim');
+ if(!playing)return;lockedArena=null;$('defenseZone').style.display='none';playing=false;placing=false;recentering=false;closeArWorld();$('ui').classList.remove('ar-placing','ar-aim');
  try{if(session){const old=session;session=null;await old.end()}}catch(e){}
  if(hitSource){try{hitSource.cancel()}catch(e){}hitSource=null}
  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null}
