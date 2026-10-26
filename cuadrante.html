@@ -111,6 +111,34 @@ a{color:#b5f7ff}.hide{display:none!important}
  #rivalName b{font-size:9px}
  #exitBtn{font-size:9px;padding:5px 6px}
 }
+
+/* V5 high-contrast aim scope: readable on dark metal and bright real floors.
+   It stays tied to the camera sight, never to a camera-following 3D court. */
+#aimReticle{width:58px;height:58px;top:51.5%;z-index:8;
+ background:radial-gradient(circle,#06202c1e 0 23%,#061c257a 40%,transparent 65%);
+ filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 9px #30f2ff);
+ transition:filter .10s linear}
+#aimReticle:before{left:8px;top:8px;width:42px;height:42px;border:3px solid #c6fff9;
+ box-shadow:0 0 0 2px #042333,0 0 10px 4px #05effaaf,inset 0 0 11px #05effa78;
+ border-radius:50%}
+#aimReticle:after{left:23px;top:23px;width:12px;height:12px;
+ background:#fff3c5;border:2px solid #06323e;box-shadow:0 0 7px 4px #ffbd5f,
+ 0 0 0 1px #fff6dc}
+#aimReticle i{background:#d1fff7;border:1px solid #06323e;
+ box-shadow:0 0 5px 2px #31ebff}
+#aimReticle i:nth-child(1){left:0;top:27px;width:14px;height:4px}
+#aimReticle i:nth-child(2){right:0;top:27px;width:14px;height:4px}
+#aimReticle i:nth-child(3){left:27px;top:0;height:14px;width:4px}
+#aimReticle i:nth-child(4){left:27px;bottom:0;height:14px;width:4px}
+#aimReticle.aligned:before{border-color:#b9ff92;box-shadow:0 0 0 2px #104032,0 0 16px 6px #5bff85}
+#aimReticle.aligned:after{background:#ecffac;box-shadow:0 0 10px 5px #76ff70}
+#aimReticle.incoming:before{border-color:#ffc47d;box-shadow:0 0 0 2px #372718,0 0 13px 5px #ffa247}
+#aimReticle.lost:before{border-color:#ff9b83}
+#aimCue{position:absolute;left:50%;top:calc(51.5% + 43px);transform:translateX(-50%);
+ z-index:8;display:none;pointer-events:none;border:1px solid #90efff9a;border-radius:20px;
+ padding:4px 9px;color:#efffff;font-size:10px;font-weight:1000;letter-spacing:1px;
+ text-shadow:0 2px 3px #000;background:#072431cf;white-space:nowrap}
+#ui.ar-aim #aimReticle{display:block}
 </style></head><body>
 <video id="cameraFeed" autoplay muted playsinline></video><div id="stage"></div>
 <div id="home"><div class="wrap"><div class="heroArt" aria-label="Túnel futurista con pelota de energía naranja y cuadrado defensivo cian"><div class="tunnel"></div><div class="previewBall"></div><div class="previewPaddle"></div></div>
@@ -122,7 +150,7 @@ a{color:#b5f7ff}.hide{display:none!important}
 <div id="settings"><label>SONIDO <input type="range" id="sfxVol" min="0" max="100" value="65"></label><label>MÚSICA <input type="range" id="musicVol" min="0" max="100" value="24"></label><label>PRECISIÓN DEL CONTROL <input type="range" id="touchSense" min="60" max="145" value="100" step="5"><output id="senseVal">100%</output></label><label>CALIDAD <select id="quality"><option value="auto">AUTOMÁTICA</option><option value="high">ALTA</option><option value="medium">EQUILIBRADA</option><option value="low">RENDIMIENTO</option></select></label><div id="records"></div></div>
 <p class="fine">En AR, apuntá con el celular: la mira es tu defensa invisible y aparece un escudo cuando devolvés la pelota. En modo 3D arrastrá el dedo para mover tu defensa. Usá Chrome Android con ARCore en un lugar despejado. También podés jugar el modo 3D sin cámara.</p>
 <a href="./index.html" class="fine">‹ VOLVER A MODO CAOS</a></div></div></div>
-<div id="ui"><div id="aimReticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div id="arWorldOverlay"></div><svg id="placementSvg" aria-hidden="true"><path id="placementBorder"/><circle id="placementTarget" r="6"/></svg><div id="arDrawStatus" aria-live="polite"></div><div id="touchLayer"></div><div id="hitFlash" aria-hidden="true"></div><div id="hud"><span>VOS <strong id="youScore">0</strong></span><div id="rivalName">RIVAL 1<b>PULSO</b></div><span><strong id="rivalScore">0</strong> RIVAL</span><div id="contactGauge" aria-hidden="true"><i id="contactFill"></i></div></div><button id="exitBtn">‹ MENÚ</button><button id="recenterBtn" class="alt">⌖ RECENTRAR</button><button id="pauseBtn" aria-label="Pausar juego">Ⅱ</button><div id="combo"></div><div id="ticker"></div><div id="placeTitle">DETECTÁ EL PISO<small>Mové el celular despacio · cuando aparezca la marca VERDE, podés fijar la arena</small></div><div id="placeControls"><button class="alt" id="sizeMinus">−</button><button class="alt" id="rotateLeft">↶</button><button class="primary blue" id="fixArena" disabled>FIJAR ARENA</button><button class="alt" id="rotateRight">↷</button><button class="alt" id="sizePlus">＋</button></div><div id="labelPhase" aria-live="off"></div>
+<div id="ui"><div id="aimReticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div id="aimCue" aria-live="off"></div><div id="arWorldOverlay"></div><svg id="placementSvg" aria-hidden="true"><path id="placementBorder"/><circle id="placementTarget" r="6"/></svg><div id="arDrawStatus" aria-live="polite"></div><div id="touchLayer"></div><div id="hitFlash" aria-hidden="true"></div><div id="hud"><span>VOS <strong id="youScore">0</strong></span><div id="rivalName">RIVAL 1<b>PULSO</b></div><span><strong id="rivalScore">0</strong> RIVAL</span><div id="contactGauge" aria-hidden="true"><i id="contactFill"></i></div></div><button id="exitBtn">‹ MENÚ</button><button id="recenterBtn" class="alt">⌖ RECENTRAR</button><button id="pauseBtn" aria-label="Pausar juego">Ⅱ</button><div id="combo"></div><div id="ticker"></div><div id="placeTitle">DETECTÁ EL PISO<small>Mové el celular despacio · cuando aparezca la marca VERDE, podés fijar la arena</small></div><div id="placeControls"><button class="alt" id="sizeMinus">−</button><button class="alt" id="rotateLeft">↶</button><button class="primary blue" id="fixArena" disabled>FIJAR ARENA</button><button class="alt" id="rotateRight">↷</button><button class="alt" id="sizePlus">＋</button></div><div id="labelPhase" aria-live="off"></div>
 <div id="overlay"><div class="modal"><div class="tag" id="modalTag">CUADRANTE</div><h2 id="modalTitle">PAUSA</h2><p id="modalDesc"></p><div id="modalStats"></div><div class="buttons" id="modalButtons"></div><div id="intro"></div></div></div></div>
 <div id="load">PREPARANDO ARENA 3D…</div><div id="error" role="alert"></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
