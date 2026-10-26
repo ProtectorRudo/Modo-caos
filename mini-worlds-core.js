@@ -29,6 +29,20 @@ function level(n=0){
  // Shift optional islands alongside main-route cliffs, preserving entry paths.
  P[10][0]=n?2.85:3.0;P[11][0]=n?-1.15:-1.75;P[12][0]=n?-1.9:-2.7;
  const platforms=P.map(([x,z,w,d,y,kind],i)=>({id:i,x:x+(i>1&&i<7?shift*Math.sin(i*1.4):0),z,w,d,y,kind,move:i===5?(.6):0}));
+ // Every visible transition has a REAL matching collision corridor. Routes
+ // are wider than the avatar and graded rather than requiring hidden jumps.
+ const walkways=[];
+ function link(a,b,width=1.85){
+  const p=platforms[a],q=platforms[b];
+  walkways.push({id:walkways.length,a,b,x1:p.x,z1:p.z,y1:p.y,x2:q.x,z2:q.z,y2:q.y,width});
+ }
+ for(let i=0;i<7;i++)link(i,i+1,2.25);
+ // The side islands are actual explorable land, with traversable branches.
+ for(let i=8;i<14;i++){
+  const p=platforms[i],nearest=platforms.slice(0,8).reduce((a,b)=>
+   Math.hypot(p.x-b.x,p.z-b.z)<Math.hypot(p.x-a.x,p.z-a.z)?b:a);
+  link(nearest.id,i,1.70);
+ }
  const boxes=[
  [0,-1.15,'normal'],[.9,-2.35,'coins'],[-.8,-3.9,'normal'],
  [-1.0,-7.4,'reinforced'],[-.25,-9.2,'mystery'],
@@ -77,7 +91,7 @@ function level(n=0){
  }
  boxes.forEach(ensureLand);coins.forEach(ensureLand);
  enemies.filter(e=>e.type!=='flying').forEach(ensureLand);
- return {n,definition:LEVELS[n],platforms,boxes,coins,enemies,stars,checkpoints,boss};
+ return {n,definition:LEVELS[n],platforms,walkways,boxes,coins,enemies,stars,checkpoints,boss};
 }
 function create(n=0){
  const map=level(n);
@@ -101,16 +115,18 @@ function attack(s){
  function inArc(obj,r=1.10){let dx=obj.x-p.x,dz=obj.z-p.z,dist=Math.hypot(dx,dz);return dist<r&&(dist<.5||(dx*dir.x+dz*dir.z)/Math.max(.01,dist)>.08)}
  let hit=0;
  for(const b of s.map.boxes)if(b.alive&&inArc(b,.94)&&Math.abs(p.y-(platformY(s,b.x,b.z)||0))<2){
- b.hp--;b.flash=.25;hit++;emit(s,'boxHit',{id:b.id,type:b.type});
- if(b.hp<=0){b.alive=false;emit(s,'boxBreak',{id:b.id,type:b.type});
+ b.hp--;b.flash=.25;hit++;emit(s,'boxHit',{id:b.id,type:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
+ if(b.hp<=0){b.alive=false;emit(s,'boxBreak',{id:b.id,type:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
  const bounty=b.type==='coins'?6:b.type==='reinforced'?4:2;
  s.coins+=bounty;emit(s,'bonus',{count:bounty});
  if(b.type==='mystery'&&p.hearts<3&&b.id%2===0){p.hearts++;emit(s,'heart')}
  if(b.type==='secret'&&!s.map.stars[2].taken){s.map.stars[2].taken=true;s.stars++;emit(s,'star',{id:2})}
  }}
  for(const e of s.map.enemies)if(e.alive&&inArc(e,1.05)&&Math.abs(e.y-p.y)<2.1){
- e.hp--;e.stun=.45;e.flash=.22;hit++;emit(s,'enemyHit',{id:e.id,type:e.type});
- if(e.hp<=0){e.alive=false;s.kills++;s.coins+=3;emit(s,'enemyDown',{id:e.id})}
+ e.hp--;e.stun=.45;e.flash=.22;hit++;
+ emit(s,'enemyHit',{id:e.id,type:e.type,x:e.x,y:e.y,z:e.z,hp:e.hp});
+ if(e.hp<=0){e.alive=false;s.kills++;s.coins+=3;
+  emit(s,'enemyDown',{id:e.id,type:e.type,x:e.x,y:e.y,z:e.z,reward:3,combo:s.kills})}
  }
  const b=s.map.boss;if(b.active&&b.alive&&b.weak>0&&b.invuln<=0&&inArc(b,2.0)){
  b.hp--;b.invuln=.38;b.weak=Math.max(.25,b.weak-.22);hit++;emit(s,'bossHit',{hp:b.hp});
@@ -121,7 +137,18 @@ function attack(s){
 }
 function platformY(s,x,z){
  let yy=null;
- for(const f of s.map.platforms)if(Math.abs(x-f.x)<=f.w/2-.03&&Math.abs(z-f.z)<=f.d/2-.03)yy=Math.max(yy??-100,f.y);
+ // The visual platform top and the physics surface use the SAME footprint.
+ for(const f of s.map.platforms)
+  if(Math.abs(x-f.x)<=f.w/2-.02&&Math.abs(z-f.z)<=f.d/2-.02)yy=Math.max(yy??-100,f.y);
+ // Explicit connector corridors are tested with the very same capsule
+ // projection as their rendered bridge meshes.
+ if(yy!==null)return yy;
+ for(const w of s.map.walkways||[]){
+  const dx=w.x2-w.x1,dz=w.z2-w.z1,len2=dx*dx+dz*dz;
+  const t=clamp(((x-w.x1)*dx+(z-w.z1)*dz)/Math.max(.0001,len2),0,1);
+  const px=w.x1+dx*t,pz=w.z1+dz*t;
+  if(Math.hypot(x-px,z-pz)<=w.width/2-.06)yy=Math.max(yy??-100,w.y1+(w.y2-w.y1)*t);
+ }
  return yy;
 }
 function moveEnemies(s,dt){
@@ -185,10 +212,18 @@ function tick(s,input={},dt=1/60){
    else{p.z=box.z+Math.sign(dz||1)*.47;p.vz=0}
  }
  const ground=platformY(s,p.x,p.z);
+ const previouslyGrounded=p.grounded;
  p.grounded=false;
- if(ground!==null&&p.vy<=0&&oldY>=ground-.2&&p.y<=ground){
-  p.y=ground;p.vy=0;p.grounded=true;p.jumps=0;
-  if(oldY>ground+.07)emit(s,'land');
+ if(ground!==null&&p.vy<=0){
+  // Auto-step small height changes while walking. Without this, entering
+  // a perfectly solid 22cm raised platform can make the knight fall THROUGH
+  // the island because oldY<ground-.2 forever.
+  const easyStep=previouslyGrounded&&ground>=oldY-.55&&ground<=oldY+.46;
+  const landFromAbove=oldY>=ground-.24&&p.y<=ground;
+  if(easyStep||landFromAbove){
+   p.y=ground;p.vy=0;p.grounded=true;p.jumps=0;
+   if(!easyStep&&oldY>ground+.10)emit(s,'land');
+  }
  }
  if(p.y<-2.8){emit(s,'fall');respawn(s)}
  for(const c of s.map.coins){if(!c.taken&&Math.hypot(p.x-c.x,p.z-c.z)<.44&&Math.abs(p.y+.48-c.y)<1.05){
