@@ -324,6 +324,12 @@ window.modoCaosXRFrame=function(t,frame,W){
  if(demo)return;
  const dt=lastAR?clamp((t-lastAR)/1000,0,.075):.016;lastAR=t;
  if(typeof stage!=='undefined'&&stage==='fixed'&&!locked)fixed();
+ // The XR engine intentionally skips costly 3D rendering while scanning or
+ // positioning the real floor. Do not retain a previous 3D success state,
+ // otherwise after RECENTRAR the SVG placement preview remains invisible.
+ if(typeof stage!=='undefined'&&(stage==='search'||stage==='preview')){
+  stage3dOK=false;E('rtSvg').style.display='block';
+ }
  const x=position(frame,W);if(locked){motion(t,dt,x);
   if(x!==null&&!sampling)lastTrack=t;
  }
