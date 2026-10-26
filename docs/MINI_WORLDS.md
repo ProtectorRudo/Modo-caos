@@ -183,3 +183,17 @@ El usuario confirmó con captura AR real la composición exitosa del mundo y el 
 - `tests/mini-worlds-juice.test.cjs` valida determinismo de premios, rachas, Furia una vez por ciclo, no-recarga, duración de siete segundos, duplicación de monedas, interrupción por daño y conexiones con HUD/efectos.
 - Se conservaron/regresaron tests de motor (10 casos), recorrido de dos niveles, física de cajas e islas, compositor AR y orientación espacial. Sintaxis JS y referencias DOM verificadas.
 - **Sin simulación física de FPS ni prueba visual real en Android después de esta pasada.** No declarar 10/10 o calidad de consola hasta capturas y jugabilidad del usuario. Mantener PR #69 draft, sin fusionar main ni publicar sobre el arcade original.
+
+## Paisajes premium gratuitos, primera integración real (26/10/2026)
+
+Con autorización expresa del usuario se conectó una nueva capa de naturaleza y arquitectura **con siete archivos GLB reales de terceros, CC0**, en lugar de limitarse a generar árboles procedurales o recomendar packs. Se conserva el motor AR, la geometría de piso y los elementos interactivos.
+
+**Fase instalada:**
+- **Mundo 1 La Isla Despierta**: tres variantes de árboles y un arbusto del *Stylized Nature MegaKit Standard* de Quaternius. Clones GLB escalados por su tamaño real, ubicados al borde de 12 plataformas físicamente existentes, despejando corredores y mostrando hojas y materiales del artista.
+- **Mundo 2 El Acantilado Perdido**: naturaleza menos abundante y además modelos de torres, muros y rocas del *KayKit Medieval Hexagon Pack* de Kay Lousberg. Dos torres encuadran la arena del jefe, los muros ambientan ruinas laterales y las rocas complementan el acantilado sin sumar plataformas engañosas.
+- `mini-worlds-premium.js` realiza carga asíncrona de hasta 4/7 recursos, cada URL `raw.githubusercontent.com` está fijada a un commit, los modelos se verificaron mediante la API de contenido GitHub (tamaños y Git blob SHA) y la procedencia/licencia CC0 se registran en `assets/mini-worlds/LICENSE_AND_SOURCES.md`.
+- `mini-worlds-assets.js` coloca vegetación Kenney en un grupo fallback separado. Si cargan de verdad al menos tres árboles Quaternius, el fallback ornamental duplicado se oculta; si la red falla o solo aparece el arbusto, conserva la vegetación previa. `mini-worlds-art.js` conserva solo unas pocas palmeras nativas para la estética de isla.
+- Ningún objeto nuevo se convierte en collider ni ancla. La física continúa regida por `MiniWorldsCore`: 14 zonas y 13 caminos conectados por nivel, con saltos, cajas sólidas, monedas, enemigos, jefes y joystick relativo a cámara. No depende de caminar físicamente detrás del avatar.
+- `tests/mini-worlds-premium.test.cjs` simula éxito, fallo de red, fallo parcial y cierre durante la carga, además de contar modelos por bioma y verificar fuentes fijadas. Se mantienen y pasan siete suites previas del core, físicas, controles, audiovisual y compositor.
+
+**Importantísimo:** estos assets se cargan automáticamente para el jugador, pero están **alojados en repositorios públicos externos**, todavía no empaquetados en el repositorio del juego por limitaciones de transferencia de archivos binarios de esta sesión. También queda pendiente integrar directamente el pack **KayKit Platformer** gratuito; sí usamos arquitectura genuina **KayKit Medieval Hexagon** para las ruinas. La preview necesita probarse en Chrome Android y confirmar carga HTTPS/CORS, aspecto, FPS y que el nuevo escenario permanezca anclado al suelo. No afirmar “premium 10/10” ni “publicado” hasta QA real.
