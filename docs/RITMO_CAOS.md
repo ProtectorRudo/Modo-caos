@@ -242,3 +242,27 @@ Se encontró un **bug visual concreto**: en el render 3D, la línea luminosa de 
 - `tests/ritmo-impact-alignment.test.cjs`: nueva regresión que comprueba igualdad receptor/nota/barra 3D, igualdad de la nota de respaldo SVG, energía 100% y recompensa por nota acertada.
 
 Pasaron regresiones de 192 mapas, 204 notas sostenidas, AR Hit Test, Stage3D, FX, sprites Kenney y háptica. No declarar prueba real de puntuación del teléfono hasta ensayo físico del usuario. Mantener WebXR 4 carriles y resto de juegos sin cambios.
+
+
+## NEON STUDIO · V27 — rediseño premium aislado (26/10/2026)
+
+El usuario dio luz verde para construir una nueva plataforma más profesional. Decisión implementada: **nuevo renderizador premium WebGL 1 independiente**, no una imagen ni un simple filtro. Mantiene 4 carriles, Hit Test/posicionamiento/fijación originales, Despacito por defecto y pulsos hápticos de 18ms.
+
+### Nuevo archivo `ritmo-stage-premium.js`
+- Es una alternativa autocontenida al renderizador conocido `ritmo-stage3d.js` (este no se borra).
+- Añade shaders con **normales por cara** y materiales diferenciados (metal cepillado, vidrio semitransparente, gemas prismáticas y bandas emisivas). Cada vértice lleva 11 floats: posición, normal, color/alpha y material. WebGL1 compatible, sin cargar Three.js remoto.
+- Carriles con cuerpos biselados, rieles dobles, canal de vidrio, detalles de metal y marcas sutiles; cuatro receptores redondos concéntricos con precisión de llegada en **z=.65 m**. El conjunto se transforma por el mismo anclaje físico WebXR que ya funciona.
+- Consola lejana con carcasa y pantalla de medidores dinámica, potenciómetros, iluminación lateral y guía holográfica, altavoces detallados procedurales y luces de escenario en el piso.
+- Notas facetadas especiales con reflejos y efectos espaciales de onda al acertar. Sostenidas conservan cinta visible/progreso; reloj de música y reglas no se modifican.
+- Procesamiento ligero en dos lotes GPU por vista (objetos y luz aditiva), selector AUTO/ALTA/LIGERA y sin shaders WebGL2 obligatorios.
+
+### Seguridad y compatibilidad
+- `ritmo-runtime.js` primero intenta `RitmoStagePremium`. Si el shader o la malla fallan, desactiva el premium y usa el `RitmoStage3D` probado. Si ambos fallan, vuelve a SVG. La detección de piso ni siquiera ejecuta el escenario 3D hasta fijar.
+- `ritmo.html`: selector V27 de 13 scripts, interfaz de estadísticas unificada y compacta, pantalla de calibración intacta, sin bloquear cámara.
+- **Recursos externos:** se mantienen `spark_07.png` y `light_03.png` de Kenney CC0 ya integrados en `ritmo-kenney-vfx.js`, y la música de Despacito ya cargada. No se integraron GLB/PBR descargados sin cargador compatible: se prefirió modelar elementos que funcionan en el renderer WebGL1.
+- No hay cambios al motor compartido `/engine.js`, al arcade original ni a otros minijuegos.
+
+### Pruebas
+`tests/ritmo-premium-v27.test.cjs`: mock del render WebGL comprueba shader con atributo normal/material, buffers de 11 floats, máximo dos lotes principales, cuatro receptores en orden, onda al impacto, sostenida, selector de calidad y fallback. Pasó. Regresiones de 192 mapas, 204 sostenidas, alineación de impactos y Hit Test de suelo también pasaron.
+
+**Pendiente obligatorio:** prueba física de Chrome Android/ARCore del usuario, tasa de cuadros real y confirmación visual; el mock no demuestra los FPS ni que se vea idéntico a la imagen conceptual. Mantener rama y PR sin fusionar hasta verificación física.
