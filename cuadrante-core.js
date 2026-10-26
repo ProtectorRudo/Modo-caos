@@ -73,19 +73,26 @@ function returnBall(s,isPlayer){
  } else event(s,'rivalHit',{rally:s.rally});
 }
 function collisionAABB(b,v,dt,o){
- // Swept sphere versus axis-aligned enlarged box; moving scenery sampled per physics tick.
- const mn=[o.x-o.w/2-R,o.y-o.h/2-R,o.z-o.d/2-R],mx=[o.x+o.w/2+R,o.y+o.h/2+R,o.z+o.d/2+R];
- const p=[b.x,b.y,b.z],vel=[v.vx,v.vy,v.vz];
+ // Continuous swept sphere versus an oriented box. Rotate velocity and
+ // start point into the solid's local coordinates before slab intersection.
+ const theta=o.ang||0,cs=Math.cos(theta),sn=Math.sin(theta);
+ const dx=b.x-o.x,dy=b.y-o.y;
+ const p=[dx*cs+dy*sn,-dx*sn+dy*cs,b.z-o.z];
+ const vel=[v.vx*cs+v.vy*sn,-v.vx*sn+v.vy*cs,v.vz];
+ const min=[-o.w/2-R,-o.h/2-R,-o.d/2-R],max=[o.w/2+R,o.h/2+R,o.d/2+R];
  let enter=0,exit=dt,axis=-1,normal=0;
  for(let k=0;k<3;k++){
-  if(Math.abs(vel[k])<1e-9){if(p[k]<mn[k]||p[k]>mx[k])return null;continue}
-  let ta=(mn[k]-p[k])/vel[k],tb=(mx[k]-p[k])/vel[k],norm=vel[k]>0?-1:1;
+  if(Math.abs(vel[k])<1e-9){if(p[k]<min[k]||p[k]>max[k])return null;continue}
+  let ta=(min[k]-p[k])/vel[k],tb=(max[k]-p[k])/vel[k],norm=vel[k]>0?-1:1;
   if(ta>tb){const t=ta;ta=tb;tb=t}
   if(ta>enter){enter=ta;axis=k;normal=norm}
   exit=Math.min(exit,tb);if(enter>exit+1e-9)return null;
  }
  if(axis<0)return null;
- return {t:enter,axis,normal,kind:'obstacle',id:o.id};
+ const nx=(axis===0?cs:axis===1?-sn:0)*normal;
+ const ny=(axis===0?sn:axis===1?cs:0)*normal;
+ const nz=(axis===2?1:0)*normal;
+ return {t:enter,axis,normal,nx,ny,nz,kind:'obstacle',id:o.id};
 }
 function advance(s,dt){
  const b=s.ball,profile=profiles[s.duel];const ob=geometry(s);
@@ -115,11 +122,19 @@ function advance(s,dt){
    if(!caught){point(s,!isPlayer);return}
    returnBall(s,isPlayer);if(!isPlayer&&s.duel>=3&&rand(s)<.20)event(s,'feint'); 
   }else {
-   let vel=hit.axis===0?'vx':hit.axis===1?'vy':'vz';
-   b[vel]=Math.abs(b[vel])*hit.normal*.995;
-   b.x+=hit.axis===0?hit.normal*.002:0;
-   b.y+=hit.axis===1?hit.normal*.002:0;
-   b.z+=hit.axis===2?hit.normal*.002:0;
+   if(hit.kind==='obstacle'){
+    const dot=b.vx*hit.nx+b.vy*hit.ny+b.vz*hit.nz;
+    b.vx=(b.vx-2*dot*hit.nx)*.995;
+    b.vy=(b.vy-2*dot*hit.ny)*.995;
+    b.vz=(b.vz-2*dot*hit.nz)*.995;
+    b.x+=hit.nx*.002;b.y+=hit.ny*.002;b.z+=hit.nz*.002;
+   }else{
+    let vel=hit.axis===0?'vx':hit.axis===1?'vy':'vz';
+    b[vel]=Math.abs(b[vel])*hit.normal*.995;
+    b.x+=hit.axis===0?hit.normal*.002:0;
+    b.y+=hit.axis===1?hit.normal*.002:0;
+    b.z+=hit.axis===2?hit.normal*.002:0;
+   }
    if(hit.kind==='obstacle')event(s,'geometryHit',{id:hit.id});
    else if(rand(s)<.16)event(s,'wall');
   }
