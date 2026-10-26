@@ -9,8 +9,9 @@ root.MiniWorldsAssets=function(T){
  'tree-palmdetailedtall','tree-palmbend','tree-palmshort','tree-detailed',
  'plant-bushdetailed','grass-leafslarge','flower-yellowb','rock-largea',
  'rock-tallb','stone-largeb','cliff-waterfall-rock','bridge-woodround',
- 'canoe','campfire-stones'
+ 'canoe','campfire-stones','crate','crate-strong','coin-gold','star','chest'
  ];
+ const platformer=new Set(['crate','crate-strong','coin-gold','star','chest']);
  let loaderPromise;
  const rand=(seed)=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
  async function loader(){
@@ -81,6 +82,24 @@ root.MiniWorldsAssets=function(T){
   pick('campfire-stones',camp.x+camp.w/2+.42,camp.y,camp.z+.15,.55,.23);
   pick('bridge-woodround',bridge.x-bridge.w/2-1.3,bridge.y-.15,bridge.z+.15,.54,.8);
   pick('cliff-waterfall-rock',waterfall.x+waterfall.w/2+.26,waterfall.y-.12,waterfall.z-.50,1.22,1.4);
+  // Replace primitive pickups with actual textured 3D assets. Hitboxes and
+  // collectible IDs belong to MiniWorldsCore and never depend on the model.
+  const replace=(original,name,height)=>{
+   const proto=templates.get(name);if(!proto||!original)return false;
+   const visual=proto.clone(true);visual.name='KENNEY · '+name;
+   const bbox=new T.Box3().setFromObject(proto);
+   const cy=(bbox.max.y+bbox.min.y)*.5;
+   visual.scale.setScalar(height);visual.position.y=-cy*height;
+   original.add(visual);
+   original.children.forEach(c=>{if(c!==visual)c.visible=false});
+   instances++;return true;
+  };
+  stage.coins.forEach(c=>replace(c,'coin-gold',.40));
+  stage.stars.forEach(c=>replace(c,'star',.60));
+  stage.boxes.forEach((b,i)=>{
+   let type=stage.map.boxes[i].type,model=type==='reinforced'?'crate-strong':type==='secret'?'chest':'crate';
+   replace(b,model,.61);
+  });
   stage.assetStats={loaded,failed,instances};
   if(!alive||signal?.aborted){add.parent?.remove(add);return {count:0,loaded,failed}};
   return {count:instances,loaded,failed};
