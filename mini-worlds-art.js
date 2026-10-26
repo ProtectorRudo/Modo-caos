@@ -117,12 +117,44 @@ function makeBoss(parent,b,variant=false){
  const aura=mesh(new T.TorusGeometry(.37,.055,8,24),M.sky,0,.58,.88,torso);
  return {root:g,torso,claws,weak,aura};
 }
+// The floor-sized world spans 12 × 32 game units. The physical AR track
+// defaults to ~4.6m wide × 12m long, anchored to the first floor hit.
+function sprawlingEnvironment(root,rand,cliff){
+ const sea=mesh(new T.PlaneGeometry(14,33),M.water,0,-.69,-11.35,root);
+ sea.rotation.x=-P/2;sea.receiveShadow=false;sea.castShadow=false;
+ const shore=cliff?M.stone:M.sand;
+ for(const side of [-1,1]){
+  for(let j=0;j<7;j++){
+   const z=1.20-j*4.05,x=side*(4.1+rand()*.45);
+   const isle=group(root,x,-.41,z);
+   const width=1.65+rand()*.4,length=3.7+rand()*.5;
+   const plate=mesh(cube(width,.54,length),shore,0,0,0,isle);
+   plate.rotation.y=(rand()-.5)*.13;
+   for(let k=0;k<5;k++){
+    const dx=(rand()-.5)*width*.85,dz=(rand()-.5)*length*.85;
+    addRock(isle,dx,.29,dz,.20+rand()*.16);
+   }
+   if(j%2===0){addPalm(isle,side*.21,.1,.85+rand()*.3);addFlower(isle,-side*.5,-.25,j)}
+   if(cliff){let spear=mesh(geoCone(.32,1.5+rand()*1.2,6),M.stone,side*.52,1.05,-.58,isle);spear.rotation.z=side*.18}
+  }
+ }
+ // Ancient landmarks at the far ends make the 3D level readable from a distance.
+ const arch=group(root,0,0,-25.1);
+ for(const x of [-2.45,2.45]){
+  mesh(cyl(.19,.30,2.4,8),M.stone,x,1.3,0,arch);
+  const cap=mesh(new T.DodecahedronGeometry(.35,0),M.gold,x,2.58,0,arch);cap.rotation.y=x;
+ }
+ const cross=mesh(cube(5.2,.30,.48),M.stone,0,2.44,0,arch);
+ cross.rotation.z=.07;
+ return sea;
+}
 function makeStage(map){
- const scene=new T.Scene();scene.background=new T.Color(map.n===0?0x96dae5:0x8e9cc2);scene.fog=new T.Fog(scene.background,12,39);
+ const scene=new T.Scene();scene.background=new T.Color(map.n===0?0x96dae5:0x8e9cc2);scene.fog=new T.Fog(scene.background,12,49);
  const sun=new T.DirectionalLight(0xfff4d6,2.25);sun.position.set(-3,9,5);sun.castShadow=false;scene.add(sun);
  scene.add(new T.HemisphereLight(0xcaf5ff,0x70503d,2.0));
  const root=group(scene);
  const rand=rng(7403+map.n*719),platforms=[];
+ sprawlingEnvironment(root,rand,Boolean(map.n));
  for(const p of map.platforms)platforms.push(platform(root,p,rand));
  for(let i=0;i<map.platforms.length;i++){
   const p=map.platforms[i],prev=map.platforms[i-1];
@@ -131,7 +163,7 @@ function makeStage(map){
   if(p.kind==='jungle'||p.kind==='ruins'){addRock(root,p.x+p.w*.5,p.y+.05,p.z,.22)}
   if(prev&&i!==2&&p.z-prev.z> -4.1){ /* bridging gaps intentionally remain jumpable */ }
  }
- const sea=mesh(new T.CircleGeometry(5.25,64),M.water,0,-.62,-4.3,root);sea.rotation.x=-P/2;sea.scale.set(1.0,2.7,1);
+ // World-sized sea and shore banks are already assembled above.
  const lagoon=mesh(new T.CircleGeometry(2.4,40),M.water,.7,.49,-18.3,root);lagoon.rotation.x=-P/2;lagoon.material=M.water;
  // Adventure 2 is a stormy cliff journey with glowing stones, high rock needles and relics.
  if(map.n===1){
@@ -157,11 +189,14 @@ function makeStage(map){
  const projectilePool=Array.from({length:14},()=>{let o=mesh(sphere(.12,9,7),M.red,0,0,0,root);o.visible=false;return o});
  const hazardPool=Array.from({length:8},()=>{let o=mesh(new T.RingGeometry(.40,.77,24),new T.MeshBasicMaterial({color:0xff583c,transparent:true,opacity:.57,side:T.DoubleSide,depthWrite:false}),0,0,0,root);o.rotation.x=-P/2;o.visible=false;return o});
  const effects=[];
+ let stageCharacters=null;
+ function bindCharacters(handler){stageCharacters=handler}
  function impact(x,y,z,c='#ffe89f',count=11){for(let i=0;i<count;i++){
   const o=mesh(sphere(.025+rand()*.045,6,5),mat(c),x,y,z,root);o.castShadow=false;
   effects.push({o,vx:(rand()-.5)*3,vy:1+rand()*3,vz:(rand()-.5)*3,life:.35+rand()*.35})}}
  function update(s,dt,elapsed){
   const p=s.player;
+  if(typeof stageCharacters==='function')stageCharacters(s,dt);
   hero.root.position.set(p.x,p.y,p.z);hero.root.rotation.y=p.face;
   let run=Math.min(1,Math.hypot(p.vx,p.vz)/2.7),t=elapsed*11;
   hero.body.position.y=.58+(p.grounded?Math.sin(t)*.025*run:Math.sin(elapsed*5)*.035);
@@ -198,7 +233,7 @@ function makeStage(map){
   materials.forEach(m=>m.dispose());
   Object.values(M).forEach(m=>m.dispose());
  }
- return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,update,impact,dispose};
+ return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,update,impact,dispose,bindCharacters};
 }
 return {makeStage};
 }})(typeof window!=='undefined'?window:globalThis);
