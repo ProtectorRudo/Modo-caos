@@ -573,7 +573,12 @@ function makeStage(map){
   particleMaterials.forEach(m=>m.dispose());
   furyMat.dispose();furySparkMat.dispose();furySparkGeo.dispose();
  }
- return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,update,impact,combatFx,dispose,bindCharacters};
+ const setPremiumFoliage=enabled=>{
+  // Preserve every fourth palm: the Quaternius broadleaf canopy supplies the
+  // premium detail, while a few Kenney/procedural palms retain island identity.
+  windTargets.forEach((plant,i)=>{plant.visible=!enabled||i%4===0});
+ };
+ return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
 }
 return {makeStage};
 }})(typeof window!=='undefined'?window:globalThis);
