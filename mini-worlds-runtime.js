@@ -125,6 +125,8 @@ async function play(modeRequested){
  }finally{$('load').hidden=true}
 }
 async function home(skipSession=false){
+ // Mark navigation before ending XR to avoid a second async cleanup from its 'end' listener.
+ phase='home';
  if(session&&!skipSession){const s=session;session=null;try{await s.end()}catch(_){}}session=null;
  try{hitSource?.cancel?.()}catch(_){}
  hitSource=null;anchor=null;clear();layout('home');fillLanding();
