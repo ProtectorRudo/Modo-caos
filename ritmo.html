@@ -143,6 +143,20 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 #rtStart{border-radius:15px;box-shadow:0 3px 12px #20fbd444}
 @media(max-width:355px){#topActions button{font-size:10px!important;padding:5px 6px}#quality{min-width:48px!important}.hudRow>div{font-size:8px}.hudRow strong{font-size:16px}}
 
+
+/* V28 NEON PRISM: stronger focus on physically anchored stage instead of UI boxes. */
+#hud{top:max(57px,env(safe-area-inset-top) + 48px);left:18px;right:18px}
+.hudRow{border-radius:14px;background:linear-gradient(115deg,#071f2add,#05192abc);
+ border-color:#6cf7f16b;box-shadow:0 4px 20px #0005,inset 0 1px #d9ffff38}
+.hudRow>div{padding:6px 2px 5px;font-size:8px;color:#b8e8ec}
+.hudRow strong{font-size:clamp(16px,4.5vw,21px);color:#ecffff;letter-spacing:-.02em}
+#progress{margin-top:5px}
+#forecast{margin-top:4px}
+#where{opacity:.85;bottom:max(35px,env(safe-area-inset-bottom) + 22px);font-size:9px}
+#playerBadge{text-shadow:0 0 13px #65ffff,0 0 26px #22ccff,0 2px 2px #03131a}
+#playerBadge:after{filter:drop-shadow(0 0 10px #61e9ff)}
+@media(max-height:700px){#hud{top:48px}.hudRow strong{font-size:16px}}
+
 </style></head><body>
 <main id="home"><div class="wrap">
 <a id="back" href="/">← VOLVER AL ARCADE</a>
@@ -150,7 +164,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <h1>RITMO <span>CAOS</span></h1>
 <p class="intro">🎸 Las notas vienen hacia vos. <b>Vos sos el joystick:</b> movete de costado hasta el color justo cuando suene.</p>
 <div class="hero"><div class="stage"><i></i><i></i><i></i><i></i></div><strong>EL ESCENARIO ES TU CASA</strong></div>
-<div class="features"><b>🎸 NEON STUDIO 3D</b><b>🎼 DESPACITO + 11 TEMAS</b><b>🟢 4 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
+<div class="features"><b>🎸 NEON STUDIO 3D</b><b>🎼 DESPACITO + 11 TEMAS · NEON PRISM</b><b>🟢 4 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
 <div class="config"><label>CANCIÓN<select id="song"><option value="despacito_remix_justin" selected>🔥 DESPACITO (REMIX) · Fonsi, Daddy Yankee y Justin Bieber · 80 s</option><option value="neon">⚡ Neón sin freno</option><option value="fuego">🎸 Fuego en el escenario</option><option value="solar">☀️ Solar latino</option><optgroup label="MELODÍAS CONOCIDAS · INCLUIDAS">
 <option value="alegria">🎻 Oda a la Alegría · Beethoven</option>
 <option value="elise">🎹 Para Elisa · Beethoven</option>
@@ -210,17 +224,18 @@ window.addEventListener('unhandledrejection',function(e){
  const status=document.getElementById('launchStatus');if(status){status.hidden=false;status.textContent='⚠️ No se completó el inicio: '+msg+'. Probá abrirlo en Chrome Android.'}
 });
 </script>
-<script defer src="/ritmo-engine.js?v=27"></script>
-<script defer src="/ritmo-core.js?v=27"></script>
-<script defer src="/ritmo-catalog.js?v=27"></script>
-<script defer src="/ritmo-licensed.js?v=27"></script>
-<script defer src="/ritmo-despacito.js?v=27"></script>
-<script defer src="/ritmo-audio.js?v=27"></script>
-<script defer src="/ritmo-art.js?v=27"></script>
-<script defer src="/ritmo-stage3d.js?v=27"></script>
-<script defer src="/ritmo-stage-premium.js?v=27"></script>
-<script defer src="/ritmo-kenney-vfx.js?v=27"></script>
-<script defer src="/ritmo-fx.js?v=27"></script>
-<script defer src="/ritmo-haptics.js?v=27"></script>
-<script defer src="/ritmo-runtime.js?v=27"></script>
+<script defer src="/ritmo-engine.js?v=28"></script>
+<script defer src="/ritmo-core.js?v=28"></script>
+<script defer src="/ritmo-catalog.js?v=28"></script>
+<script defer src="/ritmo-licensed.js?v=28"></script>
+<script defer src="/ritmo-despacito.js?v=28"></script>
+<script defer src="/ritmo-audio.js?v=28"></script>
+<script defer src="/ritmo-art.js?v=28"></script>
+<script defer src="/ritmo-stage3d.js?v=28"></script>
+<script defer src="/ritmo-stage-premium.js?v=28"></script>
+<script defer src="/ritmo-stage-showtime.js?v=28"></script>
+<script defer src="/ritmo-kenney-vfx.js?v=28"></script>
+<script defer src="/ritmo-fx.js?v=28"></script>
+<script defer src="/ritmo-haptics.js?v=28"></script>
+<script defer src="/ritmo-runtime.js?v=28"></script>
 </body></html>
