@@ -2,6 +2,7 @@
 (function(){
 'use strict';
 const C=window.MiniWorldsCore,$=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const debugAR=new URLSearchParams(location.search).get('debug')==='1';
 let T,renderer,camera,view,game,stage,session,hitSource,lastHit=null,anchor=null,mode='demo',phase='home',placing=false,hasHit=false;
 let yaw=0,scale=.36,offset={x:0,z:0},lockedPose=null,worldYaw=0,headingSet=false;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
@@ -106,7 +107,7 @@ function layout(state){
  $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';
  $('recenter').hidden=mode!=='ar'||(state!=='playing'&&state!=='paused');
- $('arStatus').hidden=mode!=='ar'||(state!=='playing'&&state!=='paused');
+ $('arStatus').hidden=!debugAR||mode!=='ar'||(state!=='playing'&&state!=='paused');
  $('positionPad').style.pointerEvents=state==='placing'?'auto':'none';
  if(state==='home')hideModal();
 }
@@ -253,12 +254,16 @@ function updateHUD(){
 function events(){
  for(const e of C.drain(game)){
   const x=game.player.x,y=game.player.y+.7,z=game.player.z;
+  // Spatially accurate FX at the impact target instead of the avatar.
+  stage.combatFx?.(e,game.player);
   if(e.type==='coin'){beep('coin');haptic(7);if(e.combo%10===0)notice('¡'+e.combo+' MONEDAS RECOGIDAS!',850)}
   else if(e.type==='star'){beep('star');haptic([15,35,25]);notice('✦ ESTRELLA SECRETA '+game.stars+'/3',2200);stage.impact(x,y,z,'#ffe56b',25)}
   else if(e.type==='jump')beep(e.double?'double':'jump');
-  else if(e.type==='boxHit'){beep('attack');stage.impact(x,y,z,'#f7c277',6)}
-  else if(e.type==='boxBreak'){beep('smash');haptic(24);stage.impact(x,y,z,'#f3c281',14)}
-  else if(e.type==='enemyDown'){beep('smash');haptic(15);stage.impact(x,y,z,'#9affbf',17)}
+  else if(e.type==='swing'){beep('attack');haptic(8)}
+  else if(e.type==='boxHit'){beep('hit');haptic(12)}
+  else if(e.type==='boxBreak'){beep('smash');haptic([18,25,20]);notice('¡CAJA ROTA! + MONEDAS',650)}
+  else if(e.type==='enemyHit'){beep('hit');haptic(17)}
+  else if(e.type==='enemyDown'){beep('smash');haptic([23,28,34]);notice('¡KO! +3 MONEDAS',850)}
   else if(e.type==='hurt'){beep('damage');haptic([40,50,30]);notice('¡CUIDADO! · '+game.player.hearts+' CORAZONES',1050)}
   else if(e.type==='fall'){beep('fail');notice('¡AL AGUA! · VOLVÉS AL CHECKPOINT',1300)}
   else if(e.type==='checkpoint'){beep('checkpoint');haptic(20);notice('⚑ CHECKPOINT · CORAZÓN RECUPERADO',1800);stage.impact(x,y,z,'#b5ffec',24)}
