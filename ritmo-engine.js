@@ -58,7 +58,7 @@ async function resetHitTest(){
   tiltedHitSource=null;
   if(typeof XRRay==='function'){
    try{
-    const ray=new XRRay({x:0,y:0,z:0},{x:0,y:-.6,z:-.8});
+    const ray=new XRRay({x:0,y:0,z:0,w:1},{x:0,y:-.6,z:-.8,w:0});
     tiltedHitSource=await sess.requestHitTestSource({space:viewerSpace,offsetRay:ray});
    }catch(e){frameErr='Búsqueda frontal habilitada · segunda dirección no disponible'}
   }
@@ -186,7 +186,7 @@ function start(){if(isStarting)return;isStarting=true;
  }
  pending=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['anchors'],domOverlay:{root:$('overlay')}});
  }catch(e){startError(e);return}Promise.resolve(pending).then(async session=>{sess=session;const canvas=document.createElement('canvas');canvas.style.cssText='position:fixed;width:1px;height:1px;opacity:0;pointer-events:none';document.body.appendChild(canvas);gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false,xrCompatible:true});if(!gl)throw Error('No se pudo crear WebGL compatible con XR.');if(gl.makeXRCompatible)await gl.makeXRCompatible();layer=new XRWebGLLayer(session,gl,{alpha:true,antialias:true,depth:true});session.updateRenderState({baseLayer:layer,depthNear:.025,depthFar:45});try{initGPU()}catch(e){frameErr='GPU: '+e.message;shader=null}ref=await session.requestReferenceSpace('local');viewerSpace=await session.requestReferenceSpace('viewer');hitSource=await session.requestHitTestSource({space:viewerSpace});
- try{if(typeof XRRay==='function')tiltedHitSource=await session.requestHitTestSource({space:viewerSpace,offsetRay:new XRRay({x:0,y:0,z:0},{x:0,y:-.6,z:-.8})})}catch(_){tiltedHitSource=null}sess.addEventListener('end',()=>{stopRound();location.reload()});$('home').style.display='none';$('launchStatus').hidden=true;setStage('search');anchorState='sin anclaje';sess.requestAnimationFrame(onFrame);isStarting=false}).catch(e=>{startError(e)})}
+ try{if(typeof XRRay==='function')tiltedHitSource=await session.requestHitTestSource({space:viewerSpace,offsetRay:new XRRay({x:0,y:0,z:0,w:1},{x:0,y:-.6,z:-.8,w:0})})}catch(_){tiltedHitSource=null}sess.addEventListener('end',()=>{stopRound();location.reload()});$('home').style.display='none';$('launchStatus').hidden=true;setStage('search');anchorState='sin anclaje';sess.requestAnimationFrame(onFrame);isStarting=false}).catch(e=>{startError(e)})}
 function startError(e){
  isStarting=false;$('overlay').style.display='none';$('enter').disabled=false;
  $('enter').textContent='↻ REINTENTAR REALIDAD AUMENTADA';
