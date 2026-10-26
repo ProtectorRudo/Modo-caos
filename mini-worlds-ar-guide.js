@@ -49,19 +49,21 @@ root.MiniWorldsARGuide=function(T,svg){
    if(!Number.isFinite(px)||!Number.isFinite(py))return null;
    return [px,py];
   }
-  const tiles=stage.map.platforms;
+  const pocket=stage.pocket;
+  const tiles=pocket?stage.map.platforms.filter(t=>window.MiniWorldsPocket.canSee(t.z,pocket.room,.1)):stage.map.platforms;
+  const pocketDz=stage.worldRoot?.position.z||0,pocketDy=stage.worldRoot?.position.y||0;
   for(let i=0;i<shapes.length;i++){
    const tile=tiles[i],shape=shapes[i];
    if(!tile){shape.style.display='none';continue}
-   let y=tile.y+.09,w=tile.w*.5,d=tile.d*.5;
+   let y=tile.y+.09+pocketDy,w=tile.w*.5,d=tile.d*.5;
    const corners=[[-w,-d],[w,-d],[w,d],[-w,d]]
-     .map(([dx,dz])=>project(tile.x+dx,y,tile.z+dz));
+     .map(([dx,dz])=>project(tile.x+dx,y,tile.z+dz+pocketDz));
    if(corners.some(x=>!x)){shape.style.display='none';continue}
    const onscreen=corners.some(([x,y])=>x>-ww*.3&&x<ww*1.3&&y>-hh*.2&&y<hh*1.2);
    shape.style.display=onscreen?'':'none';
    if(onscreen){shape.setAttribute('points',corners.map(p=>p.map(v=>v.toFixed(1)).join(',')).join(' '));visible++}
   }
-  const start=project(0,.17,0);
+  const start=project(stage.hero?.root?.position.x||0,(stage.hero?.root?.position.y||0)+.17+pocketDy,(stage.hero?.root?.position.z||0)+pocketDz);
   const showStart=start&&start[0]>=-50&&start[0]<=ww+50&&start[1]>=-50&&start[1]<=hh+50;
   origin.style.display=showStart?'':'none';label.style.display=showStart?'':'none';
   if(showStart){origin.setAttribute('cx',start[0]);origin.setAttribute('cy',start[1]);label.setAttribute('x',start[0]+14);label.setAttribute('y',start[1]-9)}
