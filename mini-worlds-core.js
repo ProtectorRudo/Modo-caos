@@ -139,7 +139,20 @@ function tick(s,input={},dt=1/60){
   p.vy=p.jumps===1?5.35:6.3;p.jumps++;p.grounded=false;p.coyote=0;p.buffer=0;emit(s,'jump',{double:p.jumps===2});
  }
  if(input.punch)attack(s);
- let oldY=p.y;p.x+=p.vx*dt;p.z+=p.vz*dt;p.vy-=16.5*dt;p.y+=p.vy*dt;
+ let oldY=p.y,oldX=p.x,oldZ=p.z;p.x+=p.vx*dt;p.z+=p.vz*dt;p.vy-=16.5*dt;p.y+=p.vy*dt;
+ // Axis-resolved crate collision, with a generous player radius and the option to leap over boxes.
+ for(const box of s.map.boxes){
+   if(!box.alive)continue;
+   const floor=platformY(s,box.x,box.z)??0;
+   if(p.y>=floor+.60||p.y+.65<floor)continue;
+   const dx=p.x-box.x,dz=p.z-box.z;
+   if(Math.abs(dx)>.47||Math.abs(dz)>.47)continue;
+   const wasOutsideX=Math.abs(oldX-box.x)>=.47,wasOutsideZ=Math.abs(oldZ-box.z)>=.47;
+   if(wasOutsideX&&!wasOutsideZ){p.x=box.x+Math.sign(oldX-box.x)*.47;p.vx=0}
+   else if(wasOutsideZ&&!wasOutsideX){p.z=box.z+Math.sign(oldZ-box.z)*.47;p.vz=0}
+   else if(Math.abs(dx)>.0&&Math.abs(dx)>Math.abs(dz)){p.x=box.x+Math.sign(dx)*.47;p.vx=0}
+   else{p.z=box.z+Math.sign(dz||1)*.47;p.vz=0}
+ }
  const ground=platformY(s,p.x,p.z);
  p.grounded=false;
  if(ground!==null&&p.vy<=0&&oldY>=ground-.2&&p.y<=ground){
