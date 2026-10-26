@@ -96,5 +96,5 @@ test('safe fallback works if WebXR GLB fails; HTML orders V33 dependencies',asyn
  for(let i=0;i<files.length-1;i++)assert.ok(html.indexOf('/'+files[i]+'.js?v=35')<html.indexOf('/'+files[i+1]+'.js?v=35'));
  assert.match(exterior,/const BACK=\.22/);
  assert.match(exterior,/if\(!skeletal\?\.draw\(mesh,surface,t,low,quality,combo\)\)/);
- assert.match(exterior,/roof=1\.08/);
+ assert.match(exterior,/roof=\.99/);
 });
