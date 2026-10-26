@@ -122,6 +122,15 @@
    return startAt;
   }
   function now(){return ctx?Math.max(0,ctx.currentTime-startAt):0}
+  // WebAudio graph time normally runs ahead of what Android speakers actually
+  // emit. Score and render against the *audible* music, never a separate
+  // requestAnimationFrame timer or an arbitrary fixed offset.
+  function outputDelay(){
+   if(!ctx)return 0;
+   const base=Number(ctx.baseLatency)||0,device=Number(ctx.outputLatency)||0;
+   return clamp(base+device,0,.145);
+  }
+  function audibleNow(){return ctx?Math.max(0,ctx.currentTime-startAt-outputDelay()):0}
   async function pause(){if(ctx?.state==='running')await ctx.suspend()}
   async function resume(){if(ctx?.state==='suspended')await ctx.resume()}
   function stop(){if(timer)clearInterval(timer);timer=null;ended=true;
@@ -211,7 +220,7 @@
   }
   function volume(v){mute=!!v;if(gain)gain.gain.value=mute?0:.25}
   function state(){return {muted:mute,playing:!!timer&&!ended,started:startAt,track}}
-  return {init,preload,start,now,pause,resume,stop,volume,state,feedback,spectrum,loadLocal,localStatus};
+  return {init,preload,start,now,audibleNow,outputDelay,pause,resume,stop,volume,state,feedback,spectrum,loadLocal,localStatus};
  }
  root.RitmoAudio={create};
 })(window);
