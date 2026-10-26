@@ -33,6 +33,29 @@
    const coord=(r,theta)=>vertical?[x+Math.cos(theta)*r,y+Math.sin(theta)*r,z]:[x+Math.cos(theta)*r,y,z+Math.sin(theta)*r];
    for(let i=0;i<steps;i++){let u=i*2*Math.PI/steps,v=(i+1)*2*Math.PI/steps;face(b,coord(ri,u),coord(ro,u),coord(ro,v),coord(ri,v),c,a)}
   }
+  function speakerDriver(x,y,z,r,low){
+   // Conical woven-metal driver mounted in a rim and recessed dust cap.
+   const steps=18,front=z+.064;
+   ring(solid,x,y,front,r*.78,r,[.095,.12,.16],1,steps,true);
+   ring(solid,x,y,front+.002,r*.69,r*.78,[.025,.03,.045],1,steps,true);
+   const ringPoint=(radius,angle,depth)=>[x+Math.cos(angle)*radius,y+Math.sin(angle)*radius,depth];
+   for(let i=0;i<steps;i++){
+    const a=i*2*Math.PI/steps,b=(i+1)*2*Math.PI/steps;
+    face(solid,ringPoint(r*.69,a,front+.005),ringPoint(r*.69,b,front+.005),
+      ringPoint(r*.16,b,front-.013),ringPoint(r*.16,a,front-.013),
+      i%2?[.11,.13,.16]:[.20,.23,.26],1);
+   }
+   ring(glow,x,y,front+.01,r*.78,r*.87,[.25,.68,.99],.34+low*.25,steps,true);
+   ring(solid,x,y,front-.011,0,r*.17,[.035,.05,.07],1,steps,true);
+   if(quality>0){
+    for(let j=-2;j<=2;j++){
+     let xx=x+j*r*.28;
+     face(glow,[xx-.0009,y-r*.61,front+.015],[xx+.0009,y-r*.61,front+.015],
+        [xx+.0009,y+r*.61,front+.015],[xx-.0009,y+r*.61,front+.015],
+        [.22,.29,.39],.34);
+    }
+   }
+  }
   function crystal(b,x,y,z,r,c){
    // 3D faceted note nucleus, readable without any large downloaded texture.
    const edges=10;
@@ -106,11 +129,16 @@
     // Small holographic light towers and speakers at far end, never screen-fixed
     const back=f-.11,sx=side*(size*1.68);
     box(solid,sx,.033,back,.18,.29,.13,[.025,.037,.056],[.12,.16,.23]);
-    for(let yy of [.12,.24]){
-     ring(solid,sx,yy,back+.068,.032,.057,[.13,.18,.26],1,14,true);
-     ring(glow,sx,yy,back+.072,.031,.041,[.15,.72,1],.79,14,true);
-     ring(glow,sx,yy,back+.075,0,.015,[.62,.95,1],.41+low*.26,14,true);
+    // Cabinet trim, bolts, recessed dual speakers and central horn.
+    for(let sideX of [-1,1]){
+     box(solid,sx+sideX*.076,.037,back+.067,.006,.278,.004,[.31,.36,.40],[.43,.50,.54],.91);
+     for(let yy of [.050,.296]){
+      ring(solid,sx+sideX*.071,yy,back+.072,0,.004,[.42,.47,.52],1,8,true);
+     }
     }
+    speakerDriver(sx,.118,back,.060,low);
+    speakerDriver(sx,.237,back,.042,mid);
+    ring(glow,sx,.239,back+.080,.048,.056,[.18,.86,1],.18+high*.18,16,true);
     const bx=side*(R+.06);
     box(solid,bx,.028,f+.22,.052,.24,.05,[.075,.08,.10],[.19,.24,.29]);
     box(glow,bx,.270,f+.22,.047,.02,.06,[.97,.50,.12],[1,.76,.31],.91);
