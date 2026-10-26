@@ -1,14 +1,5 @@
 name: Import licensed CUADRANTE CC0 assets
 on:
-  push:
-    branches: [feature/cuadrante-licensed-asset-pack-20261026]
-    paths:
-      - scripts/build-cuadrante-assets.py
-      - .github/workflows/cuadrante-assets-import.yml
-  pull_request:
-    paths:
-      - scripts/build-cuadrante-assets.py
-      - .github/workflows/cuadrante-assets-import.yml
   workflow_dispatch:
 permissions:
   contents: write
