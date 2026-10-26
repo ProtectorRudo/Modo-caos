@@ -10,7 +10,7 @@ let lockedArena=null;
 let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.56;
 let floorSeconds=0,lastFloorHit=null;
 let aimNeutral=null,aimFiltered={x:0,y:1.2},aimInvalidTime=0,aimPausedForTracking=false,aimCalibration=null,aimResumeAfterCalibration=false;
-let aimVector=null,aimOrigin=null,aimQuat=null,aimInv=null;
+let aimVector=null,aimOrigin=null,aimQuat=null,aimInv=null,aimWorldInverse=null;
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
 let bank=null,assetsPromise=null,pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
 try{records={...records,...JSON.parse(localStorage.getItem('cuadrante-records')||'{}')}}catch(e){}
@@ -267,9 +267,13 @@ function aimFromXR(frame,dt){
    // The collider remains in arena-local coordinates while the world stays
    // spatially anchored. No objects follow the phone's view matrix.
    stage.root.updateWorldMatrix(true,false);
-   stage.root.getWorldQuaternion(aimInv).invert();
-   const localOrigin=stage.root.worldToLocal(aimOrigin);
-   const localDirection=aimVector.applyQuaternion(aimInv);
+   // The longer arena uses non-uniform local Z scale. Apply the COMPLETE
+   // inverse world matrix to the ray, not just its rotation, or steering
+   // will be inaccurate after resizing the court.
+   aimWorldInverse??=new THREE.Matrix4();
+   aimWorldInverse.copy(stage.root.matrixWorld).invert();
+   const localOrigin=aimOrigin.applyMatrix4(aimWorldInverse);
+   const localDirection=aimVector.transformDirection(aimWorldInverse);
    raw=C.aimRayToArena(localOrigin,localDirection,0);
   }
  }
