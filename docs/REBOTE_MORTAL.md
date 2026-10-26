@@ -121,3 +121,14 @@ Para cubrir teléfonos donde incluso el segundo lienzo WebGL no llegue a mostrar
 - En entrenamiento 3D, tocar la zona inferior devuelve; arrastrar en esa misma zona rota la mira y **no** dispara por error. En AR físico el pointerdown sigue siendo inmediato.
 - El motor WebGL usa una geometría de partículas compartida y evita crear sets nuevos por proyectil; se limita la cantidad de partículas simultáneas para preservar FPS.
 - Gates: validación Node de doble toque, buffer, telegraph, KO y escudo; Chromium de HUD/tap/swap; WebXR sintético y regresiones. Las pruebas físicas en ARCore siguen requiriendo teléfono real.
+
+## Arena AR inmersiva: escenografía espacial V12 (26/10/2026)
+
+- Estructura **fijada al mismo anclaje WebXR**: plataforma modular de piso industrial en doce paneles 3D delgados, LEDs, anillos de borde y centro visible para el jugador; sin objetos pegados a la cámara ni falsos pasos físicos.
+- **Plataforma del contrincante** ubicada detrás del campo de pelotas (z = -2,30 m), donde permanecen los seis robots; plataformas de un mismo equipo ancladas al mundo; el jugador no debe desplazarse hacia esos elementos.
+- **Set dressing de arena**: dos columnas tecnológicas, balizas, cajas metálicas con tiras LED, cinco soportes de baranda y una barra de seguridad detrás de la plataforma enemiga. Los elementos grandes quedan fuera del pasillo de disparos para no tapar pelotas o robots.
+- **Marcador holográfico 3D** hecho con CanvasTexture local (no descarga ni CDN): cambia nombre del rival para cada duelo, muestra título en clásico y mensaje al terminar. No hay texturas externas ni modelos GLB requeridos para cargar.
+- Materiales metálicos PBR en piezas principales, neón transparente en adornos y animación de brillo de bajo coste. Recursos reutilizados para reducir allocations y draw calls; cleanup explícito al cerrar.
+- Al usar + / −, **el suelo decorativo del jugador se escala con el tamaño de la pista**, sin escalar adversarios ni alterar física de pelotas; RECENTRAR sigue preservando la transformación del mundo.
+- La escenografía es puramente virtual y no indica caminos reales ni requiere esquivar obstáculos. **No hay detección real del cuerpo ni de objetos de la vivienda**; jugar en lugar despejado, sin correr.
+- Tests de Chromium y WebXR simulado: 40+ props, geometría compartida, suelo y objetivo fijos al anclaje, tamaño editable y carril de disparos preservado. ARCore físico pendiente.
