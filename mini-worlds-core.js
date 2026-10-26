@@ -38,7 +38,7 @@ function level(n=0){
  for(let k=0;k<5;k++)push(-1+(k%5)*.5,-21.55,1.78);
  const enemies=(n?[
  [0,-4.15,'flying'],[-1.0,-9.15,'thrower'],[.6,-11.7,'defender'],
- [.7,-15.3,'flying'],[-.2,-18.55,'thrower'],[-1.1,-20.1,'defender']
+ [.7,-15.3,'flying'],[-.2,-18.55,'patrol'],[-1.1,-20.1,'defender']
  ]:[
  [0,-4.15,'patrol'],[-1.0,-9.15,'flying'],[.6,-11.7,'defender'],
  [.7,-15.3,'thrower'],[-.2,-18.55,'patrol'],[-1.1,-20.1,'flying']
