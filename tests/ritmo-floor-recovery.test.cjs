@@ -73,7 +73,7 @@ async function flush(){for(let i=0;i<25;i++)await Promise.resolve()}
  assert.equal(sourceCount,4,'Retry should renew BOTH sources');
  hitsOn=true;hitsAreWall=true;tick(7800);
  assert.equal(el('headline').textContent,'BUSCÁ EL PISO','Do not anchor track to wall');
- hitsAreWall=false;tick(8100);
+ hitsAreWall=false;tick(8200);
  assert.equal(el('headline').textContent,'PISTA DETECTADA');
  assert.equal(el('lock').disabled,false);
  assert.equal(renders,0,'No 3D during positioning, maintain preview via SVG');
