@@ -31,6 +31,23 @@ function create(T,stage){
  const layers=ROOMS.map((r)=>{
   const g=new T.Group();g.name='WORLD POCKET '+r.id+' · '+r.title;world.add(g);return g;
  });
+ const gateMesh=[];
+ if(T.TorusGeometry&&T.Mesh&&T.MeshBasicMaterial){
+  const colors=[0x7dffe0,0xc39aff,0xffdb8c];
+  for(let i=0;i<ROOMS.length-1;i++){
+   const threshold=ROOMS[i].min;
+   const near=stage.map.platforms.reduce((a,p)=>Math.abs(p.z-threshold)<Math.abs(a.z-threshold)?p:a);
+   for(const room of [i,i+1]){
+    const portal=new T.Group();portal.name='PORTAL '+i+' TO '+(i+1);
+    portal.position.set(near.x,near.y+1.12,threshold);
+    for(let j=0;j<2;j++){
+     const ring=new T.Mesh(new T.TorusGeometry(j===0?.84:.66,j===0?.095:.036,8,32),new T.MeshBasicMaterial({color:j===0?colors[i]:0xe2fff7,transparent:true,opacity:j===0?.86:.53,depthWrite:false,side:T.DoubleSide}));
+     portal.add(ring);
+    }
+    layers[room].add(portal);gateMesh.push(portal);
+   }
+  }
+ }
  let active=0,transitionCount=0;
  function reindex(){
   for(const child of [...world.children]){
@@ -79,7 +96,7 @@ function create(T,stage){
   layers.forEach((l,i)=>l.visible=i===0);
  }
  initialize();
- return {sync,switchRoom,reindex,get room(){return active},get transitions(){return transitionCount},
+ return {sync,switchRoom,reindex,gateMesh,get room(){return active},get transitions(){return transitionCount},
   localZ:z=>physicalZ(z,active),get info(){return ROOMS[active]},rooms:ROOMS};
 }
 root.MiniWorldsPocket=Object.freeze({ROOMS,roomAtZ,physicalZ,displayLength,canSee,create});
