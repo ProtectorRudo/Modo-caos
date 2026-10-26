@@ -6,7 +6,8 @@
 - `/mini-worlds.html`: menú propio, dos niveles disponibles por progresión, HUD y controles táctiles.
 - `/mini-worlds-core.js`: física semideterminística a 60 Hz, gravedad, salto y doble salto, coyote time, buffer de salto, 3 corazones, reaparición/checkpoints, plataformas irregulares, colisión sólida con cajas, daño con inmunidad, monedas, estrellas, cuatro clases de enemigos, proyectiles y jefe con tres fases.
 - `/mini-worlds-art.js`: escenas geométricas 3D totalmente originales: isla, palmeras, ruinas, cascada, playa, puente, cristales y rocas del acantilado; personaje Orin, enemigos, cajas reforzadas, estrellas, monedas, cangrejo mecánico y efectos.
-- `/mini-worlds-runtime.js`: Three.js 0.160.1 cargado desde CDN, render WebGL, modo 3D libre sin cámaras, joystick, saltar, golpear, retroalimentación WebAudio original y vibración opcional, `localStorage` para récords/desbloqueos, pausa y menú, y WebXR `immersive-ar` con `hit-test` y `dom-overlay`.
+- `/mini-worlds-runtime.js`: Three.js 0.160.1, render WebGL, modo 3D sin cámaras con órbita y zoom, calidad dinámica para móviles, joystick, saltar y golpear, WebAudio original, vibración opcional, `localStorage`, pausa y WebXR `immersive-ar` con `hit-test` y `dom-overlay`.
+- `/mini-worlds-assets.js`: carga opcional progresiva de 19 modelos GLB locales, decoración orgánica por sectores y reemplazo visual de monedas, estrellas y cajas. No cambia reglas ni hitboxes. Si una carga falla, queda el modelo 3D original.
 - Menú general enlaza el juego exclusivamente en la rama.
 - Niveles: **La Isla Despierta** y **El Acantilado Perdido**. Para evitar promesas exageradas, los otros 16 niveles de la hoja de ruta no existen todavía.
 
@@ -17,13 +18,13 @@ AR: superficie horizontal, gesto 1 dedo mover, 2 dedos rotar/zoom, botones girar
 El escenario permanece asociado al hit-test/ancla espacial del teléfono; movimiento del avatar por joystick, no hay tracking de pies.
 
 ## Materiales y licencias
-Todos los modelos, geometrías, decoraciones, partículas y música generativa son originales y programáticos en este desarrollo: no se integraron descargas ajenas, así que no se han añadido obligaciones de atribución de assets.
+El protagonista ORIN, el jefe, la geometría base, los efectos y la música sintetizada son originales. Además hay **19 modelos Kenney bajo CC0** — 14 Nature Kit y 5 Platformer Kit — alojados dentro de `assets/mini-worlds/kenney/`. Fuente concreta, licencia y lista individual: [LICENSE_AND_SOURCES.md](../assets/mini-worlds/LICENSE_AND_SOURCES.md).
 Librería externa: Three.js 0.160.1, licencia MIT, importada desde jsDelivr y con respaldo en unpkg. El motor 3D requiere internet al primer uso.
 
 ## Pruebas
 - `node tests/mini-worlds.test.cjs`: 9 pruebas de estados, física, saltos, cajas, monedas, estrellas, enemigos, proyectiles, daño, checkpoint, jefes y pausa. Corridas en entorno JS aislado y aprobadas.
 - Sintaxis de los tres ficheros JavaScript inspeccionada y compilada.
-- **No verificado**: ejecución gráfica real en teléfono, performance 30–60 FPS, permisos de cámara, seguimiento espacial WebXR/ARCore, pruebas táctiles en navegadores móviles, ni transiciones de niveles reales. Mantener estatus de PREVIEW hasta completar.
+- **No verificado**: ejecución gráfica real en teléfono, rendimiento 30–60 FPS, carga GLB *en WebGL real*, permisos de cámara, seguimiento espacial WebXR/ARCore, controles multitáctiles, ni transiciones de niveles reales. Mantener estatus de PREVIEW hasta completar.
 - **Despliegue de preview:** la creación manual vía API devolvió HTTP 402 `api-deployments-free-per-day`, pero el despliegue automático desde GitHub completó **READY** el 26/10/2026 para commit `6293a922e214f5b3dab427c81b0d49d19b8c7b8b` en la URL `https://modo-caos-ej95846tk-protector-rudo-s-projects.vercel.app/`. Vercel Web Fetch confirmó HTTP 200 en `/mini-worlds.html`, `/mini-worlds-core.js`, `/mini-worlds-art.js`, `/mini-worlds-runtime.js` y `/index.html`. El preview tiene SSO: para compartirlo, usar URL temporal con `_vercel_share`. Esto **no prueba** controles ni render gráfico en hardware.
 - Sin migraciones Supabase, sin cambios en tablas ni credenciales, sin afectar otras rutas.
 
@@ -36,3 +37,8 @@ Librería externa: Three.js 0.160.1, licencia MIT, importada desde jsDelivr y co
 
 ## Nota de ingeniería
 La versión contiene núcleo y contenidos jugables de dos aventuras pero **no constituye todavía los 18 niveles ni una versión certificada en móviles**. Evitar llamar "terminada" a la versión hasta verificar el recorrido completo en navegador real.
+
+## Arte GLB (upgrade en rama)
+- 19 recursos GLB verificados en GitHub (370.788 bytes en total), todos locales y con licencia CC0 de Kenney.
+- Modelos importados con `GLTFLoader` dinámico compatible con importmap de Three.js. Fallo de recursos no detiene la partida.
+- **Importante:** el último deploy READY comprobado puede contener una revisión anterior de la rama. No atribuir los 19 modelos a un link Vercel sin verificar el hash de commit del deployment y las rutas de assets.
