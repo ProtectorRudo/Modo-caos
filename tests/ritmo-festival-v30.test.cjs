@@ -61,7 +61,7 @@ test('no extra DJ object intersects the score zone or changes the moving floor',
 });
 test('V30 scripts precede game runtime and are cache-busted',()=>{
  for(const file of ['ritmo-glb-props','ritmo-exterior','ritmo-stage-showtime'])assert.ok(html.includes('/'+file+'.js?v=31'),file);
- assert.ok(html.indexOf('/ritmo-glb-props.js?v=31')<html.indexOf('/ritmo-exterior.js?v=31'));
- assert.ok(html.indexOf('/ritmo-exterior.js?v=31')<html.indexOf('/ritmo-stage-showtime.js?v=31'));
- assert.ok(html.indexOf('/ritmo-stage-showtime.js?v=31')<html.indexOf('/ritmo-runtime.js?v=31'));
+ assert.ok(html.indexOf('/ritmo-glb-props.js?v=32')<html.indexOf('/ritmo-exterior.js?v=32'));
+ assert.ok(html.indexOf('/ritmo-exterior.js?v=32')<html.indexOf('/ritmo-stage-showtime.js?v=32'));
+ assert.ok(html.indexOf('/ritmo-stage-showtime.js?v=32')<html.indexOf('/ritmo-runtime.js?v=31'));
 });
