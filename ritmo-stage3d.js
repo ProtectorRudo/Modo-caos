@@ -111,6 +111,23 @@
     box(solid,bx,.028,f+.22,.052,.24,.05,[.075,.08,.10],[.19,.24,.29]);
     box(glow,bx,.270,f+.22,.047,.02,.06,[.97,.50,.12],[1,.76,.31],.91);
    }
+   // Spatial concert arch; low enough not to obstruct the real environment.
+   // Adds stage presence without moving the notes off their four floor lanes.
+   for(const side of [-1,1]){
+    const x=side*(R-.035),z=f-.075;
+    box(solid,x,.030,z,.045,.39,.054,[.045,.059,.092],[.15,.19,.27],.96);
+    box(glow,x,.035,z+.033,.014,.365,.009,[.20,.79,1],[.20,.79,1],.69);
+    ring(glow,x,.414,z+.031,.024,.049,[1,.69,.22],.52+.28*low,16,true);
+   }
+   box(solid,0,.420,f-.075,R-L-.05,.040,.057,[.071,.082,.12],[.23,.27,.35],.93);
+   box(glow,0,.464,f-.075,R-L-.11,.013,.025,[.24,.82,1],[.24,.82,1],.60+low*.21);
+   if(quality>0&&playing){
+    // Transparent world-space fan lights, not screen-fixed effects.
+    for(let k=0;k<4;k++){
+     const x=(k-1.5)*size,c=COLORS[k],power=.08+.14*clamp(low+.25*mid,0,1),z=f-.035;
+     face(glow,[x-.025,.43,z],[x+.025,.43,z],[x+.095,.10,z+.27],[x-.095,.10,z+.27],c,power);
+    }
+   }
    // 3D receiver crossbar and soft halo
    box(glow,0,.093,.485,R-L+.19,.014,.027,[.73,.97,1],[.73,.97,1],.93);
    quad(glow,L-.07,R+.07,.451,.489,.100,[.24,.82,1],.28+low*.15);
@@ -140,17 +157,19 @@
     if(playing||game.state==='finished'){
      const lead=2.65;
      for(const note of game.notes){
-      let dt=note.at-elapsed;if(note.status!=='pending'||dt<-0.26||dt>lead+.08)continue;
+      let dt=note.at-elapsed,holding=game.holdActive?.id===note.id;if(note.status!=='pending'||(!holding&&dt<-0.26)||dt>lead+.08)continue;
       const x=(note.lane-1.5)*size,c=COLORS[note.lane],z=.64-clamp(dt/lead,0,1)*1.79,r=size*.24;
-      box(solid,x,.108,z,r*1.8,.020,r*1.42,muted(c,.46),muted(c,.79));
-      ring(glow,x,.140,z,r*.52,r*.95,c,.96,16);
-      ring(glow,x,.145,z,0,r*.48,[.93,1,1],.80,16);
-      ring(glow,x,.149,z,r*.96,r*1.22,c,.23,16);
+      crystal(solid,x,.108,z,r,c);
+      ring(glow,x,.140,z,r*.62,r*.95,c,.89,16);
+      ring(glow,x,.145,z,0,r*.38,[.93,1,1],.77,16);
+      ring(glow,x,.149,z,r*.98,r*1.21,c,.20,16);
       if(note.type==='hold'){
        let len=Math.min(.88,Math.max(.27,note.hold/lead*1.79));
-       quad(solid,x-r*.58,x+r*.58,z-len,z,.138,muted(c,.40),.88);
-       quad(glow,x-r*.16,x+r*.16,z-len,z,.151,[.84,1,1],.36);
-       for(let j=0;j<4;j++)quad(glow,x-r*.63,x-r*.54,z-len+j*len/4,z-len+(j+.65)*len/4,.156,c,.77);
+       if(holding)len*=Math.max(.02,1-clamp(game.holdActive.progress,0,1));
+       const tail=z-.02;
+       quad(solid,x-r*.58,x+r*.58,tail-len,tail,.139,muted(c,.41),.83);
+       quad(glow,x-r*.16,x+r*.16,tail-len,tail,.153,[.84,1,1],.41);
+       if(quality>0)for(let j=0;j<5;j++)quad(glow,x-r*.63,x-r*.55,tail-len+j*len/5,tail-len+(j+.62)*len/5,.158,c,.77);
       }else if(note.type==='slide'&&Number.isFinite(note.fromLane)){
        let other=(note.fromLane-1.5)*size;
        quad(glow,Math.min(other,x)-r*.18,Math.max(other,x)+r*.18,z-.12,z+.028,.137,c,.57);
@@ -158,6 +177,7 @@
      }
     }
    }
+   if(playing||game?.state==='finished')drawHitWaves(t,size);
   }
   function init(gl){
    let vertShader=shader(gl,gl.VERTEX_SHADER,VS),fragShader=shader(gl,gl.FRAGMENT_SHADER,FS),p=gl.createProgram();
