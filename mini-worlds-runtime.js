@@ -1,10 +1,12 @@
 /* MINI WORLDS — game orchestration: native WebXR / independent 3D camera, tactile controls, persistence. */
 (function(){
 'use strict';
-const C=window.MiniWorldsCore,$=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const C=window.MiniWorldsCore,S=window.MiniWorldsSpatial,$=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const debugAR=new URLSearchParams(location.search).get('debug')==='1';
 let T,renderer,camera,view,game,stage,session,hitSource,lastHit=null,anchor=null,mode='demo',phase='home',placing=false,hasHit=false;
 let yaw=0,scale=.36,offset={x:0,z:0},lockedPose=null,worldYaw=0,headingSet=false;
+let spatialLock=null,placementSerial=0,steeringYaw=null,heldSteeringYaw=null;
+let anchorPoseAtLock=null,anchorDriftWarned=false;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
 let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=null;
 let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
@@ -60,6 +62,9 @@ async function import3D(){
  return T;
 }
 function clear(){
+ placementSerial++;try{anchor?.delete?.()}catch(_){}
+ anchor=null;anchorPoseAtLock=null;anchorDriftWarned=false;
+ spatialLock=null;lockedPose=null;steeringYaw=null;heldSteeringYaw=null;
  arCompositor?.dispose();arCompositor=null;arCompositorError='';
  $('arWorldOverlay').style.display='none';xrEmptyScene=null;
  renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
@@ -101,7 +106,8 @@ function newStage(){
  view=stage.scene;view.background=mode==='ar'?null:new T.Color(level?0x9ea6cf:0xa5dadd);
  stage.root.rotation.y=mode==='ar'?worldYaw:0;
  stage.root.scale.setScalar(mode==='ar'?scale:1);
- if(mode==='ar'&&lockedPose)stage.root.position.copy(lockedPose);
+ if(mode==='ar'&&spatialLock)S.restoreWorld(stage,spatialLock);
+ else if(mode==='ar'&&lockedPose)stage.root.position.copy(lockedPose);
  else stage.root.position.set(0,0,0);
  if(mode==='demo')setCamera(true);
  elapsed=0;acc=0;updateHUD();$('zoneTitle').textContent='MUNDO 1 · '+game.map.definition.name;
@@ -182,6 +188,7 @@ async function play(modeRequested){
    const viewer=await session.requestReferenceSpace('viewer');
    hitSource=await session.requestHitTestSource({space:viewer});
    session.addEventListener('end',()=>{if(phase!=='home'){error('El seguimiento AR terminó. Regresando al menú.');home(true)}});
+   spatialLock=null;lockedPose=null;steeringYaw=null;heldSteeringYaw=null;
    placing=true;hasHit=false;headingSet=false;layout('placing');$('fixWorld').disabled=true;notice('BUSCÁ UNA SUPERFICIE PLANA',2400);
   }else{layout('ready');demoCameraPlacement()}
  }catch(e){
@@ -214,22 +221,29 @@ function applyHit(frame){
  // Freeze compass on first valid hit so phone rotation won't spin the island.
  if(!headingSet){
   const viewerPose=frame.getViewerPose(renderer.xr.getReferenceSpace());
-  const orientation=viewerPose?.views?.[0]?.transform?.orientation;
-  if(orientation){
-   const facing=new T.Vector3(0,0,-1).applyQuaternion(new T.Quaternion(orientation.x,orientation.y,orientation.z,orientation.w));
-   const horizontal=Math.hypot(facing.x,facing.z);
-   if(horizontal>.08){worldYaw=Math.atan2(-facing.x,-facing.z)+yaw;headingSet=true}
-  }
+  const heading=S.headingFromQuaternion(viewerPose?.views?.[0]?.transform?.orientation);
+  if(heading!==null){worldYaw=heading+yaw;headingSet=true;steeringYaw=heading}
  }
  // Start tile stays at hit-tested floor center; never follows the phone.
  stage.root.position.set(pos.x+offset.x,pos.y,pos.z+offset.z);
  stage.root.rotation.y=worldYaw;stage.root.scale.setScalar(scale);
  $('fixWorld').disabled=false;$('placementHint').textContent='PISO DETECTADO · PISTA '+(33*scale).toFixed(1)+' m × '+(18.5*scale).toFixed(1)+' m · GIRÁ O ESCALÁ';
 }
-function updateAnchor(frame){
- if(!anchor||placing||mode!=='ar')return;
+function maintainWorldLock(frame){
+ if(placing||mode!=='ar'||!spatialLock||!stage)return;
+ // Preserve the EXACT pose chosen by the user, independent of subsequent
+ // anchor refinements, phone translation and phone rotation.
+ S.restoreWorld(stage,spatialLock);
+ if(!frame||!anchor)return;
  const pose=frame.getPose(anchor.anchorSpace,renderer.xr.getReferenceSpace());
- if(pose&&stage){stage.root.position.set(pose.transform.position.x+offset.x,pose.transform.position.y,pose.transform.position.z+offset.z)}
+ if(!pose)return;
+ const pos=pose.transform.position;
+ const current={x:pos.x,y:pos.y,z:pos.z};
+ if(!anchorPoseAtLock){anchorPoseAtLock=current;return}
+ if(!anchorDriftWarned&&S.trackedAnchorDeviation(anchorPoseAtLock,current)>.42){
+  anchorDriftWarned=true;
+  notice('SEGUIMIENTO AR CAMBIÓ · RECENTRAR SI LA PISTA SE DESALINEÓ',3600);
+ }
 }
 async function fixWorld(){
  if(!hasHit||!placing||!stage)return;
@@ -237,14 +251,26 @@ async function fixWorld(){
   notice('EL INICIO QUEDÓ FUERA DE PANTALLA · APUNTÁ AL PISO',2700);
   return;
  }
- placing=false;lockedPose=stage.root.position.clone();$('fixWorld').disabled=true;layout('ready');$('readyTitle').textContent='¡MUNDO FIJADO!';
- notice('¡LISTO! · EL MUNDO YA ESTÁ EN TU PISO',1800);haptic(18);
- if(lastHit?.createAnchor)try{anchor=await lastHit.createAnchor()}catch(_){}
+ placing=false;lockedPose=stage.root.position.clone();
+ spatialLock=Object.freeze(S.snapshotWorld(stage));
+ worldYaw=spatialLock.yaw;scale=spatialLock.scale;
+ anchorPoseAtLock=null;anchorDriftWarned=false;
+ const placeNonce=++placementSerial;
+ const hitAtLock=lastHit;
+ $('fixWorld').disabled=true;layout('ready');$('readyTitle').textContent='¡MUNDO FIJADO!';
+ notice('¡LISTO! · PISTA FIJA EN EL PISO',1800);haptic(18);
+ if(hitAtLock?.createAnchor)try{
+  const created=await hitAtLock.createAnchor();
+  if(placementSerial===placeNonce&&!placing&&mode==='ar')anchor=created;
+  else created.delete?.();
+ }catch(_){}
 }
 function recenter(){
  if(mode!=='ar'||!session)return;
  if(phase==='playing')C.pause(game);
- placing=true;hasHit=false;headingSet=false;lockedPose=null;anchor?.delete?.();anchor=null;
+ placementSerial++;placing=true;hasHit=false;headingSet=false;lockedPose=null;spatialLock=null;
+ anchorPoseAtLock=null;anchorDriftWarned=false;heldSteeringYaw=null;steeringYaw=null;
+ anchor?.delete?.();anchor=null;
  layout('placing');notice('RECENTRÁ SIN PERDER TUS MONEDAS',2500);$('placementHint').textContent='ENCONTRÁ EL PISO OTRA VEZ';
 }
 function startGame(){
