@@ -72,8 +72,8 @@ function setWhere(){const idx=clamp(game.lane,0,3);
  E('where').style.borderColor=G.COLORS[idx];}
 function showPrepare(isVisible){
  E('prepare').style.display=isVisible?'block':'none';
- E('where').style.display=(running||calibrated||demo)?'block':'none';
- E('hud').style.display=running?'block':'none';
+ E('where').style.display=(!isVisible&&(running||calibrated||demo))?'block':'none';
+ E('hud').style.display=(!isVisible&&running)?'block':'none';
 }
 function pick(n){
  if(!locked||demo||n<0||n>3)return;
