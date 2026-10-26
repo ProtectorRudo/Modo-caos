@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=16';
+import {createRodeadosArt} from './rodeados-art.js?v=14';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
@@ -15,11 +15,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(inner
 $('world').appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xbbfcff,0x142c46,2));
 const key=new THREE.DirectionalLight(0xfff0ce,2.2);key.position.set(-2.5,5,1.8);scene.add(key);
-const cool=new THREE.PointLight(0x44fce0,1.25,7);cool.position.set(1,2,-1);scene.add(cool);
-// Reuse an existing virtual light instead of adding a fourth expensive
-// dynamic PBR light to the Android WebXR shader.
-const coolBase=new THREE.Color(0x44fce0),coolAlert=new THREE.Color(0xff6538);
-const floorLightTarget=new THREE.Vector3();
+const cool=new THREE.PointLight(0x44fce0,1.7,7);cool.position.set(1,2,-1);scene.add(cool);
 if(!UX)throw Error('RODEADOS: falta el radar 360');
 const art=createRodeadosArt(THREE,scene,camera);
  // No file picker in the consumer experience. Internal asset QA remains
@@ -30,7 +26,7 @@ const art=createRodeadosArt(THREE,scene,camera);
    .then(({installManulPreview})=>installManulPreview({THREE,art,notice:msg=>console.info(msg)}))
    .catch(err=>console.warn('Developer preview unavailable',err));
  }else{
-  import('./rodeados-robots-auto.js?v=16')
+  import('./rodeados-robots-auto.js?v=14')
    .then(({installAutoRobots})=>installAutoRobots({THREE,art,debug:true}))
    .catch(err=>console.warn('Rodeados tactical skin unavailable; safe original bot fallback',err));
  }
@@ -461,7 +457,7 @@ function spawnOpeningEnemies(){
   e.x=eyeLocal.x+direction.x*slot.distance+sideways.x*slot.lateral;
   e.z=eyeLocal.z+direction.z*slot.distance+sideways.z*slot.lateral;
   e.angle=Math.atan2(eyeLocal.x-e.x,eyeLocal.z-e.z);
-  e.portal=0;e.age=.72;e.stun=.65;e.state='stunned';
+  e.portal=0;e.age=.72;e.stun=2;e.state='stunned';
  }
  art.drawEnemies(game);
 }
@@ -740,16 +736,6 @@ function tickGame(dt,t){
   }
  }
  art.effect(game,fxShown);art.drawBombs(game);art.updateSparks(dt);
- const blastAt=game.fx.findLast?.(f=>f.type==='bombBlast')?.t??-100;
- const blastAge=game.elapsed-blastAt,damageAge=game.elapsed-game.lastDamage;
- const burst=blastAge>=0&&blastAge<.65?Math.pow(1-blastAge/.65,2)*1.65:0;
- const danger=damageAge>=0&&damageAge<.85?Math.pow(1-damageAge/.85,1.5)*1.3:0;
- const warning=Math.min(2.15,Math.max(burst,danger));
- cool.color.copy(coolBase).lerp(coolAlert,Math.min(1,warning/1.65));
- cool.intensity=1.25+warning*.38;
- art.root.updateMatrixWorld(true);
- floorLightTarget.set(game.player.x+.45,1.75,game.player.z-.45);
- cool.position.copy(art.root.localToWorld(floorLightTarget));
  if(online?.isHost)sendSnapshot();
  if(game.lastDamage>0&&game.elapsed-game.lastDamage<.13){vib(38)}
  if(t-lastHud>110){lastHud=t;updateHud()}

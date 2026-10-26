@@ -19,8 +19,6 @@ jobs:
       - run: node --check rodeados-ux.js
       - run: node --check rodeados-progression.js
       - run: node --check rodeados-art.js
-      - run: node --check rodeados-spider.js
-      - run: node .github/scripts/rodeados-asset-metadata.cjs
       - run: node --check rodeados-manul.js
       - run: node --check rodeados-robots-auto.js
       - run: node --check rodeados-runtime.js
@@ -30,8 +28,6 @@ jobs:
       - run: node --test tests/rodeados-combat-v6.test.cjs
       - run: node --test tests/rodeados-bomb.test.cjs
       - run: node --test tests/rodeados-war-floor.test.cjs
-      - run: node --test tests/rodeados-approach-v15.test.cjs
-      - run: node --test tests/rodeados-spider-v16.test.cjs
       - run: node --test tests/rodeados-progression.test.cjs
   chromium:
     runs-on: ubuntu-latest
@@ -46,4 +42,4 @@ jobs:
       - run: node tests/rodeados-manul-preview.test.cjs
       - run: node tests/rodeados-auto-robots.test.cjs
       - run: RODEADOS_REAL_ASSET=1 node tests/rodeados-auto-robots.test.cjs
-      - run: node tests/rodeados-spider-browser-v16.cjs
+      - run: RODEADOS_REAL_ASSET=1 node tests/rodeados-auto-robots.test.cjs

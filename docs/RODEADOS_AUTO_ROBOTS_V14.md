@@ -35,17 +35,3 @@ Como sustituto funcional libre, se utiliza el humanoide táctico futurista **FRE
 - Antes de afirmar 10/10 gráfico hay que probar físicamente en el móvil Android ARCore, medir FPS y comprobar si el personaje de la fuente luce efectivamente más serio que los robots previos.
 
 No se alteraron tablas de Viralio ni Te Hice Esto ni se añadieron dependencias a ellos.
-
-## V15 — orientación frontal, animaciones erguidas y persecución visible (25/10/2026)
-
-Esta revisión nace de **una captura física de Chrome Android**: dos androides tácticos mostraban la espalda, parecían en cuclillas con los pies separados del suelo y apenas avanzaban hacia la cámara.
-
-**Causas verificadas en el código y en el GLB auténtico (3.094.592 bytes):**
-
-- El núcleo apunta el eje frontal +Z hacia el usuario (`e.angle=Math.atan2(...)`), pero el cargador aplicaba un giro adicional de **180°**, invirtiendo las figuras.
-- La búsqueda de animaciones elegía el **primer nombre que contuviera «idle»/«walk»**, y el fichero empieza por `aim_crouch_idle` y `aim_crouch_walk`. Por ello, incluso durante la caminata, los androides estaban en cuclillas. El análisis de su JSON glTF encontró nombres explícitos `idle`, `walk`, `run`, `melee` y `hit`, y un esqueleto Mixamo con cabeza, brazos y piernas.
-- El robot básico se paraba a **2,70 m**, demasiado pronto respecto a su aparición a unos 3,15 m, por lo que el acercamiento apenas se percibía.
-
-**Cambios:** se elimina el giro artificial de 180° y se respetan `e.angle` y la rotación espacial calibrada. Se eligen exclusivamente nombres exactos de animación erguida (`idle`, `walk`, `run`, `melee`), excluyendo `aim_crouch_*`, `prone`, `jump` y similares. En ausencia de un clip erguido, se usa movimiento procedural en huesos y nunca caminata agachada. Los seis enemigos avanzan hasta **2,53–2,64 m** antes de atacar y aumentan moderadamente su velocidad; se mantiene estrictamente **SAFE_DISTANCE=2.45 m** entre el jugador lógico y el bot, sin animaciones que impliquen movimiento físico del jugador. La primera aparición reduce el aturdimiento visual inicial de 2 s a 0,65 s; sin perder el tiempo para apuntar desde 3 m.
-
-**Pruebas nuevas:** `tests/rodeados-approach-v15.test.cjs` exige avanzar más de 0,70 m y detenerse por encima de 2,45 m; `tests/rodeados-auto-robots.test.cjs` con el modelo real empaquetado exige enfrentar +Z al jugador (`facingDegrees=0`) y seleccionar exactamente `idle/walk/run/melee`, nunca clips de crouch/prone. CI inspecciona además los nombres reales del asset con `.github/scripts/rodeados-asset-metadata.cjs`. Test de escena WebGL/AR simulado no equivale todavía a la revisión visual física en Android.
