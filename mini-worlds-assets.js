@@ -97,8 +97,17 @@ root.MiniWorldsAssets=function(T){
   stage.coins.forEach(c=>replace(c,'coin-gold',.40));
   stage.stars.forEach(c=>replace(c,'star',.60));
   stage.boxes.forEach((b,i)=>{
-   let type=stage.map.boxes[i].type,model=type==='reinforced'?'crate-strong':type==='secret'?'chest':'crate';
-   replace(b,model,.61);
+   const type=stage.map.boxes[i].type,model=type==='reinforced'?'crate-strong':type==='secret'?'chest':'crate';
+   if(replace(b,model,.61)&&(type==='coins'||type==='mystery')){
+    // A luminous side seal makes reward crates immediately distinguishable.
+    const color=type==='coins'?0xffd25b:0xbd86ff;
+    const seal=new T.Group();seal.position.set(0,.08,.326);
+    const plate=new T.Mesh(new T.CylinderGeometry(.16,.16,.026,14),new T.MeshStandardMaterial({color,metalness:.55,roughness:.25,emissive:color,emissiveIntensity:.20}));
+    plate.rotation.x=Math.PI/2;seal.add(plate);
+    const glyph=new T.Mesh(type==='coins'?new T.TorusGeometry(.091,.027,7,15):new T.IcosahedronGeometry(.072,0),
+      new T.MeshStandardMaterial({color:0xfffaf3,metalness:.3,roughness:.22}));
+    glyph.position.z=.027;seal.add(glyph);b.add(seal);
+   }
   });
   stage.assetStats={loaded,failed,instances};
   if(!alive||signal?.aborted){add.parent?.remove(add);return {count:0,loaded,failed}};
