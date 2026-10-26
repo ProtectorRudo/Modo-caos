@@ -33,7 +33,7 @@ root.MiniWorldsAssets=function(T){
   const scene=stage?.root;if(!scene)return {count:0,loaded:0,failed:models.length};
   const add=new T.Group();add.name='MINI WORLDS · KENNEY CC0 PREMIUM WORLD DRESSING';scene.add(add);
   let alive=true,loaded=0,failed=0,instances=0;
-  stage.disposeAssets=()=>{alive=false;add.parent?.remove(add)};
+  stage.disposeAssets=()=>{alive=false};
   const base=await loader();
   const templates=new Map();
   // Load once, cache within this scene, then instantiate lightweight clones.
