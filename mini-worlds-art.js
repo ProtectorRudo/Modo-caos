@@ -282,7 +282,35 @@ function makeStage(map){
  const warning=mesh(new T.RingGeometry(.84,1.3,40),new T.MeshBasicMaterial({color:0xff513e,transparent:true,opacity:.45,side:T.DoubleSide,depthWrite:false}),0,1.20,-23.2,root);warning.rotation.x=-P/2;warning.visible=false;
  const projectilePool=Array.from({length:14},()=>{let o=mesh(sphere(.12,9,7),M.red,0,0,0,root);o.visible=false;return o});
  const hazardPool=Array.from({length:8},()=>{let o=mesh(new T.RingGeometry(.40,.77,24),new T.MeshBasicMaterial({color:0xff583c,transparent:true,opacity:.57,side:T.DoubleSide,depthWrite:false}),0,0,0,root);o.rotation.x=-P/2;o.visible=false;return o});
- const effects=[],combatBursts=[],koTimers=new Map();
+ const effects=[],combatBursts=[],koTimers=new Map(),rewardTextures=new Map();
+ function rewardTexture(text){
+  if(rewardTextures.has(text))return rewardTextures.get(text);
+  const c=document.createElement('canvas');c.width=256;c.height=104;
+  const g=c.getContext('2d');
+  g.clearRect(0,0,256,104);
+  g.font='900 51px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';
+  g.lineWidth=10;g.strokeStyle='#173243';g.shadowColor='#10334c';g.shadowBlur=14;
+  g.strokeText(text,128,52);
+  g.fillStyle=text.includes('KO')?'#b4ffe2':text.includes('CRACK')?'#fff0c6':'#ffe18b';
+  g.fillText(text,128,52);
+  const texture=new T.CanvasTexture(c);texture.colorSpace=T.SRGBColorSpace;
+  rewardTextures.set(text,texture);return texture;
+ }
+ function rewardPop(text,x,y,z){
+  const o=new T.Sprite(new T.SpriteMaterial({map:rewardTexture(text),transparent:true,depthTest:false,depthWrite:false}));
+  o.position.set(x,y,z);o.scale.set(1.1,.44,1);o.renderOrder=1805;root.add(o);
+  combatBursts.push({o,t:0,life:.72,kind:'pop',baseY:y});
+ }
+ const shardMat=new T.MeshStandardMaterial({color:0xc99263,roughness:.88,metalness:0,flatShading:true});
+ function crateShards(x,y,z){
+  for(let k=0;k<8;k++){
+   const a=k*Math.PI*.25,velocity=1.2+rand()*.9;
+   const o=mesh(cube(.095+rand()*.085,.08+rand()*.12,.09+rand()*.06),shardMat,x,y+.4,z,root);
+   o.castShadow=false;
+   combatBursts.push({o,t:0,life:.62,kind:'shard',vx:Math.sin(a)*velocity,vy:1.8+rand()*.9,vz:Math.cos(a)*velocity});
+  }
+ }
+
  let stageCharacters=null;
  function combatFx(evt,actor){
   if(!evt)return;
@@ -298,7 +326,21 @@ function makeStage(map){
    o.renderOrder=1803;o.castShadow=false;
    combatBursts.push({o,t:0,life:.7,kind:'alert'});
   }
-  if(evt.type==='enemyDown')koTimers.set(evt.id,.55);
+  if(evt.type==='coin'){
+   rewardPop('+1',evt.x,evt.y+.38,evt.z);
+   impact(evt.x,evt.y,evt.z,'#ffe390',5);
+  }
+  if(evt.type==='bonus'&&Number.isFinite(evt.x))rewardPop('+'+evt.count,evt.x,evt.y+.87,evt.z);
+  if(evt.type==='star'&&Number.isFinite(evt.x))rewardPop('★',evt.x,evt.y+.42,evt.z);
+  if(evt.type==='boxBreak'&&Number.isFinite(evt.x)){
+   crateShards(evt.x,evt.y,evt.z);
+   rewardPop('CRACK!',evt.x,evt.y+1,evt.z);
+  }
+  if(evt.type==='enemyHit'&&Number.isFinite(evt.x))rewardPop('HIT!',evt.x,evt.y+1.2,evt.z);
+  if(evt.type==='enemyDown'){
+   koTimers.set(evt.id,.55);
+   rewardPop('KO! +3',evt.x,evt.y+1.05,evt.z);
+  }
   if(['enemyHit','enemyDown','boxBreak','bossHit'].includes(evt.type)){
    const target=evt.type==='bossHit'?{x:map.boss.x,y:map.boss.y+1.5,z:map.boss.z}:evt;
    if(!Number.isFinite(target?.x))return;
@@ -359,24 +401,38 @@ function makeStage(map){
    const fx=combatBursts[i];fx.t+=dt;
    const progress=Math.min(1,fx.t/fx.life);
    fx.o.material.opacity=(1-progress)*.92;
-   fx.o.scale.setScalar(fx.kind==='slash'?1+progress*.38:.55+progress*1.6);
-   if(fx.t>=fx.life){fx.o.parent?.remove(fx.o);fx.o.geometry.dispose();fx.o.material.dispose();combatBursts.splice(i,1)}
+   if(fx.kind==='pop'){
+    fx.o.position.y=fx.baseY+progress*.80;
+    fx.o.scale.set(1.06+Math.sin(progress*Math.PI)*.34,.43+Math.sin(progress*Math.PI)*.12,1);
+   }else if(fx.kind==='shard'){
+    fx.vy-=6.5*dt;fx.o.position.x+=fx.vx*dt;fx.o.position.z+=fx.vz*dt;fx.o.position.y+=fx.vy*dt;
+    fx.o.rotation.x+=dt*6;fx.o.rotation.z+=dt*8;
+    fx.o.scale.setScalar(Math.max(.06,1-progress));
+   }else fx.o.scale.setScalar(fx.kind==='slash'?1+progress*.38:.55+progress*1.6);
+   if(fx.t>=fx.life){
+    fx.o.parent?.remove(fx.o);
+    fx.o.geometry?.dispose();
+    if(fx.kind!=='shard')fx.o.material?.dispose();
+    combatBursts.splice(i,1);
+   }
   }
-  for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.life-=dt;f.vy-=8*dt;f.o.position.x+=f.vx*dt;f.o.position.y+=f.vy*dt;f.o.position.z+=f.vz*dt;f.o.scale.setScalar(Math.max(.1,f.life*2));if(f.life<=0){root.remove(f.o);f.o.geometry.dispose();effects.splice(i,1)}}
+  for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.life-=dt;f.vy-=8*dt;f.o.position.x+=f.vx*dt;f.o.position.y+=f.vy*dt;f.o.position.z+=f.vz*dt;f.o.scale.setScalar(Math.max(.1,f.life*2));if(f.life<=0){root.remove(f.o);f.o.geometry.dispose();f.o.material.dispose();effects.splice(i,1)}}
  }
  function dispose(){
   // A GLB may have dozens of meshes sharing the same material/geometry.
   // Release each GPU resource once after removing the old stage.
   const geometries=new Set(),materials=new Set();
   scene.traverse(o=>{
-   if(!o.isMesh)return;
+   if(!o.isMesh&&!o.isLine&&!o.isSprite)return;
    if(o.geometry)geometries.add(o.geometry);
    if(Array.isArray(o.material))o.material.forEach(m=>materials.add(m));
    else if(o.material)materials.add(o.material);
   });
   geometries.forEach(g=>g.dispose());
   materials.forEach(m=>m.dispose());
+  rewardTextures.forEach(t=>t.dispose());
   Object.values(M).forEach(m=>m.dispose());
+  shardMat.dispose();
  }
  return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,update,impact,combatFx,dispose,bindCharacters};
 }
