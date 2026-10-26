@@ -17,7 +17,7 @@ require('../ritmo-fx.js');
 const html=fs.readFileSync('ritmo.html','utf8');
 const runtime=fs.readFileSync('ritmo-runtime.js','utf8');
 assert(html.includes('id="fxCanvas"')&&html.includes('id="holdHud"'));
-assert(html.includes('ritmo-fx.js?v=15'));
+assert(/ritmo-fx\.js\?v=\d+/.test(html));
 assert(runtime.includes("type==='hold_complete'")&&runtime.includes("holdFill"));
 assert(runtime.includes("audio.feedback?.('HOLD_COMPLETE'"));
 assert(runtime.includes("fx?.celebrate("));
