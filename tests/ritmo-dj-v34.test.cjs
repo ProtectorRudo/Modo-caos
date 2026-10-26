@@ -54,12 +54,12 @@ test('V34 cabina, stage feet, and four game-lane invariants',()=>{
  assert.ok(ext.includes("for(const sign of [-1,1])for(const depth of [-1,1])"));
  assert.ok(ext.includes("const BACK=.22"));
  assert.ok(ext.includes("const stageZ=-1.57,stageWidth=size*4+.29"));
- assert.ok(ext.includes("HORSE DJ V34"));
+ assert.ok(ext.includes("HORSE DJ V35"));
  const floor=source('ritmo-stage-showtime.js');
  assert.ok(floor.includes('const trails=quality===0?3:5'));
  assert.ok(floor.includes('const back=-1.15,front=.94'));
  for(const name of ['ritmo-glb-props','ritmo-skinning','ritmo-exterior','ritmo-stage-showtime'])
-  assert.ok(html.includes('/'+name+'.js?v=34'),name);
- assert.ok(html.indexOf('ritmo-skinning.js?v=34')<html.indexOf('ritmo-exterior.js?v=34'));
- assert.ok(html.indexOf('ritmo-stage-showtime.js?v=34')<html.indexOf('ritmo-runtime.js?v=31'));
+  assert.ok(html.includes('/'+name+'.js?v=35'),name);
+ assert.ok(html.indexOf('ritmo-skinning.js?v=35')<html.indexOf('ritmo-exterior.js?v=35'));
+ assert.ok(html.indexOf('ritmo-stage-showtime.js?v=35')<html.indexOf('ritmo-runtime.js?v=31'));
 });
