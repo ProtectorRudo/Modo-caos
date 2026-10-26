@@ -71,7 +71,7 @@ test('dark CDJ console, shorter panel and contact feet draw only behind note spa
  new Function('window',extSource)(w);
  const obj=w.RitmoExterior.create(api);
  obj.render(.25,3,{combo:30},{low:.8,mid:.7});
- assert.equal(obj.version,'HORSE DJ V34');
+ assert.equal(obj.version,'HORSE DJ V35');
  assert.ok(coords.every(p=>p.every(Number.isFinite)&&p[2]<-1.16),'decorations stay behind note track z=-1.15');
  const desk=log.filter(x=>x.type==='desk');assert.equal(desk.length,1);
  const control=log.find(x=>x.type==='box'&&x.w===.605&&x.h===.025);
@@ -88,7 +88,7 @@ test('dark CDJ console, shorter panel and contact feet draw only behind note spa
 });
 test('V34 loads exactly the new external modules, no floor movement changes',()=>{
  for(const file of ['ritmo-glb-props','ritmo-skinning','ritmo-exterior','ritmo-stage-showtime'])
-  assert.ok(html.includes('/'+file+'.js?v=34'),file);
+  assert.ok(html.includes('/'+file+'.js?v=35'),file);
  assert.match(html,/ritmo-runtime\.js\?v=31/);
  assert.ok(!read('ritmo-skinning.js').includes('RitmoCore.tick'));
  assert.match(stage,/const back=-1\.15,front=\.94/);
