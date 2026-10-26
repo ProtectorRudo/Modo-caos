@@ -10,11 +10,16 @@
 'use strict';
 root.MiniWorldsPremium=function(T,options={}){
  const BASE='https://raw.githubusercontent.com/anshaneja5/skyline-run/0c41526d8d4130c37c15e219c2c3737fa8cb4ad8/public/assets/models/';
+ const MEDIEVAL='https://raw.githubusercontent.com/kikoncuo/jevfire/5df83b558bf635e006d31f8f2fc2798d0e3ff051/web/public/assets/';
  const SOURCES=Object.freeze({
   canopyA:{url:BASE+'tree1.glb',size:516044,sha:'80bd662cc51f983986f4e201463dc3a729a6cd4a'},
   canopyB:{url:BASE+'tree2.glb',size:446732,sha:'0197de65879eb650247c8d56ac52da34489938cb'},
   canopyC:{url:BASE+'tree3.glb',size:332440,sha:'828786b4bdb5224a8b3672f5e5d6cebe1c65bd93'},
-  shrub:{url:BASE+'bush.glb',size:108520,sha:'84b4153c17e988a658e56d4093b0028d1b034c3f'}
+  shrub:{url:BASE+'bush.glb',size:108520,sha:'84b4153c17e988a658e56d4093b0028d1b034c3f'},
+  // Kay Lousberg's CC0 Medieval Hexagon Pack (optimized GLBs).
+  medievalTower:{url:MEDIEVAL+'tower.glb',size:130876,sha:'d4bace4e1157841d5270e6a6fbb3d8120b7781dc'},
+  medievalWall:{url:MEDIEVAL+'wall.glb',size:48220,sha:'493bfe3f0df0d0fcad99c21b6eeea813b6dd145c'},
+  medievalRock:{url:MEDIEVAL+'rock.glb',size:18800,sha:'b3edff0760b3e01088fbae75afbd14c42c827829'}
  });
  let loaderPromise;
  function loader(){
@@ -41,7 +46,7 @@ root.MiniWorldsPremium=function(T,options={}){
   return true;
  }
  async function decorate(stage,level){
-  if(!stage?.root||!stage?.map?.platforms)return {loaded:0,placed:0,failed:4};
+  if(!stage?.root||!stage?.map?.platforms)return {loaded:0,placed:0,failed:level?7:4};
   const rootGroup=stage.root,layer=new T.Group();
   layer.name='MINI WORLDS · QUATERNIUS STYLIZED NATURE MEGAKIT · CC0';
   rootGroup.add(layer);
@@ -50,10 +55,10 @@ root.MiniWorldsPremium=function(T,options={}){
   const templateMap=new Map(),results={loaded:0,placed:0,failed:0,source:'Quaternius Stylized Nature MegaKit Standard / CC0'};
   let gltf;
   try{gltf=options.loadModel?{loadAsync:options.loadModel}:await loader()}catch(e){
-   layer.parent?.remove(layer);results.failed=4;console.warn('[MINI WORLDS PREMIUM] GLTFLoader unavailable',e);
+   layer.parent?.remove(layer);results.failed=level?7:4;console.warn('[MINI WORLDS PREMIUM] GLTFLoader unavailable',e);
    return results;
   }
-  const keys=Object.keys(SOURCES);
+  const keys=Object.keys(SOURCES).filter(name=>level>0||!name.startsWith('medieval'));
   // Four independent loads: each 110–516 KB. A single failed CDN request
   // never removes existing Kenney scenery or blocks a playable level.
   const entries=await Promise.all(keys.map(async(key)=>{
@@ -87,7 +92,7 @@ root.MiniWorldsPremium=function(T,options={}){
   let treeCount=0;
   const place=(name,x,y,z,height,angle)=>{
    const target=templateMap.get(name);if(!target)return false;
-   if(locate(layer,target,x,y,z,height,angle)){results.placed++;if(name!=='shrub')treeCount++;return true}
+   if(locate(layer,target,x,y,z,height,angle)){results.placed++;if(name.startsWith('canopy'))treeCount++;return true}
    return false;
   };
   // Gameplay/physics traverse the centers. Canopy is placed exclusively
@@ -107,9 +112,16 @@ root.MiniWorldsPremium=function(T,options={}){
   // Detail on physically walkable historic ruins only; never create new
   // fake land/bridges. Premium plants are scenery with no new hitboxes.
   if(level===1){
-   const a=stageTiles[7],p=stageTiles[11];
-   place('canopyC',a.x-a.w*.44,a.y+.03,a.z-a.d*.42,2.7,.7);
-   place('shrub',p.x+p.w*.43,p.y+.02,p.z-p.d*.4,.53,.4);
+   // Two landmark watchtowers frame the arena. Wall fragments and rocks
+   // reinforce the ruins without pretending to be walkable surfaces.
+   const arena=stageTiles[7],oldTemple=stageTiles[11],cliff=stageTiles[6];
+   place('medievalTower',arena.x-arena.w*.43,arena.y+.02,arena.z-arena.d*.40,2.95,.43);
+   place('medievalTower',arena.x+arena.w*.43,arena.y+.02,arena.z-arena.d*.40,2.95,-.49);
+   place('medievalWall',oldTemple.x-oldTemple.w*.39,oldTemple.y-.08,oldTemple.z+oldTemple.d*.40,1.14,.7);
+   place('medievalWall',cliff.x+cliff.w*.44,cliff.y-.08,cliff.z-cliff.d*.39,.92,.12);
+   place('medievalRock',oldTemple.x+oldTemple.w*.48,oldTemple.y-.18,oldTemple.z-oldTemple.d*.45,.94,.24);
+   place('medievalRock',cliff.x-cliff.w*.50,cliff.y-.14,cliff.z+cliff.d*.42,1.10,1.2);
+   place('shrub',oldTemple.x+oldTemple.w*.43,oldTemple.y+.02,oldTemple.z-oldTemple.d*.4,.53,.4);
   }
   if(treeCount>=3){
    stage.premiumNativeActive=true;
