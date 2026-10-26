@@ -10,6 +10,7 @@ window.modoCaosCustomRender=function(gl,view,W,t){
  const success=!!stage3d?.render(gl,view,W,t,locked?game:null,boardSize,audio.spectrum);
  stage3dOK=success;
  E('rtSvg').style.display=success?'none':'block';
+ if(!success&&window.modoCaosCustomArena)E('playerBadge').style.display='none';
  return success;
 };
 function noteSpot(lane){return (stage3dOK?stage3d?.spot(lane):null)||art.spot?.(lane)}
@@ -163,6 +164,16 @@ function togglePause(){
 }
 E('gamePause').onclick=togglePause;
 E('sound').onclick=()=>{muted=!muted;audio.volume(muted);E('sound').textContent=muted?'🔇':'🔊'};
+const qualityModes=['auto','high','low'];
+const qualityNames=['✨ AUTO','✨ ALTA','✨ LIGERA'];
+E('quality').onclick=()=>{
+ if(!stage3d){notify('RENDERIZADO CLÁSICO');return}
+ const next=(qualityModes.indexOf(stage3d.mode())+1)%qualityModes.length;
+ stage3d.setQuality(qualityModes[next]);
+ E('quality').textContent=qualityNames[next];
+ notify(next===0?'GRÁFICOS AUTOMÁTICOS':next===1?'GRÁFICOS ALTA CALIDAD':'GRÁFICOS MODO LIGERO',1000);
+};
+
 E('rtRecenter').onclick=chooseLane;
 E('exit').onclick=()=>{E('playerBadge').style.display='none';E('holdHud').style.display='none';audio.stop();try{sess?.end()}catch(_){}location.href='/'};
 E('lock').addEventListener('click',()=>{if(typeof stage!=='undefined'&&stage==='fixed')fixed()});
@@ -198,6 +209,7 @@ function onEvents(){
    try{audio.feedback?.('HOLD_START',ev.lane,game.combo)}catch(_){}
   }else if(ev.type==='hold_complete'){
    fx?.burst(ev.lane,noteSpot(ev.lane),'HOLD',ev.combo,ev.points);
+   stage3d?.hit(ev.lane,'HOLD');
    try{audio.feedback?.('HOLD_COMPLETE',ev.lane,ev.combo)}catch(_){}
    try{navigator.vibrate?.([30,24,45])}catch(_){}
    notify('🌟 ¡SOSTENIDA PERFECTA! + PUNTOS',920);
@@ -207,7 +219,10 @@ function onEvents(){
    const msg=ev.rating==='PERFECTO'?'✨ PERFECTO':ev.rating==='GENIAL'?'⚡ GENIAL':ev.rating==='BIEN'?'✓ BIEN':'✕ FALLO';
    const note=game.notes[ev.note];
    // Complete sustains get their own large effect and audio chord.
-   if(note?.type!=='hold')fx?.burst(ev.lane,noteSpot(ev.lane),ev.rating,ev.combo,ev.points);
+   if(note?.type!=='hold'){
+    fx?.burst(ev.lane,noteSpot(ev.lane),ev.rating,ev.combo,ev.points);
+    stage3d?.hit(ev.lane,ev.rating);
+   }
    if(ev.rating!=='FALLO'){
     if(note?.type!=='hold'){
      notify(msg,470);
