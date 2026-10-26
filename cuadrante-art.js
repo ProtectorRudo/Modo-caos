@@ -182,7 +182,7 @@ root.CuadranteArt=function(T){
    trail.forEach((m,i)=>{if(i>=count)m.visible=false});
    scene.userData.trailLimit=count;
   }
-  return {scene,root,you,enemy,orb,spawnImpact,update,setQuality,dispose(){scene.traverse(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}}
+  return {scene,root,you,enemy,orb,surfaceMaterials:{matTile,altTile,steel,panel,dark},spawnImpact,update,setQuality,dispose(){scene.traverse(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}}
  }
  return {makeStage};
 }
