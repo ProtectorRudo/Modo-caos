@@ -98,16 +98,16 @@ function makeEnemy(parent,e,y){
  for(let s of [-1,1])mesh(sphere(.10),M.woodDark,s*.2,-.29,.0,g);
  return g;
 }
-function makeBoss(parent,b){
+function makeBoss(parent,b,variant=false){
  const g=group(parent,b.x,b.y,b.z),torso=group(g,0,.84,0),claws=[];
  // Distinct mechanized hermit crab with high-contrast weakness beacon.
- const shell=mesh(sphere(1,24,16),M.coral,0,.23,0,torso);shell.scale.set(1.03,.65,.78);
+ const shell=mesh(sphere(1,24,16),variant?M.purple:M.coral,0,.23,0,torso);shell.scale.set(1.03,.65,.78);
  mesh(sphere(.76,22,13),M.woodDark,0,.38,-.2,torso).scale.set(1.1,.66,.91);
  for(let i=0;i<5;i++){mesh(cube(.06,.13,.88),M.gold,-.6+i*.3,.62,-.22,torso).rotation.z=.14}
  for(let s of [-1,1]){
   for(let i=0;i<3;i++){let leg=group(torso,s*.73,-.18,-.34+i*.36);let limb=mesh(cyl(.075,.11,.80,7),M.steel,s*.34,-.24,0,leg);limb.rotation.z=s*.95}
   let arm=group(torso,s*.82,.05,.31);mesh(cyl(.16,.17,.77,9),M.steel,s*.32,0,0,arm).rotation.z=s*P/2.3;
-  let claw=group(arm,s*.72,.04,.10);mesh(sphere(.33),M.coral,0,0,0,claw);
+  let claw=group(arm,s*.72,.04,.10);mesh(sphere(.33),variant?M.purple:M.coral,0,0,0,claw);
   for(let q of [-1,1]){let pin=mesh(geoCone(.135,.55,7),M.steel,s*.10,q*.22,.18,claw);pin.rotation.x=q*.65}
   claws.push(arm)}
  for(let s of [-1,1]){mesh(cyl(.08,.09,.47,8),M.steel,s*.33,.75,.46,torso);
@@ -133,14 +133,29 @@ function makeStage(map){
  }
  const sea=mesh(new T.CircleGeometry(5.25,64),M.water,0,-.62,-4.3,root);sea.rotation.x=-P/2;sea.scale.set(1.0,2.7,1);
  const lagoon=mesh(new T.CircleGeometry(2.4,40),M.water,.7,.49,-18.3,root);lagoon.rotation.x=-P/2;lagoon.material=M.water;
+ // Adventure 2 is a stormy cliff journey with glowing stones, high rock needles and relics.
+ if(map.n===1){
+  for(let i=0;i<22;i++){
+   const z=-1-i*1.04,x=(i%2?1:-1)*(2.9+rand()*2.3);
+   let cliff=addRock(root,x,-.2,z,.5+rand()*.45);cliff.scale.y=1.5+rand()*2.8;
+   if(i%3===0){let crystal=mesh(geoCone(.14,.68,6),M.purple,x,.4,z,root);crystal.rotation.z=.26;}
+  }
+  addRuins(root,-2.3,1,-15.7);addRuins(root,2.15,.8,-19);
+  for(let i=0;i<7;i++){
+   let obj=mesh(new T.IcosahedronGeometry(.14+rand()*.08,0),M.gold,Math.sin(i*2.8)*3,2.1+rand()*1.3,-4-i*2.6,root);
+   obj.userData.hover=true;
+  }
+ }
  const coins=map.coins.map(c=>makeCoin(root,c.x,c.y,c.z));
  const stars=map.stars.map(c=>makeStar(root,c.x,c.y,c.z));
  const boxes=map.boxes.map(b=>makeBox(root,b,Math.max(0,...map.platforms.filter(p=>Math.abs(b.x-p.x)<p.w/2&&Math.abs(b.z-p.z)<p.d/2).map(p=>p.y))));
  const enemies=map.enemies.map(e=>makeEnemy(root,e,e.type==='flying'?1.25:(Math.max(0,...map.platforms.filter(p=>Math.abs(e.x-p.x)<p.w/2&&Math.abs(e.z-p.z)<p.d/2).map(p=>p.y)))));
- const hero=makeAvatar(root),boss=makeBoss(root,map.boss);boss.root.visible=false;
+ const hero=makeAvatar(root),boss=makeBoss(root,map.boss,Boolean(map.n));boss.root.visible=false;
  const flags=map.checkpoints.map(c=>{let g=group(root,c.x,c.y,c.z);mesh(cyl(.038,.04,.95,8),M.steel,0,.46,0,g);mesh(geoCone(.19,.4,3),M.gold,.19,.78,0,g).rotation.z=P/2;return g});
  let portal=group(root,0,1.45,-25.35);let ring=mesh(new T.TorusGeometry(.56,.12,11,35),M.purple,0,.60,0,portal);ring.rotation.y=.2;let center=mesh(sphere(.45,18,13),new T.MeshBasicMaterial({color:0x92ffe2,transparent:true,opacity:.25}),0,.59,0,portal);center.scale.z=.18;portal.visible=false;
  const warning=mesh(new T.RingGeometry(.84,1.3,40),new T.MeshBasicMaterial({color:0xff513e,transparent:true,opacity:.45,side:T.DoubleSide,depthWrite:false}),0,1.20,-23.2,root);warning.rotation.x=-P/2;warning.visible=false;
+ const projectilePool=Array.from({length:14},()=>{let o=mesh(sphere(.12,9,7),M.red,0,0,0,root);o.visible=false;return o});
+ const hazardPool=Array.from({length:8},()=>{let o=mesh(new T.RingGeometry(.40,.77,24),new T.MeshBasicMaterial({color:0xff583c,transparent:true,opacity:.57,side:T.DoubleSide,depthWrite:false}),0,0,0,root);o.rotation.x=-P/2;o.visible=false;return o});
  const effects=[];
  function impact(x,y,z,c='#ffe89f',count=11){for(let i=0;i<count;i++){
   const o=mesh(sphere(.025+rand()*.045,6,5),mat(c),x,y,z,root);o.castShadow=false;
@@ -159,6 +174,8 @@ function makeStage(map){
   for(let i=0;i<enemies.length;i++){const e=map.enemies[i],o=enemies[i];o.visible=e.alive;if(o.visible){o.position.x=e.x;o.position.z=e.z;
    if(e.type==='flying')o.position.y=e.y;else o.position.y=Math.max(0,...map.platforms.filter(p=>Math.abs(e.x-p.x)<p.w/2&&Math.abs(e.z-p.z)<p.d/2).map(p=>p.y))+.42;
    o.rotation.y=Math.atan2(p.x-e.x,p.z-e.z);o.rotation.z=e.flash>0?.23*Math.sin(elapsed*44):Math.sin(elapsed*4+i)*.035}}
+  projectilePool.forEach((o,i)=>{let q=s.projectiles[i];o.visible=Boolean(q);if(q){o.position.set(q.x,q.y,q.z);o.scale.setScalar(1+.3*Math.sin(elapsed*22))}});
+  hazardPool.forEach((o,i)=>{let h=s.hazards[i];o.visible=Boolean(h);if(h){o.position.set(h.x,1.20+(h.active<=0?.01:0),h.z);o.material.opacity=h.active>0?.2:.72}});
   const b=map.boss;boss.root.visible=b.active&&b.alive;
   if(boss.root.visible){boss.root.position.set(b.x,b.y,b.z);boss.torso.rotation.z=Math.sin(elapsed*2)*.045;
    boss.claws.forEach((o,i)=>o.rotation.x=Math.sin(elapsed*(b.phase+2)+i)*.3+(b.telegraph>0?Math.sin(elapsed*15)*.7:0));
@@ -167,7 +184,7 @@ function makeStage(map){
   portal.visible=s.won;if(portal.visible)portal.rotation.y+=dt*.5;
   for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.life-=dt;f.vy-=8*dt;f.o.position.x+=f.vx*dt;f.o.position.y+=f.vy*dt;f.o.position.z+=f.vz*dt;f.o.scale.setScalar(Math.max(.1,f.life*2));if(f.life<=0){root.remove(f.o);f.o.geometry.dispose();effects.splice(i,1)}}
  }
- function dispose(){scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();/* materials shared across meshes */}});Object.values(M).forEach(m=>m.dispose())}
+ function dispose(){scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material?.isMeshBasicMaterial&&o.material!==M.water)o.material.dispose()}});Object.values(M).forEach(m=>m.dispose())}
  return {scene,root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,update,impact,dispose};
 }
 return {makeStage};
