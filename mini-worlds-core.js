@@ -213,14 +213,14 @@ function attack(s){
  // Tiny immediate magic cone fixes close-contact responsiveness.
  let hits=0;
  const veryNear=(obj,r)=>Math.hypot(obj.x-p.x,obj.z-p.z)<r;
- for(const b of s.map.boxes)if(b.alive&&veryNear(b,.72)&&Math.abs(p.y-(platformY(s,b.x,b.z)??0))<1.3){
+ for(const b of s.map.boxes)if(b.alive&&veryNear(b,.95)&&Math.abs(p.y-(platformY(s,b.x,b.z)??0))<1.3){
   if(spellDamage(s,b,'box',shot)){shot.ignore.push('box'+b.id);hits++}
  }
- for(const e of s.map.enemies)if(e.alive&&veryNear(e,.83)&&Math.abs(e.y-p.y)<2.1){
+ for(const e of s.map.enemies)if(e.alive&&veryNear(e,1.04)&&Math.abs(e.y-p.y)<2.1){
   if(spellDamage(s,e,'enemy',shot)){shot.ignore.push('enemy'+e.id);hits++}
  }
  const b=s.map.boss;
- if(b.active&&b.alive&&b.weak>0&&veryNear(b,1.45)&&spellDamage(s,b,'boss',shot)){
+ if(b.active&&b.alive&&b.weak>0&&veryNear(b,2.0)&&spellDamage(s,b,'boss',shot)){
   shot.ignore.push('boss');hits++;
  }
  if(hits)emit(s,'hit',{count:hits});
