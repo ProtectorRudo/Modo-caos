@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createReboteArt} from './rebote-art.js?v=11';
-import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=11';
+import {createReboteArt} from './rebote-art.js?v=12';
+import {createRodeadosArCompositor} from './rodeados-ar-compositor.js?v=12';
 /* REBOTE MORTAL · WebXR immersive-ar con Hit Test y anclaje opcional.
    La matriz AR no depende del HUD. El "jugador" es la posición del TELÉFONO, nunca pies/cuerpo. */
 const $=id=>document.getElementById(id),G=globalThis.ReboteCore;
@@ -85,7 +85,20 @@ function soundtrack(){
  else if(pulse%2===0)sound(180,.048,'sine',.014);
  else if(game.phase>=2)sound(680,.023,'triangle',.006);
 }
+function praise(label,points=0,kind='normal'){
+ const node=$('praise');
+ node.className='';node.textContent=label+(points?' · +'+points:'');
+ void node.offsetWidth;
+ node.className='burst '+kind;
+}
 function audioEvent(e){
+ if(e.type==='telegraph')sound(550,.08,'triangle',.018);
+ if(e.type==='buffer-expired')status('↯ TOCÁ AL ACERCARSE LA PELOTA');
+ if(e.type==='shield-recover'){
+  praise('🛡 ESCUDO RECUPERADO',0,'normal');
+  sound(820,.20,'sine',.085);
+  vibration([25,20,25]);
+ }
  if(e.type==='duel-intro'){
   sound(450+e.level*68,.24,'triangle',.075);
   status('🥊 RIVAL '+(e.level+1)+' / 6 · '+e.name);
@@ -94,6 +107,7 @@ function audioEvent(e){
  if(e.type==='duel-ko'){
   sound(860,.18,'triangle',.09);
   setTimeout(()=>sound(1180,.22,'triangle',.075),125);
+  praise('¡RIVAL DERROTADO!',e.points,'perfect');
   status('🏆 RIVAL '+(e.level+1)+' DERROTADO');
   vibration([36,60,65]);toast('¡BIEN! · SE VIENE UNO MÁS DIFÍCIL',2);
  }
@@ -105,6 +119,8 @@ function audioEvent(e){
   // Clear two-tone boing / ricochet, not a generic hit beep.
   sound(e.grade==='PERFECTO'?710:470,.16,'sine',.10);
   setTimeout(()=>sound(e.grade==='PERFECTO'?450:300,.12,'triangle',.045),55);
+  praise(e.grade==='PERFECTO'?'✦ PERFECTO':e.grade==='BUENO'?'¡BUENA!':'¡ROCE!',e.points,
+   e.grade==='PERFECTO'?'perfect':'normal');
   if(e.grade==='PERFECTO'){flash('perfect');sound(1050,.23,'triangle',.11);setTimeout(()=>sound(1450,.21,'triangle',.065),75);vibration([32,15,43]);status('✦ PERFECTO · +'+e.points)}
   else{sound(e.grade==='ROCE'?310:650,.17,'triangle',.08);vibration(38);status(e.grade+' · +'+e.points)}
  }
@@ -132,7 +148,8 @@ function startRound(){
   game.paused=false;pausedForTracking=false;setStage('playing');status('¡DEVOLVÉ LOS ATAQUES!');return
  }
  if(stage!=='ready'||!calibrated)return;
- G.begin(game);setStage('playing');
+ G.begin(game);$('praise').className='';$('praise').textContent='';
+ setStage('playing');
  $('cue').textContent=game.mode==='duelo'?'UN RIVAL A LA VEZ · ¡DEVOLVÉ SUS ATAQUES!':'APUNTÁ. ESPERÁ. ¡DEVOLVÉ!';
  status(game.mode==='duelo'?'🥊 DUELO 1 DE 6 · CHISPA':'⚡ ¡APUNTÁ A LA ESFERA!');
  sound(800,.23,'triangle',.08);
@@ -194,8 +211,12 @@ function updateHud(){
   $('duelStage').textContent='RIVAL '+(game.duelLevel+1)+' DE '+s.duelTotal;
   $('duelName').textContent=cfg.name+' · '+cfg.title;
   $('duelHealth').style.width=((rival?Math.max(0,rival.health/rival.maxHealth):0)*100).toFixed(1)+'%';
+  for(let i=0;i<6;i++){
+   const dot=$('duelMedals').children[i];
+   if(dot)dot.className=i<s.duelWins?'won':i===game.duelLevel?'now':'';
+  }
  }else $('phase').textContent='FASE '+(game.phase+1)+' / 5 · '+s.phase;
- if(stage==='playing')updateRadar();
+ if(stage==='playing'){updateRadar();$('tapHint').style.opacity=game.returns>=2?'0':'.75'}
 }
 function yawFromPose(pose){
  if(!pose)return 0;
@@ -526,11 +547,18 @@ $('share').onclick=async()=>{
  else if(navigator.clipboard){try{await navigator.clipboard.writeText(txt);toast('RESULTADO COPIADO',2)}catch(_){}}
 };
 let pointerReturnClickUntil=0;
+let zoneDemoGesture=null;
 function handleParryPointer(e){
  if(!e.isPrimary)return;
  e.preventDefault();e.stopPropagation();
- // pointerdown is the earliest dependable Android input; no click delay.
+ // Physical AR needs immediate pointerdown, but in the 3D training mode
+ // the exact same area also allows drag-to-aim without accidentally parrying.
  pointerReturnClickUntil=performance.now()+650;
+ if(demo&&e.currentTarget.id==='tapZone'){
+  zoneDemoGesture={pointerId:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
+  try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
+  return;
+ }
  onReturn();
 }
 function handleParryClick(e){
@@ -542,6 +570,26 @@ for(const name of ['returnBtn','tapZone']){
  $(name).addEventListener('pointerdown',handleParryPointer);
  $(name).addEventListener('click',handleParryClick);
 }
+$('tapZone').addEventListener('pointermove',e=>{
+ const drag=zoneDemoGesture;
+ if(!demo||!drag||e.pointerId!==drag.pointerId)return;
+ e.preventDefault();
+ const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+ if(Math.hypot(dx,dy)>5)drag.moved=true;
+ if(drag.moved){
+  demoYaw-=.0058*dx;
+  demoPitch=clamp(demoPitch-.004*dy,-.68,.63);
+ }
+ drag.x=e.clientX;drag.y=e.clientY;
+});
+$('tapZone').addEventListener('pointerup',e=>{
+ const drag=zoneDemoGesture;
+ if(!demo||!drag||e.pointerId!==drag.pointerId)return;
+ e.preventDefault();e.stopPropagation();
+ zoneDemoGesture=null;
+ if(!drag.moved)onReturn();
+});
+$('tapZone').addEventListener('pointercancel',()=>{zoneDemoGesture=null});
 $('tapZone').addEventListener('keydown',e=>{
  if(e.code==='Enter'||e.code==='Space'){e.preventDefault();onReturn()}
 });
@@ -714,4 +762,4 @@ window.addEventListener('resize',()=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='playing')pause()});
 if(window.__reboteEarlyTap)window.ReboteBoot?.show('MOTOR LISTO','Ahora tocá otra vez JUGAR EN REALIDAD AUMENTADA para abrir la cámara.');
 else window.ReboteBoot?.clear();
-globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError},get radarVisible(){return $('radar').style.display==='block'},get robotFacingDot(){return art.getRobotFacingDot(game.eye)},get selectedMode(){return selectedMode},get duelEnemies(){return game.enemies.filter(e=>e.alive&&e.duel).length},get texturedBalls(){return art.getTexturedBalls()},get ricochetRipples(){return art.getRicochetRipples()},get tapZoneVisible(){return $('tapZone').style.display==='block'},get bufferedReturn(){return !!game.bufferedShot},get floorStable(){return floorStable},get floorSamples(){return floorSamples.length},get calibrationRms(){return calibrationRms},get previewYaw(){return previewYaw}};
+globalThis.__ReboteDebug={get stage(){return stage},get game(){return G.snapshot(game)},get ar(){return !!session},get calibrated(){return calibrated},get root(){return art.root.position.toArray()},get renderedRobots(){return art.getRobotCount()},get renderedShots(){return art.getShotCount()},get tracking(){return !!lastAim&&performance.now()-lastAimAt<550},get clearAlpha(){return renderer.getClearAlpha()},get returnAttempts(){return game.attempts},get scale(){return arenaScale},get arDrawCalls(){return arCompositor?.drawCalls||0},get arFrames(){return arFrames},get arCanvas(){return !!arCompositor?.canvas?.isConnected},get arRenderError(){return arRenderError},get radarVisible(){return $('radar').style.display==='block'},get robotFacingDot(){return art.getRobotFacingDot(game.eye)},get selectedMode(){return selectedMode},get duelEnemies(){return game.enemies.filter(e=>e.alive&&e.duel).length},get texturedBalls(){return art.getTexturedBalls()},get ricochetRipples(){return art.getRicochetRipples()},get tapZoneVisible(){return $('tapZone').style.display==='block'},get bufferedReturn(){return !!game.bufferedShot},get demoYaw(){return demoYaw},get praiseVisible(){return $('praise').classList.contains('burst')},get floorStable(){return floorStable},get floorSamples(){return floorSamples.length},get calibrationRms(){return calibrationRms},get previewYaw(){return previewYaw}};

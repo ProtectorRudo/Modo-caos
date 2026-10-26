@@ -258,3 +258,51 @@ test('el buffer no permite un rebote fantasma al cambiar de rival',()=>{
  assert.equal(g.bufferedShot,null);
  assert.equal(g.returns,0);
 });
+
+test('pulsar nuevamente NO cancela un rebote cargado y nunca duplica intentos',()=>{
+ const g=G.make({mode:'duelo',seed:92});G.begin(g);g.nextShot=999;g.projectiles=[];
+ const e=g.enemies[0],ball={id:871,type:'normal',pos:G.V(0,1.55,-1.75),
+  prev:G.V(0,1.55,-1.75),velocity:G.V(0,0,1.8),speed:1.8,
+  radius:.17,age:.3,returning:false,dead:false,targetId:e.id};
+ g.projectiles=[ball];G.setView(g,G.V(0,1.55,.05),G.V(0,0,-1));
+ const first=G.returnShot(g);assert.equal(first.queued,true);
+ const token=g.bufferedShot;
+ G.tick(g,.155);
+ const second=G.returnShot(g);
+ assert.equal(second.queued,true);
+ assert.equal(g.bufferedShot,token,'same ball buffer remains armed after second tap');
+ assert.equal(g.attempts,1,'double tap cannot create a second attempt');
+ for(let i=0;i<35;i++)G.tick(g,.011);
+ assert.equal(g.bufferedHits,1,'one actual ricochet');
+ assert.equal(g.returns,1,'one scoring event');
+});
+test('el robot avisa antes de lanzar, sin alertas duplicadas ni falsos ataques',()=>{
+ const g=G.make({mode:'duelo',seed:42});G.begin(g);g.projectiles=[];
+ g.nextShot=g.elapsed+.35;g.lastTelegraphFor=null;
+ for(let i=0;i<22;i++)G.tick(g,.012);
+ const e=g.effects.filter(x=>x.type==='telegraph');
+ assert.equal(e.length,1,'one charge warning for one incoming shot');
+ assert.equal(e[0].enemyId,g.enemies.find(x=>x.alive).id);
+ G.tick(g,.02);
+ assert.equal(g.effects.filter(x=>x.type==='telegraph').length,1);
+});
+test('KO otorga recompensa creciente y recupera un escudo al tercer campeón',()=>{
+ const g=G.make({mode:'duelo',seed:42});G.begin(g);
+ g.protection=999;g.lives=2;
+ for(let level=0;level<3;level++){
+  const e=g.enemies.find(x=>x.alive);
+  e.health=1;e.shield=false;
+  g.nextShot=999;g.projectiles=[];
+  const ball={id:910+level,type:'normal',pos:G.V(e.x,1.54,e.z+.44),
+    prev:G.V(e.x,1.54,e.z+.44),velocity:G.V(0,0,-20),speed:20,
+    radius:.2,age:.1,returning:true,dead:false,targetEnemy:e.id,
+    targetId:e.id,grade:'BUENO'};
+  g.projectiles.push(ball);G.tick(g,.04);
+  assert.equal(e.alive,false);
+  assert.equal(g.duelWins,level+1);
+  if(level<2){g.elapsed=g.nextDuelAt-.02;G.tick(g,.045)}
+ }
+ assert.equal(g.lives,3,'one shield recovered halfway through duel run');
+ assert.equal(g.effects.filter(x=>x.type==='shield-recover').length,1);
+ assert.equal(g.duelReward,310+420+530,'level KO score grows with the rivals');
+});

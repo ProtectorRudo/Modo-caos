@@ -111,3 +111,13 @@ Para cubrir teléfonos donde incluso el segundo lienzo WebGL no llegue a mostrar
 - Buffer por proyectil: cuando la pelota real está cerca (máximo 1,83 m), se aproxima y está en la mira, un toque ligeramente anticipado se almacena hasta 190–280 ms y se ejecuta en el mismo proyectil cuando entra en ventana. No rebota balones lejanos, señuelos, enemigos nuevos ni ataques fuera de la mira; una presión equivale a un intento.
 - Botón DEVOLVER conservado y una zona táctil invisible desde el 38% de la pantalla hasta abajo: dedo/pulgar pueden tocar cualquier lugar libre de ese sector. PAUSA y ajustes conservan sus controles. El evento pointerdown reacciona sin la demora del click; se suprime el click duplicado. Al registrar el toque anticipado se confirma con vibración breve y texto.
 - Tests automáticos: input buffer, simulación a 90 Hz, no falsos positivos, misma pelota, conteo de intentos, pequeño desplazamiento lateral, zona de toque en Chromium Android emulado, XR sintético y regresiones.
+
+## V12 — Game feel premium y correcciones finas
+
+- El rebote cargado ya no se cancela al tocar otra vez el área inferior mientras espera la misma pelota: una devolución no suma más de un intento, ni se transfiere a otra pelota.
+- El robot anuncia el lanzamiento desde el mundo AR con una carga luminosa en el pecho y levanta el brazo hacia el tiro. Hay una única señal sonora por ataque, sin alertas repetidas.
+- Al devolver aparece un feedback visual grande y transitorio de PERFECTO / BUENA / ROCE, con puntuación y CSS accesible; el botón iluminado usa pulsación discreta y respeta movimiento reducido.
+- Duelos muestran seis puntos de progreso, bonus crecientes por robot y recuperación de un escudo tras el tercer rival (solo si se había perdido).
+- En entrenamiento 3D, tocar la zona inferior devuelve; arrastrar en esa misma zona rota la mira y **no** dispara por error. En AR físico el pointerdown sigue siendo inmediato.
+- El motor WebGL usa una geometría de partículas compartida y evita crear sets nuevos por proyectil; se limita la cantidad de partículas simultáneas para preservar FPS.
+- Gates: validación Node de doble toque, buffer, telegraph, KO y escudo; Chromium de HUD/tap/swap; WebXR sintético y regresiones. Las pruebas físicas en ARCore siguen requiriendo teléfono real.

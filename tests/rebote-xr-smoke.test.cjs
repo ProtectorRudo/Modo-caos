@@ -118,6 +118,8 @@ const server=http.createServer((req,res)=>{
 
  assert(await page.locator('#returnBtn').isVisible(),'return button active in real XR overlay');
  assert(await page.locator('#tapZone').isVisible(),'AR can parry by tapping anywhere in the lower zone');
+ assert.equal(await page.locator('#duelMedals i').count(),6,'progress indicators are in the XR overlay');
+
 
  assert(await page.locator('#radar').isVisible(),'AR radar shows orientation information for offscreen robots');
  assert(await page.locator('#duelHud').isVisible(),'AR duel HUD exists after physical calibration');
