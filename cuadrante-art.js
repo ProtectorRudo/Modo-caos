@@ -16,52 +16,98 @@ root.CuadranteArt=function(T){
   scene.add(new T.HemisphereLight(0xb8e7ff,0x08121b,2.0));
   const overhead=new T.DirectionalLight(0xd9f0ff,2.8);overhead.position.set(-3,8,5);scene.add(overhead);
   const backlight=new T.PointLight(0xff6a20,15,8,1.8);backlight.position.set(0,1.25,-2.9);root.add(backlight);
-  const floor=box(3.62,.10,6.15,dark);floor.position.set(0,.07,0);root.add(floor);
-  const roof=box(3.62,.11,6.15,dark);roof.position.set(0,2.34,0);root.add(roof);
-  const rear=box(3.6,2.33,.10,dark);rear.position.set(0,1.17,-3.07);root.add(rear);
-  const matTile=material(0x182632,.83,.36),altTile=material(0x101e2b,.82,.41);
-  const tinyBar=new T.MeshBasicMaterial({color:0x224a5d});
-  // GPU instancing turns the court floor into two draw calls (instead of >80).
-  const floorGeometry=new T.BoxGeometry(.526,.012,.495),tilesA=[],tilesB=[];
+  // NEON ARENA: an OPEN arena anchored to the real floor. No ceiling,
+  // opaque rear wall or full-height side walls blocking the AR camera.
+  const openArena=new T.Group();openArena.name='cuadrante-open-arena';root.add(openArena);
+  const matTile=material(0x1a5360,.52,.36),altTile=material(0x123545,.57,.42);
+  for(const m of [matTile,altTile]){m.transparent=true;m.opacity=.57;m.depthWrite=false;m.side=T.DoubleSide}
+  const tinyBar=new T.MeshBasicMaterial({color:0x3b9da8,transparent:true,opacity:.37,depthWrite:false});
+  const edgeWhite=new T.MeshBasicMaterial({color:0x75fff9,transparent:true,opacity:.83,depthWrite:false,blending:T.AdditiveBlending});
+  const edgeAmber=new T.MeshBasicMaterial({color:0xffa65e,transparent:true,opacity:.82,depthWrite:false,blending:T.AdditiveBlending});
+  const floorGlow=new T.MeshBasicMaterial({color:0x00cfff,transparent:true,opacity:.065,depthWrite:false,side:T.DoubleSide});
+  const floor=box(3.49,.009,5.94,floorGlow);floor.name='cuadrante-ghost-floor';floor.position.set(0,.118,0);openArena.add(floor);
+  // Two instanced tile sets, transparent enough to retain real-world floor cues.
+  const floorGeometry=new T.PlaneGeometry(.515,.492),tilesA=[],tilesB=[];
   const dummy=new T.Object3D();
-  for(let z=-2.8;z<3;z+=.52){
-   for(let x=-1.6;x<1.7;x+=.55)
-    (Math.round((x+z)*10)%4===0?tilesB:tilesA).push([x,.132,z]);
-   const seam=box(3.58,.006,.008,tinyBar);seam.position.set(0,.145,z+.26);root.add(seam);
-  }
-  for(const [mat,list] of [[matTile,tilesA],[altTile,tilesB]]){
-   const mesh=new T.InstancedMesh(floorGeometry,mat,list.length);
-   list.forEach((p,i)=>{dummy.position.set(...p);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix)});
-   mesh.instanceMatrix.needsUpdate=true;root.add(mesh);
-  }
-  for(const sign of [-1,1]){
-   const wall=box(.095,2.28,6.16,steel);wall.position.set(sign*1.84,1.19,0);root.add(wall);
-   for(let z=-2.75;z<3.15;z+=.52){
-    const plate=box(.014,1.85,.475,(Math.round(z*10)%3===0)?panel:dark);plate.position.set(sign*1.781,1.19,z);root.add(plate);
-    const rib=box(.075,2.29,.025,steel);rib.position.set(sign*1.8,1.18,z+.26);root.add(rib);
-    for(const y of [.23,2.13]){
-     const line=box(.028,.025,.46,Math.round(z*10)%4===0?orange:cyan);line.position.set(sign*1.735,y,z);root.add(line);
-    }
+  for(let z=-2.76;z<2.96;z+=.52){
+   for(let x=-1.55;x<1.66;x+=.55){
+    (Math.round((x+z)*10)%4===0?tilesB:tilesA).push([x,.133,z]);
    }
-   const rail=box(.041,.037,6.14,cyan);rail.position.set(sign*1.72,.23,0);root.add(rail);
-   const rail2=box(.042,.029,6.14,orange);rail2.position.set(sign*1.72,2.19,0);root.add(rail2);
   }
-  for(let z=-2.92;z<3.12;z+=1.05){
-   const group=new T.Group();group.position.z=z;root.add(group);
-   for(const x of [-1.76,1.76]){const m=box(.065,2.31,.07,panel);m.position.set(x,1.20,0);group.add(m)}
-   for(const y of [.17,2.28]){const m=box(3.52,.065,.07,panel);m.position.set(0,y,0);group.add(m)}
-   const edge=edgeBox(3.49,2.1,.03,z<0?0xff792c:0x00ccea,group);edge.position.set(0,1.2,.03);
-   const inner=edgeBox(3.20,1.87,.015,0x24596b,group);inner.position.set(0,1.2,-.005);
+  for(const [mat,positions] of [[matTile,tilesA],[altTile,tilesB]]){
+   const tile=new T.InstancedMesh(floorGeometry,mat,positions.length);
+   tile.name='cuadrante-holographic-floor-tiles';
+   positions.forEach((p,i)=>{dummy.position.set(...p);dummy.rotation.set(-Math.PI/2,0,0);
+    dummy.updateMatrix();tile.setMatrixAt(i,dummy.matrix);
+    const edge=Math.min(1.7-Math.abs(p[0]),3.02-Math.abs(p[2]));
+    const shade=Math.max(.28,Math.min(1,edge/.47));
+    tile.setColorAt(i,new T.Color(0x8ed9df).multiplyScalar(shade));
+   });
+   tile.instanceMatrix.needsUpdate=true;if(tile.instanceColor)tile.instanceColor.needsUpdate=true;
+   tile.frustumCulled=false;openArena.add(tile);
   }
-  for(let x=-1.6;x<1.65;x+=.41){
-   let strip=box(.015,.013,6.05,Math.round(x*10)%2?tinyBar:cyan);strip.position.set(x,2.273,0);root.add(strip);
-   if(Math.round(x*10)%2===0){const a=box(.37,.04,.88,steel);a.position.set(x,2.265,-1.5);root.add(a)}
+  const stripMaterial=new T.MeshBasicMaterial({color:0x19f4ff,transparent:true,opacity:.57,depthWrite:false,blending:T.AdditiveBlending});
+  for(let z=-2.68;z<3;z+=1.02){
+   const seam=box(3.29,.004,.010,stripMaterial);
+   seam.position.set(0,.151,z);openArena.add(seam);
   }
-  const farGrid=new T.GridHelper(3.4,8,0x0a748e,0x09344c);farGrid.rotation.x=Math.PI/2;farGrid.position.z=-2.96;farGrid.position.y=1.2;root.add(farGrid);
-  const marking=box(3.3,.014,.018,orange);marking.position.set(0,.151,-2.68);root.add(marking);
-  // Depth-reticle and court markers
-  const sideLamps=[];for(const z of [-2.75,-1.6,-.5,.6,1.7,2.73])for(const side of [-1,1]){
-    const lamp=box(.08,.11,.21,side===1?cyan:orange);lamp.position.set(side*1.738,1.18,z);root.add(lamp);sideLamps.push(lamp)}
+  for(const x of [-1.12,0,1.12]){
+   const lane=box(.010,.006,5.95,tinyBar);
+   lane.position.set(x,.154,0);openArena.add(lane);
+  }
+  // Low guardrails leave the space above the ball visually open, unlike
+  // opaque enclosed tunnels. Physics still uses the original court bounds.
+  for(const side of [-1,1]){
+   for(const y of [.19,.41]){
+    const mat=y>.3?edgeWhite:edgeAmber;
+    const rail=box(.024,.022,5.96,mat);rail.position.set(side*1.73,y,0);openArena.add(rail);
+   }
+   for(const z of [-2.72,-1.12,.52,2.63]){
+    const upright=box(.055,.60,.060,steel);
+    upright.position.set(side*1.77,.37,z);openArena.add(upright);
+    const active=box(.072,.22,.075,side<0?cyan:orange);
+    active.position.set(side*1.77,.59,z);openArena.add(active);
+    const brace=new T.Mesh(new T.TorusGeometry(.13,.009,6,20),side<0?edgeWhite:edgeAmber);
+    brace.position.set(side*1.77,.65,z);brace.rotation.y=Math.PI/2;openArena.add(brace);
+   }
+  }
+  // Rival end: a floating goal portal, never a solid opaque rectangle.
+  const portal=new T.Group();portal.name='cuadrante-rival-portal';portal.position.set(0,1.2,-2.99);openArena.add(portal);
+  const portalMaterial=new T.MeshBasicMaterial({color:0xff9145,transparent:true,opacity:.95,depthWrite:false});
+  const portalSecondary=new T.MeshBasicMaterial({color:0x45eeff,transparent:true,opacity:.54,depthWrite:false});
+  const frame=[[-1.28,-.86],[-1.37,.58],[-1.03,.93],[1.03,.93],[1.37,.58],[1.28,-.86]];
+  for(let i=0;i<frame.length-1;i++){
+   tube(new T.Vector3(frame[i][0],frame[i][1],0),new T.Vector3(frame[i+1][0],frame[i+1][1],0),.025,portalMaterial,portal);
+  }
+  for(const side of [-1,1]){
+   tube(new T.Vector3(side*1.28,-.86,0),new T.Vector3(side*.92,-1.01,0),.028,portalSecondary,portal);
+   const node=new T.Mesh(new T.OctahedronGeometry(.093,1),side<0?cyan:orange);
+   node.position.set(side*1.30,.65,.015);portal.add(node);
+  }
+  // Goal energy backdrop is only a luminous contour, so the actual wall
+  // behind the game remains visible in AR.
+  const goalBar=box(2.11,.025,.016,edgeAmber);goalBar.position.set(0,-.92,0);portal.add(goalBar);
+  const portalAura=new T.Mesh(new T.RingGeometry(.84,.875,56),new T.MeshBasicMaterial({
+   color:0xffa05b,transparent:true,opacity:.30,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending
+  }));
+  portalAura.scale.set(1.14,.83,1);portalAura.position.z=-.026;portal.add(portalAura);
+  const farGrid=new T.GridHelper(3.4,8,0x1c8199,0x144154);
+  farGrid.rotation.x=Math.PI/2;farGrid.position.z=-3.03;farGrid.position.y=1.2;
+  farGrid.material.transparent=true;farGrid.material.opacity=.24;openArena.add(farGrid);
+  // Decorative goal-side pylons are deliberately outside the central gameplay lane.
+  for(const side of [-1,1]){
+   const pylon=new T.Group();pylon.position.set(side*1.87,.63,-2.68);openArena.add(pylon);
+   const body=box(.21,1.13,.22,steel);pylon.add(body);
+   const energy=box(.235,.72,.025,side===1?edgeAmber:edgeWhite);
+   energy.position.set(-side*.025,.05,.12);pylon.add(energy);
+   const cap=box(.29,.064,.29,side===1?orange:cyan);cap.position.y=.56;pylon.add(cap);
+  }
+  const marking=box(3.22,.012,.025,edgeAmber);marking.position.set(0,.151,-2.67);openArena.add(marking);
+  const sideLamps=[];
+  for(const z of [-2.72,-1.30,.40,2.65])for(const side of [-1,1]){
+   const lamp=box(.084,.11,.14,side===1?orange:cyan);
+   lamp.position.set(side*1.75,.53,z);openArena.add(lamp);sideLamps.push(lamp);
+  }
   function paddle(isEnemy){
    const group=new T.Group();root.add(group);
    const front=box(.77,.77,.09,isEnemy?material(0x703018,.6,.25,0x5c2406,.55):material(0x07465a,.54,.22,0x005569,.62));group.add(front);
