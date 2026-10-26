@@ -174,3 +174,23 @@ Desplegar vía la ruta aislada de Ritmo Caos en Vercel apuntando al nuevo SHA de
 `tests/ritmo-stage3d.test.cjs`: mock WebGL evalúa shader, posición 3D anclada y cuatro receptores, dos draw calls, tabla de matrices, progreso de sostenidas, hook WebXR, fallback y HUD oculto. `tests/ritmo.test.cjs`: 192 mapas; `tests/ritmo-sustain-fx.test.cjs`: 204 sostenidas. Todos pasaron en entorno JS simulado. No afirmar una prueba física del lente móvil ni FPS final hasta ensayar en ARCore.
 
 **Publicación:** incluir `ritmo-stage3d.js` en el encaminamiento Vercel; fijar un SHA nuevo con HTML, engine, runtime, audio y stage sincronizados, preservar CSP que habilita scripts/WebXR y la ruta especial de audio Despacito. Validar staging antes de promover live.
+
+
+## NEON LIVE V22 — profundidad, satisfacción y calidad adaptable
+
+**Decisión sobre recursos externos:** se evaluó el pack Particle Pack de Kenney, licencia CC0 (https://kenney.nl/assets/particle-pack), pero no se añadió al runtime: esta escena funciona mejor en AR usando geometría propia de GPU y chispas procedurales pequeñas, sin descargas ni CORS adicionales. No afirmar haber descargado o integrado objetos GLB.
+
+Mejoras sobre V20:
+- Nuevo portal metálico luminoso al fondo de la pista con iluminación de escenario a baja altura, evitando tapar el espacio real.
+- Gemas musicales con volumen y caras diferenciadas por carril; las notas especiales ahora usan corona dorada.
+- Corrección de profundidad: los materiales sólidos se dibujan con DEPTH_TEST y escritura de profundidad, la luz añadida en otra pasada aditiva sin escribir profundidad; dos draw calls por vista.
+- Nuevo evento de impactos físicamente anclados al receptor de su carril, con onda radial y chispas 3D; la confirmación Canvas anterior sigue disponible.
+- Notas sostenidas visibles durante TODO el periodo de hold, incluso pasado el umbral corto, con cinta que se acorta según el progreso real. Conserva la precisión del core.
+- La música anima luces por bajos/medios/agudos; evita encender fuertes efectos antes de que empiece.
+- Control de usuario AUTO/ALTA/LIGERA durante la partida. En AUTO descienden las geometrías extra cuando el promedio de fotogramas empeora.
+- El reloj de efectos usa segundos convertidos desde performance.now() en milisegundos; antes de la corrección las ondas no podían aparecer.
+- Sin toques a `engine.js` compartido ni a otros minijuegos.
+
+Pruebas: `tests/ritmo-neon-live-v22.test.cjs` comprueba geometría, efecto de impacto con tiempo correcto, sostenidas activas, pruebas depth mask, modo AUTO/ALTA/LIGERA, dos batches, fallback SVG y Despacito preseleccionada. También continúan pasando 192 mapas y 204 pruebas de sostenidas. Test físico con Chrome/ARCore/FPS pendiente.
+
+Publicación técnica: servir HTML/JS con reglas separadas Vercel desde GitHub SHA inmutable, y **NO transmitir** la política `Content-Security-Policy: default-src 'none'; sandbox` del origen GitHub. El HTML debe seguir fijando su CSP WebXR compatible. Audio Ogg de Despacito permanece en ruta especial verificada. No modificar el Vercel original.
