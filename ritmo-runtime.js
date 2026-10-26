@@ -189,7 +189,7 @@ function togglePause(){
 E('gamePause').onclick=togglePause;
 E('sound').onclick=()=>{muted=!muted;audio.volume(muted);E('sound').textContent=muted?'🔇':'🔊'};
 const qualityModes=['auto','high','low'];
-const qualityNames=['✨ AUTO · V37','✨ ALTA · V37','✨ LIGERA · V37'];
+const qualityNames=['✨ AUTO · V38','✨ ALTA · V38','✨ LIGERA · V38'];
 E('quality').onclick=()=>{
  if(!stage3d&&!stagePremium&&!stageShowtime){notify('RENDERIZADO CLÁSICO');return}
  const renderer=activeStage||stageShowtime||stagePremium||stage3d;
@@ -280,6 +280,8 @@ async function begin(){
  notify('♫ PREPARANDO LA CANCIÓN',1400);
  try{
   await audio.start(song());audio.volume(muted);game.paused=false;
+   const delayMs=Math.round((audio.outputDelay?.()||0)*1000);
+   E('latencyValue').textContent=E('latency').value+' ms · audio auto '+delayMs+' ms';
  }catch(e){
   audio.stop();running=false;game.state='ready';game.paused=false;E('holdHud').style.display='none';
   const detail=String(e?.message||e||'No se pudo reproducir el audio').slice(0,240);
@@ -326,7 +328,7 @@ function loop(t){
  requestAnimationFrame(loop);if(!demo)return;
  const dt=rafLast?clamp((t-rafLast)/1000,0,.075):.016;rafLast=t;
  if(running&&game.state==='playing'){
-  G.setPosition(game,demoLane,game.elapsed);G.tick(game,audio.now()+Number(E('latency').value)/1000);
+  G.setPosition(game,demoLane,game.elapsed);G.tick(game,(audio.audibleNow?.()??audio.now())+Number(E('latency').value)/1000);
   onEvents();if(game.state==='finished')conclude();
  }
  art.demo(game);fx?.frame(t);if(t-hudLast>90){hudLast=t;showHUD(t)}hideToast(t);
@@ -360,7 +362,7 @@ window.modoCaosXRFrame=function(t,frame,W){
   if(x!==null&&!sampling)lastTrack=t;
  }
  if(running&&game.state==='playing'&&!game.paused){
-  G.tick(game,audio.now()+Number(E('latency').value)/1000);
+  G.tick(game,(audio.audibleNow?.()??audio.now())+Number(E('latency').value)/1000);
   onEvents();if(game.state==='finished')conclude();
  }
  if(t-drawLast>33&&!stage3dOK){drawLast=t;art.ar(frame,W,locked?game:null,boardSize)}
