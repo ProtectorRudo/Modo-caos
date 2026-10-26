@@ -161,8 +161,8 @@
     }
    }
    // 3D receiver crossbar and soft halo
-   box(glow,0,.093,.485,R-L+.19,.014,.027,[.73,.97,1],[.73,.97,1],.93);
-   quad(glow,L-.07,R+.07,.451,.489,.100,[.24,.82,1],.28+low*.15);
+   box(glow,0,.088,.65,R-L+.19,.008,.010,[.73,.97,1],[.73,.97,1],.34);
+   quad(glow,L-.07,R+.07,.644,.656,.096,[.24,.82,1],.16+low*.12);
    // Futuristic console at the distant end with audio-reactive spectrum
    let z=f-.13;
    box(solid,0,.038,z,.50,.27,.095,[.022,.035,.053],[.11,.16,.22]);
@@ -190,7 +190,7 @@
      const lead=2.65;
      for(const note of game.notes){
       let dt=note.at-elapsed,holding=game.holdActive?.id===note.id;if(note.status!=='pending'||(!holding&&dt<-0.26)||dt>lead+.08)continue;
-      const x=(note.lane-1.5)*size,special=note.type==='caos'||note.type==='special',c=special?[1,.83,.24]:COLORS[note.lane],z=.64-clamp(dt/lead,0,1)*1.79,r=size*.24;
+      const x=(note.lane-1.5)*size,special=note.type==='caos'||note.type==='special',c=special?[1,.83,.24]:COLORS[note.lane],z=.65-clamp(dt/lead,0,1)*1.79,r=size*.24;
       crystal(solid,x,.108,z,r,c);
       ring(glow,x,.140,z,r*.62,r*.95,c,.89,16);
       ring(glow,x,.145,z,0,r*.38,[.93,1,1],.77,16);
