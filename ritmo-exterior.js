@@ -302,16 +302,9 @@
    // CC0 riser supplies structural details but stays under the rest.
    if(quality>0)props?.drawPart('riser',mesh,surface,{scale:[.34,.21,.36],offset:[0,.011,stageZ]});
    ledWall(size,t,low,mid,combo,quality);
-   if(quality>0)props?.drawPart('led-magenta',mesh,surface,
-    {scale:.28,offset:[-.275,.508,-1.952]});
+   // V36 uses one procedural display and one raised truss. Imported fixtures
+   // were crossing the display at different scales.
    truss(size,t,pulse,quality);
-   if(quality>0){
-    props?.drawPart('moving-head',mesh,surface,[
-     {scale:.18,offset:[-.31,.786,-1.78]},
-     {scale:.18,offset:[ .31,.786,-1.78]}
-    ]);
-    props?.drawPart('strobe',mesh,surface,{scale:.22,offset:[0,.91,-1.77]});
-   }
    stacks(size,low,quality);
    // Joint-weighted CPU skinning of Quaternius GLB. No UV-shredding or
    // hand-written world-space arm stretching. A solid bomber is the fallback.
@@ -327,12 +320,13 @@
      .009,[.15,.19,.27]);
    }
    beam([0,.590+bob,-1.462],[0,.438+bob,-1.456],.004,[.35,.44,.56]);
-   if(props?.ready()){
-    props.draw(mesh,surface,{deskOnly:true});
-   }else{
-    // Old fallback is still grounded but the new control deck sits higher.
-    cuboid(mesh,0,.286,-1.45,.58,.135,.285,S,M,1);
-   }
+   // A single closed console supports the turntables; the imported desk
+   // contained a duplicate pale tabletop and floating side shelves.
+   cuboid(mesh,0,.105,-1.450,.560,.235,.285,
+     [.034,.050,.071],[.14,.20,.26],1);
+   for(const sign of [-1,1])
+     cuboid(mesh,sign*.267,.111,-1.440,.016,.237,.273,
+       [.12,.17,.24],[.26,.35,.43],1);
    const workY=.355,workZ=-1.437,workWidth=.605,workDepth=.292;
    // Real visible black worktop + metal lip + subtle colored reflections.
    cuboid(mesh,0,workY,workZ,workWidth,.025,workDepth,
@@ -386,24 +380,25 @@
     cuboid(illum,xx,.385,-1.393,.045,.006,.022,col,col,.25+.35*low,3);
    }
    // Narrow dark facade, ~34% shorter than V31; controls remain visible.
-   const facade=props?.drawPart('facade',mesh,surface,{
-    scale:[.36,.220,.35],offset:[0,-.016,-1.283]});
-   if(!facade)cuboid(mesh,0,.061,-1.28,.54,.142,.045,S,M,1);
-   cuboid(illum,0,.147,-1.256,.46,.009,.008,P,P,.39+.20*low,3);
+   // A single flush fascia; removed the oversized imported front slab.
+   cuboid(mesh,0,.105,-1.294,.500,.193,.023,
+     [.039,.060,.084],[.16,.23,.31],1);
+   cuboid(mesh,0,.123,-1.277,.462,.148,.008,
+     [.025,.035,.057],[.055,.076,.11],1);
+   cuboid(illum,0,.267,-1.262,.449,.008,.006,P,P,.39+.20*low,3);
    // A reactive, visible front equalizer replaces the nearly flat magenta
    // box. Animated even during positioning (uses the stage clock).
    for(let i=0;i<17;i++){
     const x=(i-8)*.025,phase=t*6.3+i*.62;
     const height=.013+.069*(.35+.65*Math.sin(phase)*Math.sin(phase))*(.6+.4*low);
     const col=i%4===0?C:i%4===1?P:V;
-    cuboid(illum,x,.068,-1.230,.012,height,.007,col,col,.34+.27*low,3);
+    cuboid(illum,x,.137,-1.261,.012,height,.007,col,col,.34+.27*low,3);
    }
-   if(quality>0){
-    props?.drawPart('laptop',mesh,surface,{scale:.155,offset:[-.258,.378,-1.63]});
-    props?.drawPart('headphones',mesh,surface,{scale:.15,offset:[.245,.374,-1.49]});
-    props?.drawPart('monitor',mesh,surface,{scale:.18,offset:[.31,.106,-1.66]});
-    props?.drawPart('laser',mesh,surface,{scale:.19,offset:[-.395,.103,-1.78]});
-    props?.drawPart('smoke',mesh,surface,{scale:.17,offset:[.400,.102,-1.79]});
+   // Empty sides are intentional: no accessory crosses the PA or the DJ.
+   if(quality>0)for(const sign of [-1,1]){
+     const x=sign*.328,c=sign<0?P:C;
+     cuboid(mesh,x,.108,-1.731,.082,.047,.072,[.06,.09,.12],[.22,.29,.35],1);
+     annulus(illum,x,.164,-1.728,.020,.030,c,.23+.19*low,14);
    }
    if(combo>=10){
     for(const sign of [-1,1]){
@@ -421,7 +416,7 @@
     }
    }
   }
-  return{render,version:'HORSE DJ V35'};
+  return{render,version:'HORSE DJ V36'};
  }
- root.RitmoExterior={create,version:'HORSE DJ V35'};
+ root.RitmoExterior={create,version:'HORSE DJ V36'};
 })(window);
