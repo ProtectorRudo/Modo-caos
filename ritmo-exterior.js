@@ -8,6 +8,8 @@
   const {mesh,illum,surface,cuboid,annulus,disc,getQuality}=api;
   const M=[.28,.37,.46],S=[.014,.025,.046],C=[.08,.84,1],P=[1,.19,.46],V=[.48,.21,1],W=[.85,.95,1];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  // Locally vendored CC0 props are optional; procedural DJ booth remains fallback.
+  const props=root.RitmoImportedProps?.create();
   function ball(x,y,z,r,color,seg=10,rings=7){
    for(let j=0;j<rings;j++){
     const th=j*Math.PI/rings,ph=(j+1)*Math.PI/rings;
@@ -166,7 +168,7 @@
    truss(size,t,pulse,quality);
    stacks(size,low,quality);
    avatar(t,low,mid,game?.combo||0);
-   decks(t,low,quality);
+   if(!props?.draw(mesh,surface))decks(t,low,quality);
    if(quality)for(const s of [-1,1]){
     const x=s*(2*size+.36),z=-1.67;
     cuboid(mesh,x,.014,z,.052,.41,.066,S,M);
