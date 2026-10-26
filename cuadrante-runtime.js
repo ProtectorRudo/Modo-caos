@@ -59,8 +59,13 @@ function measureFrame(dt){
 }
 async function load(){
  if(THREE)return;
- try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js')}
- catch(e){try{THREE=await import('https://unpkg.com/three@0.160.1/build/three.module.js')}catch(err){throw Error('No se pudo cargar el motor 3D. Revisá la conexión a Internet. '+err.message)}}
+ const bounded=(url,ms)=>Promise.race([
+  import(url),
+  new Promise((_,reject)=>setTimeout(()=>reject(new Error('El CDN tardó demasiado')),ms))
+ ]);
+ try{THREE=await bounded('https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js',6500)}
+ catch(e){try{THREE=await bounded('https://unpkg.com/three@0.160.1/build/three.module.js',6500)}
+ catch(err){throw Error('Motor 3D no disponible, habilitando modo ligero. '+err.message)}}
 }
 function build(){
  if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement.remove();renderer=null}
@@ -72,7 +77,14 @@ function build(){
  stage=window.CuadranteArt(THREE).makeStage();applyQuality();camera=new THREE.PerspectiveCamera(61,innerWidth/innerHeight,.025,90);
  setDemoCamera();renderer.setAnimationLoop(frame);
 }
-function setDemoCamera(){if(!camera)return;const aspect=innerWidth/innerHeight;
+function buildLite(){
+ if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement?.remove()}
+ $('stage').innerHTML='';
+ const kit=window.CuadranteLite($('stage'),()=>state);
+ renderer=kit.renderer;stage=kit.stage;camera=kit.camera;
+ renderer.setAnimationLoop(frame);
+}
+function setDemoCamera(){if(!camera||renderer?.isLite)return;const aspect=innerWidth/innerHeight;
  camera.fov=aspect<1?66:57;camera.aspect=aspect;camera.position.set(0,1.68,aspect<1?7.5:6.6);camera.lookAt(0,1.2,-.65);camera.updateProjectionMatrix()}
 function resize(){if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);applyQuality();if(!renderer.xr.isPresenting)setDemoCamera()}
 window.addEventListener('resize',resize);
@@ -181,10 +193,23 @@ async function init(mode){
  try{
   await load();build();
   if(mode==='ar')await beginAR(requestedXR);else enter('demo');
- }catch(e){$('load').style.display='none';report(e);if(mode==='ar'){
-  // Stay playable even when ARCore/immersive-ar is not available.
-  try{if(!renderer)build();await fallbackCamera()}catch(err){report(err);enter('demo')}}
-  else{try{await back()}catch(_){}}
+ }catch(e){
+  $('load').style.display='none';
+  if(!renderer||!stage||renderer.isLite){
+   // An unavailable third-party CDN or GPU must never strand the Play button.
+   if(requestedXR)requestedXR.then(s=>s.end().catch(()=>{})).catch(()=>{});
+   try{buildLite();enter('demo');$('labelPhase').textContent='MODO LIGERO · CONTROLES Y FÍSICA COMPLETOS';
+    note('MODO LIGERO · LISTO PARA JUGAR',2600)}
+   catch(fail){report(fail);await back()}
+  }else if(mode==='ar'){
+   report(e);
+   try{await fallbackCamera()}catch(err){report(err);enter('demo')}
+  }else{
+   // Rendering may have failed after initialization; recover with 2D graphics.
+   try{buildLite();enter('demo');$('labelPhase').textContent='MODO LIGERO · FÍSICA ORIGINAL';
+    note('MODO LIGERO · LISTO PARA JUGAR',2400)}
+   catch(err){report(err);await back()}
+  }
  }
 }
 async function beginAR(requestedXR){
