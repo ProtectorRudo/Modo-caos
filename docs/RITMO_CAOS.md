@@ -155,3 +155,22 @@ Las notas largas quedaban activas, pero `tick()` aplicaba igualmente el umbral d
 - **Aún no sustituye prueba física WebXR en Android**. No modificar la física de posicionamiento compartida con otros minijuegos.
 
 Desplegar vía la ruta aislada de Ritmo Caos en Vercel apuntando al nuevo SHA de GitHub, agregando el archivo `ritmo-fx.js` a la regla de JavaScript y **conservando la CSP activa** `script-src 'self' 'unsafe-inline'` en HTML; la antigua cabecera de GitHub `default-src 'none'; sandbox` rompió el inicio del juego en versiones anteriores. Verificar primero staging y luego producción, audio, 4 carriles y regresiones de rutas.
+
+
+## NEON LIVE — escena AR 3D profesional (25/10/2026)
+
+**Referente:** imagen conceptual compartida por usuario (cuatro carriles verde, rojo, amarillo y azul sobre piso real, máquinas musicales futuristas, auroras luminosas). Esta actualización intenta trasladar su lenguaje visual al juego móvil sin prometer equivalencia fotorrealista exacta ni seguimiento corporal.
+
+### Arquitectura
+- `ritmo-stage3d.js` **nuevo**, renderizador WebGL procedural conectado al framebuffer WebXR real; recibe matrices de proyección, pose de cámara y matriz de pista anclada de `ritmo-engine.js`. No fija geometría a la pantalla. Sin bibliotecas remotas, texturas gigas ni descargas adicionales que bloqueen en móviles.
+- `ritmo-engine.js` **aislado de este minijuego**, nuevo hook opcional `window.modoCaosCustomRender(gl,view,W,time)` dentro del frame AR. No modifica `/engine.js` ni otros juegos. Desactivar la capa o falla de shader conserva la pista SVG previa en `ritmo-art.js`.
+- Escenario: cuatro plataformas tridimensionales con costados de metal, franjas tipo vidrio luminoso, rieles perimetrales, ocho altavoces virtuales/conos, dos postes de luz, consola lejana con ecualizador y cuatro receptores tridimensionales con anillos concéntricos; notas representadas por mallas/halos, sostenidas como ribbons 3D y desplazamientos indicados por conexiones.
+- `ritmo-audio.js`: analizador `AnalyserNode` opcional, de 256 FFT, para calcular bandas grave/medio/agudo únicamente para efectos. **La lógica de puntuación sigue sincronizada con el reloj y las notas del audio grabado**, no con los cambios de FPS.
+- `ritmo-runtime.js`: invoca renderer 3D con anclaje existente y conserva coordenadas 2D de los receptores para efectos, con devolución a SVG si el renderer no puede iniciarse. Etiqueta VOS con posición proyectada. Estado de calibración separado, sin puntos/energía mientras no comienza la ronda.
+- `ritmo.html`: HUD compacto translucido, tarjetas menores, panel de calibración premium y nombre VOS luminoso. Cuatro colores y zona de impacto siempre visibles.
+- **Rendimiento:** dos lotes GPU por vista (hardware y luces aditivas), adaptación de cantidad de geometría según media de frame; sin postprocesado fullscreen pesado. Objetivo 60 FPS en dispositivos compatibles, a medir en Chrome Android real. Se preserva vista SVG de respaldo y demo 2D.
+
+### Pruebas completadas
+`tests/ritmo-stage3d.test.cjs`: mock WebGL evalúa shader, posición 3D anclada y cuatro receptores, dos draw calls, tabla de matrices, progreso de sostenidas, hook WebXR, fallback y HUD oculto. `tests/ritmo.test.cjs`: 192 mapas; `tests/ritmo-sustain-fx.test.cjs`: 204 sostenidas. Todos pasaron en entorno JS simulado. No afirmar una prueba física del lente móvil ni FPS final hasta ensayar en ARCore.
+
+**Publicación:** incluir `ritmo-stage3d.js` en el encaminamiento Vercel; fijar un SHA nuevo con HTML, engine, runtime, audio y stage sincronizados, preservar CSP que habilita scripts/WebXR y la ruta especial de audio Despacito. Validar staging antes de promover live.
