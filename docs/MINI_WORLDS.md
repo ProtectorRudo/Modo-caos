@@ -140,3 +140,22 @@ El usuario confirmó con captura AR real la composición exitosa del mundo y el 
 - `tests/mini-worlds-physics-polish.test.cjs`: 12 saltos a islas laterales (seis por nivel), permanencia sobre cajas, salto desde su tapa y eliminación de colisión tras destruirlas, caída genuina al agua, eventos de moneda con coordenadas, componentes de agua y VFX.
 - Se mantienen los 10 tests del motor, el test de recorrido y los del compositor WebXR, además de sintaxis JS y coincidencia de IDs HTML. Estas pruebas **no sustituyen** una prueba física en Chrome Android/ARCore con escena y FPS.
 - Sin cambios en `main`, juegos existentes o Supabase compartido.
+
+## Estabilidad espacial y joystick al caminar alrededor del mundo (26/10/2026)
+
+**Problema real reportado:** con escenario AR y avatar visibles, al caminar con el teléfono para seguir al caballero los objetos parecían moverse y la dirección del joystick dejaba de ser intuitiva.
+
+**Causas concretas encontradas en `mini-worlds-runtime.js`:**
+1. `updateAnchor` reescribía `stage.root.position` en todos los frames desde `frame.getPose(anchor.anchorSpace,referenceSpace)`, sin conservar exactamente la colocación elegida ni suavizar las revisiones SLAM del ancla. Esos ajustes podían producir traslaciones visibles del escenario bajo el jugador.
+2. El joystick en modo AR pasaba `input.x,input.z` directamente a la física como si los ejes de mundo no cambiasen en pantalla. Al rotar el teléfono, las instrucciones visuales «arriba», «abajo» y laterales dejaban de coincidir con la perspectiva de cámara.
+
+**Cambios:**
+- Nuevo módulo puro `mini-worlds-spatial.js`: cálculo de rumbo horizontal a partir de la orientación real de la cámara XR (descarta inclinación vertical), dirección de joystick relativa a cámara e inversión por rumbo del escenario, snapshot/restauración de posición, orientación y escala del mundo.
+- `FIJAR MUNDO` crea `spatialLock` inmutable. `maintainWorldLock` restaura la misma transformación exacta de la raíz del escenario; los cambios posteriores de posición de XRAnchor NO reubican ni giran la isla automáticamente. El XRReferenceSpace local es el único marco de coordenadas de juego durante la sesión, y el usuario puede usar RECENTRAR de manera explícita.
+- `XRAnchor` sigue disponible como diagnóstico de seguimiento: si una relocalización varía más de 0,42 m respecto de la observación inicial, se avisa suavemente que RECENTRAR podría ser necesario, sin teletransportar el mundo. Creación asíncrona con token de colocación evita anclas viejas si se recentra o cierra la sesión.
+- El movimiento AR se calcula usando rumbo real de cámara vs rumbo fijo del mundo, y se **congela el rumbo de dirección de un mismo contacto del joystick** hasta levantar el dedo, para que girar físicamente el teléfono durante una maniobra no desvíe la trayectoria virtual a mitad del movimiento. Un toque nuevo toma la orientación actual del teléfono.
+- Al cambiar de nivel, `newStage` recupera el snapshot exacto del mismo mundo, no recalibra siguiendo el móvil. Sin cambios a modo 3D demo.
+
+**Regresión:** `tests/mini-worlds-spatial.test.cjs` valida 400 movimientos simulados de cámara, las direcciones en varios ángulos e inversiones respecto del mundo, rumbo estable durante la pulsación y un rumbo nuevo al volver a tocar. 10 tests previos y pruebas de islas/cajas continúan aprobados.
+
+**Precaución física:** una transformación virtual fija no garantiza precisión espacial absoluta: ARCore/WebXR pueden sufrir drift o saltos de relocalización según textura, iluminación y movimiento del móvil. No afirmar 100% de estabilidad hasta test presencial sobre un camino real. Mantener al usuario atento a obstáculos físicos; NO pedir que siga físicamente el avatar ni que camine grandes distancias mirando la pantalla.
