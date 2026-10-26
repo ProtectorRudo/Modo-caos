@@ -19,7 +19,7 @@ jobs:
           PAGE='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a225085ddaddaa8ff351db41fc3671c6679d4724/ritmo-v38-cdn.html'
           curl --retry 3 --retry-delay 3 -fLsS -D /tmp/headers -o /tmp/index.html "$PAGE"
           grep -qi '^content-type: *text/html' /tmp/headers
-          grep -q 'BEAT LOCK V38' /tmp/index.html
+          grep -q 'RITMO CAOS V38' /tmp/index.html
           grep -q 'ritmo-tracking.js?v=38' /tmp/index.html
           grep -q 'ritmo-stage-showtime.js?v=38' /tmp/index.html
           grep -q 'window.fetch=function(resource,options)' /tmp/index.html
