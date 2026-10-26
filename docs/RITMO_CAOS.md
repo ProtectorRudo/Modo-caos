@@ -212,3 +212,19 @@ Fecha: 26/10/2026. El usuario autorizó descargar recursos gratuitos necesarios 
 **Pruebas:** `tests/ritmo-haptics-assets.test.cjs` valida exactamente un pulso por id, ausencia de duplicados, resets, sprites auténticos completos con cabecera PNG y tintado en caché. `tests/ritmo-stage3d.test.cjs` y `tests/ritmo-neon-live-v22.test.cjs` cubren el motor 3D y fallback, `tests/ritmo-experience.test.cjs` el Canvas, 192 mapas musicales y 204 sostenidas. Se adaptaron aserciones de rutas de scripts a revisiones distintas para no fallar por un número de versión.
 
 **Despliegue:** incrementar scripts HTML a versión v24 e incluir los nuevos `ritmo-kenney-vfx.js` y `ritmo-haptics.js` en regla de Vercel. Mantener CSP que permite imágenes data y scripts self; preservar Despacito y todos los demás juegos; exigir HTTP 200, correcta cabecera JavaScript y cargar HTML como documento, no texto. Probar físicamente háptica y ARCore en Motorola/Chrome Android antes de afirmar resultados del teléfono.
+
+
+## Ritmo Caos V25 — Hotfix AR no detecta piso (26/10/2026)
+
+Reporte físico del usuario tras V24: **«No detecta el piso»**.
+
+La detección dependía de un solo Hit Test frontal que puede fallar en interiores y no tenía recuperación visible: los errores estaban ocultos en `#debug`. Se reforzó la búsqueda **sin falsificar una superficie**:
+- `ritmo-engine.js` mantiene el `requestHitTestSource({space:viewerSpace})` frontal y añade un segundo origen con `offsetRay: new XRRay({x:0,y:0,z:0,w:1},{x:0,y:-.6,z:-.8,w:0})` para buscar un suelo más abajo en el encuadre. `direction.w=0` es obligatorio según la especificación WebXR y comprobado con prueba.
+- Acepta sólo resultados reales con orientación horizontal (`Math.abs(matrix[5]) >= .69`), para no anclar la pista contra paredes. Rechaza tracking perdido cuando el resultado desaparece durante 1,5 s, tolerando microcortes breves.
+- Si en 5,5 segundos no hay resultados, aparece un mensaje claro y el botón **REINTENTAR DETECCIÓN** (renueva ambas fuentes de hit test sin abandonar la cámara).
+- **El renderizado 3D pesado sólo comienza al FIJAR la pista**; antes se usa la vista SVG, con un restablecimiento explícito de `stage3dOK` para evitar pantallas en blanco después de RECENTRAR.
+- No se modificó el motor `/engine.js` compartido. La canción Despacito, los cuatro carriles, eventos hápticos de 18 ms y efectos Kenney se mantienen intactos.
+
+**Tests:** `tests/ritmo-floor-recovery.test.cjs` con WebXR simulado verifica 2 rayos, 5500 ms sin superficie, mensaje y reintento, rechazo de paredes, detección posterior de piso, botón FIJAR y renderizado 3D sólo después de fijar. Prueba manual ARCore en Motorola/Chrome pendiente: las simulaciones no permiten asegurar físicamente la detección.
+
+**Publicación:** ruta exclusiva del juego, actualizar Vercel HTML/JS a revisión V25 sin modificar rutas de otros juegos ni la política CSP corregida.
