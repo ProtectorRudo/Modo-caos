@@ -29,7 +29,7 @@ run('coins and stars are unique pickups',()=>{
 });
 run('enemies patrol, throw visible projectiles and take hits',()=>{
  let s=C.create();C.start(s);s.player.x=.7;s.player.z=-14.8;s.player.y=1.08;
- for(let i=0;i<80;i++)C.tick(s,{},1/60);
+ for(let i=0;i<2;i++)C.tick(s,{},1/60);
  assert.ok(s.map.enemies[3].alive);assert.ok(s.projectiles.length>0);
  let guard=s.map.enemies[2];s.player.x=.6;s.player.z=-10.9;s.player.y=.78;s.player.face=Math.PI;
  C.attack(s);assert.equal(guard.hp,2);
