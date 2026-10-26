@@ -3,7 +3,7 @@
 'use strict';
 const C=window.MiniWorldsCore,$=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 let T,renderer,camera,view,game,stage,session,hitSource,lastHit=null,anchor=null,mode='demo',phase='home',placing=false,hasHit=false;
-let yaw=0,scale=.105,offset={x:0,z:0},lockedPose=null,worldYaw=0;
+let yaw=0,scale=.36,offset={x:0,z:0},lockedPose=null,worldYaw=0;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
 let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=null;
 let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
@@ -43,7 +43,7 @@ async function import3D(){
  return T;
 }
 function clear(){
- renderer?.setAnimationLoop(null);if(stage){stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
+ renderer?.setAnimationLoop(null);if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
  camera=null;view=null;game=null;placing=false;lockedPose=null;source=null;hasHit=false;
 }
 function renderSetup(){
@@ -58,7 +58,7 @@ function renderSetup(){
  renderer.setAnimationLoop(frame);
 }
 function newStage(){
- if(stage){stage.disposeAssets?.();stage.dispose()}
+ if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose()}
  game=C.create(level);stage=window.MiniWorldsArt(T).makeStage(game.map);
  const stageRef=stage;
  // Native, bundled CC0 assets never block controls. Keep the original art if any GLB cannot load.
@@ -68,6 +68,14 @@ function newStage(){
     console.info('[MINI WORLDS] Imported '+stats.loaded+' licensed GLB models, '+stats.count+' decorative instances.');
    }
   }).catch(e=>console.warn('[MINI WORLDS] Procedural world remains available:',e.message));
+ }
+ // Animated characters are optional and NEVER delay or replace physics.
+ if(window.MiniWorldsCharacters){
+  Promise.resolve().then(()=>window.MiniWorldsCharacters(T).setup(stageRef,level)).then(stats=>{
+   if(stage!==stageRef)return;
+   if(stageRef.updateCharacterAnimations)stageRef.bindCharacters(stageRef.updateCharacterAnimations);
+   console.info('[MINI WORLDS] Character rigs ready:',stats);
+  }).catch(e=>console.warn('[MINI WORLDS] Procedural hero/enemies preserved:',e.message));
  }
  view=stage.scene;view.background=mode==='ar'?null:new T.Color(level?0x9ea6cf:0xa5dadd);
  stage.root.rotation.y=mode==='ar'?worldYaw:0;
@@ -147,7 +155,7 @@ function applyHit(frame){
  if(!lockedPose){worldYaw=Math.atan2(-d.x,-d.z)+yaw}
  stage.root.position.set(pos.x+offset.x,pos.y,pos.z+offset.z);
  stage.root.rotation.y=worldYaw;stage.root.scale.setScalar(scale);
- $('fixWorld').disabled=false;$('placementHint').textContent='PISO DETECTADO · MOVER, GIRAR Y AJUSTAR';
+ $('fixWorld').disabled=false;$('placementHint').textContent='PISO DETECTADO · PISTA '+(33*scale).toFixed(1)+' m × '+(14*scale).toFixed(1)+' m · GIRÁ O ESCALÁ';
 }
 function updateAnchor(frame){
  if(!anchor||placing||mode!=='ar')return;
@@ -168,7 +176,7 @@ function recenter(){
 }
 function startGame(){
  if(phase!=='ready')return;
- C.start(game);layout('playing');hideModal();notice('MOVETE · SALTÁ · ROMPÉ CAJAS',2400);haptic(15);
+ C.start(game);layout('playing');hideModal();notice('AVENTURA GIGANTE · JOYSTICK, SALTÁ Y ATACÁ',2400);haptic(15);
 }
 function pause(){
  if(!game||phase==='home')return;
@@ -241,7 +249,9 @@ function frame(t,xrFrame){
  if(mode==='ar')updateAnchor(xrFrame);
  if(phase==='playing'){
   acc+=dt;let loops=0;
-  while(acc>=1/60&&loops++<4){C.tick(game,{x:input.x,z:input.z,jump:jumpQueued,punch:punchQueued},1/60);jumpQueued=false;punchQueued=false;acc-=1/60}
+  while(acc>=1/60&&loops++<4){C.tick(game,{x:mode==='demo'?input.x*Math.cos(orbitYaw)+input.z*Math.sin(orbitYaw):input.x,
+      z:mode==='demo'?input.z*Math.cos(orbitYaw)-input.x*Math.sin(orbitYaw):input.z,
+      jump:jumpQueued,punch:punchQueued},1/60);jumpQueued=false;punchQueued=false;acc-=1/60}
   if(loops>=4)acc=0;
   events();song();
  }else{acc=0;jumpQueued=false;punchQueued=false}
@@ -260,8 +270,8 @@ function fillLanding(){
 $('demoPlay').addEventListener('click',()=>play('demo'));$('arPlay').addEventListener('click',()=>play('ar'));
 $('fixWorld').onclick=fixWorld;$('begin').onclick=startGame;
 $('pause').onclick=pause;$('recenter').onclick=recenter;$('menuBtn').onclick=()=>home();
-$('scaleLess').onclick=()=>{scale=clamp(scale*.84,.055,.19)};
-$('scaleMore').onclick=()=>{scale=clamp(scale*1.16,.055,.19)};
+$('scaleLess').onclick=()=>{scale=clamp(scale*.84,.19,.62);notice('PISTA '+(scale*33).toFixed(1)+' m DE LARGO',1400)};
+$('scaleMore').onclick=()=>{scale=clamp(scale*1.16,.19,.62);notice('PISTA '+(scale*33).toFixed(1)+' m DE LARGO',1400)};
 $('turnLeft').onclick=()=>{yaw-=P()/12;worldYaw-=P()/12};
 $('turnRight').onclick=()=>{yaw+=P()/12;worldYaw+=P()/12};
 function P(){return Math.PI}
@@ -319,7 +329,7 @@ touch.addEventListener('pointermove',e=>{
  placePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(placePointers.size===1){offset.x+=(e.clientX-prev.x)*.0015;offset.z+=(e.clientY-prev.y)*.0015}
  else{let ps=[...placePointers.values()],dist=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y),a=Math.atan2(ps[1].y-ps[0].y,ps[1].x-ps[0].x);
- if(pinch){scale=clamp(scale*dist/Math.max(1,pinch.dist),.055,.19);worldYaw+=a-pinch.a;yaw+=a-pinch.a}pinch={dist,a}}
+ if(pinch){scale=clamp(scale*dist/Math.max(1,pinch.dist),.19,.62);worldYaw+=a-pinch.a;yaw+=a-pinch.a}pinch={dist,a}}
 });
 for(const ev of ['pointerup','pointercancel'])touch.addEventListener(ev,e=>{placePointers.delete(e.pointerId);pinch=null});
 document.body.addEventListener('beforexrselect',e=>e.preventDefault());
