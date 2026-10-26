@@ -180,24 +180,31 @@ function makeBox(parent,b,y){
  g.userData.baseY=y+.29;return g;
 }
 function makeAvatar(parent){
- const g=group(parent),body=group(g,0,.58,0),head=group(body,0,.54,.05);
- mesh(sphere(.32,16,12),M.sky,0,0,0,body).scale.set(.94,1.19,.79);
- mesh(sphere(.37,18,12),M.coral,0,.05,.02,head).scale.set(.96,.81,.84);
- // Orin, a tiny original desert-island explorer with expressive fox-like fins.
- for(const side of [-1,1]){let ear=mesh(geoCone(.17,.43,6),M.coral,side*.24,.29,-.08,head);ear.rotation.z=-side*.40;
- let inner=mesh(geoCone(.085,.27,6),M.sand,side*.25,.31,.05,head);inner.rotation.z=-side*.4}
- mesh(sphere(.245,14,12),M.sand,0,-.09,.265,head).scale.set(1.0,.6,.37);
- for(const side of [-1,1]){mesh(sphere(.087,11,9),M.white,side*.145,.08,.292,head).scale.z=.48;
- mesh(sphere(.050,11,9),M.ink,side*.148,.077,.331,head).scale.z=.45;
- mesh(sphere(.019,8,7),M.white,side*.160,.1,.36,head)}
- mesh(sphere(.07,10,8),M.ink,0,-.08,.358,head);
- mesh(new T.TorusGeometry(.10,.024,5,16,P),M.woodDark,0,-.14,.326,head).rotation.z=P;
- mesh(cube(.62,.10,.19),M.gold,0,.20,-.07,head);
- let scarf=mesh(new T.TorusGeometry(.26,.09,8,20),M.purple,0,.32,0,body);scarf.rotation.x=P/2;
+ // Original fallback witch so the player ALWAYS sees a mage if the licensed
+ // GLB is offline. Procedural clothes are ours; KayKit Mage swaps in later.
+ const g=group(parent),body=group(g,0,.57,0),head=group(body,0,.50,.05);
+ const robes=mesh(geoCone(.36,.81,14),M.purple,0,-.17,0,body);
+ robes.rotation.y=.12;
+ mesh(sphere(.26,14,10),M.purple,0,.12,0,body);
+ mesh(sphere(.29,18,13),M.sand,0,.05,.04,head).scale.set(.94,1.03,.87);
+ const brim=mesh(cyl(.52,.50,.092,24),M.purple,0,.34,-.03,head);brim.scale.z=.96;
+ const crown=mesh(geoCone(.35,.72,20),M.purple,0,.73,-.05,head);crown.rotation.z=-.16;
+ mesh(cyl(.35,.35,.08,20),M.gold,0,.48,-.05,head);
+ for(const side of [-1,1]){
+  mesh(sphere(.045,9,8),M.ink,side*.12,.08,.30,head);
+  mesh(sphere(.016,7,6),M.white,side*.133,.09,.335,head);
+ }
+ mesh(new T.TorusGeometry(.09,.024,5,16,Math.PI),M.coral,0,-.08,.31,head).rotation.z=P;
  const arms=[],legs=[];
- for(const s of [-1,1]){const a=group(body,s*.33,.22,0);mesh(cyl(.093,.12,.38,8),M.sky,0,-.19,0,a);mesh(sphere(.125),M.coral,0,-.42,.05,a);arms.push(a);
- const l=group(g,s*.14,.28,0);mesh(cyl(.10,.12,.38,8),M.coral,0,-.12,0,l);mesh(sphere(.145),M.woodDark,0,-.29,.12,l).scale.z=1.3;legs.push(l)}
- let tail=mesh(geoCone(.16,.63,7),M.coral,0,.36,-.43,body);tail.rotation.x=-P/2-.27;
+ for(const side of [-1,1]){
+  const a=group(body,side*.31,.21,0);
+  mesh(cyl(.085,.105,.42,8),M.purple,0,-.16,0,a);
+  mesh(sphere(.105,10,8),M.sand,0,-.37,.015,a);arms.push(a);
+  const l=group(g,side*.14,.30,0);
+  mesh(cyl(.11,.12,.37,8),M.ink,0,-.17,0,l);
+  mesh(sphere(.145,11,9),M.woodDark,0,-.33,.12,l).scale.z=1.2;legs.push(l);
+ }
+ const cloak=mesh(geoCone(.33,.74,12),M.coral,0,-.17,-.20,body);cloak.scale.z=.3;
  const shadow=mesh(new T.CircleGeometry(.38,24),new T.MeshBasicMaterial({color:0x061d22,transparent:true,opacity:.23,depthWrite:false}),0,.015,0,g);shadow.rotation.x=-P/2;
  return {root:g,body,head,arms,legs,shadow};
 }
