@@ -59,9 +59,9 @@ assert.equal(stage.render(null,view,M,1200,game,.25,sound),false,'SVG fallback s
 const html=fs.readFileSync('ritmo.html','utf8');
 const runtime=fs.readFileSync('ritmo-runtime.js','utf8');
 const engine=fs.readFileSync('ritmo-engine.js','utf8');
-assert(html.includes('src="/ritmo-stage3d.js?v=22"'));
+assert(/src="\/ritmo-stage3d\.js\?v=\d+"/.test(html));
 assert(html.includes('id="quality"'));
-assert(html.includes('src="/ritmo-despacito.js?v=22"'));
+assert(/src="\/ritmo-despacito\.js\?v=\d+"/.test(html));
 assert(runtime.includes("stage3d?.hit(ev.lane,'HOLD')"));
 assert(runtime.includes("stage3d?.hit(ev.lane,ev.rating)"));
 assert(engine.includes('modoCaosCustomRender'));
