@@ -61,4 +61,16 @@ caseOf('touch input is precise, resolution-independent, and jump bounded',()=>{
  const jump=C.touchDelta(1800,-1800,390,780,1);
  assert.ok(jump.x<=.92&&jump.y<=.55);
 });
+caseOf('XR hit-test floor gate rejects walls, bad poses and missing camera-only hits',()=>{
+ const good={transform:{position:{x:0,y:0,z:-1},orientation:{x:0,y:0,z:0,w:1}}};
+ assert.equal(C.horizontalHit(good),true);
+ const wall={transform:{position:{x:0,y:0,z:-1},orientation:{x:Math.SQRT1_2,y:0,z:0,w:Math.SQRT1_2}}};
+ assert.equal(C.horizontalHit(wall),false);
+ const tilted={transform:{position:{x:0,y:0,z:-1},orientation:{x:.25,y:0,z:0,w:Math.sqrt(1-.25*.25)}}};
+ assert.equal(C.horizontalHit(tilted),true);
+ assert.equal(C.horizontalHit({transform:{position:{x:0,y:0,z:0}}}),false);
+ assert.equal(C.horizontalHit(null),false);
+ const invalid={transform:{position:{x:Infinity,y:0,z:0},orientation:{x:0,y:0,z:0,w:1}}};
+ assert.equal(C.horizontalHit(invalid),false);
+});
 console.log('CUADRANTE core PASS:',tests.length,'simulations');
