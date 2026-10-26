@@ -1,0 +1,90 @@
+name: Ritmo Caos V37 - independent HTTPS Pages fallback
+on:
+  push:
+    branches: [feat/ritmo-v37-visible-stage-fix-20261026]
+    paths: ['.github/workflows/ritmo-v37-pages.yml', 'ritmo.html', 'ritmo-*.js', 'assets/ritmo/**', 'media/ritmo/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: ritmo-v37-pages
+  cancel-in-progress: true
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout isolated V37 sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Check or activate Pages with repository permissions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl --silent --show-error --output /tmp/pages-info --write-out '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages")
+          if [[ "$code" == 200 ]]; then
+            echo "Pages site exists."
+          elif [[ "$code" == 404 ]]; then
+            echo "Pages is inactive; trying the supported GitHub API activation."
+            result=$(curl --silent --show-error --output /tmp/pages-enable --write-out '%{http_code}' \
+              -X POST -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+              -d '{"build_type":"workflow"}' "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages")
+            echo "GitHub Pages activation status: $result"
+            if [[ "$result" != 201 && "$result" != 409 ]]; then
+              cat /tmp/pages-enable
+              exit 1
+            fi
+          else
+            echo "GitHub Pages status HTTP $code"
+            cat /tmp/pages-info
+            exit 1
+          fi
+      - name: Assemble root-relative AR assets for project Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,re,shutil
+          project=pathlib.Path.cwd();site=project/'.ritmo-pages-site';site.mkdir(exist_ok=True)
+          html=project/'ritmo.html'
+          if not html.exists():raise SystemExit('Missing Ritmo HTML')
+          for file in [html,*project.glob('ritmo-*.js')]:
+              target=site/file.name
+              content=file.read_text(encoding='utf-8')
+              # GitHub Pages project site is served under /Modo-caos.
+              content=re.sub(r'(src|href)="/(?!(?:/))',r'\1="/Modo-caos/',content)
+              content=re.sub(r"""(['"`])/(?=(?:assets|media|ritmo|engine|index|color|ball|territorio|muro)(?:[-./]|$))""",
+                  r'\1/Modo-caos/',content)
+              target.write_text(content,encoding='utf-8')
+          for folder in ['assets/ritmo','media/ritmo']:
+              source=project/folder
+              if source.exists():
+                  shutil.copytree(source,site/folder,dirs_exist_ok=True)
+          (site/'.nojekyll').write_text('')
+          landing='<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=ritmo.html"><title>RITMO CAOS V37</title><a href="ritmo.html">JUGAR RITMO CAOS V37</a>'
+          (site/'index.html').write_text(landing)
+          contents=(site/'ritmo.html').read_text()
+          assert 'V37' in contents and 'src="/Modo-caos/ritmo-exterior.js?v=37"' in contents
+          assert all((site/p).exists() for p in ['ritmo-runtime.js','ritmo-glb-props.js','ritmo-stage-showtime.js'])
+          assert 'intent://modo-caos-eta.vercel.app/' not in contents
+          print('Pages bundle OK, files:',len(list(site.rglob('*'))),'bytes:',sum(f.stat().st_size for f in site.rglob('*') if f.is_file()))
+          PY
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload static HTTPS WebXR website
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: .ritmo-pages-site
+      - name: Publish GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
