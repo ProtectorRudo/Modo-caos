@@ -159,7 +159,7 @@ function attack(s){
  s.coins+=bounty;emit(s,'bonus',{count:bounty,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
  advanceChain(s,'box');gainChaos(s,16,'box');prizeBox(s,b);
  if(b.type==='mystery'&&p.hearts<3&&b.id%2===0){p.hearts++;emit(s,'heart')}
- if(b.type==='secret'&&!s.map.stars[2].taken){s.map.stars[2].taken=true;s.stars++;emit(s,'star',{id:2})}
+ if(b.type==='secret'&&!s.map.stars[2].taken){s.map.stars[2].taken=true;s.stars++;const st=s.map.stars[2];gainChaos(s,32,'star');emit(s,'star',{id:2,x:st.x,y:st.y,z:st.z})}
  }}
  for(const e of s.map.enemies)if(e.alive&&inArc(e,1.05)&&Math.abs(e.y-p.y)<2.1){
  e.hp-=s.chaos.fury>0?2:1;e.stun=.45;e.flash=.22;hit++;
@@ -172,7 +172,7 @@ function attack(s){
  }
  const b=s.map.boss;if(b.active&&b.alive&&b.weak>0&&b.invuln<=0&&inArc(b,2.0)){
  b.hp--;b.invuln=.38;b.weak=Math.max(.25,b.weak-.22);hit++;emit(s,'bossHit',{hp:b.hp});
- if(b.hp<=0){b.alive=false;s.phase='won';s.won=true;s.coins+=25;emit(s,'bossDown');emit(s,'win',{level:s.map.n,coins:s.coins,stars:s.stars,time:s.clock})}
+ if(b.hp<=0){b.alive=false;s.phase='won';s.won=true;s.coins+=25;emit(s,'bossDown',{x:b.x,y:b.y,z:b.z});emit(s,'win',{level:s.map.n,coins:s.coins,stars:s.stars,time:s.clock})}
  else{let next=b.hp<=3?3:b.hp<=6?2:1;if(next!==b.phase){b.phase=next;emit(s,'bossPhase',{phase:next})}}
  }
  if(hit)emit(s,'hit',{count:hit});return true;
@@ -300,7 +300,7 @@ function tick(s,input={},dt=1/60){
    if(!easyStep&&oldY>ground+.10)emit(s,'land',{surface:'soil'});
   }
  }
- if(p.y<-2.8){emit(s,'fall');respawn(s)}
+ if(p.y<-2.8){emit(s,'fall',{x:p.x,y:p.y,z:p.z});respawn(s)}
  for(const c of s.map.coins){
  if(c.taken)continue;
  const dist=Math.hypot(p.x-c.x,p.z-c.z),vertical=Math.abs(p.y+.48-c.y);
