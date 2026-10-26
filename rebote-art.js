@@ -52,7 +52,6 @@ export function createReboteArt(T,scene){
  const fxLayer=new T.Group();root.add(fxLayer);
  const bots=new Map(),shots=new Map(),particles=[],ripples=[];
  const particleGeometry=new T.TetrahedronGeometry(1,0);
- const keptShotGeometries=new Set([sphereG,shellG,haloG,seamG]);
  const sphereG=new T.SphereGeometry(1,18,14),capsuleG=new T.CylinderGeometry(1,1,1,10);
  // Rounded, reusable hull geometry replaces the sharp voxel cubes.
  const hullShape=new T.Shape();
@@ -66,6 +65,7 @@ export function createReboteArt(T,scene){
  // Shared projectile geometry avoids compiling/allocating a new geometry for every shot.
  const shellG=new T.SphereGeometry(1,20,12),haloG=new T.TorusGeometry(1,.09,6,30);
  const seamG=new T.TorusGeometry(1,.032,6,48),rippleG=new T.TorusGeometry(1,.042,8,52);
+ const keptShotGeometries=new Set([sphereG,shellG,haloG,seamG]);
  // Procedural panel pattern: a recognizable glossy BALL, not a flat neon disc.
  // The texture is generated locally; no files to download or third-party CDNs.
  const textureCanvas=document.createElement('canvas');
