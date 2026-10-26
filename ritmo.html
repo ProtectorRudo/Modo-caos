@@ -86,6 +86,35 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 #demoControls{display:none;position:absolute;bottom:35px;left:14%;right:14%;justify-content:space-between;pointer-events:auto;z-index:12}
 #demoControls button{font-size:25px;font-weight:1000;background:#133450d9;color:white;border:1px solid #71d7db;min-width:78px}
 @media(max-height:700px){#prepare{bottom:6px}#where{bottom:124px}#hud{top:43px}#pickLanes button{width:32px;height:32px}#calPanel{padding:7px}}
+
+/* NEON LIVE 3D · compact camera-safe overlay; only changes Ritmo */
+#playerBadge{display:none;position:absolute;z-index:7;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;font-family:system-ui,sans-serif;letter-spacing:.12em;font-size:clamp(12px,3vw,15px);font-weight:1000;color:#eeffff;text-shadow:0 0 8px #5cfbff,0 0 20px #16c8ff,0 2px 3px #04111b}
+#playerBadge:after{content:"";display:block;margin:1px auto 0;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #bbffff;filter:drop-shadow(0 0 5px #61faff)}
+#topActions{top:max(7px,env(safe-area-inset-top));left:10px;right:10px}
+#topActions button{background:linear-gradient(135deg,#0a1629e8,#113452d9);border-color:#74c5db88;box-shadow:0 2px 9px #0008}
+#hud{top:max(49px,env(safe-area-inset-top) + 46px);left:12px;right:12px}
+.hudRow{gap:5px}
+.hudRow div{border:1px solid #73d7ff78;border-radius:12px;padding:7px 3px;background:linear-gradient(150deg,#0b2544c7,#07152bc2);box-shadow:inset 0 0 12px #38baff18,0 2px 9px #0008;backdrop-filter:blur(7px);font-size:9px}
+.hudRow strong{font-size:clamp(15px,4.5vw,20px);text-shadow:0 0 9px #ffffff40}
+#progress{height:3px;background:#0e2c53a5;margin:5px 3px}
+#forecast{margin-top:5px;gap:7px}
+#forecast i{width:12px;height:12px;border:1px solid #fff7;box-shadow:0 0 9px currentColor}
+#where{bottom:max(75px,env(safe-area-inset-bottom) + 64px);border:1px solid #68d6f2ad;font-size:11px;min-width:0;padding:6px 10px;background:#081b2acb}
+#prepare{left:7%;right:7%;bottom:max(12px,env(safe-area-inset-bottom) + 8px)}
+#calPanel{padding:13px 11px 10px;background:linear-gradient(165deg,#06142bef,#0c3353df);border:1px solid #7feaff86;border-radius:17px;box-shadow:0 4px 34px #0009,inset 0 0 22px #4ac7fb18;backdrop-filter:blur(11px)}
+#calTitle{font-size:15px;letter-spacing:.015em}
+#calHint{font-size:11px;line-height:1.5;color:#b8dfeb}
+#pickLanes{gap:12px;margin:9px 0}
+#pickLanes button{width:clamp(43px,12vw,56px);height:clamp(43px,12vw,56px);border:2px solid #ffffffb8;box-shadow:inset 0 3px 12px #ffffff44,0 3px 10px #0007}
+#rtStart{min-height:54px;background:linear-gradient(105deg,#66ffe2,#a6fff1);color:#063548;border:none;box-shadow:0 3px 18px #6bfad23d}
+#rtRecenter{min-height:32px;font-size:12px;margin-top:5px}
+#holdHud{bottom:clamp(128px,24vh,222px);left:18%;right:18%;padding:7px 10px;border-width:1px;box-shadow:0 0 23px #65ffe94c;background:linear-gradient(150deg,#05172bdc,#0f3550d9)}
+#holdText{font-size:13px}
+#holdTrack{height:9px}
+#holdCount{font-size:10px}
+#gamePause{font-size:12px!important}
+@media(max-height:700px){#calPanel{padding:7px}#pickLanes button{width:42px;height:42px}#holdHud{bottom:145px}}
+
 </style></head><body>
 <main id="home"><div class="wrap">
 <a id="back" href="/">← VOLVER AL ARCADE</a>
@@ -117,7 +146,7 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <p id="precheck">📱 Para jugar en AR abrí este enlace <b>directamente en Chrome Android</b>, no dentro de ChatGPT o WhatsApp (menú ⋮ → Abrir en Chrome). Requiere ARCore y un piso despejado; la demo 2D funciona sin AR. Ajustá la pista entre 0,8 y 1,28 m. No corras ni saltes: se sigue el <b>celular</b>, no tus pies.</p>
 </div></main>
 <div id="overlay">
-<svg id="tiles"></svg><svg id="rtSvg"></svg><canvas id="gameCanvas"></canvas><canvas id="fxCanvas" aria-hidden="true"></canvas>
+<svg id="tiles"></svg><svg id="rtSvg"></svg><canvas id="gameCanvas"></canvas><canvas id="fxCanvas" aria-hidden="true"></canvas><div id="playerBadge" aria-hidden="true">◆ VOS</div>
 <div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Apuntá a una superficie real</div></div>
 <div id="reticle"></div><div id="mock"></div><button id="support"></button>
 <div id="calibrate">☝ DESLIZÁ · 🤏 ACHICÁ/AGRANDÁ · ↻ GIRÁ</div><div id="fallback"></div>
@@ -152,13 +181,14 @@ window.addEventListener('unhandledrejection',function(e){
  const status=document.getElementById('launchStatus');if(status){status.hidden=false;status.textContent='⚠️ No se completó el inicio: '+msg+'. Probá abrirlo en Chrome Android.'}
 });
 </script>
-<script defer src="/ritmo-engine.js?v=12"></script>
-<script defer src="/ritmo-core.js?v=15"></script>
-<script defer src="/ritmo-catalog.js?v=12"></script>
-<script defer src="/ritmo-licensed.js?v=12"></script>
-<script defer src="/ritmo-despacito.js?v=12"></script>
-<script defer src="/ritmo-audio.js?v=15"></script>
-<script defer src="/ritmo-art.js?v=15"></script>
-<script defer src="/ritmo-fx.js?v=15"></script>
-<script defer src="/ritmo-runtime.js?v=15"></script>
+<script defer src="/ritmo-engine.js?v=20"></script>
+<script defer src="/ritmo-core.js?v=20"></script>
+<script defer src="/ritmo-catalog.js?v=20"></script>
+<script defer src="/ritmo-licensed.js?v=20"></script>
+<script defer src="/ritmo-despacito.js?v=20"></script>
+<script defer src="/ritmo-audio.js?v=20"></script>
+<script defer src="/ritmo-art.js?v=20"></script>
+<script defer src="/ritmo-stage3d.js?v=20"></script>
+<script defer src="/ritmo-fx.js?v=20"></script>
+<script defer src="/ritmo-runtime.js?v=20"></script>
 </body></html>
