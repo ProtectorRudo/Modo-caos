@@ -51,10 +51,10 @@ function geometry(s){
 }
 function create(opts={}){
  const s={rng:opts.seed||493801,clock:0,phase:'ready',mode:0,modeName:'CLÁSICA',duel:0,
-  player:{x:0,y:1.2,lastX:0,lastY:1.2,vx:0,vy:0,motionAge:0},enemy:{x:0,y:1.2,targetX:0,targetY:1.2,think:0},
+  player:{x:0,y:1.2,lastX:0,lastY:1.2,vx:0,vy:0,motionAge:0,aimHistory:[]},enemy:{x:0,y:1.2,targetX:0,targetY:1.2,think:0},
   ball:{x:0,y:1.2,z:0,vx:0,vy:0,vz:0},score:[0,0],rally:0,combo:0,bestCombo:0,
   totalHits:0,bestRally:0,arcade:0,scoreServe:0,serveTimer:0,level:0,winner:null,
-  modePlay:opts.modePlay==='survival'?'survival':'circuit',tick:0,events:[],warning:0,
+  modePlay:opts.modePlay==='survival'?'survival':'circuit',arDefense:opts.arDefense===true,tick:0,events:[],warning:0,
   wins:0,matches:0,startedAt:0,autoplay:false,survivalLives:3,pendingMode:-1};
  s.mode=0;return s;
 }
@@ -68,7 +68,30 @@ function newServe(s,initial=false){
  setSpeed(s.ball,spd);s.rally=0;s.combo=0;s.serveTimer=initial?.85:.52;s.phase='serve';
  s.enemy.think=0;s.warning=0;s.pendingMode=-1;event(s,'serve',fromOpponent?'enemy':'player');
 }
-function target(s,x,y){s.player.x=CLAMP(x,-W+.37,W-.37);s.player.y=CLAMP(y,LOW+.37,HIGH-.37)}
+function target(s,x,y){
+ s.player.x=CLAMP(x,-W+.37,W-.37);s.player.y=CLAMP(y,LOW+.37,HIGH-.37);
+ if(s.arDefense){
+  // AR pose updates do not arrive at the same instant as 120Hz collisions.
+  // Retain at most 110ms of real observed camera-aim positions.
+  const h=s.player.aimHistory;
+  h.push({x:s.player.x,y:s.player.y,t:s.clock});
+  while(h.length&&(h.length>16||s.clock-h[0].t>.12))h.shift();
+ }
+}
+function caughtByPlayer(s,x,y){
+ const p=s.player,near=(pos,r)=>Math.abs(x-pos.x)<r&&Math.abs(y-pos.y)<r;
+ if(!s.arDefense)return {caught:near(p,.375+R),grace:false};
+ // Modest touch tolerance matches the holographic shield without
+ // turning defense into a broad auto-catch zone.
+ const arRadius=.435+R;
+ if(near(p,arRadius))return {caught:true,grace:false};
+ for(let i=p.aimHistory.length-1;i>=0;i--){
+  const sample=p.aimHistory[i];
+  if(s.clock-sample.t>.11)break;
+  if(near(sample,arRadius))return {caught:true,grace:true,position:sample};
+ }
+ return {caught:false,grace:false};
+}
 function returnBall(s,isPlayer){
  const b=s.ball,p=isPlayer?s.player:s.enemy;
  const ux=CLAMP((b.x-p.x)/.43,-1,1),uy=CLAMP((b.y-p.y)/.43,-1,1), prof=profiles[s.duel];
@@ -140,9 +163,19 @@ function advance(s,dt){
   b.x+=b.vx*hit.t;b.y+=b.vy*hit.t;b.z+=b.vz*hit.t;remain-=hit.t;
   if(hit.kind==='front'||hit.kind==='back'){
    const isPlayer=hit.kind==='front';const p=isPlayer?s.player:s.enemy;
-   const caught=Math.abs(b.x-p.x)<(.375+R)&&Math.abs(b.y-p.y)<(.375+R);
-   if(!caught){point(s,!isPlayer);return}
-   returnBall(s,isPlayer);if(!isPlayer&&s.duel>=3&&rand(s)<.20)event(s,'feint'); 
+   const contact=isPlayer?caughtByPlayer(s,b.x,b.y):{
+    caught:Math.abs(b.x-p.x)<(.375+R)&&Math.abs(b.y-p.y)<(.375+R),
+    grace:false
+   };
+   if(!contact.caught){point(s,!isPlayer);return}
+   if(contact.grace&&contact.position){
+    // The historic aim position earns the rebound AND determines its angle.
+    const oldX=p.x,oldY=p.y;
+    p.x=contact.position.x;p.y=contact.position.y;
+    returnBall(s,isPlayer);
+    p.x=oldX;p.y=oldY;
+    event(s,'graceHit');
+   }else returnBall(s,isPlayer);if(!isPlayer&&s.duel>=3&&rand(s)<.20)event(s,'feint'); 
   }else {
    if(hit.kind==='obstacle'){
     const dot=b.vx*hit.nx+b.vy*hit.ny+b.vz*hit.nz;
@@ -186,7 +219,7 @@ function point(s,playerWon){
 function next(s){if(s.phase!=='finished'||s.winner!=='player'||s.duel>=profiles.length-1)return false;
  s.duel++;s.level=s.duel;s.score=[0,0];s.winner=null;s.mode=profiles[s.duel].mode;s.modeName=modes[s.mode];s.phase='ready';
  start(s);event(s,'nextRival',profiles[s.duel].name);return true}
-function retry(s){const fresh=create({seed:(s.rng+777)>>>0,modePlay:s.modePlay});
+function retry(s){const fresh=create({seed:(s.rng+777)>>>0,modePlay:s.modePlay,arDefense:s.arDefense});
  fresh.duel=s.duel;fresh.level=s.level;fresh.wins=s.wins;fresh.arcade=s.arcade;
  fresh.mode=profiles[fresh.duel].mode;start(fresh);return fresh}
 function step(s,dt=1/120){
