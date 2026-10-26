@@ -1,5 +1,5 @@
 'use strict';
-/* RITMO CAOS V34 — actual Quaternius Punk joint-weighted skin deformation.
+/* RITMO CAOS V35 — actual Quaternius Punk joint-weighted skin deformation.
  * Runs in the EXISTING anchored WebGL1 world (no extra scene or renderer).
  * The CC0 GLB supplies its real named bones and JOINTS_0 / WEIGHTS_0.
  * Its FBX animations are not bundled: motion here is procedural joint pose.

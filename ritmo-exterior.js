@@ -428,7 +428,7 @@
     }
    }
   }
-  return{render,version:'HORSE DJ V34'};
+  return{render,version:'HORSE DJ V35'};
  }
- root.RitmoExterior={create,version:'HORSE DJ V34'};
+ root.RitmoExterior={create,version:'HORSE DJ V35'};
 })(window);

@@ -99,10 +99,10 @@ test('scene keeps stage feet, dark deck, raised controls, front-note clearance',
 });
 test('V34 script order and gameplay floor remain protected',()=>{
  for(const n of ['ritmo-glb-props','ritmo-skinning','ritmo-exterior','ritmo-stage-showtime']){
-  assert.ok(page.includes('/'+n+'.js?v=34'),n);
+  assert.ok(page.includes('/'+n+'.js?v=35'),n);
  }
- assert.ok(page.indexOf('ritmo-glb-props.js?v=34')<page.indexOf('ritmo-skinning.js?v=34'));
- assert.ok(page.indexOf('ritmo-skinning.js?v=34')<page.indexOf('ritmo-exterior.js?v=34'));
+ assert.ok(page.indexOf('ritmo-glb-props.js?v=35')<page.indexOf('ritmo-skinning.js?v=35'));
+ assert.ok(page.indexOf('ritmo-skinning.js?v=35')<page.indexOf('ritmo-exterior.js?v=35'));
  assert.ok(page.includes('ritmo-runtime.js?v=31'));
  const floor=read('ritmo-stage-showtime.js');
  for(const invariant of ['const trails=quality===0?3:5','let z=.65,r=size*.44','const back=-1.15,front=.94']){
