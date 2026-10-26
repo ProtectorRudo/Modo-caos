@@ -42,6 +42,106 @@ export function createReboteArt(T,scene){
  }
  const center=new T.Mesh(new T.CylinderGeometry(.14,.19,.025,32),new T.MeshBasicMaterial({color:0x4cabb2,transparent:true,opacity:.22,depthWrite:false}));
  center.position.y=.07;plane.add(center);
+ // AR ARENA 3D / world-space only: the environment is a child of the same
+ // calibrated root as the opponent. Never pin scenic objects to the phone.
+ const arenaWorld=new T.Group();root.add(arenaWorld);
+ const scenicMaterials=[
+  new T.MeshStandardMaterial({color:0x152333,metalness:.66,roughness:.40}),
+  new T.MeshStandardMaterial({color:0x294052,metalness:.64,roughness:.29}),
+  new T.MeshStandardMaterial({color:0x0b1926,metalness:.48,roughness:.55}),
+  new T.MeshBasicMaterial({color:0x58f5dc,transparent:true,opacity:.80,depthWrite:false}),
+  new T.MeshBasicMaterial({color:0xffba65,transparent:true,opacity:.78,depthWrite:false}),
+  new T.MeshBasicMaterial({color:0x8b9daf,transparent:true,opacity:.41,depthWrite:false}),
+  new T.MeshBasicMaterial({color:0x091c29,transparent:true,opacity:.55,depthWrite:false})
+ ];
+ const [scSteel,scPanel,scDark,scCyan,scAmber,scMuted,scGlass]=scenicMaterials;
+ const scenicGeometries=[];
+ const useGeometry=g=>{scenicGeometries.push(g);return g};
+ const tileG=useGeometry(new T.BoxGeometry(1,1,1));
+ const pylonG=useGeometry(new T.CylinderGeometry(.11,.16,1,8));
+ const orbG=useGeometry(new T.IcosahedronGeometry(.11,0));
+ const railG=useGeometry(new T.CylinderGeometry(.028,.028,1,7));
+ const deco=(parent,g,m,x,y,z,sx=1,sy=1,sz=1)=>{
+  const item=new T.Mesh(g,m);item.position.set(x,y,z);item.scale.set(sx,sy,sz);parent.add(item);return item;
+ };
+ // Industrial modular flooring on the user's ring, with real gaps. Geometry is
+ // paper-thin above the detected floor, intentionally not a false physical step.
+ const tiles=new T.Group();arenaWorld.add(tiles);
+ for(let i=0;i<12;i++){
+  const arc=(i+.5)*Math.PI/6;
+  const panelG=useGeometry(new T.RingGeometry(.84,1.17,1,1,i*Math.PI/6+.025,Math.PI/6-.05));
+  const panel=new T.Mesh(panelG,i%3===0?scPanel:scSteel);
+  panel.rotation.x=-Math.PI/2;panel.position.y=.079;tiles.add(panel);
+  if(i%2===0){
+   const led=deco(tiles,tileG,i%4===0?scAmber:scCyan,Math.sin(arc)*1.01,.086,Math.cos(arc)*1.01,.045,.005,.11);
+   led.rotation.y=arc;
+  }
+ }
+ // Holographic centre target: player location remains transparent and readable.
+ const groundDisk=useGeometry(new T.CircleGeometry(.36,36));
+ const disk=deco(arenaWorld,groundDisk,scGlass,0,.081,0);
+ disk.rotation.x=-Math.PI/2;
+ const clearance=useGeometry(new T.TorusGeometry(1.38,.011,5,72));
+ const clearanceRing=deco(arenaWorld,clearance,scCyan,0,.087,0);
+ clearanceRing.rotation.x=-Math.PI/2;
+ // A physical-looking opponent launch pad at z=-2.30, where the enemy stands.
+ const rivalDeck=new T.Group();rivalDeck.position.z=-2.30;arenaWorld.add(rivalDeck);
+ const rivalDeckG=useGeometry(new T.CylinderGeometry(.75,.85,.10,28));
+ deco(rivalDeck,rivalDeckG,scSteel,0,.007,0);
+ const rivalInner=useGeometry(new T.CylinderGeometry(.60,.62,.011,28));
+ deco(rivalDeck,rivalInner,scDark,0,.066,0);
+ const rivalRingG=useGeometry(new T.TorusGeometry(.67,.022,7,48));
+ const rivalRing=deco(rivalDeck,rivalRingG,scAmber,0,.075,0);
+ rivalRing.rotation.x=-Math.PI/2;
+ for(let i=0;i<8;i++){
+  const a=i*Math.PI/4;
+  const tick=deco(rivalDeck,tileG,i%2?scCyan:scAmber,Math.sin(a)*.64,.078,Math.cos(a)*.64,.045,.011,.12);
+  tick.rotation.y=a;
+ }
+ // Two symmetric scenic pylons OUTSIDE the incoming ball corridor.
+ // Decorative scenery is immaterial: never ask users to touch or avoid it.
+ const pylons=[];
+ for(const sx of [-1,1]){
+  const group=new T.Group();group.position.set(sx*1.83,0,-2.45);arenaWorld.add(group);pylons.push(group);
+  deco(group,tileG,scSteel,0,.09,0,.49,.17,.52);
+  deco(group,pylonG,scPanel,0,.71,0,1.10,1.15,1.10);
+  deco(group,tileG,scDark,0,1.35,0,.38,.17,.40);
+  deco(group,tileG,scCyan,0,.94,.125,.21,.35,.025);
+  const bulb=deco(group,orbG,sx<0?scAmber:scCyan,0,1.50,0,.90,.90,.90);
+  group.userData.bulb=bulb;
+  // Small equipment crates near each pylon, clearly outside the player ring.
+  const crateX=sx*2.20;
+  deco(arenaWorld,tileG,scSteel,crateX,.20,-1.46,.54,.40,.56);
+  deco(arenaWorld,tileG,scDark,crateX,.42,-1.46,.60,.055,.60);
+  deco(arenaWorld,tileG,scCyan,crateX,.30,-1.15,.26,.035,.018);
+ }
+ // Rear safety rail and signal bar are BEHIND the rival, with open side access.
+ for(let i=0;i<5;i++){
+  const x=-1.70+i*.85;
+  const upright=deco(arenaWorld,railG,scPanel,x,.39,-3.41,1,13,1);
+  const cap=deco(arenaWorld,tileG,scAmber,x,.83,-3.41,.10,.07,.10);
+ }
+ deco(arenaWorld,tileG,scSteel,0,.80,-3.41,3.6,.065,.085);
+ deco(arenaWorld,tileG,scCyan,0,.85,-3.39,3.48,.014,.020);
+ // Diegetic scoreboard above / behind the rival, not glued to the camera.
+ const scoreboard=new T.Group();scoreboard.position.set(0,2.10,-3.45);arenaWorld.add(scoreboard);
+ deco(scoreboard,tileG,scSteel,0,0,0,1.88,.45,.085);
+ const screenCanvas=document.createElement('canvas');
+ screenCanvas.width=512;screenCanvas.height=128;
+ const c=screenCanvas.getContext('2d');
+ c.fillStyle='#0a1d2b';c.fillRect(0,0,512,128);
+ c.strokeStyle='#69f8e4';c.lineWidth=5;c.strokeRect(8,8,496,112);
+ c.fillStyle='#b2fff3';c.font='bold 57px system-ui,sans-serif';
+ c.textAlign='center';c.textBaseline='middle';
+ c.fillText('REBOTE MORTAL',256,66);
+ const scoreTexture=new T.CanvasTexture(screenCanvas);
+ scoreTexture.colorSpace=T.SRGBColorSpace;
+ const screenMat=new T.MeshBasicMaterial({map:scoreTexture,transparent:true,side:T.DoubleSide,depthWrite:false});
+ const screenG=useGeometry(new T.PlaneGeometry(1.75,.39));
+ deco(scoreboard,screenG,screenMat,0,0,.058);
+ const worldGlimmers=[rivalRing,clearanceRing,...pylons.map(p=>p.userData.bulb)];
+ const worldPropsCount=arenaWorld.children.length+tiles.children.length+rivalDeck.children.length+
+   pylons.reduce((sum,p)=>sum+p.children.length,0)+scoreboard.children.length;
  const youMarker=new T.Group();root.add(youMarker);
  const yourRing=new T.Mesh(new T.TorusGeometry(.135,.012,8,40),new T.MeshBasicMaterial({color:0x65ffe1,transparent:true,opacity:.84,depthWrite:false}));
  yourRing.rotation.x=-Math.PI/2;yourRing.position.y=.115;youMarker.add(yourRing);
@@ -252,6 +352,14 @@ export function createReboteArt(T,scene){
   const pulse=.85+.15*Math.sin(time*3);
   placementCue.visible=preview;
   placementCue.scale.setScalar(plane.userData.size||1);
+  // Static world landmarks help spatial stability. Only LED intensity animates.
+  const worldPulse=.82+.18*Math.sin(time*2.2);
+  scCyan.opacity=.68+worldPulse*.15;
+  scAmber.opacity=.63+worldPulse*.15;
+  rivalRing.material.opacity=.60+.30*Math.sin(time*2.4)**2;
+  clearanceRing.material.opacity=.54+.23*Math.sin(time*1.4)**2;
+  for(const p of pylons)p.userData.bulb.scale.setScalar(.84+.11*Math.sin(time*2+p.position.x));
+  arenaWorld.visible=preview||g.state==='ready'||g.state==='playing'||g.state==='finished';
   beaconHead.rotation.y=time*2.2;
   beaconHead.position.y=.98+Math.sin(time*4)*.08;
   ringMat.opacity=pulse;center.rotation.y=time*.24;
@@ -380,6 +488,9 @@ export function createReboteArt(T,scene){
    if(o.material&&!sharedRobotMaterials.has(o.material))o.material.dispose()});
   for(const g of sharedRobotGeometries)g.dispose();
   ballTexture.dispose();seamG.dispose();rippleG.dispose();particleGeometry.dispose();
+  scoreTexture.dispose();screenMat.dispose();
+  for(const material of scenicMaterials)material.dispose();
+  for(const geometry of scenicGeometries)geometry.dispose();
   for(const m of sharedRobotMaterials)m.dispose();
  }
  return {root,plane,update,effect,dispose,setSize(v){plane.userData.size=Math.max(.7,Math.min(1.45,v))},
@@ -392,6 +503,10 @@ export function createReboteArt(T,scene){
    });
    return dots.length?Math.min(...dots):1;
   },
-  getRicochetRipples(){return ripples.length}
+  getRicochetRipples(){return ripples.length},
+  getArenaPropsCount(){return worldPropsCount},
+  getArenaWorld(){return arenaWorld},
+  getRivalDeck(){return rivalDeck},
+  getScoreboard(){return scoreboard}
  };
 }
