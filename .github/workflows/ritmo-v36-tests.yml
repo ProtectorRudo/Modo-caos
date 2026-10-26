@@ -18,6 +18,7 @@ jobs:
         with: {node-version: '22'}
       - name: Check JavaScript syntax
         run: |
+          node --check ritmo-glb-props.js
           node --check ritmo-exterior.js
           node --check ritmo-stage-showtime.js
           node --check ritmo-core.js
