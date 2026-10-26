@@ -31,7 +31,7 @@ window.modoCaosCustomRender=function(gl,view,W,t){
  const indicator=E('sceneVersion');
  if(indicator){
   const rendererName=!success?'2D DE RESPALDO':renderer===stageShowtime?'NEON PRISM':renderer===stagePremium?'ESCENARIO LEGACY':'WEBGL CLÁSICO';
-  const current='V37 · '+rendererName;
+  const current='V38 · '+rendererName+' · ♫ BEAT LOCK';
   if(indicator.textContent!==current)indicator.textContent=current;
  }
  E('rtSvg').style.display=success?'none':'block';
@@ -44,7 +44,7 @@ window.modoCaosCustomArena=true;
 window.modoCaosGestureConfig={min:.20,max:.32,step:.015,label:s=>(s*4).toFixed(2)+' m'};
 try{boardSize=.25;tiles.fill(0);colors[0]='#09182e';rgb[0]=[.025,.055,.11];E('size').textContent='1,00 m'}catch(_){}
 let game=G.make(),demo=false,locked=false,calibrated=false,sampling=false,selected=null,reference=null,
-samples=[],sampleStart=0,filtered=1,lane=1,prevX=null,lastTrack=0,lost=false,
+samples=[],sampleStart=0,filtered=1,lane=1,tracker=null,lastTrack=0,lost=false,
 running=false,manualPause=false,calPaused=false,ending=false,rafLast=0,hudLast=0,drawLast=0,demoLane=1,
 gestureStart=null,best=0,muted=false,toastUntil=0,lastEventCount=0,playedMilestones=new Set(),localReadyFor=null;
 function song(){return E('song').value}function diff(){return E('difficulty').value}
@@ -112,7 +112,7 @@ for(const b of E('pickLanes').querySelectorAll('button'))b.onclick=()=>pick(Numb
 function chooseLane(){
  if(demo||!locked)return;
  if(running){game.paused=true;audio.pause();}
- calibrated=false;sampling=false;reference=null;selected=null;prevX=null;samples=[];sampleStart=0;
+ calibrated=false;sampling=false;reference=null;selected=null;tracker=null;samples=[];sampleStart=0;
  for(const b of E('pickLanes').querySelectorAll('button'))b.classList.remove('selected');
  E('calTitle').textContent='👣 ¿EN QUÉ COLOR ESTÁS?';
  E('calHint').textContent='Elegí uno de los 4 círculos. Ese será tu punto real de partida.';
@@ -124,7 +124,7 @@ function calibrate(){
  if(demo||!locked||selected===null)return;
  calPaused=running&&!manualPause;
  if(running){game.paused=true;audio.pause();}
- calibrated=false;sampling=true;reference=null;samples=[];sampleStart=0;prevX=null;
+ calibrated=false;sampling=true;reference=null;tracker=null;samples=[];sampleStart=0;
  E('rtStart').disabled=true;E('rtStart').textContent='CALIBRANDO…';
  E('calTitle').textContent='📍 QUIETO 1 SEGUNDO · CARRIL '+(selected+1);
  E('calHint').textContent='Sostené quieto el celular donde estás. No muevas la pista.';
@@ -152,7 +152,7 @@ function sample(t,x){
  if(pct<1||samples.length<10)return;
  const center=samples.reduce((a,b)=>a+b,0)/samples.length;
  reference={x:center,selected,worldWidth:boardSize};
- filtered=selected;lane=selected;prevX=center;sampling=false;calibrated=true;lastTrack=t;
+ filtered=selected;lane=selected;tracker=window.RitmoTracking.create(selected,center,boardSize);sampling=false;calibrated=true;lastTrack=t;
  G.setPosition(game,selected,game.elapsed);E('calTitle').textContent='✅ LISTO · CARRIL '+(selected+1);
  E('calHint').textContent='Movete lateralmente llevando el celular. No hace falta tocar la pantalla para acertar.';
  E('rtStart').disabled=false;E('rtStart').textContent=running?'▶ CONTINUAR':'▶ ¡QUE SUENE LA MÚSICA!';
@@ -162,19 +162,18 @@ function sample(t,x){
 }
 function motion(t,dt,x){
  if(sampling){sample(t,x);return}
- if(!running||demo||!calibrated)return;
+ if(!running||demo||!calibrated||!tracker)return;
  if(x===null){if(t-lastTrack>800&&!lost){lost=true;pause(true);notify('📡 SIN SEGUIMIENTO · PAUSA',1800)}return}
- if(lost){lost=false;lastTrack=t;prevX=x;if(!manualPause){game.paused=false;audio.resume();notify('✓ SEGUIMIENTO RECUPERADO')}}
+ if(lost){
+  lost=false;lastTrack=t;
+  // Reconnect after tracking was lost without jumping the calibrated lane.
+  tracker.recover(x,t);
+  if(!manualPause){game.paused=false;audio.resume();notify('✓ SEGUIMIENTO RECUPERADO')}
+ }
  lastTrack=t;
- if(prevX!==null&&Math.abs(x-prevX)>.38){reference.x+=x-prevX;prevX=x;return}
- prevX=x;
- const target=clamp(reference.selected+(x-reference.x)/reference.worldWidth,0,3);
- const smooth=1-Math.exp(-dt/.055);
- filtered+=clamp((target-filtered)*smooth,-Math.max(.14,dt*10),Math.max(.14,dt*10));
- // Histeresis pequeña: no alternar constantemente al cruzar un borde.
- if(filtered>lane+.54&&lane<3)lane++;else if(filtered<lane-.56&&lane>0)lane--;
- const safe=clamp(filtered,lane-.48,lane+.48);
- G.setPosition(game,safe,game.elapsed);
+ const next=tracker.update(x,t,dt);
+ lane=next.lane;filtered=next.filtered;
+ G.setPosition(game,next.offset,game.elapsed);
 }
 function pause(forTracking=false){
  if(!running)return;
@@ -190,7 +189,7 @@ function togglePause(){
 E('gamePause').onclick=togglePause;
 E('sound').onclick=()=>{muted=!muted;audio.volume(muted);E('sound').textContent=muted?'🔇':'🔊'};
 const qualityModes=['auto','high','low'];
-const qualityNames=['✨ AUTO · V37','✨ ALTA · V37','✨ LIGERA · V37'];
+const qualityNames=['✨ AUTO · V38','✨ ALTA · V38','✨ LIGERA · V38'];
 E('quality').onclick=()=>{
  if(!stage3d&&!stagePremium&&!stageShowtime){notify('RENDERIZADO CLÁSICO');return}
  const renderer=activeStage||stageShowtime||stagePremium||stage3d;
@@ -281,6 +280,8 @@ async function begin(){
  notify('♫ PREPARANDO LA CANCIÓN',1400);
  try{
   await audio.start(song());audio.volume(muted);game.paused=false;
+   const delayMs=Math.round((audio.outputDelay?.()||0)*1000);
+   E('latencyValue').textContent=E('latency').value+' ms · audio auto '+delayMs+' ms';
  }catch(e){
   audio.stop();running=false;game.state='ready';game.paused=false;E('holdHud').style.display='none';
   const detail=String(e?.message||e||'No se pudo reproducir el audio').slice(0,240);
@@ -327,7 +328,7 @@ function loop(t){
  requestAnimationFrame(loop);if(!demo)return;
  const dt=rafLast?clamp((t-rafLast)/1000,0,.075):.016;rafLast=t;
  if(running&&game.state==='playing'){
-  G.setPosition(game,demoLane,game.elapsed);G.tick(game,audio.now()+Number(E('latency').value)/1000);
+  G.setPosition(game,demoLane,game.elapsed);G.tick(game,(audio.audibleNow?.()??audio.now())+Number(E('latency').value)/1000);
   onEvents();if(game.state==='finished')conclude();
  }
  art.demo(game);fx?.frame(t);if(t-hudLast>90){hudLast=t;showHUD(t)}hideToast(t);
@@ -361,7 +362,7 @@ window.modoCaosXRFrame=function(t,frame,W){
   if(x!==null&&!sampling)lastTrack=t;
  }
  if(running&&game.state==='playing'&&!game.paused){
-  G.tick(game,audio.now()+Number(E('latency').value)/1000);
+  G.tick(game,(audio.audibleNow?.()??audio.now())+Number(E('latency').value)/1000);
   onEvents();if(game.state==='finished')conclude();
  }
  if(t-drawLast>33&&!stage3dOK){drawLast=t;art.ar(frame,W,locked?game:null,boardSize)}
