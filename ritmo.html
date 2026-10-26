@@ -51,7 +51,8 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 #headline{font-size:clamp(20px,6vw,31px);font-weight:1000}
 #subtitle{font-size:11px;font-weight:700;color:#ccf2f1}
 #calibrate{position:absolute;top:19%;left:5%;right:5%;text-align:center;padding:7px;border-radius:10px;background:#10293ce5;color:#d4fff4;font-size:10px;font-weight:900;display:none}
-#fallback{position:absolute;top:45%;left:10%;right:10%;background:#0b2945e8;border-radius:12px;padding:13px;display:none}
+#fallback{position:absolute;top:40%;left:7%;right:7%;background:#08223de9;border:1px solid #54d8d7a8;color:#e1fffb;font-weight:800;line-height:1.55;text-align:center;border-radius:15px;padding:15px;display:none;z-index:10;pointer-events:none}
+#rescan{display:none;position:absolute;left:14%;right:14%;width:72%;top:62%;min-height:52px;color:#032a3f;background:#83ffe6;border:1px solid #b6ffff;box-shadow:0 2px 16px #0009;z-index:13;pointer-events:auto}
 #toolbar{display:none;position:absolute;bottom:max(125px,env(safe-area-inset-bottom) + 122px);left:7%;right:7%;gap:5px;pointer-events:auto;z-index:12}
 #toolbar button{flex:1;min-width:0;background:#142c49df;color:white;border:1px solid #55b8ac}
 #toolbar #size{flex:1.5;font-size:11px}
@@ -150,7 +151,8 @@ select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-he
 <svg id="tiles"></svg><svg id="rtSvg"></svg><canvas id="gameCanvas"></canvas><canvas id="fxCanvas" aria-hidden="true"></canvas><div id="playerBadge" aria-hidden="true">◆ VOS</div>
 <div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Apuntá a una superficie real</div></div>
 <div id="reticle"></div><div id="mock"></div><button id="support"></button>
-<div id="calibrate">☝ DESLIZÁ · 🤏 ACHICÁ/AGRANDÁ · ↻ GIRÁ</div><div id="fallback"></div>
+<div id="calibrate">☝ DESLIZÁ · 🤏 ACHICÁ/AGRANDÁ · ↻ GIRÁ</div><div id="fallback" role="status" aria-live="polite"></div>
+<button id="rescan" type="button" aria-label="Reintentar detección del piso">↻ REINTENTAR DETECCIÓN</button>
 <div id="touchpad"></div><div id="toolbar"><button id="minus">−</button><button id="size" disabled>1,00 m</button><button id="plus">+</button><button id="rotate">↻</button></div>
 <div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
 <button id="lock" disabled>📍 FIJAR LOS 4 CARRILES</button>
@@ -182,16 +184,16 @@ window.addEventListener('unhandledrejection',function(e){
  const status=document.getElementById('launchStatus');if(status){status.hidden=false;status.textContent='⚠️ No se completó el inicio: '+msg+'. Probá abrirlo en Chrome Android.'}
 });
 </script>
-<script defer src="/ritmo-engine.js?v=24"></script>
-<script defer src="/ritmo-core.js?v=24"></script>
-<script defer src="/ritmo-catalog.js?v=24"></script>
-<script defer src="/ritmo-licensed.js?v=24"></script>
-<script defer src="/ritmo-despacito.js?v=24"></script>
-<script defer src="/ritmo-audio.js?v=24"></script>
-<script defer src="/ritmo-art.js?v=24"></script>
-<script defer src="/ritmo-stage3d.js?v=24"></script>
-<script defer src="/ritmo-kenney-vfx.js?v=24"></script>
-<script defer src="/ritmo-fx.js?v=24"></script>
-<script defer src="/ritmo-haptics.js?v=24"></script>
-<script defer src="/ritmo-runtime.js?v=24"></script>
+<script defer src="/ritmo-engine.js?v=25"></script>
+<script defer src="/ritmo-core.js?v=25"></script>
+<script defer src="/ritmo-catalog.js?v=25"></script>
+<script defer src="/ritmo-licensed.js?v=25"></script>
+<script defer src="/ritmo-despacito.js?v=25"></script>
+<script defer src="/ritmo-audio.js?v=25"></script>
+<script defer src="/ritmo-art.js?v=25"></script>
+<script defer src="/ritmo-stage3d.js?v=25"></script>
+<script defer src="/ritmo-kenney-vfx.js?v=25"></script>
+<script defer src="/ritmo-fx.js?v=25"></script>
+<script defer src="/ritmo-haptics.js?v=25"></script>
+<script defer src="/ritmo-runtime.js?v=25"></script>
 </body></html>
