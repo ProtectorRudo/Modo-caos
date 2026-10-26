@@ -1,0 +1,27 @@
+name: Ritmo V37 - AR stage composition and Chrome preview
+on:
+  push:
+    branches: [feat/ritmo-v37-visible-stage-fix-20261026]
+    paths: ['ritmo-*.js','ritmo.html','tests/ritmo-v37-visible.test.cjs','.github/workflows/ritmo-v37-tests.yml']
+  pull_request:
+    paths: ['ritmo-exterior.js','ritmo-runtime.js','ritmo.html','tests/ritmo-v37-visible.test.cjs']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - name: Syntax
+        run: |
+          node --check ritmo-exterior.js
+          node --check ritmo-runtime.js
+          node --check ritmo-glb-props.js
+          node --check ritmo-stage-showtime.js
+          node --check ritmo-core.js
+      - name: Dedicated V37 render and game smoke tests
+        run: node --test tests/ritmo-v37-visible.test.cjs tests/ritmo-audio.test.cjs tests/ritmo-calibracion.test.cjs
