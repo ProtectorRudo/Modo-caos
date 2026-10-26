@@ -16,7 +16,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PAGE='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a225085ddaddaa8ff351db41fc3671c6679d4724/ritmo-v38-cdn.html'
+          PAGE='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/d77fa4784ced78bf6a251ce400b0a98f0a6703d3/ritmo-v38-cdn.html'
           curl --retry 3 --retry-delay 3 -fLsS -D /tmp/headers -o /tmp/index.html "$PAGE"
           grep -qi '^content-type: *text/html' /tmp/headers
           grep -q 'RITMO CAOS V38' /tmp/index.html
@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BASE='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/a1b503bb6bd72a8ddee09794854cf3aacc6d5854'
+          BASE='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/47abd1caa0017247e0a863993b6a9b34715d086b'
           for file in ritmo-engine.js ritmo-core.js ritmo-tracking.js ritmo-runtime.js ritmo-audio.js ritmo-despacito.js ritmo-licensed.js ritmo-stage-showtime.js ritmo-exterior.js ritmo-glb-props.js ritmo-skinning.js ritmo-haptics.js ritmo-art.js assets/ritmo/dj-quaternius-punk.glb assets/ritmo/dj-mixer.glb assets/ritmo/dj-cdj.glb media/ritmo/despacito-remix-80s.ogg.b64; do
             curl --retry 3 --retry-delay 2 -fLsS -o /tmp/file "$BASE/$file"
             bytes=$(wc -c </tmp/file)
