@@ -76,3 +76,17 @@ La versión contiene núcleo y contenidos jugables de dos aventuras pero **no co
 - Nuevo botón discreto `AR OK · OBJETOS 3D N · MOSTRAR GUÍA` durante juego AR: confirma si existe capa XR y cuántas draw calls de Three se emiten; si está en cero, revisar la lógica/scene render. Si N > 0 y la cámara permanece vacía, diagnosticar compositor/oclusiones. La guía espacial se puede activar al tocar el botón incluso jugando.
 - Test `tests/mini-worlds-ar-visibility.test.cjs` amplió la validación de compositor DOM, limpieza y diagnostic toggle; pasó en simulación JS. También aprobaron 10/10 reglas core y sintaxis de 6 scripts.
 - **No afirmar que esto arregla el AR en ARCore hasta ver nueva prueba física.** La misma captura puede servir para determinar si quedan fallas de GPU o cámara después del cambio.
+
+## Solución de referencia: compositor AR de RODEADOS 360 (26/10/2026)
+
+**Problema confirmado por prueba física de usuario:** `AR OK · OBJETOS 3D 753`, cámara y HUD vivos, pero ningún objeto del juego visible. No es problema de cargar GLB, calibración o detección de piso. `render.calls > 0` solo verifica que Three.js envió geometría a un framebuffer; **no** confirma que ARCore presente esos píxeles.
+
+**Comparativa real de código:**
+- `rodeados-runtime.js` y `rodeados-ar-compositor.js` (rama main) utilizan una capa WebGL HTML transparente *dentro del DOM overlay XR*, sincronizada con la cámara de WebXR, porque algunos Android muestran passthrough/DOM pero no el framebuffer nativo 3D. El renderer nativo se utiliza solo para actualizar la cámara XR y dibuja `nativeXRScene` vacío.
+- Esta rama agrega `mini-worlds-ar-compositor.js` siguiendo el mismo patrón probado en RODEADOS: `WebGLRenderer(alpha:true,premultipliedAlpha:true,antialias:false)`, fondo alfa cero y cámara de perspectiva con `matrixWorld`, `matrixWorldInverse` y `projectionMatrix` copiados del ojo XR nativo. La escena 3D original completa, personajes y mapa reciben esa cámara; **las posiciones quedan físicamente ancladas** a la matriz del piso.
+- HTML crea `#arWorldOverlay` independiente de `#arFloorGuide` y del HUD, con canvas transparente que **sí queda visible**; el canvas del renderer XR nativo sigue oculto para no tapar la capa.
+- `mini-worlds-runtime.js`: en modo AR `renderer.render(xrEmptyScene,camera)` actualiza la cámara XR y `arCompositor.render(view,renderer.xr.getCamera(camera))` dibuja la isla y los modelos encima de la cámara. En modo 3D se mantiene el flujo original, sin compositor.
+- Estado de diagnóstico `AR VISIBLE · DIBUJO 3D N` informa las llamadas reales del compositor, o `AR SIN COMPOSITOR` y error visible si la capa no inicia. Se conserva guía geométrica del piso activable por jugador. Cierre y cambio de tamaño limpian/redimensionan el canvas adicional.
+- Tests: `tests/mini-worlds-ar-compositor.test.cjs` prueba copia fiel de matrices de la cámara nativa, escena 3D correcta, materiales de transparencia del renderer, resize y cleanup. `tests/mini-worlds-ar-visibility.test.cjs` verifica guías y overlay.
+
+**Limitación:** la revisión está testeada con simulación JS y comparación de arquitectura con RODEADOS, pero no hay prueba física de ARCore de MINI WORLDS aún. Se requiere nueva captura AR tras desplegar esta rama. `main` y producción original permanecen intactos.
