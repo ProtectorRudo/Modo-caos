@@ -66,7 +66,11 @@
    }
   }
   function build(size,t,game,en){
-   const elapsed=game?.elapsed||0,playing=game?.state==='playing',low=en.low||.25,mid=en.mid||.25,high=en.high||.25;
+   const elapsed=game?.elapsed||0,playing=game?.state==='playing'&&!game?.paused;
+   // Boost weak phone speakers modestly, but keep ambient lights calm before PLAY.
+   const low=playing?clamp(Math.sqrt(en.low??.08)*1.45,0,1):.20;
+   const mid=playing?clamp(Math.sqrt(en.mid??.07)*1.15,0,1):.20;
+   const high=playing?clamp(Math.sqrt(en.high??.05)*1.05,0,1):.15;
    const f=-1.18,n=.93,L=-2*size,R=2*size;
    quad(solid,L-.055,R+.055,f-.05,n+.06,.020,[.010,.019,.039],.77);
    for(let lane=0;lane<4;lane++){
@@ -158,11 +162,12 @@
      const lead=2.65;
      for(const note of game.notes){
       let dt=note.at-elapsed,holding=game.holdActive?.id===note.id;if(note.status!=='pending'||(!holding&&dt<-0.26)||dt>lead+.08)continue;
-      const x=(note.lane-1.5)*size,c=COLORS[note.lane],z=.64-clamp(dt/lead,0,1)*1.79,r=size*.24;
+      const x=(note.lane-1.5)*size,special=note.type==='caos'||note.type==='special',c=special?[1,.83,.24]:COLORS[note.lane],z=.64-clamp(dt/lead,0,1)*1.79,r=size*.24;
       crystal(solid,x,.108,z,r,c);
       ring(glow,x,.140,z,r*.62,r*.95,c,.89,16);
       ring(glow,x,.145,z,0,r*.38,[.93,1,1],.77,16);
       ring(glow,x,.149,z,r*.98,r*1.21,c,.20,16);
+      if(special)ring(glow,x,.153,z,r*1.23,r*1.48,[1,.96,.63],.68,18);
       if(note.type==='hold'){
        let len=Math.min(.88,Math.max(.27,note.hold/lead*1.79));
        if(holding)len*=Math.max(.02,1-clamp(game.holdActive.progress,0,1));
