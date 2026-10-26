@@ -26,6 +26,8 @@ function level(n=0){
   P[3][5]='ruins';P[4][5]='bridge';P[5][5]='ruins';P[6][5]='jungle';
   P[1][4]=.36;P[2][4]=.53;P[3][4]=.65;P[4][4]=.88;P[5][4]=1.14;
  }
+ // Shift optional islands alongside main-route cliffs, preserving entry paths.
+ P[10][0]=n?2.85:3.0;P[11][0]=n?-1.15:-1.75;P[12][0]=n?-1.9:-2.7;
  const platforms=P.map(([x,z,w,d,y,kind],i)=>({id:i,x:x+(i>1&&i<7?shift*Math.sin(i*1.4):0),z,w,d,y,kind,move:i===5?(.6):0}));
  const boxes=[
  [0,-1.15,'normal'],[.9,-2.35,'coins'],[-.8,-3.9,'normal'],
@@ -47,7 +49,7 @@ function level(n=0){
  for(let k=0;k<6;k++)push(-.7+(k%3)*.70,-18.1-k*.65,1.78);
  for(let k=0;k<5;k++)push(-1+(k%5)*.5,-21.55,1.78);
  // Collectibles reward lateral exploration of the 6 extra land masses.
- const branches=[[3.2,-3.4,.22],[-3.05,-9.5,.55],[3.48,-12.35,.78],[-2.3,-15.75,1.08],[-3.28,-18.88,1.18],[3.25,-20.18,1.15]];
+ const branches=platforms.slice(8).map(p=>[p.x,p.z,p.y]);
  for(const [bx,bz,by] of branches)for(let i=0;i<4;i++)push(bx-.68+i*.43,bz+(i%2?-.42:.44),by+.59);
  const enemies=(n?[
  [0,-4.15,'flying'],[-1.0,-9.15,'thrower'],[.6,-11.7,'defender'],
@@ -61,6 +63,20 @@ function level(n=0){
  const stars=[{id:0,x:-3.0,z:-10.0,y:1.55,taken:false},{id:1,x:3.9,z:-13.1,y:1.78,taken:false},{id:2,x:-3.0,z:-18.8,y:1.7,taken:false}];
  const checkpoints=[{x:.5,z:-12.3,y:.78},{x:0,z:-19.0,y:1.18}];
  const boss={x:0,z:-24.2,y:1.15,hp:9,maxHp:9,phase:1,active:false,alive:true,weak:0,telegraph:0,attack:0,t:0,invuln:0};
+ // Protect collection gameplay from objects stranded between winding islands.
+ function ensureLand(obj){
+  const pad=.14;
+  const available=platforms.map(p=>{
+   const x=clamp(obj.x,p.x-p.w/2+pad,p.x+p.w/2-pad),z=clamp(obj.z,p.z-p.d/2+pad,p.z+p.d/2-pad);
+   return {x,z,d:Math.hypot(x-obj.x,z-obj.z)};
+  });
+  const best=available.reduce((a,b)=>b.d<a.d?b:a);
+  if(best.d<.00001)return;
+  obj.x=best.x;obj.z=best.z;
+  if('baseX' in obj){obj.baseX=obj.x;obj.baseZ=obj.z}
+ }
+ boxes.forEach(ensureLand);coins.forEach(ensureLand);
+ enemies.filter(e=>e.type!=='flying').forEach(ensureLand);
  return {n,definition:LEVELS[n],platforms,boxes,coins,enemies,stars,checkpoints,boss};
 }
 function create(n=0){
