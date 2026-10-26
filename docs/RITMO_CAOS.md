@@ -194,3 +194,21 @@ Mejoras sobre V20:
 Pruebas: `tests/ritmo-neon-live-v22.test.cjs` comprueba geometría, efecto de impacto con tiempo correcto, sostenidas activas, pruebas depth mask, modo AUTO/ALTA/LIGERA, dos batches, fallback SVG y Despacito preseleccionada. También continúan pasando 192 mapas y 204 pruebas de sostenidas. Test físico con Chrome/ARCore/FPS pendiente.
 
 Publicación técnica: servir HTML/JS con reglas separadas Vercel desde GitHub SHA inmutable, y **NO transmitir** la política `Content-Security-Policy: default-src 'none'; sandbox` del origen GitHub. El HTML debe seguir fijando su CSP WebXR compatible. Audio Ogg de Despacito permanece en ruta especial verificada. No modificar el Vercel original.
+
+
+## NEON LIVE V24 — recursos CC0 integrados y vibración por acierto
+
+Fecha: 26/10/2026. El usuario autorizó descargar recursos gratuitos necesarios y pidió una minivibración por cada nota acertada.
+
+**Activos descargados e integrados desde fuente pública:**
+- `spark_07.png` (Kenney Particle Pack), copiado como base64 dentro de `ritmo-kenney-vfx.js`; origen verificable: https://github.com/Calinou/kenney-particle-pack/blob/master/addons/kenney_particle_pack/spark_07.png
+- `light_03.png` (Kenney Particle Pack), en el mismo módulo; origen: https://github.com/Calinou/kenney-particle-pack/blob/master/addons/kenney_particle_pack/light_03.png
+- Titular/origen: Kenney / Calinou (repositorio espejo). Licencia CC0 1.0 Universal del pack: https://kenney.nl/assets/particle-pack y https://github.com/Calinou/kenney-particle-pack/blob/master/LICENSE.txt
+- Este módulo mantiene los dos PNG originales codificados y los carga de forma local mediante Data URI. El motor genera versiones coloreadas de 128 px por tintado en Canvas y las reutiliza en caché. No hay dependencia nueva de CDN ni permisos de almacenamiento. El antiguo motor de partículas procedurales queda como fallback.
+- **No se ha descargado ni importado un GLB premium**: el GLB del Stage Horn PA Speaker (Innerscene, 217KB, CC0) se evaluó, pero su importación requiere un cargador GLB/PBR que el renderizador WebGL 1 no tiene. Se evitaron claims incorrectos de implementación. En su lugar se modelaron internamente parlantes con conos tridimensionales, rejillas, marcos, tornillos y detalles metálicos en `ritmo-stage3d.js`, con coste ligero de geometría.
+
+**Háptica:** nuevo `ritmo-haptics.js` (18 ms). Un único `navigator.vibrate(18)` por nota evaluada como acierto; incluye normal, slide, bonus, y la nota sostenida **al terminar su cola**, no al iniciarla. No vibra al fallar, ni duplica por alcanzar combo. Se reinicia su registro al empezar cada nueva ronda. Función opcional: en Chrome Android podría ser ignorada según navegador, sistema operativo, hardware y ajustes de vibración.
+
+**Pruebas:** `tests/ritmo-haptics-assets.test.cjs` valida exactamente un pulso por id, ausencia de duplicados, resets, sprites auténticos completos con cabecera PNG y tintado en caché. `tests/ritmo-stage3d.test.cjs` y `tests/ritmo-neon-live-v22.test.cjs` cubren el motor 3D y fallback, `tests/ritmo-experience.test.cjs` el Canvas, 192 mapas musicales y 204 sostenidas. Se adaptaron aserciones de rutas de scripts a revisiones distintas para no fallar por un número de versión.
+
+**Despliegue:** incrementar scripts HTML a versión v24 e incluir los nuevos `ritmo-kenney-vfx.js` y `ritmo-haptics.js` en regla de Vercel. Mantener CSP que permite imágenes data y scripts self; preservar Despacito y todos los demás juegos; exigir HTTP 200, correcta cabecera JavaScript y cargar HTML como documento, no texto. Probar físicamente háptica y ARCore en Motorola/Chrome Android antes de afirmar resultados del teléfono.
