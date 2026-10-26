@@ -79,6 +79,38 @@ a{color:#b5f7ff}.hide{display:none!important}
 #settings label{display:block;margin:7px 0}#settings input{width:130px;vertical-align:middle;accent-color:#ff9046}
 @media(max-width:690px){.wrap{grid-template-columns:1fr;max-width:460px;gap:8px}.heroArt{height:145px;aspect-ratio:auto;margin-top:14px}.tunnel{inset:9% 31%}.previewPaddle{width:20%;height:33%;left:40%;bottom:7%}.previewBall{top:33%}.copy{text-align:center}h1{font-size:45px}.sub{font-size:13px}.desc{display:none}.stats{justify-content:center;margin:9px 0}.modeBtns{margin:8px 0}.actions{margin-top:6px}.fine{font-size:9px}}
 @media(max-height:480px) and (orientation:landscape){.wrap{grid-template-columns:1fr 1fr;max-width:770px}.heroArt{height:auto;aspect-ratio:1.2}.copy{text-align:left}.desc{display:none}.stats{justify-content:flex-start}.heroArt{margin:0}h1{font-size:42px}.fine{display:none}.actions{grid-template-columns:1fr 1fr}.modeBtns{margin:6px 0}}
+
+/* NEON ARENA v4: HUD is subordinate to the open arena, not a black banner. */
+#hud{left:90px;right:61px;transform:none;width:auto;min-width:0;height:39px;
+ top:max(8px,env(safe-area-inset-top));gap:7px;padding:0 7px;
+ background:linear-gradient(90deg,#071c28b5,#0c2632c7,#0c1d2bb5);
+ border:1px solid #6bccdd57;border-radius:10px;
+ box-shadow:0 3px 19px #0003;backdrop-filter:blur(6px)}
+#hud>span{display:flex;align-items:center;gap:4px;font-size:9px;letter-spacing:.25px}
+#youScore,#rivalScore{font-size:24px;line-height:1;font-weight:1000}
+#rivalName{font-size:8px;letter-spacing:1px;line-height:1.02}
+#rivalName b{font-size:10px;margin-top:2px}
+#contactGauge{bottom:-3px;height:2px}
+#pauseBtn{height:39px;width:40px;top:max(8px,env(safe-area-inset-top));font-size:16px;border-radius:10px}
+#exitBtn{height:39px;min-height:39px;top:max(8px,env(safe-area-inset-top));padding:6px 8px;
+ font-size:10px;border-radius:10px}
+#recenterBtn{min-height:37px;font-size:9px;padding:6px 8px;border-radius:10px;
+ background:#082631c9}
+#aimReticle{width:28px;height:28px}
+#aimReticle:before{left:6px;top:6px;width:16px;height:16px;border-width:1.5px}
+#aimReticle:after{left:12px;top:12px}
+#aimReticle i:nth-child(1){top:13px;width:6px}
+#aimReticle i:nth-child(2){top:13px;width:6px}
+#aimReticle i:nth-child(3){left:13px;height:6px}
+#aimReticle i:nth-child(4){left:13px;height:6px}
+@media(max-width:380px){
+ #hud{left:82px;right:54px;padding:0 4px;gap:4px}
+ #hud>span{font-size:8px;gap:3px}
+ #youScore,#rivalScore{font-size:21px}
+ #rivalName{font-size:7px}
+ #rivalName b{font-size:9px}
+ #exitBtn{font-size:9px;padding:5px 6px}
+}
 </style></head><body>
 <video id="cameraFeed" autoplay muted playsinline></video><div id="stage"></div>
 <div id="home"><div class="wrap"><div class="heroArt" aria-label="Túnel futurista con pelota de energía naranja y cuadrado defensivo cian"><div class="tunnel"></div><div class="previewBall"></div><div class="previewPaddle"></div></div>

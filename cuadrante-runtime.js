@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id),C=window.CuadranteCore;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,state,modePlay='circuit';
 let arCompositor=null,nativeXRScene=null,arDrawFrames=0,arVisibleOutline=false,arCompositorReady=false,arRenderFaultAt=0;
-let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
+let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.56;
 let floorSeconds=0,lastFloorHit=null;
 let aimNeutral=null,aimFiltered={x:0,y:1.2},aimInvalidTime=0,aimPausedForTracking=false,aimCalibration=null,aimResumeAfterCalibration=false;
 let aimVector=null,aimOrigin=null,aimQuat=null,aimInv=null;
@@ -191,7 +191,7 @@ function resize(){
  renderer.setSize(innerWidth,innerHeight,false);applyQuality();setDemoCamera();
 }
 window.addEventListener('resize',resize);
-function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;floorSeconds=0;lastFloorHit=null;
+function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.56;floorSeconds=0;lastFloorHit=null;
  aimNeutral=null;aimFiltered={x:0,y:1.2};aimInvalidTime=0;aimPausedForTracking=false;aimCalibration=null;aimResumeAfterCalibration=false;
  stage?.setAimMode?.(mode==='ar');pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
