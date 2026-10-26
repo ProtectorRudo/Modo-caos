@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#0c2436"><title>MINI WORLDS · MODO CAOS</title>
+<style>
+:root{--ink:#0c2232;--sea:#1fbdad;--aqua:#9affdc;--gold:#ffcf69;--sand:#fff1c1;--coral:#ff8365}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#062536;color:#f4ffef;font:15px/1.42 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none}button{font:900 14px/1.2 system-ui;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.48;cursor:default}[hidden]{display:none!important}
+#viewport{position:fixed;inset:0;z-index:1}#viewport canvas{display:block;width:100%;height:100%}
+#landing{position:fixed;inset:0;overflow:auto;z-index:20;background:radial-gradient(ellipse 92% 55% at 55% 13%,#266f7d 0,#0e354f 65%,#071c2d 100%);padding:clamp(17px,4vw,35px);touch-action:pan-y}
+.wrapper{max-width:920px;margin:auto;display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:30px;min-height:calc(100dvh - 80px)}
+.label{color:#9cfee0;font-size:11px;letter-spacing:3px;font-weight:1000}.brand{font-size:clamp(53px,9vw,99px);line-height:.94;letter-spacing:-5px;margin:13px 0 16px;font-weight:1000;text-shadow:0 9px 24px #081b2c55}.brand span{display:block;color:#ffe29a}.headline{font-size:21px;line-height:1.25;font-weight:850;color:#fcffea;max-width:460px}.copy{color:#a3cbd0;max-width:455px;font-size:13px;line-height:1.65}.features{display:flex;gap:7px;flex-wrap:wrap;margin:18px 0}.features span{background:#17485ba8;border:1px solid #4b9188;padding:8px 10px;border-radius:99px;font-size:10px;color:#d1fff6;font-weight:900}.buttonStack{display:grid;gap:10px;max-width:435px}.cta{min-height:56px;border-radius:14px;background:linear-gradient(145deg,#c7ffe0,#4bdfb1);border:1px solid #ddffeb;color:#103e3d;box-shadow:0 9px 22px #042b3255;padding:13px 18px}.cta:active{transform:scale(.98)}.outline{background:linear-gradient(135deg,#174b5d,#14334c);border:1px solid #5b9bb0;color:#ecfff5;box-shadow:none}.secondary{background:#18374b;color:#c3eee8;border:1px solid #5d8f9d;box-shadow:none}.fine{font-size:10px;color:#8eb5be;line-height:1.6;margin:12px 0}.fine a{color:#b7ffe9}#levelChoice{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 15px}.levelChoice{font-size:10px;padding:9px 10px;border-radius:10px;background:#112f42;border:1px solid #315d69;color:#b9dce0}.levelChoice.picked{border-color:#e4e58d;color:#ffeba3;background:#244956}
+.visual{height:min(590px,72dvh);min-height:365px;display:grid;place-items:center;position:relative;border-radius:36px;overflow:hidden;background:radial-gradient(circle at 50% 65%,#5fe9ca44,#2acabc11 38%,transparent 66%);border:1px solid #65eac333;box-shadow:inset 0 0 70px #3cfadc0a,0 25px 90px #00142244}
+.planet{position:absolute;width:79%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 20%,#dcfff8,#53d2c3 23%,#238e9c 63%,#15475a);box-shadow:0 0 50px #5cfbcd64,0 0 120px #2fc7aa20;transform:rotate(-13deg)}
+.isle{position:relative;z-index:2;width:77%;aspect-ratio:1.2;transform:rotate(-10deg);filter:drop-shadow(0 33px 14px #08242dbb)}
+.isle:before{content:"";position:absolute;inset:21% 5% 4%;background:linear-gradient(160deg,#e1bd73 0 52%,#a46e42 53% 72%,#5f543f 73%);border-radius:44% 55% 46% 48%;transform:perspective(280px) rotateX(53deg);box-shadow:0 8px 0 #8f5d36,0 19px 0 #456957}
+.isle:after{content:"";position:absolute;inset:9% 12% 30%;background:radial-gradient(ellipse at 44% 57%,#eecb80 0 39%,#45bd7a 40% 77%,#218d69 80%);border-radius:43% 54% 47% 42%;transform:perspective(420px) rotateX(47deg);box-shadow:inset 0 8px 30px #b9f6c955}
+.palm{position:absolute;z-index:3;top:7%;left:17%;font-size:clamp(68px,11vw,122px);text-shadow:0 12px 8px #163e4033}.palm.two{left:65%;top:19%;font-size:80px;transform:rotate(-18deg)}.heroFace{position:absolute;z-index:4;top:29%;left:35%;width:33%;aspect-ratio:.88;background:#ff9073;border:9px solid #fbdab1;border-radius:47% 47% 48% 49%;transform:rotate(9deg);box-shadow:0 16px 0 #258d94,0 22px 0 #f6db9a,0 28px 19px #103f4d88}.heroFace:before{content:"";position:absolute;top:28%;left:18%;width:20%;height:23%;background:#152e3b;border-radius:50%;box-shadow:56px 0 0 #152e3b,3px -6px 0 3px #fff8e5,59px -6px 0 3px #fff8e5}.heroFace:after{content:"";position:absolute;width:25%;height:11%;left:38%;bottom:19%;border-bottom:4px solid #522e30;border-radius:50%}.shine{position:absolute;z-index:3;color:#ffe992;font-size:40px;text-shadow:0 0 24px #ffd771}.shine.a{top:10%;right:13%}.shine.b{bottom:14%;left:12%;font-size:26px}.captionGraphic{position:absolute;z-index:5;left:8%;bottom:5%;right:8%;text-align:center;letter-spacing:3px;font-weight:1000;font-size:11px;color:#eefff4;text-shadow:0 3px 12px #06374b}
+#gameUI{position:fixed;inset:0;z-index:5;pointer-events:none}
+#hud{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);min-height:46px;max-width:calc(100vw - 105px);border-radius:13px;display:flex;align-items:center;justify-content:center;gap:13px;background:linear-gradient(120deg,#0c2d41e8,#103f4ce8);border:1px solid #85edc27b;padding:7px 12px;white-space:nowrap;box-shadow:0 8px 23px #00182566;backdrop-filter:blur(8px);font-variant-numeric:tabular-nums;font-size:13px;font-weight:1000}
+#health{color:#ff8c83;letter-spacing:1px;font-size:20px}#coinCount{color:#ffdc7b}#starCount{color:#fae9a2}#clock{color:#b1fbe5;font-size:11px}
+#pause{position:absolute;top:max(10px,env(safe-area-inset-top));right:9px;width:42px;height:44px;border:1px solid #86d5c3;border-radius:11px;color:#fff;background:#123b4add;pointer-events:auto;backdrop-filter:blur(10px)}
+#recenter{position:absolute;left:11px;top:65px;pointer-events:auto;background:#153d4be8;border:1px solid #6bdbbd;color:#dcffee;border-radius:9px;font-size:10px;padding:9px}
+#bossHud{position:absolute;top:74px;left:50%;transform:translateX(-50%);width:min(340px,77vw);padding:9px 12px;border-radius:12px;background:#422e3bec;border:1px solid #ff918c;box-shadow:0 7px 22px #170f1b88;text-align:center;font-size:10px;letter-spacing:1.3px;font-weight:900}
+#bossTrack{height:7px;background:#26171c;border-radius:10px;overflow:hidden;margin-top:5px}#bossFill{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ffca8a,#ff6d62);border-radius:10px;transition:width .2s}
+#zoneTitle{position:absolute;top:63px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:#f9e9ad;font-weight:900;letter-spacing:1px;text-shadow:0 2px 5px #0009}
+#toast{position:absolute;top:25%;left:5%;right:5%;text-align:center;font-weight:1000;letter-spacing:.5px;font-size:clamp(18px,4.7vw,30px);text-shadow:0 4px 5px #092530,0 0 20px #031b27;opacity:0;transition:opacity .2s}#toast.show{opacity:1}
+#controls{position:absolute;bottom:max(21px,env(safe-area-inset-bottom));left:0;right:0;display:flex;justify-content:space-between;align-items:end;padding:0 22px;pointer-events:none}
+#joystick{position:relative;width:136px;height:136px;border-radius:50%;border:2px solid #b0fff296;background:radial-gradient(circle,#146b806b,#081e3580);box-shadow:inset 0 0 30px #7bffdc3a,0 9px 20px #001f2878;pointer-events:auto;touch-action:none}
+#joystick:before,#joystick:after{content:"";position:absolute;background:#a8ffdc3a}#joystick:before{left:50%;top:12%;bottom:12%;width:1px}#joystick:after{top:50%;left:12%;right:12%;height:1px}
+#stick{position:absolute;left:50%;top:50%;width:67px;height:67px;margin:-33.5px;border-radius:50%;border:2px solid #ceffef;background:radial-gradient(circle at 35% 25%,#8cffdd,#22a99e 70%,#106982);box-shadow:0 5px 14px #00272c9a;pointer-events:none}
+.actionButtons{display:flex;align-items:flex-end;gap:10px;pointer-events:none;padding-bottom:5px}
+.actionButton{border-radius:50%;pointer-events:auto;touch-action:none;box-shadow:0 10px 15px #06282b88,inset 0 3px 6px #fff6;color:#143442;text-shadow:0 1px #fff8;display:grid;place-items:center;align-content:center;letter-spacing:0}
+.actionButton span{font-size:26px;display:block}.actionButton small{font-size:9px;font-weight:1000}
+#jumpBtn{height:93px;width:93px;background:linear-gradient(140deg,#eeffe1,#60e6b2);border:3px solid #c7ffe2}#punchBtn{height:78px;width:78px;background:linear-gradient(140deg,#ffe8aa,#ff975d);border:3px solid #ffdab0}.actionButton.pressed{transform:scale(.92);filter:brightness(1.15)}
+#placement{position:absolute;inset:0;pointer-events:none}#positionPad{position:absolute;inset:0;touch-action:none;pointer-events:auto}
+#placementHint{position:absolute;top:19%;left:5%;right:5%;text-align:center;font-size:15px;font-weight:1000;text-shadow:0 3px 14px #001725}
+#placementButtons{position:absolute;bottom:max(19px,env(safe-area-inset-bottom));left:8px;right:8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;pointer-events:auto}
+#placementButtons button{min-height:43px;border:1px solid #b1fff0;border-radius:10px;padding:9px 12px;color:#e6fff8;background:#124252d9}
+#placementButtons #fixWorld{background:linear-gradient(145deg,#c1ffe4,#64e6c1);color:#0e5147;padding:11px 15px}
+#ready{position:absolute;inset:0;z-index:7;display:grid;place-items:center;pointer-events:none}
+.readyCard{text-align:center;background:#0c3445dc;padding:24px 23px;border-radius:21px;border:1px solid #73ebd1;box-shadow:0 13px 50px #07192399;backdrop-filter:blur(9px);width:min(335px,86vw);pointer-events:auto}
+.readyCard h2{font-size:27px;line-height:1.05;margin:5px 0 8px}.readyCard p{font-size:12px;color:#bdede6;margin:7px 0 18px}
+.readyCard .cta{width:100%}
+#modal{position:absolute;inset:0;z-index:12;background:#071c2fbd;backdrop-filter:blur(9px);display:grid;place-items:center;padding:17px;pointer-events:auto}
+.modalCard{border:1px solid #80d5c1;border-radius:23px;background:linear-gradient(160deg,#1d5062,#12283c 75%);box-shadow:0 25px 100px #000a;padding:25px;width:min(415px,93vw);text-align:center;max-height:88dvh;overflow:auto}
+.modalCard h2{margin:7px 0;font-size:31px;line-height:1.05;letter-spacing:-1px}.modalCard p{font-size:13px;color:#c7e5e6;line-height:1.6}
+#actions{display:grid;gap:9px;margin-top:18px}#actions button{min-height:49px;border:1px solid #b0ffe1;border-radius:13px;background:#88f2c6;color:#133e3f;padding:10px}#actions .secondary{background:#17364b;color:#c2e8e4;border-color:#557d8b}
+#load{position:absolute;inset:0;z-index:40;display:grid;place-items:center;background:#092737eb;color:#e4ffe9;font-size:13px;font-weight:1000;letter-spacing:2px}
+@media(max-width:710px){.wrapper{grid-template-columns:1fr;gap:6px;max-width:490px}.visual{height:200px;min-height:200px;order:-1;border-radius:19px}.planet{width:34%;min-width:125px}.isle{width:53%;max-width:250px}.palm{font-size:55px;top:-13%;left:24%}.palm.two{font-size:38px;left:68%;top:-7%}.heroFace{top:12%;left:41%;width:21%;border-width:5px}.heroFace:before{box-shadow:24px 0 0 #152e3b,2px -2px 0 2px white,26px -2px 0 2px white}.shine{font-size:22px}.captionGraphic{bottom:2%;font-size:8px}.brand{font-size:55px;letter-spacing:-3px;margin:8px 0}.headline{font-size:17px}.copy{font-size:12px;margin:5px 0}.features{margin:8px 0}.features span{padding:5px 7px}.label{font-size:9px}.wrapper{min-height:auto}#landing{padding:13px 18px 20px}.buttonStack{gap:7px}.cta{min-height:48px;font-size:13px}.fine{margin:8px 0}}
+@media(max-height:650px){#joystick{height:108px;width:108px}#stick{height:58px;width:58px;margin:-29px}#jumpBtn{height:78px;width:78px}#punchBtn{height:69px;width:69px}#controls{padding:0 13px}#hud{gap:8px;padding:5px 8px}#zoneTitle{display:none}}
+</style></head><body>
+<div id="landing"><div class="wrapper">
+<section>
+<div class="label">MODO CAOS PRESENTA · AVENTURA DE BOLSILLO</div><h1 class="brand">MINI<span>WORLDS.</span></h1>
+<div class="headline">Un universo extraordinario. Justo sobre el piso de tu casa.</div>
+<p class="copy">Conocé a ORIN, explorá una isla llena de secretos, rompé cajas, juntá monedas y derrotá a un cangrejo mecánico gigante. ¡Cada nivel es una nueva aventura!</p>
+<div class="features"><span>✦ MUNDO 3D</span><span>◈ REALIDAD AUMENTADA</span><span>♥ 3 CORAZONES</span><span>✺ JEFE FINAL</span></div>
+<div class="label" id="unlocked">AVENTURA 1 DISPONIBLE</div><div id="levelChoice"></div>
+<div class="buttonStack"><button class="cta" id="arPlay" disabled>COMPROBANDO AR...</button><button class="cta outline" id="demoPlay">▶ JUGAR AHORA · AVENTURA 3D</button></div>
+<div class="features"><span id="saveLabel">0 MONEDAS GANADAS</span><button class="levelChoice" id="sounds">SONIDO: SÍ</button></div>
+<p class="fine">AR real: Chrome Android + ARCore + superficie despejada. Sin AR podés jugar en modo 3D con el mismo desafío. <a href="./index.html">‹ VOLVER A MODO CAOS</a></p>
+</section>
+<section class="visual" aria-label="Ilustración original: isla fantástica y héroe Orin">
+<div class="planet"></div><div class="isle"><div class="palm">🌴</div><div class="palm two">🌴</div><div class="heroFace"></div></div>
+<span class="shine a">✦</span><span class="shine b">✧</span><div class="captionGraphic">ISLA SALVAJE · TU PRIMER GRAN VIAJE</div>
+</section></div></div>
+<div id="viewport" hidden></div>
+<div id="gameUI" hidden>
+<div id="hud"><span id="health">♥♥♥</span><span>🟡 <b id="coinCount">00</b></span><span>⭐ <b id="starCount">0/3</b></span><span id="clock">0:00</span></div>
+<div id="zoneTitle">MUNDO 1 · LA ISLA DESPIERTA</div><button id="pause" hidden aria-label="Pausar">Ⅱ</button><button id="recenter" hidden>⌖ RECENTRAR</button>
+<div id="bossHud" hidden><span id="bossLabel">CAPITÁN PINZA · FASE 1</span><div id="bossTrack"><i id="bossFill"></i></div></div>
+<div id="toast" aria-live="polite"></div>
+<div id="controls" hidden><div id="joystick" aria-label="Joystick de movimiento"><div id="stick"></div></div><div class="actionButtons"><button id="punchBtn" class="actionButton"><span>✊</span><small>GOLPEAR</small></button><button id="jumpBtn" class="actionButton"><span>↥</span><small>SALTAR</small></button></div></div>
+<div id="placement" hidden><div id="positionPad"></div><div id="placementHint">APUNTÁ AL PISO · MOVÉ EL CELULAR DESPACIO</div><div id="placementButtons"><button id="scaleLess">−</button><button id="turnLeft">↶</button><button id="fixWorld" disabled>FIJAR MUNDO</button><button id="turnRight">↷</button><button id="scaleMore">＋</button></div></div>
+<div id="ready" hidden><div class="readyCard"><div class="label">MINI WORLDS · MISIÓN 01</div><h2 id="readyTitle">¡BIENVENIDO A ISLA SALVAJE!</h2><p>Joystick para moverte · ↑ saltar dos veces · ✊ romper cajas y golpear enemigos.</p><button class="cta" id="begin">▶ ¡EMPEZAR AVENTURA!</button></div></div>
+<div id="modal" hidden><div class="modalCard"><div class="label" id="modalTag">AVENTURA</div><h2 id="modalTitle"></h2><p id="modalDesc"></p><div id="actions"></div></div></div>
+<button id="menuBtn" hidden>VOLVER</button><div id="load" hidden>PREPARANDO TU UNIVERSO 3D…</div>
+</div>
+<script src="./mini-worlds-core.js"></script><script src="./mini-worlds-art.js"></script><script src="./mini-worlds-runtime.js"></script>
+</body></html>
