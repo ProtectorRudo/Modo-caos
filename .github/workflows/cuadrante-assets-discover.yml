@@ -1,0 +1,20 @@
+name: CUADRANTE CC0 asset source inspection
+on:
+  push:
+    branches: [feature/cuadrante-licensed-asset-pack-20261026]
+    paths:
+      - scripts/inspect-cuadrante-assets.py
+      - .github/workflows/cuadrante-assets-discover.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Review CC0 ZIP contents and format
+        run: python3 scripts/inspect-cuadrante-assets.py
