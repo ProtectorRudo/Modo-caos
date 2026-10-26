@@ -47,7 +47,8 @@ root.MiniWorldsPremium=function(T,options={}){
  }
  async function decorate(stage,level){
   if(!stage?.root||!stage?.map?.platforms)return {loaded:0,placed:0,failed:level?7:4};
-  const rootGroup=stage.root,layer=new T.Group();
+  const rootGroup=stage.worldRoot||stage.root,layer=new T.Group();
+  stage.premiumLayer=layer;
   layer.name='MINI WORLDS · QUATERNIUS STYLIZED NATURE MEGAKIT · CC0';
   rootGroup.add(layer);
   let alive=true;
@@ -132,6 +133,7 @@ root.MiniWorldsPremium=function(T,options={}){
   }
   results.canopies=treeCount;
   stage.premiumStats=results;
+  stage.pocket?.reindex();
   return results;
  }
  return {decorate,sources:SOURCES};
