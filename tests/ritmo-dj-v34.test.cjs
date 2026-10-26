@@ -43,7 +43,7 @@ test('V34 real GLB IK reaches both CDJ decks without disjoint mesh',async()=>{
 test('beat produces actual wrist motion; combos change right hand',async()=>{
  const w=world(),dj=w.RitmoSkeletalDJ.create();
  await new Promise(setImmediate);await new Promise(setImmediate);
- const a=dj.hands(2,.4,0),b=dj.hands(2.30,.9,0),c=dj.hands(2,.4,35);
+ const a=dj.hands(.38,.4,0),b=dj.hands(.98,.9,0),c=dj.hands(.38,.4,35);
  assert.ok(Math.hypot(...a.L.map((x,i)=>x-b.L[i]))>.002,'left DJ must move on beat');
  assert.ok(Math.hypot(...a.R.map((x,i)=>x-c.R[i]))>.002,'right DJ must react to combo');
 });
