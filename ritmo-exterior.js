@@ -192,17 +192,22 @@
    beam([0,h-.054,z+.080],[.019,h-.047,z+.079],.003,[.20,.13,.13]);
   }
   function fallbackBomber(t,low){
-   const bob=Math.sin(t*5.2)*(.004+.007*low),z=-1.54;
-   // Torso-only fallback. The horse mask stays the sole head if GLB fails.
-   cuboid(mesh,0,.460+bob,z,.205,.263,.105,[.045,.061,.097],[.10,.14,.21],1);
-   for(const sign of [-1,1]){
-    const shoulder=[sign*.113,.586+bob,z+.015];
-    const elbow=[sign*.273,.429+bob,z+.060];
-    const hand=[sign*.168,.338+bob,-1.403];
-    beam(shoulder,elbow,.041,[.050,.078,.127]);
-    beam(elbow,hand,.035,[.065,.098,.156]);
-    ball(hand[0],hand[1],hand[2],.016,[.68,.42,.27],8,5);
-   }
+    const bob=Math.sin(t*5.2)*(.004+.007*low),z=-1.545;
+    // Fallback is a real mixing pose: elbows close to the jacket, hands on
+    // their turntables. Previous wide elbows visibly resembled hands on hips.
+    cuboid(mesh,0,.455+bob,z,.206,.260,.105,
+      [.045,.061,.097],[.10,.14,.21],1);
+    for(const sign of [-1,1]){
+      const phase=t*5.0+(sign>0?1.65:0),sweep=Math.sin(phase);
+      const shoulder=[sign*.110,.585+bob,z+.012];
+      const elbow=[sign*(.196+.006*sweep),.492+bob,z+.071];
+      const hand=[sign*(.164+.013*sweep),.394+bob+.009*sweep,-1.403];
+      beam(shoulder,elbow,.036,[.051,.079,.130]);
+      beam(elbow,hand,.027,[.065,.099,.157]);
+      cuboid(mesh,hand[0],hand[1]+.005,hand[2]-.012,
+        .035,.021,.040,[.079,.11,.16],[.14,.18,.23],1);
+      ball(hand[0],hand[1],hand[2]+.017,.018,[.68,.42,.27],8,5);
+    }
   }
   // 3D horse-head mask, styled for the Quaternius Punk character.
   // Not falsely attributed to Quaternius: the mask is original procedural art.
@@ -300,7 +305,7 @@
    cuboid(illum,0,.092,-1.268,stageWidth-.04,.008,.009,
     [.05,.72,.90],C,.43+.14*low,3);
    // CC0 riser supplies structural details but stays under the rest.
-   if(quality>0)props?.drawPart('riser',mesh,surface,{scale:[.34,.21,.36],offset:[0,.011,stageZ]});
+   // The built-in riser already covers the entire stage footprint.
    ledWall(size,t,low,mid,combo,quality);
    // V36 uses one procedural display and one raised truss. Imported fixtures
    // were crossing the display at different scales.
