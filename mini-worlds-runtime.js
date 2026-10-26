@@ -5,6 +5,8 @@ const C=window.MiniWorldsCore,$=id=>document.getElementById(id),clamp=(v,a,b)=>M
 let T,renderer,camera,view,game,stage,session,hitSource,lastHit=null,anchor=null,mode='demo',phase='home',placing=false,hasHit=false;
 let yaw=0,scale=.105,offset={x:0,z:0},lockedPose=null,worldYaw=0;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
+let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=null;
+let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
 let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePointers=new Map(),pinch=null;
 let level=0,progress={unlocked:0,best:[null,null],coins:0},settings={sound:true,music:true};
 try{progress={...progress,...JSON.parse(localStorage.getItem('mc-mini-worlds-save-v1')||'{}')}}catch(_){}
@@ -46,7 +48,7 @@ function clear(){
 }
 function renderSetup(){
  renderer=new T.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8));
+ renderer.setPixelRatio(pixelTarget);
  renderer.setSize(innerWidth,innerHeight,false);
  renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
  renderer.shadowMap.enabled=false;renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');renderer.setClearColor(0x000000,0);
@@ -78,9 +80,10 @@ function newStage(){
 function setCamera(first=false){
  if(!camera||!game)return;
  const p=game.player;
- const want=new T.Vector3(p.x+2.75,p.y+4.3,p.z+7.8);
+ const reach=7.8*orbitZoom;
+ const want=new T.Vector3(p.x+Math.sin(orbitYaw)*reach,p.y+orbitHeight*orbitZoom,p.z+Math.cos(orbitYaw)*reach);
  if(first)camera.position.copy(want);else camera.position.lerp(want,.11);
- const focus=new T.Vector3(p.x,p.y+.6,p.z-3.65);
+ const focus=new T.Vector3(p.x,p.y+.6,p.z-3.15);
  camera.lookAt(focus);
 }
 function layout(state){
@@ -222,6 +225,16 @@ function events(){
 function frame(t,xrFrame){
  if(!renderer||!game)return;
  const dt=clamp((t-old)/1000||.016,0,.05);old=t;elapsed+=dt;animFrames++;
+ // A gentle mobile quality governor reduces GPU pressure without changing the simulation tick.
+ if(mode==='demo'&&phase==='playing'&&animFrames%4===0){
+  if(dt>.035){slowFrames++;fastFrames=Math.max(0,fastFrames-2)}
+  else if(dt<.022){fastFrames++;slowFrames=Math.max(0,slowFrames-1)}
+  if(slowFrames>50&&pixelTarget>1.01){
+   pixelTarget=Math.max(1,pixelTarget-.2);renderer.setPixelRatio(pixelTarget);slowFrames=0;
+  }else if(fastFrames>210&&pixelTarget<Math.min(devicePixelRatio||1,1.5)){
+   pixelTarget=Math.min(Math.min(devicePixelRatio||1,1.5),pixelTarget+.1);renderer.setPixelRatio(pixelTarget);fastFrames=0;
+  }
+ }
  if(placing&&mode==='ar')applyHit(xrFrame);
  if(mode==='ar')updateAnchor(xrFrame);
  if(phase==='playing'){
@@ -276,6 +289,27 @@ window.addEventListener('keydown',e=>{
  if(e.code==='Escape'&&phase==='playing')pause();
 });
 window.addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyW','KeyA','KeyS','KeyD'].includes(e.code)){input.x=0;input.z=0}});
+// Drag the 3D environment to orbit the camera; never rotates an anchored AR scene.
+const orbit=$('viewport');
+orbit.addEventListener('pointerdown',e=>{
+ if(mode!=='demo'||!['playing','ready'].includes(phase))return;
+ orbit.setPointerCapture(e.pointerId);orbitFingers.set(e.pointerId,{x:e.clientX,y:e.clientY});orbitPinch=null;
+});
+orbit.addEventListener('pointermove',e=>{
+ if(mode!=='demo'||!orbitFingers.has(e.pointerId))return;
+ const before=orbitFingers.get(e.pointerId);orbitFingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(orbitFingers.size===1){
+  orbitYaw-=(e.clientX-before.x)*.006;
+  orbitHeight=clamp(orbitHeight+(e.clientY-before.y)*.012,2.6,7.5);
+ }else{
+  const p=[...orbitFingers.values()],dist=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+  if(orbitPinch)orbitZoom=clamp(orbitZoom*orbitPinch/dist,.60,1.45);
+  orbitPinch=dist;
+ }
+});
+for(const type of ['pointerup','pointercancel','lostpointercapture'])orbit.addEventListener(type,e=>{
+ orbitFingers.delete(e.pointerId);orbitPinch=null;
+});
 const touch=$('positionPad');touch.addEventListener('pointerdown',e=>{
  if(!placing)return;e.preventDefault();touch.setPointerCapture(e.pointerId);placePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});pinch=null});
 touch.addEventListener('pointermove',e=>{
