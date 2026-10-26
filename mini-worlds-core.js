@@ -3,8 +3,8 @@
 'use strict';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),near=(a,b,r)=>Math.hypot(a.x-b.x,a.z-b.z)<r;
 const LEVELS=[
-{name:'LA ISLA DESPIERTA',zone:'ISLA SALVAJE',theme:'lagoon',boss:'CAPITÁN PINZA',description:'Playas, selva, ruinas y un cangrejo mecánico gigante.'},
-{name:'EL ACANTILADO PERDIDO',zone:'ISLA SALVAJE',theme:'sunset',boss:'PINZA TEMPESTAD',description:'Puentes suspendidos, trampas y una batalla bajo la tormenta.'}
+{name:'LA ISLA DESPIERTA',zone:'ISLA SALVAJE',theme:'lagoon',boss:'DRAGÓN DORADO',description:'Playas, selva, ruinas y el despertar de un dragón colosal.'},
+{name:'EL ACANTILADO PERDIDO',zone:'ISLA SALVAJE',theme:'sunset',boss:'REY YETI',description:'Puentes suspendidos, trampas y un gigante de hielo bajo la tormenta.'}
 ];
 function level(n=0){
  n=clamp(n,0,1);
