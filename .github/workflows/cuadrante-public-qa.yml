@@ -42,3 +42,27 @@ jobs:
           console.log('Public HTTPS sources with playable HTML & JS:',pass);
           if(pass===0)process.exitCode=1;
           NODE
+      - name: Launch public CUADRANTE in real Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium --with-deps
+          node --input-type=module <<'NODE'
+          import {chromium} from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:960,height:520}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(e.message));
+          const site='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/048361d219fae1a5dc319f2a4174c686910619f9/cuadrante.html';
+          const resp=await page.goto(site,{waitUntil:'domcontentloaded',timeout:30000});
+          if(!resp.ok())throw Error('Bad HTTP '+resp.status());
+          await page.locator('#startDemo').click();
+          await page.locator('#stage canvas').waitFor({state:'visible',timeout:40000});
+          await page.locator('#pauseBtn').click();
+          await page.locator('#modalTitle').getAttribute('textContent').then(x=>{if(x!=='PAUSA')throw Error('Pause broken: '+x)});
+          await page.getByRole('button',{name:'CONTINUAR'}).click();
+          await page.locator('#exitBtn').click();
+          await page.locator('#home').waitFor({state:'visible'});
+          if(errors.length)throw Error('Uncaught browser errors: '+errors.join(';'));
+          console.log('PASS: publicly served game actually starts, renders 3D, pauses, resumes and exits in Chromium');
+          await browser.close();
+          NODE
