@@ -360,6 +360,14 @@ function makeStage(map){
   }
  }
 
+ // Shockwave mesh is anchored in world space (floor or boss arena), not HUD.
+ function shockwave(x,y,z,color,life=.65,width=.62){
+  const o=mesh(new T.RingGeometry(width*.78,width,36),
+   new T.MeshBasicMaterial({color,transparent:true,opacity:.78,depthWrite:false,side:T.DoubleSide}),
+   x,y,z,root);
+  o.rotation.x=-P/2;o.castShadow=false;o.renderOrder=1400;
+  combatBursts.push({o,t:0,life,kind:'wave'});
+ }
  let stageCharacters=null;
  function combatFx(evt,actor){
   if(!evt)return;
@@ -376,10 +384,45 @@ function makeStage(map){
    combatBursts.push({o,t:0,life:.7,kind:'alert'});
   }
   if(evt.type==='coin'){
-   rewardPop('+1',evt.x,evt.y+.38,evt.z);
+   rewardPop(evt.reward===2?'+2':'+1',evt.x,evt.y+.38,evt.z);
    impact(evt.x,evt.y,evt.z,'#ffe390',5);
   }
   if(evt.type==='bonus'&&Number.isFinite(evt.x))rewardPop('+'+evt.count,evt.x,evt.y+.87,evt.z);
+  if(evt.type==='treasure'){
+   rewardPop('TESORO +'+evt.coins,evt.x,1.25,evt.z);
+   impact(evt.x,.85,evt.z,'#ffe66a',12);
+  }
+  if(evt.type==='orb'){
+   rewardPop('⚡ +18',evt.x,1.08,evt.z);
+   shockwave(evt.x,.12,evt.z,0xffdf70,.56,.65);
+  }
+  if(evt.type==='combo'&&actor){
+   rewardPop('COMBO x'+evt.chain,actor.x,actor.y+1.6,actor.z);
+   impact(actor.x,actor.y+1,actor.z,'#fff1a2',8);
+  }
+  if(evt.type==='furyStart'&&actor){
+   rewardPop('¡FURIA!',actor.x,actor.y+1.8,actor.z);
+   shockwave(actor.x,actor.y+.11,actor.z,0xffd05d,.8,.9);
+   impact(actor.x,actor.y+.8,actor.z,'#ffd26d',16);
+  }
+  if(evt.type==='bossIntro'||evt.type==='bossPhase'){
+   const b=map.boss;
+   for(let i=0;i<3;i++)shockwave(b.x,b.y+.16,b.z,evt.type==='bossIntro'?0xffb368:0xff636d,.7+i*.18,.75+i*.65);
+   rewardPop(evt.type==='bossIntro'?'¡JEFE FINAL!':'¡FASE '+evt.phase+'!',b.x,b.y+2.7,b.z);
+   impact(b.x,b.y+1.4,b.z,'#ffae79',18);
+  }
+  if(evt.type==='bossDown'){
+   for(let i=0;i<4;i++)shockwave(evt.x,evt.y+.14,evt.z,0xffef8a,.8+i*.16,.95+i*.7);
+   rewardPop('¡VICTORIA!',evt.x,evt.y+2.9,evt.z);
+   impact(evt.x,evt.y+1.45,evt.z,'#ffdc77',30);
+  }
+  if(evt.type==='fall'&&Number.isFinite(evt.x)){
+   shockwave(evt.x,-.58,evt.z,0x9bffff,.78,.58);
+   impact(evt.x,-.59,evt.z,'#bafff6',14);
+  }
+  if(evt.type==='land'&&actor&&evt.surface==='soil'&&actor.vy===0){
+   shockwave(actor.x,actor.y+.06,actor.z,0xd4e8b8,.34,.22);
+  }
   if(evt.type==='star'&&Number.isFinite(evt.x))rewardPop('★',evt.x,evt.y+.42,evt.z);
   if(evt.type==='boxBreak'&&Number.isFinite(evt.x)){
    crateShards(evt.x,evt.y,evt.z);
@@ -479,6 +522,8 @@ function makeStage(map){
    if(fx.kind==='pop'){
     fx.o.position.y=fx.baseY+progress*.80;
     fx.o.scale.set(1.06+Math.sin(progress*Math.PI)*.34,.43+Math.sin(progress*Math.PI)*.12,1);
+   }else if(fx.kind==='wave'){
+    fx.o.scale.setScalar(.55+progress*2.35);
    }else if(fx.kind==='shard'){
     fx.vy-=6.5*dt;fx.o.position.x+=fx.vx*dt;fx.o.position.z+=fx.vz*dt;fx.o.position.y+=fx.vy*dt;
     fx.o.rotation.x+=dt*6;fx.o.rotation.z+=dt*8;
