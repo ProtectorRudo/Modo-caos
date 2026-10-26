@@ -155,7 +155,7 @@ function applyHit(frame){
  if(!lockedPose){worldYaw=Math.atan2(-d.x,-d.z)+yaw}
  stage.root.position.set(pos.x+offset.x,pos.y,pos.z+offset.z);
  stage.root.rotation.y=worldYaw;stage.root.scale.setScalar(scale);
- $('fixWorld').disabled=false;$('placementHint').textContent='PISO DETECTADO · PISTA '+(33*scale).toFixed(1)+' m × '+(14*scale).toFixed(1)+' m · GIRÁ O ESCALÁ';
+ $('fixWorld').disabled=false;$('placementHint').textContent='PISO DETECTADO · PISTA '+(33*scale).toFixed(1)+' m × '+(18.5*scale).toFixed(1)+' m · GIRÁ O ESCALÁ';
 }
 function updateAnchor(frame){
  if(!anchor||placing||mode!=='ar')return;
