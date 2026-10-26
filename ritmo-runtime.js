@@ -379,6 +379,6 @@ E('enter').addEventListener('click',()=>{
  try{audio.init()}catch(e){E('precheck').textContent='⚠️ El navegador no pudo inicializar audio: '+(e.message||e)+'. Probá Chrome Android.'}
 });
 window.modoCaosRuntimeReady=true;
-E('enter').dataset.gameReady='true';
+if(E('enter').dataset)E('enter').dataset.gameReady='true';
 requestAnimationFrame(loop);
 })();
