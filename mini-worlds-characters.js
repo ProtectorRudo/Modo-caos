@@ -80,7 +80,7 @@ root.MiniWorldsCharacters=function(T){
   results.forEach((v,i)=>{if(v.status==='fulfilled')ready.set(names[i],v.value);else reasons.push(names[i]+': '+String(v.reason?.message||v.reason))});
   if(ready.has('Mage')){
    const rig=physicalRig(ready.get('Mage'),1.17);
-   replaceVisual(stage.hero.root,rig.stand,[...stage.hero.root.children.filter(o=>o.isMesh&&o.geometry?.type==='CircleGeometry')]);
+   replaceVisual(stage.hero.root,rig.stand,[stage.hero.wand,...stage.hero.root.children.filter(o=>o.isMesh&&o.geometry?.type==='CircleGeometry')].filter(Boolean));
    rig.stand.name='KAYKIT MAGE · MAGIA · CC0';
    visual.push({type:'hero',rig});
   }
