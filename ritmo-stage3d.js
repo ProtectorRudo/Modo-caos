@@ -200,20 +200,33 @@
     if(!gpu||glRef!==gl)init(gl);
     const en=analysis?.()||{low:.28,mid:.34,high:.28},elapsed=game?.elapsed||0;
     const dt=last?clamp(now-last,0,110):16;last=now;avg=avg*.93+dt*.07;
-    if(++nframes%90===0)quality=avg>27?0:avg>21?1:2;
+    if(++nframes%90===0)quality=visualMode==='low'?0:visualMode==='high'?2:avg>27?0:avg>21?1:2;
     solid.length=0;glow.length=0;build(size,now*.001,game,en);
     const P=mul(view.projectionMatrix,mul(view.transform.inverse.matrix,W)),width=root.innerWidth||392,height=root.innerHeight||850;
     spots=COLORS.map((c,i)=>project(P,(i-1.5)*size,.16,.65,width,height));
     gl.useProgram(gpu.p);gl.uniformMatrix4fv(gpu.mvp,false,P);gl.uniform1f(gpu.time,now*.001);
     gl.uniform1f(gpu.beat,(Math.cos(elapsed*(game?.bpm||100)*Math.PI/30)+1)*.27+en.low*.4);
-    gl.enable(gl.BLEND);gl.disable(gl.CULL_FACE);gl.disable(gl.DEPTH_TEST);gl.depthMask(false);
-    batch(gl,solid,false);batch(gl,glow,true);
-    gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(true);gl.disable(gl.BLEND);
+    // Opaque concert hardware uses correct depth; additive stage glows stay translucent.
+    gl.enable(gl.BLEND);gl.disable(gl.CULL_FACE);gl.enable(gl.DEPTH_TEST);
+    if(gl.depthFunc&&gl.LEQUAL!==undefined)gl.depthFunc(gl.LEQUAL);
+    gl.depthMask(true);batch(gl,solid,false);
+    gl.depthMask(false);batch(gl,glow,true);
+    gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(true);gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);
     state=quality===0?'3D LIGERO':'3D ACTIVO';
     return true;
    }catch(e){state='3D FALLBACK: '+String(e.message||e);return false}
   }
-  return {render,spot:lane=>spots[lane]||null,status:()=>state,quality:()=>quality};
+  function hit(lane,rating='PERFECTO'){
+   if(!Number.isInteger(lane)||lane<0||lane>3)return;
+   if(hitWaves.length>=12)hitWaves.shift();
+   hitWaves.push({lane,rating,time:typeof performance!=='undefined'?performance.now():Date.now(),seed:lane+hitWaves.length});
+  }
+  function setQuality(mode){
+   if(!['auto','high','low'].includes(mode))return visualMode;
+   visualMode=mode;quality=mode==='low'?0:2;return visualMode;
+  }
+  return {render,hit,setQuality,mode:()=>visualMode,spot:lane=>spots[lane]||null,status:()=>state,quality:()=>quality};
  }
  root.RitmoStage3D={create};
 })(window);
