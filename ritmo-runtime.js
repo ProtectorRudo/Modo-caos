@@ -244,7 +244,7 @@ function onEvents(){
    }
    if(ev.rating!=='FALLO'){
     if(note?.type!=='hold'){
-     notify(msg,470);
+     /* Visible hit label remains at receptor; no central popup over horse DJ. */
      try{audio.feedback?.(ev.rating,ev.lane,ev.combo)}catch(_){}
      haptics?.scored(ev.note); // Every scored normal/slide/bonus note
     }
@@ -255,7 +255,7 @@ function onEvents(){
       // Combo gets visual/audio celebration but no second overlapping vibration.
      }
     }
-   }else if(note?.type!=='hold')notify(msg,440);
+   } // Missing note is already shown once beside its receptor.
   }
  }
 }

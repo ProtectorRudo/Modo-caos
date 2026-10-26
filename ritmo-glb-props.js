@@ -18,7 +18,11 @@
   ...['facade','turntable','led-panel','speaker-sub','speaker-mid',
       'moving-head','strobe','truss'].map(key=>({
    key,local:'/assets/ritmo/'+(key==='facade'?'dj-booth-facade':'dj-'+key)+'.glb',remote:null
-  }))
+  })),
+  ...['cdj','laptop','headphones','monitor','riser','laser','smoke','led-magenta'].map(key=>({
+   key,local:'/assets/ritmo/dj-'+key+'.glb',remote:null
+  })),
+  {key:'quaternius-punk',local:'/assets/ritmo/dj-quaternius-punk.glb',remote:null,mesh:'Punk_Body'}
  ];
  function mult(A,B){const R=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)for(let k=0;k<4;k++)R[c*4+r]+=A[k*4+r]*B[c*4+k];return R}
  function identity(){return new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}
@@ -33,8 +37,8 @@
    p[0],p[1],p[2],1
   ]);
  }
- function parse(buf){
-  if(!(buf instanceof ArrayBuffer)||buf.byteLength<24||buf.byteLength>500000)throw Error('GLB size invalid');
+ function parse(buf,includeMesh=null){
+  if(!(buf instanceof ArrayBuffer)||buf.byteLength<24||buf.byteLength>900000)throw Error('GLB size invalid');
   const v=new DataView(buf);
   if(v.getUint32(0,true)!==0x46546c67||v.getUint32(4,true)!==2||v.getUint32(8,true)!==buf.byteLength)throw Error('Not glTF 2.0');
   const len=v.getUint32(12,true);
@@ -75,7 +79,7 @@
   function walk(index,parent){
    const node=(meta.nodes||[])[index];if(!node)return;
    const matrix=mult(parent,nodeMatrix(node));
-   if(node.mesh!==undefined){
+   if(node.mesh!==undefined && (!includeMesh || meta.meshes?.[node.mesh]?.name===includeMesh)){
     const m=(meta.meshes||[])[node.mesh];
     for(const prim of (m?.primitives||[])){
      if(prim.mode!==undefined&&prim.mode!==4)continue;
@@ -109,7 +113,7 @@
    async function grab(url){
     const response=await root.fetch(url,{mode:'cors',cache:'force-cache'});
     if(!response.ok)throw Error('HTTP '+response.status);
-    return parse(await response.arrayBuffer());
+    return parse(await response.arrayBuffer(),m.mesh||null);
    }
    try{loaded[m.key]=await grab(m.local);state[m.key]='local'}
    catch(_){
@@ -150,9 +154,34 @@
    }
    return true;
   }
+  // Animate actual Quaternius Punk geometry without changing the WebXR shader:
+  // isolate the 2958-triangle shirt/arms mesh and blend a DJ mixing pose
+  // in world-space. Legs and human head are intentionally excluded.
+  function drawCharacter(mesh,surface,time=0,low=0,quality=2){
+   const triangles=loaded['quaternius-punk'];
+   if(!triangles)return false;
+   const bob=Math.sin(time*5.4)*(.006+.012*low);
+   const groove=Math.sin(time*3.4)*.023,sw=Math.sin(time*2.2)*.013;
+   const map=p=>{
+    const x=p[0],d=Math.abs(x),sign=Math.sign(x)||1;
+    const arm=Math.max(0,Math.min(1,(d-.20)/.50));
+    const px=sign*(Math.min(d,.20)+Math.max(0,d-.20)*.23);
+    const py=(p[1]-1)*.68+.327 -.155*arm+bob+sw*(1-arm);
+    const pz=-1.54+p[2]*.68+.085*arm+
+     arm*(.022*Math.sin(time*5.1+sign)+.02*low*Math.sin(time*7.2+sign*1.8))
+     +groove*(1-arm);
+    return [px,py,pz];
+   };
+   for(const tri of triangles){
+    const base=tri.color.map(v=>Math.min(.82,Math.max(.10,v*1.35+.055)));
+    const color=base[0]>.43&&base[1]<.35?[.52,.115,.24]:base;
+    surface(mesh,map(tri.A),map(tri.B),map(tri.C),map(tri.C),color,1,0);
+   }
+   return true;
+  }
   function has(key){return !!loaded[key]}
   load();
-  return{ready,draw,drawPart,has,status:()=>({...state})};
+  return{ready,draw,drawPart,drawCharacter,has,status:()=>({...state})};
  }
  root.RitmoImportedProps={create,parse};
 })(window);

@@ -1,0 +1,85 @@
+name: Ritmo V31 — vendor Quaternius Punk and festival CC0 pieces
+on:
+  push:
+    branches: [feat/ritmo-v31-horse-dj-20261026]
+    paths:
+      - .github/workflows/ritmo-v31-assets.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: true
+          ref: feat/ritmo-v31-horse-dj-20261026
+      - name: Download official CC0 models and review format
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/ritmo
+          python3 - <<'PY'
+          import json, pathlib, struct, urllib.request
+          folder=pathlib.Path('assets/ritmo')
+          headers={'User-Agent':'ModoCaos/1.0'}
+          def get(url,max_bytes):
+              with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=45) as r:
+                  b=r.read(max_bytes+1)
+              assert len(b)<=max_bytes,(url,len(b))
+              return b
+          def validate(name,b,limit):
+              assert 1000<len(b)<limit,(name,len(b))
+              magic,version,total=struct.unpack_from('<III',b,0)
+              assert (magic,version,total)==(0x46546c67,2,len(b)),name
+              length,typ=struct.unpack_from('<II',b,12)
+              assert typ==0x4e4f534a
+              payload=json.loads(b[20:20+length])
+              assert payload['asset']['version']=='2.0'
+              return payload
+          source='https://raw.githubusercontent.com/yerdaulet-damir/liminal/main/client/public/models/figure_Punk.glb'
+          b=get(source,1400000)
+          doc=validate('Quaternius Punk',b,1400000)
+          assert len(doc.get('meshes',[]))==4 and any(m.get('name')=='Punk_Body' for m in doc['meshes'])
+          assert doc.get('skins'), 'Punk source must have bones'
+          assert len(b)==702512,(len(b),'unexpected source revision, re-review before committing')
+          (folder/'dj-quaternius-punk.glb').write_bytes(b)
+          print('Quaternius Punk verified:',len(b),'bytes',len(doc['skins']),'skins')
+          api='https://3dassets.dev/api/v1/packs/nightclub-and-dj-booth'
+          data=json.loads(get(api,2500000));data=data.get('data',data)
+          assert data['licenseLabel']=='CC0 1.0 Universal'
+          wanted={
+             'dj-cdj.glb':'CDJ Media Player (',
+             'dj-laptop.glb':'Laptop on a DJ Stand (',
+             'dj-headphones.glb':'DJ Headphones on the Desk (',
+             'dj-monitor.glb':'DJ Booth Monitor Wedge (',
+             'dj-riser.glb':'Riser Platform Module (',
+             'dj-laser.glb':'Laser Effect Unit (',
+             'dj-smoke.glb':'Smoke Machine (',
+             'dj-led-magenta.glb':'Backdrop LED Panel Module ('
+          }
+          report={'avatar':{'file':'dj-quaternius-punk.glb','author':'Quaternius','original_pack':'Ultimate Modular Men, February 2022','source':source,'mirror':'yerdaulet-damir/liminal','size':len(b),'license':'CC0 1.0','asset':'Punk_Body; head excluded, horse mask modeled natively'},'props':[]}
+          for name,prefix in wanted.items():
+              items=[a for a in data['assets'] if a['title'].startswith(prefix)]
+              assert len(items)==1,(name,prefix,len(items))
+              a=items[0]
+              assert a['license']['slug']=='cc0-1.0'
+              assert a['cdnUrl'].startswith('https://cdn.3dassets.dev/assets/')
+              file=get(a['cdnUrl'],480000);validate(name,file,480000)
+              assert a['stats']['triangles']<=2000
+              (folder/name).write_bytes(file)
+              report['props'].append({'file':name,'source':a['cdnUrl'],'title':a['title'],'size':len(file),'triangles':a['stats']['triangles'],'license':'CC0 1.0'})
+              print('CC0',name,len(file),a['stats']['triangles'])
+          (folder/'V31_ASSET_PROVENANCE.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+          PY
+      - name: Commit verified files in isolated branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ritmo/dj-quaternius-punk.glb assets/ritmo/dj-cdj.glb assets/ritmo/dj-laptop.glb assets/ritmo/dj-headphones.glb assets/ritmo/dj-monitor.glb assets/ritmo/dj-riser.glb assets/ritmo/dj-laser.glb assets/ritmo/dj-smoke.glb assets/ritmo/dj-led-magenta.glb assets/ritmo/V31_ASSET_PROVENANCE.json
+          if ! git diff --cached --quiet; then
+            git commit -m "asset(ritmo): vendor verified Quaternius Punk GLB and eight CC0 stage extras"
+            git push origin HEAD:feat/ritmo-v31-horse-dj-20261026
+          fi
