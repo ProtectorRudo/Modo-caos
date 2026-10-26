@@ -50,7 +50,7 @@ jobs:
           import {chromium} from 'playwright';
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage({viewport:{width:960,height:520}});
-          const errors=[];
+          const errors=[]; page.on('console',m=>{if(m.type()==='error')console.log('BROWSER CONSOLE:',m.text())}); page.on('requestfailed',r=>console.log('REQUEST FAILED:',r.url(),r.failure()?.errorText));
           page.on('pageerror',e=>errors.push(e.message));
           const site='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/048361d219fae1a5dc319f2a4174c686910619f9/cuadrante.html';
           const resp=await page.goto(site,{waitUntil:'domcontentloaded',timeout:30000});
@@ -62,7 +62,8 @@ jobs:
             console.log('AFTER INTERSTITIAL URL',page.url(),'TITLE',await page.title());
           }
           await page.locator('#startDemo').click({timeout:20000});
-          await page.locator('#stage canvas').waitFor({state:'visible',timeout:40000});
+          try{await page.locator('#stage canvas').waitFor({state:'visible',timeout:13000})}
+          catch(e){console.log('LIVE DEBUG title:',await page.title(),'ERROR:',await page.locator('#error').innerText(),'LOADER:',await page.locator('#load').innerText(),'STAGE HTML:',(await page.locator('#stage').innerHTML()).slice(0,300),'JS ERRORS:',errors,'BODY:',(await page.locator('body').innerText()).slice(0,550));throw e}
           await page.locator('#pauseBtn').click();
           await page.locator('#modalTitle').textContent().then(x=>{if(x!=='PAUSA')throw Error('Pause broken: '+x)});
           await page.getByRole('button',{name:'CONTINUAR'}).click();
