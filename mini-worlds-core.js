@@ -97,7 +97,7 @@ function level(n=0){
 function create(n=0){
  const map=level(n);
  const player={x:0,z:1.2,y:0,vy:0,vx:0,vz:0,face:Math.PI,hearts:3,invuln:0,grounded:true,jumps:0,attack:0,attackId:0,coyote:0,buffer:0,onBox:null};
- return {map,player,phase:'ready',clock:0,coins:0,stars:0,kills:0,combo:0,chaos:{charge:0,fury:0,chain:0,window:0,best:0,bonusCoins:0},checkpoint:{x:0,z:1.2,y:0},events:[],hazards:[],projectiles:[],lastInput:{x:0,z:0},won:false,deadCount:0,travel:0};
+ return {map,player,phase:'ready',clock:0,coins:0,stars:0,kills:0,combo:0,chaos:{charge:0,fury:0,chain:0,window:0,best:0,bonusCoins:0},checkpoint:{x:0,z:1.2,y:0},events:[],hazards:[],projectiles:[],magicShots:[],lastInput:{x:0,z:0},won:false,deadCount:0,travel:0};
 }
 function emit(s,type,data={}){s.events.push({...data,type})} // event name always wins over entity.kind
 // The arcade loop rewards skilled consecutive actions, not merely elapsed
@@ -146,36 +146,111 @@ function respawn(s,full=false){
  const p=s.player;p.x=s.checkpoint.x;p.z=s.checkpoint.z;p.y=s.checkpoint.y+.06;p.vx=p.vz=p.vy=0;p.grounded=false;p.jumps=0;p.onBox=null;p.invuln=2;
  if(full){p.hearts=3;emit(s,'retry')}else emit(s,'respawn');
 }
+// A compact wand spell replaces the old contact sword. Bolts travel through
+// logical space and are checked against actual 3D targets. Close hits are
+// registered instantly so input still feels responsive on Android.
+function spellDamage(s,target,kind,shot){
+ const fury=s.chaos.fury>0,amount=fury?2:1;
+ if(kind==='box'){
+  if(!target.alive)return false;
+  target.hp-=amount;target.flash=.25;
+  const y=platformY(s,target.x,target.z)??0;
+  emit(s,'boxHit',{id:target.id,kind:target.type,x:target.x,z:target.z,y,spell:true,fury});
+  if(target.hp<=0){
+   target.alive=false;emit(s,'boxBreak',{id:target.id,kind:target.type,x:target.x,z:target.z,y});
+   const bounty=(target.type==='coins'?6:target.type==='reinforced'?4:2)*(fury?2:1);
+   s.coins+=bounty;emit(s,'bonus',{count:bounty,x:target.x,z:target.z,y});
+   advanceChain(s,'box');gainChaos(s,16,'box');prizeBox(s,target);
+   if(target.type==='mystery'&&s.player.hearts<3&&target.id%2===0){s.player.hearts++;emit(s,'heart')}
+   if(target.type==='secret'&&!s.map.stars[2].taken){
+    const st=s.map.stars[2];st.taken=true;s.stars++;gainChaos(s,32,'star');emit(s,'star',{id:2,x:st.x,y:st.y,z:st.z});
+   }
+  }
+ }else if(kind==='enemy'){
+  if(!target.alive)return false;
+  target.hp-=amount;target.stun=.45;target.flash=.22;
+  emit(s,'enemyHit',{id:target.id,kind:target.type,x:target.x,y:target.y,z:target.z,hp:target.hp,spell:true});
+  if(target.hp<=0){
+   target.alive=false;s.kills++;
+   const reward=fury?6:3;s.coins+=reward;
+   emit(s,'enemyDown',{id:target.id,kind:target.type,x:target.x,y:target.y,z:target.z,reward,combo:s.kills,fury});
+   advanceChain(s,'enemy');gainChaos(s,25,'enemy');
+  }
+ }else if(kind==='boss'){
+  if(!target.active||!target.alive||target.weak<=0||target.invuln>0)return false;
+  target.hp-=amount;target.invuln=.38;target.weak=Math.max(.25,target.weak-.22);
+  emit(s,'bossHit',{hp:target.hp,x:target.x,y:target.y+1.5,z:target.z,spell:true});
+  if(target.hp<=0){
+   target.alive=false;s.phase='won';s.won=true;s.coins+=25;
+   emit(s,'bossDown',{x:target.x,y:target.y,z:target.z});
+   emit(s,'win',{level:s.map.n,coins:s.coins,stars:s.stars,time:s.clock});
+  }else{
+   const next=target.hp<=3?3:target.hp<=6?2:1;
+   if(next!==target.phase){target.phase=next;emit(s,'bossPhase',{phase:next})}
+  }
+ }
+ emit(s,'spellHit',{x:target.x,y:kind==='boss'?target.y+1.3:kind==='enemy'?target.y+1.1:(platformY(s,target.x,target.z)??0)+.45,z:target.z,kind});
+ return true;
+}
 function attack(s){
  const p=s.player;if(s.phase!=='playing'||p.attack>.05)return false;
- p.attack=s.chaos.fury>0?.23:.36;p.attackId++;emit(s,'swing',{fury:s.chaos.fury>0,x:p.x,y:p.y,z:p.z});
- const dir={x:Math.sin(p.face),z:Math.cos(p.face)};
- function inArc(obj,r=1.10){if(s.chaos.fury>0)r*=1.22;let dx=obj.x-p.x,dz=obj.z-p.z,dist=Math.hypot(dx,dz);return dist<r&&(dist<.5||(dx*dir.x+dz*dir.z)/Math.max(.01,dist)>.08)}
- let hit=0;
- for(const b of s.map.boxes)if(b.alive&&inArc(b,.94)&&Math.abs(p.y-(platformY(s,b.x,b.z)||0))<2){
- b.hp-=s.chaos.fury>0?2:1;b.flash=.25;hit++;emit(s,'boxHit',{id:b.id,kind:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0,fury:s.chaos.fury>0});
- if(b.hp<=0){b.alive=false;emit(s,'boxBreak',{id:b.id,kind:b.type,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
- const bounty=(b.type==='coins'?6:b.type==='reinforced'?4:2)*(s.chaos.fury>0?2:1);
- s.coins+=bounty;emit(s,'bonus',{count:bounty,x:b.x,z:b.z,y:platformY(s,b.x,b.z)??0});
- advanceChain(s,'box');gainChaos(s,16,'box');prizeBox(s,b);
- if(b.type==='mystery'&&p.hearts<3&&b.id%2===0){p.hearts++;emit(s,'heart')}
- if(b.type==='secret'&&!s.map.stars[2].taken){s.map.stars[2].taken=true;s.stars++;const st=s.map.stars[2];gainChaos(s,32,'star');emit(s,'star',{id:2,x:st.x,y:st.y,z:st.z})}
- }}
- for(const e of s.map.enemies)if(e.alive&&inArc(e,1.05)&&Math.abs(e.y-p.y)<2.1){
- e.hp-=s.chaos.fury>0?2:1;e.stun=.45;e.flash=.22;hit++;
- emit(s,'enemyHit',{id:e.id,kind:e.type,x:e.x,y:e.y,z:e.z,hp:e.hp});
- if(e.hp<=0){e.alive=false;s.kills++;
-  const reward=s.chaos.fury>0?6:3;s.coins+=reward;
-  emit(s,'enemyDown',{id:e.id,kind:e.type,x:e.x,y:e.y,z:e.z,reward,combo:s.kills,fury:s.chaos.fury>0});
-  advanceChain(s,'enemy');gainChaos(s,25,'enemy');
+ const fury=s.chaos.fury>0,face=p.face,dir={x:Math.sin(face),z:Math.cos(face)};
+ p.attack=fury?.23:.32;p.attackId++;
+ const shot={id:p.attackId,x:p.x+dir.x*.40,z:p.z+dir.z*.40,y:p.y+.76,
+  dx:dir.x,dz:dir.z,ttl:1.10,speed:fury?10.1:8.3,ignore:[]};
+ s.magicShots.push(shot);
+ emit(s,'spellCast',{id:shot.id,x:shot.x,y:shot.y,z:shot.z,dx:dir.x,dz:dir.z,fury});
+ // Tiny immediate magic cone fixes close-contact responsiveness.
+ let hits=0;
+ const veryNear=(obj,r)=>Math.hypot(obj.x-p.x,obj.z-p.z)<r;
+ for(const b of s.map.boxes)if(b.alive&&veryNear(b,.72)&&Math.abs(p.y-(platformY(s,b.x,b.z)??0))<1.3){
+  if(spellDamage(s,b,'box',shot)){shot.ignore.push('box'+b.id);hits++}
  }
+ for(const e of s.map.enemies)if(e.alive&&veryNear(e,.83)&&Math.abs(e.y-p.y)<2.1){
+  if(spellDamage(s,e,'enemy',shot)){shot.ignore.push('enemy'+e.id);hits++}
  }
- const b=s.map.boss;if(b.active&&b.alive&&b.weak>0&&b.invuln<=0&&inArc(b,2.0)){
- b.hp--;b.invuln=.38;b.weak=Math.max(.25,b.weak-.22);hit++;emit(s,'bossHit',{hp:b.hp});
- if(b.hp<=0){b.alive=false;s.phase='won';s.won=true;s.coins+=25;emit(s,'bossDown',{x:b.x,y:b.y,z:b.z});emit(s,'win',{level:s.map.n,coins:s.coins,stars:s.stars,time:s.clock})}
- else{let next=b.hp<=3?3:b.hp<=6?2:1;if(next!==b.phase){b.phase=next;emit(s,'bossPhase',{phase:next})}}
+ const b=s.map.boss;
+ if(b.active&&b.alive&&b.weak>0&&veryNear(b,1.45)&&spellDamage(s,b,'boss',shot)){
+  shot.ignore.push('boss');hits++;
  }
- if(hit)emit(s,'hit',{count:hit});return true;
+ if(hits)emit(s,'hit',{count:hits});
+ return true;
+}
+function updateMagicShots(s,dt){
+ const shots=s.magicShots;
+ for(let i=shots.length-1;i>=0;i--){
+  const q=shots[i];q.ttl-=dt;
+  // Substeps avoid tunneling through narrow crates on low FPS phones.
+  const travel=q.speed*dt,n=Math.max(1,Math.ceil(travel/.18)),step=travel/n;
+  let collided=false;
+  for(let k=0;k<n&&!collided;k++){
+   q.x+=q.dx*step;q.z+=q.dz*step;
+   for(const box of s.map.boxes){
+    if(!box.alive||q.ignore.includes('box'+box.id))continue;
+    const floor=platformY(s,box.x,box.z)??0;
+    if(Math.hypot(q.x-box.x,q.z-box.z)<.42&&Math.abs(q.y-(floor+.52))<.98){
+     collided=spellDamage(s,box,'box',q);if(collided)break;
+    }
+   }
+   if(collided)break;
+   for(const enemy of s.map.enemies){
+    if(!enemy.alive||q.ignore.includes('enemy'+enemy.id))continue;
+    if(Math.hypot(q.x-enemy.x,q.z-enemy.z)<.54&&Math.abs(q.y-(enemy.y+.5))<1.5){
+     collided=spellDamage(s,enemy,'enemy',q);if(collided)break;
+    }
+   }
+   if(collided)break;
+   const boss=s.map.boss;
+   if(boss.active&&boss.alive&&boss.weak>0&&!q.ignore.includes('boss')&&
+      Math.hypot(q.x-boss.x,q.z-boss.z)<1.25&&Math.abs(q.y-(boss.y+1))<2.1){
+    collided=spellDamage(s,boss,'boss',q);
+   }
+  }
+  if(collided||q.ttl<=0){
+   if(!collided)emit(s,'spellFade',{x:q.x,y:q.y,z:q.z});
+   shots.splice(i,1);
+  }
+ }
 }
 function platformY(s,x,z,margin=0){
  let yy=null;
@@ -247,6 +322,7 @@ function tick(s,input={},dt=1/60){
   p.vy=p.jumps===1?5.35:6.3;p.jumps++;p.grounded=false;p.coyote=0;p.buffer=0;emit(s,'jump',{double:p.jumps===2});
  }
  if(input.punch)attack(s);
+ updateMagicShots(s,dt);
  let oldY=p.y,oldX=p.x,oldZ=p.z;p.x+=p.vx*dt;p.z+=p.vz*dt;p.vy-=16.5*dt;p.y+=p.vy*dt;
  // Axis-resolved crate collision, with a generous player radius and the option to leap over boxes.
  for(const box of s.map.boxes){
