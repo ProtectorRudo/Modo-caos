@@ -31,8 +31,9 @@ root.MiniWorldsAssets=function(T){
   return true;
  }
  async function decorate(stage,level,signal){
-  const scene=stage?.root;if(!scene)return {count:0,loaded:0,failed:models.length};
+  const scene=stage?.worldRoot||stage?.root;if(!scene)return {count:0,loaded:0,failed:models.length};
   const add=new T.Group();add.name='MINI WORLDS · KENNEY CC0 WORLD DRESSING';scene.add(add);
+  stage.kenneyArt=add;
   const foliage=new T.Group();foliage.name='KENNEY FOLIAGE FALLBACK';add.add(foliage);
   stage.kenneyFoliage=foliage;
   foliage.visible=!stage.premiumNativeActive;
@@ -118,6 +119,7 @@ root.MiniWorldsAssets=function(T){
   stage.assetStats={loaded,failed,instances};
   foliage.visible=!stage.premiumNativeActive;
   if(!alive||signal?.aborted){add.parent?.remove(add);return {count:0,loaded,failed}};
+  stage.pocket?.reindex();
   return {count:instances,loaded,failed};
  }
  return {decorate,models:Object.freeze([...models])};
