@@ -83,8 +83,9 @@ async function decorate(T,stage){
   ['railSet',[[-1.65,.25,-2.05,.6,.55],[1.65,.25,-2.05,.6,.55]]],
   ['darkDoor',[[0,1.16,-3.0,1.14,2.1]]]
  ];
- for(const [key,placements] of slots){
-  if(!stage.root.parent||triangleBudget<=0)break;
+ const queue=slots.slice();
+ async function loadSlot(key,placements){
+  if(!stage.root.parent||triangleBudget<=0)return;
   // A short timeout protects low-end mobile devices from a hung model stream.
   const category=key.startsWith('column')?'Columns':'Platforms';
   const filename={
@@ -102,9 +103,9 @@ async function decorate(T,stage){
     triangles+=g.index?g.index.count/3:(g.attributes.position?.count||0)/3;
     o.castShadow=false;o.receiveShadow=false;o.frustumCulled=true;
    }});
-   if(triangles>9500||triangles>triangleBudget)continue;
+   if(triangles>9500||triangles>triangleBudget)return;
    const bounds=new T.Box3().setFromObject(base),size=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3());
-   if(Math.max(size.x,size.y,size.z)<1e-6)continue;
+   if(Math.max(size.x,size.y,size.z)<1e-6)return;
    for(const [x,y,z,width,height] of placements){
     const obj=base.clone(true),wrapper=new T.Group();
     const sx=width/Math.max(size.x,.001),sy=height/Math.max(size.y,.001);
@@ -118,6 +119,14 @@ async function decorate(T,stage){
    loaded+=placements.length;triangleBudget-=triangles*placements.length;
   }catch(_){} // never interrupt a point, collision, tracking or match
  }
+ // Limit simultaneous decoders so Android doesn't stall frames or network.
+ const concurrency=(typeof navigator!=='undefined'&&(navigator.deviceMemory||4)<=3)?2:3;
+ await Promise.all(Array.from({length:concurrency},async ()=>{
+  while(queue.length&&stage.root.parent){
+   const next=queue.shift();
+   if(next)await loadSlot(next[0],next[1]);
+  }
+ }));
  return {models:loaded,remainingTriangles:Math.round(triangleBudget),textures:textures.every(x=>x.status==='fulfilled')?4:0};
 }
 root.CuadrantePremium={decorate,createAudio};
