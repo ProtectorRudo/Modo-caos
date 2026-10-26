@@ -228,3 +228,17 @@ La detección dependía de un solo Hit Test frontal que puede fallar en interior
 **Tests:** `tests/ritmo-floor-recovery.test.cjs` con WebXR simulado verifica 2 rayos, 5500 ms sin superficie, mensaje y reintento, rechazo de paredes, detección posterior de piso, botón FIJAR y renderizado 3D sólo después de fijar. Prueba manual ARCore en Motorola/Chrome pendiente: las simulaciones no permiten asegurar físicamente la detección.
 
 **Publicación:** ruta exclusiva del juego, actualizar Vercel HTML/JS a revisión V25 sin modificar rutas de otros juegos ni la política CSP corregida.
+
+
+## NEON LIVE V26 — alineación visual y energía justa (26/10/2026)
+
+Captura AR real de usuario: piso detectado, escenario 3D y cuatro carriles funcionando. HUD `PUNTOS 0 / COMBO ×0 / ENERGÍA 43% / TIEMPO 75s`. Esa energía correspondía a **un solo fallo** porque antes se iniciaba con 55% y cada error restaba 12. En la imagen, el marcador VOS está en rojo y llega una nota amarilla: no prueba que la puntuación falle.
+
+Se encontró un **bug visual concreto**: en el render 3D, la línea luminosa de impacto estaba en Z=.485 m pero los receptores de nota se dibujaban en Z=.65 m, y las notas alcanzaban el tiempo de puntuación al acercarse a Z=.64 m. La línea de impacto era una referencia visual equivocada por 16.5 cm. Corregido:
+- En `ritmo-stage3d.js` la línea fina está centrada en `Z=.65`, al igual que los receptores; la animación 3D también desemboca en `Z=.65`. Se bajó el brillo/ancho de la barra para que las notas y receptores sigan visibles.
+- En el render SVG fallback (`ritmo-art.js`), la posición de llegada de la nota y la barra quedan centradas en `Z=.65`.
+- `ritmo-core.js`: energía inicial 100%, fallos -7, aciertos conservan recarga actual. El 43% inicial tras un único fallo era una experiencia desalentadora aunque el cálculo fuese correcto.
+- `ritmo.html`: HUD inicial 100%, revisión V26 de 12 módulos para evitar caché móvil.
+- `tests/ritmo-impact-alignment.test.cjs`: nueva regresión que comprueba igualdad receptor/nota/barra 3D, igualdad de la nota de respaldo SVG, energía 100% y recompensa por nota acertada.
+
+Pasaron regresiones de 192 mapas, 204 notas sostenidas, AR Hit Test, Stage3D, FX, sprites Kenney y háptica. No declarar prueba real de puntuación del teléfono hasta ensayo físico del usuario. Mantener WebXR 4 carriles y resto de juegos sin cambios.
