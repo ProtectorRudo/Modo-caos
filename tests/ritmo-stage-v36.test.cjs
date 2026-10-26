@@ -20,6 +20,7 @@ function make(size=.24,quality=2,combo=0,time=2.7){
  return {boxes,circles,faces,size,quality};
 }
 test('V36 cache-busted stage loads in correct order without editing note geometry',()=>{
+ assert.match(html,/ritmo-glb-props\.js\?v=36/);
  assert.match(html,/ritmo-exterior\.js\?v=36/);
  assert.match(html,/HORSE DJ V36/);
  assert.ok(html.indexOf('ritmo-exterior.js')<html.indexOf('ritmo-stage-showtime.js'));
@@ -27,6 +28,7 @@ test('V36 cache-busted stage loads in correct order without editing note geometr
  assert.match(showtime,/const trails=quality===0\?3:5/);
  assert.match(exterior,/const BACK=\.22/);
  assert.ok(!exterior.includes('navigator.xr'));
+ assert.match(src('ritmo-glb-props.js'),/const active=new Set\(\['mixer','cdj','turntable'\]\)/);
 });
 test('one tall LED screen, overhead gantry, and no obscuring black centerpiece',()=>{
  for(const size of [.18,.24,.4]){
