@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id),C=window.CuadranteCore;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,state,modePlay='circuit';
 let inputMode='demo',placing=false,hasHit=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
-let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto';
+let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
 let pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
 try{records={...records,...JSON.parse(localStorage.getItem('cuadrante-records')||'{}')}}catch(e){}
 const opts={music:.24,sfx:.65};
@@ -16,7 +16,7 @@ function sound(name){
  if(!audioCtx||opts.sfx<=0)return;
  const now=audioCtx.currentTime;
  const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
- const types={hit:[280,125,.11],perfect:[570,280,.19],rivalHit:[195,105,.10],wall:[145,85,.055],geometryHit:[220,75,.13],goal:[520,900,.32],conceded:[230,75,.31],transform:[94,250,.27],victory:[420,850,.42],launch:[145,250,.10],click:[200,290,.07]};
+ const types={smash:[790,160,.23],transformWarning:[220,280,.17],hit:[280,125,.11],perfect:[570,280,.19],rivalHit:[195,105,.10],wall:[145,85,.055],geometryHit:[220,75,.13],goal:[520,900,.32],conceded:[230,75,.31],transform:[94,250,.27],victory:[420,850,.42],launch:[145,250,.10],click:[200,290,.07]};
  const p=types[name]||types.click;
  osc.type=name==='goal'||name==='victory'?'triangle':'sawtooth';
  osc.frequency.setValueAtTime(p[0],now);osc.frequency.exponentialRampToValueAtTime(p[1],now+p[2]);
@@ -42,7 +42,21 @@ $('modeCircuit').onclick=()=>selectMode('circuit');$('modeSurvive').onclick=()=>
 $('settingsBtn').onclick=()=>{$('settings').style.display=$('settings').style.display==='block'?'none':'block';displayRecords()};
 function displayRecords(){$('records').textContent='PARTIDAS '+records.games+' · VICTORIAS '+records.wins+' · COMBO '+records.bestCombo+' · MEJOR INTERCAMBIO '+records.bestRally+' · PUNTOS '+records.bestArcade}
 $('sfxVol').oninput=e=>opts.sfx=+e.target.value/100;$('musicVol').oninput=e=>opts.music=+e.target.value/100;$('quality').onchange=e=>{quality=e.target.value;applyQuality()};
-function applyQuality(){if(!renderer)return;const mobile=window.innerWidth<950;const ratio=quality==='high'?Math.min(devicePixelRatio,2):quality==='low'?Math.min(devicePixelRatio,1):quality==='medium'?Math.min(devicePixelRatio,1.35):Math.min(devicePixelRatio,mobile?1.45:1.7);renderer.setPixelRatio(ratio)}
+function applyQuality(){
+ if(!renderer)return;
+ const mobile=window.innerWidth<950;
+ const level=quality==='auto'?autoQuality:quality;
+ const ratio=level==='high'?Math.min(devicePixelRatio,mobile?1.55:2):level==='low'?Math.min(devicePixelRatio,1):Math.min(devicePixelRatio,mobile?1.25:1.5);
+ renderer.setPixelRatio(ratio);
+ stage?.setQuality(level);
+}
+function measureFrame(dt){
+ if(quality!=='auto'||!playing||placing||!dt||renderer?.xr?.isPresenting)return;
+ if(dt>.033){slowFrames++;stableFrames=Math.max(0,stableFrames-2)}
+ else if(dt<.023){stableFrames++;slowFrames=Math.max(0,slowFrames-1)}
+ if(slowFrames>115&&autoQuality!=='low'){autoQuality=autoQuality==='high'?'medium':'low';applyQuality();slowFrames=0;stableFrames=0;}
+ if(stableFrames>900&&autoQuality!=='high'){autoQuality=autoQuality==='low'?'medium':'high';applyQuality();slowFrames=0;stableFrames=0;}
+}
 async function load(){
  if(THREE)return;
  try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js')}
@@ -55,7 +69,7 @@ function build(){
  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
  renderer.setClearColor(0x080d14,0);renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');
  applyQuality();renderer.setSize(window.innerWidth,window.innerHeight,false);container.appendChild(renderer.domElement);
- stage=window.CuadranteArt(THREE).makeStage();camera=new THREE.PerspectiveCamera(61,innerWidth/innerHeight,.025,90);
+ stage=window.CuadranteArt(THREE).makeStage();applyQuality();camera=new THREE.PerspectiveCamera(61,innerWidth/innerHeight,.025,90);
  setDemoCamera();renderer.setAnimationLoop(frame);
 }
 function setDemoCamera(){if(!camera)return;const aspect=innerWidth/innerHeight;
@@ -88,7 +102,7 @@ function placeFromFrame(frame){
 }
 function frame(t,xrFrame){
  if(!renderer||!stage||!camera)return;
- const dt=clamp((t-prev)/1000||.016,0,.07);prev=t;
+ const dt=clamp((t-prev)/1000||.016,0,.07);prev=t;measureFrame(dt);
  if(placing&&inputMode==='ar')placeFromFrame(xrFrame);
  if(state&&state.phase!=='ready'&&state.phase!=='paused'&&state.phase!=='finished'){
   acc+=dt;let steps=0;while(acc>=1/120&&steps++<9){C.step(state,1/120);acc-=1/120}if(steps>=9)acc=0;
@@ -107,14 +121,15 @@ function refreshHud(){
 }
 function handleEvents(events){
  for(const ev of events){const type=ev.type;
-  if(type==='hit'||type==='perfect'){
-   stage.spawnImpact(state.ball.x,state.ball.y,state.ball.z,'you');sound(type);haptic(type==='perfect'?28:12);
-   if(type==='perfect')note('¡DEVOLUCIÓN PERFECTA!',820);else if(ev.info?.edge)note('¡SALVADA!',650);
+  if(type==='hit'||type==='perfect'||type==='smash'){
+   stage.spawnImpact(state.ball.x,state.ball.y,state.ball.z,type==='smash'?'smash':'you');sound(type);haptic(type==='smash'?[20,16,35]:type==='perfect'?28:12);
+   if(type==='smash')note('⚡ ¡SMASH GEOMÉTRICO!',920);else if(type==='perfect')note('¡DEVOLUCIÓN PERFECTA!',820);else if(ev.info?.edge)note('¡SALVADA!',650);
    if(state.combo===5)note('¡COMBO DE 5!',900);if(state.combo===10)note('¡INTERCAMBIO ÉPICO!',950);
   }
   if(type==='rivalHit'){stage.spawnImpact(state.ball.x,state.ball.y,state.ball.z,'rival');sound(type)}
   if(type==='geometryHit'){if(performance.now()-warningAt>180){sound('geometryHit');warningAt=performance.now()}}
   if(type==='wall'){if(performance.now()-warningAt>200){sound('wall');warningAt=performance.now()}}
+  if(type==='transformWarning'){sound('transformWarning');note('⚠ LA ARENA VA A CAMBIAR',680)}
   if(type==='transform'){sound('transform');note('ARENA: '+ev.info,1150)}
   if(type==='goal'){sound('goal');haptic([35,30,55]);note('¡PUNTO PARA VOS!',1100)}
   if(type==='conceded'){sound('conceded');haptic(70);note('PUNTO DEL RIVAL',850)}
@@ -158,7 +173,7 @@ async function back(){
  if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement.remove();renderer=null}if(stage)stage.dispose();stage=null;state=null;audioAt=0;prev=0;acc=0;
 }
 async function init(mode){
- if(playing)await back();$('load').style.display='flex';initAudio();
+ if(playing)await back();$('load').style.display='flex';initAudio();autoQuality=window.innerWidth<700?'medium':'high';slowFrames=0;stableFrames=0;
  let requestedXR=null;
  if(mode==='ar'&&navigator.xr){
   requestedXR=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['local-floor'],domOverlay:{root:document.body}});
