@@ -1,14 +1,5 @@
 name: CUADRANTE CC0 asset source inspection
 on:
-  push:
-    branches: [feature/cuadrante-licensed-asset-pack-20261026]
-    paths:
-      - scripts/inspect-cuadrante-assets.py
-      - .github/workflows/cuadrante-assets-discover.yml
-  pull_request:
-    paths:
-      - scripts/inspect-cuadrante-assets.py
-      - .github/workflows/cuadrante-assets-discover.yml
   workflow_dispatch:
 permissions:
   contents: read
