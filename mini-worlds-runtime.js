@@ -3,11 +3,12 @@
 'use strict';
 const C=window.MiniWorldsCore,$=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 let T,renderer,camera,view,game,stage,session,hitSource,lastHit=null,anchor=null,mode='demo',phase='home',placing=false,hasHit=false;
-let yaw=0,scale=.36,offset={x:0,z:0},lockedPose=null,worldYaw=0;
+let yaw=0,scale=.36,offset={x:0,z:0},lockedPose=null,worldYaw=0,headingSet=false;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
 let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=null;
 let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
 let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePointers=new Map(),pinch=null;
+let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0;
 let level=0,progress={unlocked:0,best:[null,null],coins:0},settings={sound:true,music:true};
 try{progress={...progress,...JSON.parse(localStorage.getItem('mc-mini-worlds-save-v1')||'{}')}}catch(_){}
 try{settings={...settings,...JSON.parse(localStorage.getItem('mc-mini-worlds-config-v1')||'{}')}}catch(_){}
@@ -43,7 +44,7 @@ async function import3D(){
  return T;
 }
 function clear(){
- renderer?.setAnimationLoop(null);if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
+ renderer?.setAnimationLoop(null);arGuide?.hide();arGuide=null;if(stage){stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
  camera=null;view=null;game=null;placing=false;lockedPose=null;source=null;hasHit=false;
 }
 function renderSetup(){
@@ -55,6 +56,7 @@ function renderSetup(){
  $('viewport').appendChild(renderer.domElement);
  camera=new T.PerspectiveCamera(60,innerWidth/innerHeight,.018,160);
  newStage();
+ arGuide=window.MiniWorldsARGuide?window.MiniWorldsARGuide(T,$('arFloorGuide')):null;
  renderer.setAnimationLoop(frame);
 }
 function newStage(){
@@ -123,7 +125,7 @@ async function play(modeRequested){
    const viewer=await session.requestReferenceSpace('viewer');
    hitSource=await session.requestHitTestSource({space:viewer});
    session.addEventListener('end',()=>{if(phase!=='home'){error('El seguimiento AR terminó. Regresando al menú.');home(true)}});
-   placing=true;hasHit=false;layout('placing');$('fixWorld').disabled=true;notice('BUSCÁ UNA SUPERFICIE PLANA',2400);
+   placing=true;hasHit=false;headingSet=false;layout('placing');$('fixWorld').disabled=true;notice('BUSCÁ UNA SUPERFICIE PLANA',2400);
   }else{layout('ready');demoCameraPlacement()}
  }catch(e){
   error(e.message||String(e));
@@ -151,8 +153,18 @@ function applyHit(frame){
  let pose=hit.getPose(renderer.xr.getReferenceSpace());if(!pose)return;
  hasHit=true;lastHit=hit;
  const pos=pose.transform.position;
- const d=new T.Vector3();renderer.xr.getCamera(camera).getWorldDirection(d);
- if(!lockedPose){worldYaw=Math.atan2(-d.x,-d.z)+yaw}
+ // Orientation from native XR viewer pose, not an uninitialized Three camera.
+ // Freeze compass on first valid hit so phone rotation won't spin the island.
+ if(!headingSet){
+  const viewerPose=frame.getViewerPose(renderer.xr.getReferenceSpace());
+  const orientation=viewerPose?.views?.[0]?.transform?.orientation;
+  if(orientation){
+   const facing=new T.Vector3(0,0,-1).applyQuaternion(new T.Quaternion(orientation.x,orientation.y,orientation.z,orientation.w));
+   const horizontal=Math.hypot(facing.x,facing.z);
+   if(horizontal>.08){worldYaw=Math.atan2(-facing.x,-facing.z)+yaw;headingSet=true}
+  }
+ }
+ // Start tile stays at hit-tested floor center; never follows the phone.
  stage.root.position.set(pos.x+offset.x,pos.y,pos.z+offset.z);
  stage.root.rotation.y=worldYaw;stage.root.scale.setScalar(scale);
  $('fixWorld').disabled=false;$('placementHint').textContent='PISO DETECTADO · PISTA '+(33*scale).toFixed(1)+' m × '+(18.5*scale).toFixed(1)+' m · GIRÁ O ESCALÁ';
@@ -164,6 +176,10 @@ function updateAnchor(frame){
 }
 async function fixWorld(){
  if(!hasHit||!placing||!stage)return;
+ if(guideState.pose&&guideState.visible===0){
+  notice('EL INICIO QUEDÓ FUERA DE PANTALLA · APUNTÁ AL PISO',2700);
+  return;
+ }
  placing=false;lockedPose=stage.root.position.clone();$('fixWorld').disabled=true;layout('ready');$('readyTitle').textContent='¡MUNDO FIJADO!';
  notice('¡LISTO! · EL MUNDO YA ESTÁ EN TU PISO',1800);haptic(18);
  if(lastHit?.createAnchor)try{anchor=await lastHit.createAnchor()}catch(_){}
@@ -171,7 +187,7 @@ async function fixWorld(){
 function recenter(){
  if(mode!=='ar'||!session)return;
  if(phase==='playing')C.pause(game);
- placing=true;hasHit=false;lockedPose=null;anchor?.delete?.();anchor=null;
+ placing=true;hasHit=false;headingSet=false;lockedPose=null;anchor?.delete?.();anchor=null;
  layout('placing');notice('RECENTRÁ SIN PERDER TUS MONEDAS',2500);$('placementHint').textContent='ENCONTRÁ EL PISO OTRA VEZ';
 }
 function startGame(){
@@ -255,11 +271,27 @@ function frame(t,xrFrame){
   if(loops>=4)acc=0;
   events();song();
  }else{acc=0;jumpQueued=false;punchQueued=false}
- stage.update(game,dt,elapsed);
+ // Animation errors never prevent drawing or conceal the whole world.
+ try{stage.update(game,dt,elapsed)}catch(e){
+  if(lastFault!==String(e)){lastFault=String(e);console.error('[MINI WORLDS] Animation error:',e)}
+  frameFaults++;
+ }
+ if(stage.previewBeacon)stage.previewBeacon.visible=mode==='ar'&&(placing||phase==='ready');
  if(mode==='demo')setCamera();
  if(animFrames%6===0)updateHUD();
  if(toastUntil&&performance.now()>toastUntil){$('toast').classList.remove('show');toastUntil=0}
- renderer.render(view,camera);
+ try{renderer.render(view,camera);webglCalls=renderer.info.render.calls}
+ catch(e){frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.error('[MINI WORLDS] XR WebGL:',e)}}
+ if(mode==='ar'&&xrFrame&&arGuide&&animFrames%3===0){
+  guideState=arGuide.draw(xrFrame,renderer.xr.getReferenceSpace(),stage,placing||phase==='ready',webglCalls===0);
+ }
+ if(mode==='ar'&&placing&&hasHit&&performance.now()-lastDiagnostics>900){
+  lastDiagnostics=performance.now();
+  const n=guideState.visible;
+  if(webglCalls===0)$('placementHint').textContent='⚠ EL MOTOR 3D NO DIBUJA · GUÍA AR '+n+' ZONAS · REINICIÁ SI SIGUE VACÍO';
+  else if(n===0)$('placementHint').textContent='PISO DETECTADO · APUNTÁ LENTAMENTE AL CONTORNO VERDE';
+  else $('placementHint').textContent='ISLA EN PISO ✓ · '+(33*scale).toFixed(1)+' × '+(18.5*scale).toFixed(1)+' m · '+(webglCalls<0?'CARGANDO':webglCalls+' OBJETOS 3D');
+ }
 }
 function fillLanding(){
  $('unlocked').textContent=progress.unlocked>0?'2 AVENTURAS DESBLOQUEADAS':'AVENTURA 1 DISPONIBLE';
