@@ -92,8 +92,8 @@ test('safe fallback works if WebXR GLB fails; HTML orders V33 dependencies',asyn
  assert.equal(dj.status(),'fallback');
  assert.equal(dj.draw([],()=>{},1,.5),false);
  const files=['ritmo-glb-props','ritmo-skinning','ritmo-exterior','ritmo-stage-showtime'];
- for(const f of files)assert.ok(html.includes('/'+f+'.js?v=33'),f);
- for(let i=0;i<files.length-1;i++)assert.ok(html.indexOf('/'+files[i]+'.js?v=33')<html.indexOf('/'+files[i+1]+'.js?v=33'));
+ for(const f of files)assert.ok(html.includes('/'+f+'.js?v=34'),f);
+ for(let i=0;i<files.length-1;i++)assert.ok(html.indexOf('/'+files[i]+'.js?v=34')<html.indexOf('/'+files[i+1]+'.js?v=34'));
  assert.match(exterior,/const BACK=\.22/);
  assert.match(exterior,/if\(!skeletal\?\.draw\(mesh,surface,t,low,quality,combo\)\)/);
  assert.match(exterior,/roof=1\.08/);

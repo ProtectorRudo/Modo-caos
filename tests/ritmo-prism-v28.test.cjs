@@ -51,7 +51,7 @@ assert.equal(stage.render(null,view,I,1080,game,.25,bands),false,'Preserve fallb
 const html=fs.readFileSync('ritmo.html','utf8');
 const runtime=fs.readFileSync('ritmo-runtime.js','utf8');
 const engine=fs.readFileSync('ritmo-engine.js','utf8');
-assert(/src="\/ritmo-stage-showtime\.js\?v=(?:28|29|30|31|32|33)"/.test(html));
+assert(/src="\/ritmo-stage-showtime\.js\?v=(?:28|29|30|31|32|33|34)"/.test(html));
 assert(html.indexOf('ritmo-stage-showtime.js')<html.indexOf('ritmo-runtime.js'));
 assert(runtime.includes("if(showtimeUsable)"),'Showtime must be the FIRST renderer');
 assert(runtime.includes("if(!success&&premiumUsable)"),'Premium fallback must still exist');

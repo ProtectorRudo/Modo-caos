@@ -124,9 +124,11 @@
   }
   function load(){if(!root.fetch)return;for(const m of models)fetchModel(m)}
   function ready(){return !!loaded.desk&&!!loaded.mixer}
-  function draw(mesh,surface){
+  function draw(mesh,surface,opts=null){
    if(!ready())return false;
-   for(const m of models.slice(0,2)){
+   // V34 draws an independent dark worktop and relocates the mixer above it;
+   // old callers still render exactly the two original CC0 models.
+   for(const m of models.slice(0,opts?.deskOnly?1:2)){
     const scale=m.scale,off=m.offset;
     for(const tr of loaded[m.key]){
      const p=v=>v.map((x,i)=>x*scale+off[i]);

@@ -1,5 +1,5 @@
 'use strict';
-/* RITMO CAOS V33 — actual Quaternius Punk joint-weighted skin deformation.
+/* RITMO CAOS V34 — actual Quaternius Punk joint-weighted skin deformation.
  * Runs in the EXISTING anchored WebGL1 world (no extra scene or renderer).
  * The CC0 GLB supplies its real named bones and JOINTS_0 / WEIGHTS_0.
  * Its FBX animations are not bundled: motion here is procedural joint pose.
@@ -67,8 +67,8 @@
    return [matrices[i][12],matrices[i][13],matrices[i][14]];
   }
   const bones={
-   L:{shoulder:joint('UpperArm.L'),elbow:joint('LowerArm.L')},
-   R:{shoulder:joint('UpperArm.R'),elbow:joint('LowerArm.R')}
+   L:{shoulder:joint('UpperArm.L'),elbow:joint('LowerArm.L'),wrist:joint('Hand.L')},
+   R:{shoulder:joint('UpperArm.R'),elbow:joint('LowerArm.R'),wrist:joint('Hand.R')}
   };
   const bodyNode=nodes.find(n=>n.mesh!==undefined&&doc.meshes[n.mesh]?.name==='Punk_Body');
   const skin=doc.skins?.[bodyNode?.skin];
@@ -114,25 +114,56 @@
   const dx=p[0]-pivot[0],dy=p[1]-pivot[1],c=Math.cos(angle),s=Math.sin(angle);
   return [pivot[0]+c*dx-s*dy,pivot[1]+s*dx+c*dy,p[2]];
  }
- function posePoint(p,weights,bones,time,low,combo){
-  const beat=Math.sin(time*5.3)*(.035+.048*low);
-  let acc=[0,0,0];
-  for(let side=0;side<2;side++){
-   const sign=side===0?1:-1,b=side===0?bones.L:bones.R;
-   const upper= -sign*(.74+beat),bend= -sign*(1.18+.06*Math.sin(time*4.0+side));
-   const elbowNew=rotateZ(b.elbow,b.shoulder,upper);
-   const upperPos=rotateZ(p,b.shoulder,upper),forearm=rotateZ(upperPos,elbowNew,bend);
-   const wu=weights[side===0?1:3],wl=weights[side===0?2:4];
-   for(let i=0;i<3;i++)acc[i]+=upperPos[i]*wu+forearm[i]*wl;
+ // Two-bone inverse kinematics in the GLB's native rest-bone plane.
+ // The end-effectors touch the physical CDJs (world y~0.4) and the
+ // shoulder+elbow pivot rotations retain smooth JOINTS_0 weighted seams.
+ function poseFrame(bones,time,low=0,combo=0){
+  const phase=time*5.1,smooth=x=>x*x*(3-2*x);
+  const frame={};
+  for(const [key,sign,offset] of [['L',1,0],['R',-1,1]]){
+   const b=bones[key],s=b.shoulder,e=b.elbow,w=b.wrist;
+   const S=[s[0],s[1]],E=[e[0],e[1]],W=[w[0],w[1]];
+   const raise=combo>=25&&key==='R' ? .048*smooth(.5+.5*Math.sin(time*2.3)):0;
+   const handX=sign*(.169+.012*Math.sin(phase+offset));
+   const handY=.405+.012*Math.sin(phase+offset*.9)+raise;
+   const handZ=-1.418+.010*Math.cos(phase+offset);
+   const T=[handX/.86,1+(handY-.300-.030)/.60];
+   const upperLen=Math.hypot(E[0]-S[0],E[1]-S[1]);
+   const lowerLen=Math.hypot(W[0]-E[0],W[1]-E[1]);
+   const dx=T[0]-S[0],dy=T[1]-S[1];
+   const distance=Math.max(1e-5,Math.hypot(dx,dy));
+   const reach=Math.min(upperLen+lowerLen-1e-5,Math.max(Math.abs(upperLen-lowerLen)+1e-5,distance));
+   const target=[S[0]+dx*reach/distance,S[1]+dy*reach/distance];
+   const d=Math.hypot(target[0]-S[0],target[1]-S[1]),ux=(target[0]-S[0])/d,uy=(target[1]-S[1])/d;
+   const a=(upperLen*upperLen-lowerLen*lowerLen+d*d)/(2*d);
+   const h=Math.sqrt(Math.max(0,upperLen*upperLen-a*a));
+   // Outward-bent elbow (the original V33 hands-on-hips pose is inverted).
+   const elbow=[S[0]+ux*a-sign*uy*h,S[1]+uy*a+sign*ux*h];
+   const upperAngle=Math.atan2(elbow[1]-S[1],elbow[0]-S[0])-
+      Math.atan2(E[1]-S[1],E[0]-S[0]);
+   const lowerAngle=Math.atan2(target[1]-elbow[1],target[0]-elbow[0])-
+      Math.atan2(W[1]-E[1],W[0]-E[0]);
+   frame[key]={shoulder:S,elbow,upperAngle,lowerRelative:lowerAngle-upperAngle,
+      wristWorld:[handX,handY,handZ],upperLen,lowerLen};
   }
-  for(let i=0;i<3;i++)acc[i]+=p[i]*weights[0];
-  const groove=Math.sin(time*2.6)*.006;
+  return frame;
+ }
+ function posePoint(p,weights,bones,time,low,combo,frame=null){
+  frame=frame||poseFrame(bones,time,low,combo);
+  const acc=[p[0]*weights[0],p[1]*weights[0],p[2]*weights[0]];
+  for(const [name,upperId,lowerId] of [['L',1,2],['R',3,4]]){
+   const b=frame[name];
+   const upper=rotateZ(p,b.shoulder,b.upperAngle);
+   const lower=rotateZ(upper,b.elbow,b.lowerRelative);
+   for(let k=0;k<3;k++)acc[k]+=upper[k]*weights[upperId]+lower[k]*weights[lowerId];
+  }
+  const shoulderWeight=weights[1]+weights[3],forearmWeight=weights[2]+weights[4];
+  const armWeight=shoulderWeight+forearmWeight;
+  const groove=Math.sin(time*2.6)*.006*(1-armWeight);
   const bob=Math.sin(time*5.2)*(.004+.006*low);
-  // Raise the forearm/wrist skin towards the CDJ pads. Use actual GLB
-  // weight blending, not a vertex x-clamp: shoulder seams remain connected.
-  const armWeight=weights[1]+weights[2]+weights[3]+weights[4];
-  // World dimensions match existing horse mask and deck precisely.
-  return [acc[0]*.86+groove,(acc[1]-1)*.68+.327+bob+.085*armWeight,-1.55+acc[2]*.68];
+  return [acc[0]*.86+groove,
+   (acc[1]-1)*.60+.300+bob+.030*armWeight,
+   -1.55+(acc[2]+.042*shoulderWeight+.102*forearmWeight)*.68];
  }
  function create(){
   let model=null,status='loading';
@@ -149,17 +180,23 @@
   function draw(mesh,surface,time=0,low=0,quality=2,combo=0){
    if(!model)return false;
    const {triangles,groups,colors,bones}=model;
+   const frame=poseFrame(bones,time,low,combo);
    // Preserve every triangle, including LOW: skipping half created holes.
    for(let k=0;k<triangles.length;k++){
     const tr=triangles[k],wg=groups[k],color=colors[k];
-    const A=posePoint(tr.A,wg[0],bones,time,low,combo);
-    const B=posePoint(tr.B,wg[1],bones,time,low,combo);
-    const C=posePoint(tr.C,wg[2],bones,time,low,combo);
+    const A=posePoint(tr.A,wg[0],bones,time,low,combo,frame);
+    const B=posePoint(tr.B,wg[1],bones,time,low,combo,frame);
+    const C=posePoint(tr.C,wg[2],bones,time,low,combo,frame);
     surface(mesh,A,B,C,C,color,1,0);
    }
    return true;
   }
-  return{draw,status:()=>status,info:()=>model&&{skinJointCount:model.skinJointCount,triangles:model.triangles.length}};
+  function hands(time=0,low=0,combo=0){
+   if(!model)return null;
+   const frame=poseFrame(model.bones,time,low,combo);
+   return {L:posePoint(model.bones.L.wrist,[0,0,1,0,0],model.bones,time,low,combo,frame),R:posePoint(model.bones.R.wrist,[0,0,0,0,1],model.bones,time,low,combo,frame)};
+  }
+  return{draw,hands,status:()=>status,info:()=>model&&{skinJointCount:model.skinJointCount,triangles:model.triangles.length}};
  }
- root.RitmoSkeletalDJ={create,prepare,posePoint};
+ root.RitmoSkeletalDJ={create,prepare,posePoint,poseFrame};
 })(window);

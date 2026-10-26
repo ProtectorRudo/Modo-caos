@@ -32,9 +32,9 @@ test('V32 changes exterior only, keeps untouched scoring floor and input scripts
  assert.match(stage,/const trails=quality===0\?3:5/);
  assert.match(stage,/let z=\.65,r=size\*\.44/);
  assert.match(stage,/try\{exterior\?\.render\(size,time,game/);
- assert.match(page,/ritmo-glb-props\.js\?v=33/);
- assert.match(page,/ritmo-exterior\.js\?v=33/);
- assert.match(page,/ritmo-stage-showtime\.js\?v=33/);
+ assert.match(page,/ritmo-glb-props\.js\?v=34/);
+ assert.match(page,/ritmo-exterior\.js\?v=34/);
+ assert.match(page,/ritmo-stage-showtime\.js\?v=34/);
  assert.ok(page.includes('/ritmo-runtime.js?v=31'), 'core game behavior stays V31');
 });
 test('V33 replaces manual XY warp with named GLB bones and weighted skinning',()=>{
@@ -53,7 +53,7 @@ test('grounded symmetric speakers, low fascia and single truss are behind floor'
   assert.ok(zz< -1.14,'stage geometry invaded lanes: '+JSON.stringify([xx,yy,zz]));
  }
  const fac=x.calls.find(v=>v.type==='part'&&v.key==='facade');
- assert.deepEqual(fac.settings.scale,[.36,.235,.35]);
+ assert.deepEqual(fac.settings.scale,[.36,.220,.35]);
  const trusses=x.calls.filter(v=>v.type==='part'&&v.key==='truss');
  assert.equal(trusses.length,1,'no duplicated truss');
  const subs=x.calls.find(v=>v.type==='part'&&v.key==='speaker-sub');
