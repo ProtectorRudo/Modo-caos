@@ -6,7 +6,7 @@ const debugAR=new URLSearchParams(location.search).get('debug')==='1';
 let T,renderer,camera,view,game,stage,session,hitSource,lastHit=null,anchor=null,mode='demo',phase='home',placing=false,hasHit=false;
 let yaw=0,scale=.36,offset={x:0,z:0},lockedPose=null,worldYaw=0,headingSet=false;
 let spatialLock=null,placementSerial=0,steeringYaw=null,heldSteeringYaw=null;
-let anchorPoseAtLock=null,anchorDriftWarned=false;
+let anchorPoseAtLock=null,anchorDriftWarned=false,trackingResetWarned=false;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
 let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=null;
 let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
@@ -63,7 +63,7 @@ async function import3D(){
 }
 function clear(){
  placementSerial++;try{anchor?.delete?.()}catch(_){}
- anchor=null;anchorPoseAtLock=null;anchorDriftWarned=false;
+ anchor=null;anchorPoseAtLock=null;anchorDriftWarned=false;trackingResetWarned=false;
  spatialLock=null;lockedPose=null;steeringYaw=null;heldSteeringYaw=null;
  arCompositor?.dispose();arCompositor=null;arCompositorError='';
  $('arWorldOverlay').style.display='none';xrEmptyScene=null;
@@ -167,6 +167,12 @@ async function play(modeRequested){
   if(mode==='ar'){
    session=await xrPending;
    await renderer.xr.setSession(session);
+   renderer.xr.getReferenceSpace()?.addEventListener?.('reset',()=>{
+    if(phase!=='home'&&!placing&&!trackingResetWarned){
+     trackingResetWarned=true;
+     notice('ARCORE RECALIBRÓ EL ESPACIO · SI CAMBIÓ LA PISTA, TOCÁ RECENTRAR',3600);
+    }
+   });
    // THREE draws to XRWebGLLayer, not the DOM-overlay canvas. Keeping
    // that canvas visible can obscure the native 3D over camera passthrough.
    document.body.classList.add('mw-immersive-ar');
@@ -254,7 +260,7 @@ async function fixWorld(){
  placing=false;lockedPose=stage.root.position.clone();
  spatialLock=Object.freeze(S.snapshotWorld(stage));
  worldYaw=spatialLock.yaw;scale=spatialLock.scale;
- anchorPoseAtLock=null;anchorDriftWarned=false;
+ anchorPoseAtLock=null;anchorDriftWarned=false;trackingResetWarned=false;
  const placeNonce=++placementSerial;
  const hitAtLock=lastHit;
  $('fixWorld').disabled=true;layout('ready');$('readyTitle').textContent='¡MUNDO FIJADO!';
@@ -269,7 +275,9 @@ function recenter(){
  if(mode!=='ar'||!session)return;
  if(phase==='playing')C.pause(game);
  placementSerial++;placing=true;hasHit=false;headingSet=false;lockedPose=null;spatialLock=null;
- anchorPoseAtLock=null;anchorDriftWarned=false;heldSteeringYaw=null;steeringYaw=null;
+ anchorPoseAtLock=null;anchorDriftWarned=false;trackingResetWarned=false;
+ heldSteeringYaw=null;steeringYaw=null;
+ input.x=0;input.z=0;$('stick').style.transform='translate(0,0)';
  anchor?.delete?.();anchor=null;
  layout('placing');notice('RECENTRÁ SIN PERDER TUS MONEDAS',2500);$('placementHint').textContent='ENCONTRÁ EL PISO OTRA VEZ';
 }
