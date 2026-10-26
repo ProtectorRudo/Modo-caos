@@ -4,6 +4,7 @@
 const $=id=>document.getElementById(id),C=window.CuadranteCore;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,state,modePlay='circuit';
+let arCompositor=null,nativeXRScene=null,arDrawFrames=0,arVisibleOutline=false,arCompositorReady=false,arRenderFaultAt=0;
 let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
 let floorSeconds=0,lastFloorHit=null;
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
@@ -102,6 +103,7 @@ function build(){
  if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement.remove();renderer=null}
  const container=$('stage');container.innerHTML='';
  renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:false});
+ nativeXRScene=new THREE.Scene();
  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
  renderer.setClearColor(0x080d14,0);renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');
  applyQuality();renderer.setSize(window.innerWidth,window.innerHeight,false);container.appendChild(renderer.domElement);
@@ -127,7 +129,7 @@ function buildLite(){
 }
 function setDemoCamera(){if(!camera||renderer?.isLite)return;const aspect=innerWidth/innerHeight;
  camera.fov=aspect<1?66:57;camera.aspect=aspect;camera.position.set(0,1.68,aspect<1?7.5:6.6);camera.lookAt(0,1.2,-.65);camera.updateProjectionMatrix()}
-function resize(){if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);applyQuality();if(!renderer.xr.isPresenting)setDemoCamera()}
+function resize(){arCompositor?.resize();if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);applyQuality();if(!renderer.xr.isPresenting)setDemoCamera()}
 window.addEventListener('resize',resize);
 function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;floorSeconds=0;lastFloorHit=null;pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
@@ -262,7 +264,7 @@ function recenter(){
 }
 $('recenterBtn').onclick=recenter;
 async function back(){
- if(!playing)return;playing=false;placing=false;recentering=false;$('ui').classList.remove('ar-placing');
+ if(!playing)return;playing=false;placing=false;recentering=false;closeArWorld();$('ui').classList.remove('ar-placing');
  try{if(session){const old=session;session=null;await old.end()}}catch(e){}
  if(hitSource){try{hitSource.cancel()}catch(e){}hitSource=null}
  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null}
@@ -271,7 +273,7 @@ async function back(){
  if(renderer){renderer.setAnimationLoop(null);renderer.dispose();renderer.domElement.remove();renderer=null}if(stage)stage.dispose();stage=null;state=null;audioAt=0;prev=0;acc=0;
 }
 async function init(mode){
- if(playing)await back();$('load').style.display='flex';initAudio();autoQuality=window.innerWidth<700?'medium':'high';slowFrames=0;stableFrames=0;
+ if(playing)await back();closeArWorld();$('load').style.display='flex';initAudio();autoQuality=window.innerWidth<700?'medium':'high';slowFrames=0;stableFrames=0;
  let requestedXR=null;
  if(mode==='ar'&&navigator.xr){
   requestedXR=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['local-floor'],domOverlay:{root:document.body}});
@@ -313,7 +315,7 @@ async function init(mode){
 async function beginAR(requestedXR){
  if(!navigator.xr||!requestedXR)throw Error('Tu navegador no ofrece WebXR immersive-ar.');
  session=await requestedXR;
- session.addEventListener('end',()=>{if(playing&&inputMode==='ar'&&!placing){C.pause(state);modal('AR DESCONECTADA','SE CERRÓ LA CÁMARA','Reiniciá la arena para recuperar el seguimiento espacial.');button('VOLVER AL MENÚ',back,'blue')}})
+ session.addEventListener('end',()=>{closeArWorld();if(playing&&inputMode==='ar'&&!placing){C.pause(state);modal('AR DESCONECTADA','SE CERRÓ LA CÁMARA','Reiniciá la arena para recuperar el seguimiento espacial.');button('VOLVER AL MENÚ',back,'blue')}})
  await renderer.xr.setSession(session);
  const viewer=await session.requestReferenceSpace('viewer');
  hitSource=await session.requestHitTestSource({space:viewer});
@@ -322,8 +324,8 @@ async function beginAR(requestedXR){
 $('startAr').onclick=()=>init('ar');$('startDemo').onclick=()=>init('demo');
 function doFix(){
  if(!placing)return;
- if(inputMode==='ar'&&(!hasHit||floorSeconds<.60)){note('ESPERÁ A QUE EL PISO SE PONGA VERDE',1350);return}
- placing=false;hasHit=false;stage?.setPlacementPreview?.(false);$('ui').classList.remove('ar-placing');$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
+ if(inputMode==='ar'&&(!hasHit||!arCompositorReady||!arVisibleOutline||floorSeconds<.60)){note('APUNTÁ A LA MARCA VERDE Y ESPERÁ QUE APAREZCA LA ARENA',1800);return}
+ placing=false;hasHit=false;stage.root.visible=true;stage?.setPlacementPreview?.(false);$('ui').classList.remove('ar-placing');$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
  $('labelPhase').textContent=inputMode==='ar'?'AR REAL · ARRASTRÁ PARA DEFENDER':'CÁMARA SIN TRACKING · ARRASTRÁ PARA DEFENDER';
  $('recenterBtn').style.display=inputMode==='ar'?'block':'none';
  if(recentering){
