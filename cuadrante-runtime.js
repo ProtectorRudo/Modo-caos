@@ -180,7 +180,14 @@ function showArOutline(frame){
 }
 function setDemoCamera(){if(!camera||renderer?.isLite)return;const aspect=innerWidth/innerHeight;
  camera.fov=aspect<1?66:57;camera.aspect=aspect;camera.position.set(0,1.68,aspect<1?7.5:6.6);camera.lookAt(0,1.2,-.65);camera.updateProjectionMatrix()}
-function resize(){arCompositor?.resize();if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);applyQuality();if(!renderer.xr.isPresenting)setDemoCamera()}
+function resize(){
+ arCompositor?.resize();
+ if(!renderer||!camera)return;
+ // WebXR owns the camera and drawing-buffer resolution while presenting.
+ // Resizing the native XR canvas can silently break Android camera composition.
+ if(renderer.xr?.isPresenting)return;
+ renderer.setSize(innerWidth,innerHeight,false);applyQuality();setDemoCamera();
+}
 window.addEventListener('resize',resize);
 function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;floorSeconds=0;lastFloorHit=null;pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
