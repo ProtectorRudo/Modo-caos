@@ -266,3 +266,19 @@ El usuario dio luz verde para construir una nueva plataforma más profesional. D
 `tests/ritmo-premium-v27.test.cjs`: mock del render WebGL comprueba shader con atributo normal/material, buffers de 11 floats, máximo dos lotes principales, cuatro receptores en orden, onda al impacto, sostenida, selector de calidad y fallback. Pasó. Regresiones de 192 mapas, 204 sostenidas, alineación de impactos y Hit Test de suelo también pasaron.
 
 **Pendiente obligatorio:** prueba física de Chrome Android/ARCore del usuario, tasa de cuadros real y confirmación visual; el mock no demuestra los FPS ni que se vea idéntico a la imagen conceptual. Mantener rama y PR sin fusionar hasta verificación física.
+
+
+## NEON PRISM V28 — rediseño visible, no retoques cosméticos (26/10/2026)
+
+**Contexto:** el usuario compartió una captura de V27 y señaló que los gráficos no habían cambiado realmente. El análisis del código V27 confirma que `ritmo-stage-premium.js` mantiene prácticamente la MISMA geometría de `ritmo-stage3d.js` y sólo añade shader, biseles y detalles pequeños; el usuario tenía razón.
+
+**Solución de impacto:** se añadió `ritmo-stage-showtime.js` como motor WebGL1 procedural **completamente diferente** y se insertó como **primera opción** en `ritmo-runtime.js`. Conserva V27/V26 y SVG como respaldos si la GPU no soporta la nueva escena.
+- **Piso:** reemplaza cuatro placas oscuras separadas por un podio continuo delgado con cuatro canales de vidrio translúcido intenso, bordes de cromo y estelas LED musicales.
+- **Receptores:** cuatro reactores octogonales de gran lectura y varios aros energéticos concéntricos, zona exacta de puntuación Z=.65 m. Un solo rayo fino de impacto, sin barra blanca molesta.
+- **Notas:** discos de energía tallados y brillantes, NO conos; las notas especiales tienen aros dorados; las sostenidas tienen cinta de longitud proporcional al progreso.
+- **Escenario:** arquería metálica elevada con círculo holográfico, consola compacta semitransparente, **15 barras de ecualizador** reactivas a Despacito, conos de parlantes y cuatro haces suaves detrás de las notas.
+- **Efectos:** ondas y chispas que usan el anclaje físico de la pista al acertar. `stage.hit()`, `setQuality(auto/high/low)` y `spot(lane)` mantienen el contrato de los motores anteriores. Render en dos pasadas GPU por vista.
+- **HUD:** menor altura/contraste para dejar más cámara y pista visibles; cuatro carriles, canción preseleccionada, notas sostenidas, vibración por acierto, calibración WebXR y controles intactos.
+- **Activos:** se conservan los PNG CC0 reales de Kenney ya integrados. El principal problema de las capturas no era no tener assets, sino conservar la vieja silueta 3D. No se integró un modelo GLB por la falta de cargador/model shaders PBR compatibles; no afirmar que lo hayamos hecho.
+- **Pruebas:** `tests/ritmo-prism-v28.test.cjs` verifica geometría 3D sustancial, cuatro receptores proyectados, sólo dos lotes GPU, hit wave, hold, calidad, prioridad de PRISM, regresión automática y fallback. Suites de 192 mapas, 204 sostenidas y zona de impacto también pasan. **Sin prueba física ARCore todavía; la apariencia final hay que verificarla en el celular.**
+- **Publicación recomendada:** HTML/JS V28 con el módulo `ritmo-stage-showtime.js`, CSP del juego intacta y audio Despacito intacto; fijar SHA GitHub inmutable; revisar previsualización y sólo luego promover live.
