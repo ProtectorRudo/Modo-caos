@@ -42,3 +42,13 @@ La versión contiene núcleo y contenidos jugables de dos aventuras pero **no co
 - 19 recursos GLB verificados en GitHub (370.788 bytes en total), todos locales y con licencia CC0 de Kenney.
 - Modelos importados con `GLTFLoader` dinámico compatible con importmap de Three.js. Fallo de recursos no detiene la partida.
 - **Importante:** el último deploy READY comprobado puede contener una revisión anterior de la rama. No atribuir los 19 modelos a un link Vercel sin verificar el hash de commit del deployment y las rutas de assets.
+
+## Actualización: caballero, monstruos y jefes gigantes — 26/10/2026
+- Personaje principal seleccionado: **Knight de KayKit Adventurers**, GLB con rig y animaciones, cargado automáticamente desde GitHub público (aún pendiente de redistribución local por tamaño).
+- Enemigos: **Cute Animated Monsters** de Quaternius, 6 especies en 4 roles. Ocho modelos `.gltf` integrados en GitHub incluyendo jefes, todos con esqueletos, animaciones y recursos embebidos (modelos validados estructuralmente).
+- **Nivel 1: DRAGÓN DORADO** (YellowDragon), **Nivel 2: REY YETI** (Yeti); los dos gigantes tienen interfaz de núcleo vulnerable y conservan 3 fases del motor.
+- Escenario ampliado: fondo acuático de **14 × 33 unidades**, islas laterales y ambientación de punta a punta, anclado sobre el piso físico. Escala AR inicial `0.36`: aproximadamente **5,04 m de ancho × 11,88 m de largo**, escalable entre `0.19` y `0.62`, sin alterar físicas lógicas. El usuario no necesita caminar por esa distancia: el desplazamiento del caballero es virtual, por joystick. WebXR sigue físicamente al teléfono y no ofrece seguimiento corporal; girar el dispositivo para apuntar es normal.
+- Modo 3D: cámara libre orbital con zoom, joystick relativo a la cámara y ajuste dinámico de calidad.
+- Archivos: `mini-worlds-characters.js`, `assets/mini-worlds/characters/*.gltf`, `tests/mini-worlds-characters.test.cjs`.
+- Todo se conserva en el PR de previsualización **#69**, sin tocar `main` ni Supabase compartido.
+- **Pendiente antes de producción:** test real en Chrome Android, ARCore hit-test/ancla, calidad de las animaciones, CORS de Knight GLB, FPS/temperatura y confirmación de un deployment Vercel de esta revisión exacta.
