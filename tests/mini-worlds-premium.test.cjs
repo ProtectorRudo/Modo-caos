@@ -13,6 +13,7 @@ class Vec3 {
  constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z}
  set(x,y,z){this.x=x;this.y=y;this.z=z;return this}
  multiplyScalar(v){this.x*=v;this.y*=v;this.z*=v;return this}
+ setScalar(v){this.x=this.y=this.z=v;return this}
 }
 class Group{
  constructor(){this.children=[];this.position=new Vec3();this.rotation={x:0,y:0,z:0};
