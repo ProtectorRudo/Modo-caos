@@ -4,7 +4,7 @@ on:
     paths:
       - '.github/workflows/cuadrante-public-qa.yml'
   push:
-    branches: [test/cuadrante-ready-public-link-20261025]
+    branches: [test/cuadrante-ar-visible-cdn-20261026]
     paths:
       - '.github/workflows/cuadrante-public-qa.yml'
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
-      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      SOURCE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
     steps:
       - name: Check GitHub Pages, GitHack, rawcdn and Vercel from public internet
         run: |
@@ -36,8 +36,13 @@ jobs:
               const valid=r.ok&&type.includes('text/html')&&html.includes('CUADRANTE')&&html.includes('cuadrante-runtime.js');
               const jsurl=new URL('./cuadrante-runtime.js',url);
               const js=valid?await fetch(jsurl,{signal:AbortSignal.timeout(20000)}):null;
-              const playable=valid&&js?.ok&&(js.headers.get('content-type')||'').includes('javascript');
-              console.log(JSON.stringify({url,status:r.status,contentType:type,bytes:html.length,jsStatus:js?.status,jsMime:js?.headers.get('content-type'),playable}));
+              const module=valid?await fetch(new URL('./cuadrante-ar-compositor.js',url),{signal:AbortSignal.timeout(20000)}):null;
+              const moduleText=module?await module.text():'';
+              const jsText=js?await js.text():'';
+              const isNew=jsText.includes('createCuadranteArCompositor')&&moduleText.includes('createCuadranteArCompositor');
+              const playable=valid&&js?.ok&&(js.headers.get('content-type')||'').includes('javascript')&&
+               (!url.includes('githack.com')||Boolean(module?.ok&&isNew));
+              console.log(JSON.stringify({url,status:r.status,contentType:type,bytes:html.length,jsStatus:js?.status,jsMime:js?.headers.get('content-type'),moduleStatus:module?.status,newArRenderer:isNew,playable}));
               if(playable)pass++;
             }catch(e){console.log(JSON.stringify({url,error:String(e)}))}
           }));
