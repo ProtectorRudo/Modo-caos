@@ -114,3 +114,29 @@ El usuario confirmó con captura AR real la composición exitosa del mundo y el 
 **Pruebas**: tests originales core 10/10; `tests/mini-worlds-traversal.test.cjs` para ruta y combate; módulos JS con sintaxis válida, HUD completo y tests del compositor. El preview de esta nueva revisión debe verificarse en Vercel y luego probarse físicamente en Chrome Android antes de marcar la experiencia AR como aprobada.
 
 **Limitaciones**: gráficos aún son **low-poly estilizados**, no modelos fotorrealistas ni calidad de consola demostrada; sin medición de FPS en hardware ni prueba de golpes/táctil en el dispositivo del usuario. No se fusionó `main` ni se editó Supabase.
+
+## Mejoras tras prueba visual en AR del 26/10: saltos a islas, cajas, océano, recompensas
+
+**Problemas confirmados por las capturas del usuario:** zonas que parecían tierra firme sin colisión real; el caballero caía cuando intentaba llegar a islas laterales; no se podía aterrizar o permanecer sobre cajas; feedback débil de monedas/KO/cajas; agua visualmente plana. Los cambios que siguen son de preview, no se declara todavía aprobación física de Android.
+
+### Física y terrenos
+- `platformY(s,x,z,margin=0)` admite una zona reducida de aterrizaje `margin=.17` cuando se cae cerca del borde de una isla: amortigua fallas injustas sin transformar el mar en piso.
+- `BOX_TOP=.59` empareja la tapa física de la caja con `makeBox` y sus visuales GLB (altura ~.6). Separar la colisión lateral del aterrizaje desde arriba permite **pisar la caja, sostenerse y saltar**. Se borra `onBox` si la caja se destruye y el héroe cae al suelo verdadero.
+- Se eliminaron las placas arenosas ornamentales de `sprawlingEnvironment` situadas a ±6.5 unidades que parecían islas transitables pero carecían de hitbox. Fueron sustituidas por rocas pequeñas semisumergidas claramente NO transitables.
+- No se alteraron los 13 causeways realmente transitables de cada nivel ni el anclaje WebXR.
+
+### Agua, arte y señales
+- Océano creado mediante `ShaderMaterial` transparente y una malla de 18.5×33 unidades (24×42 subdivisiones). Tres ondas temporales en el shader de vértices, agua profunda/superficial, ondas refractadas y destellos en fragmentos. `uTime` se actualiza cada frame.
+- Espuma suave de costa en una única `LineSegments` con geometría compartida para los perímetros de las 14 plataformas; opacidad suavemente animada. Se eliminó el disco de agua opaco sobre el escenario antiguo.
+- Texturas procedurales reutilizables de 128×128 para arena, césped y piedra, generadas desde una semilla estable y compartidas entre materiales; sin peticiones de red.
+- Los colores conservan una dirección artística **3D estilizada**. Sigue pendiente revisión visual de WebGL real en el móvil; no se promete fotorrealismo.
+
+### Efectos de recompensa
+- Los eventos `coin` y `bonus` transmiten ahora coordenadas 3D del objeto. Carteles `+1`, `+N`, `CRACK!`, `HIT!` y `KO! +3` como sprites orientados a cámara y anclados en el mundo, con `CanvasTexture` cacheadas.
+- Las cajas expulsan ocho fragmentos 3D en su posición, con gravedad y giro; las monedas generan partículas y recompensas ascendentes. El sonido de monedas, impactos y destrucción gana una capa corta adicional; menos avisos centrales que tapan el escenario.
+- Se corrigió la liberación de recursos de sprites compartidos, fragmentos, partículas y texturas al cerrar la escena.
+
+### Verificaciones
+- `tests/mini-worlds-physics-polish.test.cjs`: 12 saltos a islas laterales (seis por nivel), permanencia sobre cajas, salto desde su tapa y eliminación de colisión tras destruirlas, caída genuina al agua, eventos de moneda con coordenadas, componentes de agua y VFX.
+- Se mantienen los 10 tests del motor, el test de recorrido y los del compositor WebXR, además de sintaxis JS y coincidencia de IDs HTML. Estas pruebas **no sustituyen** una prueba física en Chrome Android/ARCore con escena y FPS.
+- Sin cambios en `main`, juegos existentes o Supabase compartido.
