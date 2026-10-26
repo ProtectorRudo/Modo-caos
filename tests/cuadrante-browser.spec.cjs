@@ -13,6 +13,10 @@ test('3D arcade loads, plays, pauses and returns to menu',async({page})=>{
  const layer=page.locator('#touchLayer');const bb=await layer.boundingBox();expect(bb).not.toBeNull();
  await page.mouse.move(bb.x+bb.width*.54,bb.y+bb.height*.57);await page.mouse.down();
  await page.mouse.move(bb.x+bb.width*.70,bb.y+bb.height*.48,{steps:5});await page.mouse.up();
+ const result=await page.evaluate(()=>({score:document.getElementById('youScore').textContent,
+   hasCanvas:!!document.querySelector('#stage canvas'),
+   moving:window.getComputedStyle(document.getElementById('stage')).display!=='none'}));
+ expect(result.moving).toBe(true);expect(result.hasCanvas).toBe(true);
  await page.locator('#pauseBtn').click();
  await expect(page.locator('#modalTitle')).toHaveText('PAUSA');
  await page.getByRole('button',{name:'CONTINUAR'}).click();
