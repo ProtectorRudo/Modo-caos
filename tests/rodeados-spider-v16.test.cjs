@@ -10,9 +10,9 @@ function setup(){
 test('wolf spider has own eight-legged low profile, fast but outside camera safety ring',()=>{
  const {g,e}=setup(),d=G.TYPES.spider;
  assert.equal(e.height,.90);assert(d.radius>=.40&&d.speed>.7);assert(d.range>2.45&&d.range<2.75);
- assert.equal(G.rayHit(g,fireAt(.68))?.type,'spider');
- assert.equal(G.rayHit(g,fireAt(.68))?.part,'head');
- assert.equal(G.rayHit(g,fireAt(1.52)),null,'a human-height headshot must miss the low spider');
+ assert.equal(G.rayHit(g,fireAt(.68).origin,fireAt(.68).direction)?.type,'spider');
+ assert.equal(G.rayHit(g,fireAt(.68).origin,fireAt(.68).direction)?.part,'head');
+ assert.equal(G.rayHit(g,fireAt(1.52).origin,fireAt(1.52).direction),null,'a human-height headshot must miss the low spider');
  const before=Math.hypot(e.x-g.player.x,e.z-g.player.z);
  for(let i=0;i<38;i++)G.advance(g,.05);
  const after=Math.hypot(e.x-g.player.x,e.z-g.player.z);
