@@ -281,6 +281,16 @@ async function init(mode){
   await load();build();
   if(mode==='ar')await beginAR(requestedXR);else enter('demo');
  }catch(e){
+  // Ordinary 3D has its own genuine playable Canvas2D fallback if GPU/CDNs
+  // fail. The AR warning below is exclusively for an AR button request.
+  if(mode!=='ar'){
+   try{
+    buildLite();enter('demo');
+    $('labelPhase').textContent='MODO LIGERO · FÍSICA COMPLETA';
+    note('MODO LIGERO · LISTO PARA JUGAR',2200);
+   }catch(fail){report(fail);if(playing)await back();else $('load').style.display='none'}
+   return;
+  }
   // A failed immersive session must NEVER pretend a camera stream has
   // spatial tracking. Report the exact failure, clean XR, offer real 3D.
   const reason=(e?.message||String(e)).slice(0,190);
