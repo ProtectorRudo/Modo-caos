@@ -6,6 +6,11 @@ on:
       - 'cuadrante*'
       - 'tests/cuadrante*'
       - '.github/workflows/cuadrante-qa.yml'
+  pull_request:
+    paths:
+      - 'cuadrante*'
+      - 'tests/cuadrante*'
+      - '.github/workflows/cuadrante-qa.yml'
   workflow_dispatch:
 permissions:
   contents: read
