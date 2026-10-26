@@ -443,7 +443,9 @@ function makeStage(map){
    }else fx.o.scale.setScalar(fx.kind==='slash'?1+progress*.38:.55+progress*1.6);
    if(fx.t>=fx.life){
     fx.o.parent?.remove(fx.o);
-    fx.o.geometry?.dispose();
+    // Sprite billboards share geometry internally; never dispose their
+    // shared geometry while other rewards are still alive.
+    if(fx.kind!=='pop')fx.o.geometry?.dispose();
     if(fx.kind!=='shard')fx.o.material?.dispose();
     combatBursts.splice(i,1);
    }
@@ -456,7 +458,7 @@ function makeStage(map){
   const geometries=new Set(),materials=new Set();
   scene.traverse(o=>{
    if(!o.isMesh&&!o.isLine&&!o.isSprite)return;
-   if(o.geometry)geometries.add(o.geometry);
+   if(o.geometry&&!o.isSprite)geometries.add(o.geometry);
    if(Array.isArray(o.material))o.material.forEach(m=>materials.add(m));
    else if(o.material)materials.add(o.material);
   });
