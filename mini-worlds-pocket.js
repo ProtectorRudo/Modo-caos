@@ -27,7 +27,7 @@ function canSee(z,room,overlap=.5){
 function create(T,stage){
  if(!stage?.worldRoot||!stage?.root)throw Error('pocket stage requires separate immutable anchor/world root');
  const world=stage.worldRoot;
- const dynamicAlways=new Set([stage.hero?.root,stage.previewBeacon,stage.heroShadow,stage.furyRing,stage.ocean?.o,stage.shoreFoam,...(stage.magicOrbs||[]),...(stage.projectilePool||[]),...(stage.hazardPool||[])]);
+ const dynamicAlways=new Set([stage.hero?.root,stage.previewBeacon,stage.heroShadow,stage.furyRing,stage.ocean?.o,stage.shoreFoam,...(stage.magicOrbs||[]),...(stage.projectilePool||[]),...(stage.hazardPool||[]),...(stage.furySparks||[])]);
  const layers=ROOMS.map((r)=>{
   const g=new T.Group();g.name='WORLD POCKET '+r.id+' · '+r.title;world.add(g);return g;
  });
