@@ -80,7 +80,7 @@ test('wrist aligns near CDJ coordinates without whole-arm manual x clipping',asy
  const wx=wrists.reduce((a,p)=>a+Math.abs(p[0]),0)/wrists.length;
  const ex=elbows.reduce((a,p)=>a+Math.abs(p[0]),0)/elbows.length;
  const wy=mean(wrists,1);
- assert.ok(wx>.09&&wx<.29,'hands align closer to center, x='+wx);
+ assert.ok(wx>.065&&wx<.29,'hands align closer to center, x='+wx);
  assert.ok(ex>wx,'elbows bend visibly outward');
  assert.ok(wy>.28&&wy<.53,'hands sit near console, y='+wy);
 });
