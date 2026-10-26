@@ -104,6 +104,25 @@ root.CuadranteArt=function(T){
    const m=new T.Mesh(new T.IcosahedronGeometry(.108,1),new T.MeshBasicMaterial({color:0x40d8ff,wireframe:true,transparent:true,opacity:.1,depthWrite:false}));
    m.visible=false;root.add(m);echoes.push(m)
   }
+  // This visible ground target is part of the world-locked 3D room, not a
+  // fake camera-overlay. It marks the hit-tested location of the player end.
+  const targetGroup=new T.Group();root.add(targetGroup);
+  targetGroup.position.set(0,.195,2.93);targetGroup.visible=false;
+  const targetMat=new T.MeshBasicMaterial({color:0x21efff,transparent:true,opacity:.88,side:T.DoubleSide,depthWrite:false});
+  const targetRing=new T.Mesh(new T.RingGeometry(.39,.425,64),targetMat);
+  targetRing.rotation.x=-Math.PI/2;targetGroup.add(targetRing);
+  const targetCross=new T.Mesh(new T.RingGeometry(.11,.125,32),targetMat);
+  targetCross.rotation.x=-Math.PI/2;targetCross.position.y=.003;targetGroup.add(targetCross);
+  for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]){
+   const dash=box(.25,.013,.03,targetMat);
+   dash.position.set(Math.cos(a)*.65,0,Math.sin(a)*.65);
+   dash.rotation.y=-a;targetGroup.add(dash);
+  }
+  let previewTime=0;
+  function setPlacementPreview(visible,ready=false){
+   targetGroup.visible=!!visible;
+   targetMat.color.setHex(ready?0x40ffbd:0xffb75b);
+  }
   const history=[],shards=[];
   for(let i=0;i<16;i++){
    const m=new T.Mesh(new T.OctahedronGeometry(.013+i%3*.004,0),new T.MeshBasicMaterial({color:i%3===0?0x86ffff:0xffa047,transparent:true,opacity:0,depthWrite:false}));
@@ -121,6 +140,11 @@ root.CuadranteArt=function(T){
   }
   function update(s,dt){
    if(!s)return;
+   if(targetGroup.visible){
+    previewTime+=dt;
+    targetRing.scale.setScalar(1+.055*Math.sin(previewTime*3));
+    targetMat.opacity=.68+.22*Math.sin(previewTime*4);
+   }
    const b=s.ball;orb.position.set(b.x,b.y,b.z);sphere.rotation.y+=dt*3.5;shell.rotation.x+=dt*1.25;shell.rotation.y+=dt*2.3;
    orb.scale.setScalar(1+Math.sin(s.clock*16)*.04+smashPulse*.11);you.position.x=s.player.x;you.position.y=s.player.y;
    smashPulse=Math.max(0,smashPulse-dt*3.3);
@@ -182,7 +206,7 @@ root.CuadranteArt=function(T){
    trail.forEach((m,i)=>{if(i>=count)m.visible=false});
    scene.userData.trailLimit=count;
   }
-  return {scene,root,you,enemy,orb,surfaceMaterials:{matTile,altTile,steel,panel,dark},spawnImpact,update,setQuality,dispose(){scene.traverse(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}}
+  return {scene,root,you,enemy,orb,surfaceMaterials:{matTile,altTile,steel,panel,dark},spawnImpact,update,setQuality,setPlacementPreview,dispose(){scene.traverse(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}}
  }
  return {makeStage};
 }
