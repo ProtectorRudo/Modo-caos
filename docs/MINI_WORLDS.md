@@ -24,11 +24,11 @@ Librería externa: Three.js 0.160.1, licencia MIT, importada desde jsDelivr y co
 - `node tests/mini-worlds.test.cjs`: 9 pruebas de estados, física, saltos, cajas, monedas, estrellas, enemigos, proyectiles, daño, checkpoint, jefes y pausa. Corridas en entorno JS aislado y aprobadas.
 - Sintaxis de los tres ficheros JavaScript inspeccionada y compilada.
 - **No verificado**: ejecución gráfica real en teléfono, performance 30–60 FPS, permisos de cámara, seguimiento espacial WebXR/ARCore, pruebas táctiles en navegadores móviles, ni transiciones de niveles reales. Mantener estatus de PREVIEW hasta completar.
-- **Limitación de despliegue:** Vercel API devolvió HTTP 402 `api-deployments-free-per-day` al solicitar un nuevo preview el 26/10/2026. No se ha publicado esta rama en Vercel. No asumir que otros deployments de Modo Caos contienen estos cambios.
+- **Despliegue de preview:** la creación manual vía API devolvió HTTP 402 `api-deployments-free-per-day`, pero el despliegue automático desde GitHub completó **READY** el 26/10/2026 para commit `6293a922e214f5b3dab427c81b0d49d19b8c7b8b` en la URL `https://modo-caos-ej95846tk-protector-rudo-s-projects.vercel.app/`. Vercel Web Fetch confirmó HTTP 200 en `/mini-worlds.html`, `/mini-worlds-core.js`, `/mini-worlds-art.js`, `/mini-worlds-runtime.js` y `/index.html`. El preview tiene SSO: para compartirlo, usar URL temporal con `_vercel_share`. Esto **no prueba** controles ni render gráfico en hardware.
 - Sin migraciones Supabase, sin cambios en tablas ni credenciales, sin afectar otras rutas.
 
 ## Próximas validaciones antes de publicación
-1. Vercel preview READY del último commit, rutas /mini-worlds.html y tres JS con HTTP 200.
+1. [COMPROBADO] Vercel preview READY del commit con lógica y docs iniciales; rutas `/mini-worlds.html` y tres JS con HTTP 200.
 2. Usar Chrome desktop y Chrome Android para probar joystick multitáctil, salto, golpes, cajas, enemigos, final del jefe, guardado y segundo nivel.
 3. Probar permiso AR/hit-test, fijación, escala, orientación, ancla, cambio de nivel sin recalibrar y pérdida de tracking en dos Android ARCore.
 4. Ajustar balance, rendimiento y geometrías con capturas físicas. Efectuar controles de regresión sobre /color.html, /ball.html, /territorio.html, /muro.html, /cuadrante.html y los otros juegos.
