@@ -11,13 +11,17 @@
 ## Render y degradación
 - `ritmo-stage-showtime.js` registra `RitmoExterior.create` e invoca `render` al final de sus elementos exteriores. Si la decoración falla se ignora el error y se mantiene NEON PRISM y los anteriores fallback.
 - La calidad baja reduce focos secundarios, LEDs y detalles conservando el DJ.
-- Sin importaciones nuevas de Three.js, extensiones, URLs ni texturas: no se afecta detección de piso ni solicitudes de cámara.
+- Sin nuevas importaciones de Three.js ni contextos GPU: dos GLB locales se convierten en mallas del compositor actual. Se hacen solicitudes opcionales a archivos estáticos GLB, sin afectar las solicitudes de cámara.
 - **No afirmar fotorealismo**: son mallas 3D estilizadas de producción propia; no equivalen a un avatar humano escaneado.
 
-## Modelos gratuitos revisados, no integrados
-- Pack **Nightclub and DJ Booth**, 3DAssets.dev, 56 GLB / licencia **CC0 1.0 Universal**: https://3dassets.dev/packs/nightclub-and-dj-booth
-- Cuenta con consola, deck, mixer, parlantes y luces, pero el WebGL1 nativo del juego no importa GLB directamente. Integrar sin antes desarrollar y probar lector glTF o convertir assets en build implicaría riesgo al render AR.
-- **No se descargaron ni instalaron GLB de terceros en esta V29**. El jugador tampoco debe descargarlos. Esta fase prioriza un avatar y escenario 3D inmediato que funciona con el renderer probado.
+## Modelos 3D reales CC0 incorporados
+- Pack [Nightclub and DJ Booth](https://3dassets.dev/packs/nightclub-and-dj-booth) por **3DAssets.dev**; licencia **CC0 1.0 Universal** (incluye uso comercial).
+- Descargados y versionados automáticamente por GitHub Actions en la rama:
+  - `assets/ritmo/dj-booth-desk.glb` — 32.688 bytes y 688 triángulos; fuente https://cdn.3dassets.dev/assets/34089/v1/model.glb
+  - `assets/ritmo/dj-mixer.glb` — 57.268 bytes y 1.338 triángulos; fuente https://cdn.3dassets.dev/assets/34090/v1/model.glb
+- Adaptador nuevo `ritmo-glb-props.js` lee glTF 2.0 GLB de forma liviana (matrices, mallas, materiales baseColorFactor) y envía la geometría al **mismo buffer de WebGL1/WebXR**. Se leen primero los assets LOCALES y opcionalmente el CDN sólo si faltan. Si alguna importación falla, vuelve al mixer y los platos procedurales.
+- El avatar humanoide 3D sigue siendo **original procedural**; no se descargó un personaje humano real de terceros. El loader glTF no muestra sus texturas WebP incrustadas, sino materiales básicos: no afirmar que renderice el PBR completo.
+- Revisión real del formato (GLB2/BIN), parseo de los dos binarios por el adaptador, conteo de triángulos y coordenadas verificadas con prueba simulada. El usuario no debe descargar ni instalar archivos.
 
 ## Validaciones
 - Sintaxis JavaScript validada para módulos modificados.
