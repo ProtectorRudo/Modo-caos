@@ -196,6 +196,60 @@
    beam([-.019,h-.047,z+.079],[0,h-.054,z+.080],.003,[.20,.13,.13]);
    beam([0,h-.054,z+.080],[.019,h-.047,z+.079],.003,[.20,.13,.13]);
   }
+  // 3D horse-head mask, styled for the Quaternius Punk character.
+  // Not falsely attributed to Quaternius: the mask is original procedural art.
+  function horseHead(t,low,combo,quality){
+   const sway=.012*Math.sin(t*3.0),bob=Math.sin(t*5.4)*(.006+.010*low);
+   const cy=.794+bob,cz=-1.535+sway;
+   function oval(x,y,z,rx,ry,rz,c){
+    const rings=quality===0?6:9,N=quality===0?9:14;
+    for(let j=0;j<rings;j++){
+     const a=Math.PI*j/rings,b=Math.PI*(j+1)/rings;
+     const at=(v,u)=>[x+rx*Math.sin(v)*Math.cos(u),y+ry*Math.cos(v),z+rz*Math.sin(v)*Math.sin(u)];
+     for(let k=0;k<N;k++){
+      const v=2*Math.PI*k/N,w=2*Math.PI*(k+1)/N;
+      surface(mesh,at(a,v),at(a,w),at(b,w),at(b,v),c,1,0);
+     }
+    }
+   }
+   const brown=[.52,.29,.16],light=[.72,.44,.27],dark=[.075,.055,.071];
+   // Elongated horse face (NOT a round sphere with two extra ears).
+   oval(0,cy,cz,.092,.123,.098,brown);
+   oval(0,cy-.078,cz+.080,.073,.065,.115,light);
+   oval(0,cy-.103,cz+.131,.069,.041,.091,[.66,.39,.29]);
+   // Narrow forehead stripe + separated nostrils + mouth silhouette.
+   beam([0,cy+.105,cz+.073],[0,cy-.058,cz+.168],.008,[.91,.79,.62]);
+   for(const k of [-1,1]){
+    oval(k*.045,cy-.103,cz+.207,.017,.012,.009,dark);
+    oval(k*.049,cy+.019,cz+.094,.017,.021,.011,[.015,.024,.032]);
+    oval(k*.048,cy+.026,cz+.106,.005,.006,.005,[.83,.96,1]);
+    const x=k*.066;
+    // Sharp ear pairs, rose inner cartilage and outer brown shell.
+    surface(mesh,[x-.023,cy+.090,cz-.020],[x+.026,cy+.090,cz-.020],
+      [x+k*.009,cy+.206,cz-.025],[x+k*.009,cy+.206,cz-.025],brown,1,0);
+    surface(mesh,[x-.010,cy+.109,cz+.008],[x+.011,cy+.109,cz+.008],
+      [x+k*.008,cy+.183,cz-.012],[x+k*.008,cy+.183,cz-.012],P,.66,2);
+    oval(k*.091,cy-.006,cz-.006,.026,.039,.036,dark);
+    annulus(illum,k*.097,cy,cz+.022,.023,.036,k>0?C:P,.69+.19*low,14,true);
+   }
+   // Dark mane: individual 3D locks flowing backwards from the crown.
+   for(let i=0;i<6;i++){
+    const x=(i-2.5)*.021;
+    beam([x,cy+.119,cz-.063],[x*.89,cy+.063+i*.006,cz-.13],
+      .009,dark);
+   }
+   // Headphone band, independent of skull topology.
+   for(let i=1;i<10;i++){
+    const aa=Math.PI*(i-1)/10,bb=Math.PI*i/10;
+    beam([.103*Math.cos(aa),cy+.020+.128*Math.sin(aa),cz-.02],
+     [.103*Math.cos(bb),cy+.020+.128*Math.sin(bb),cz-.02],
+     .010,[.26,.35,.42]);
+   }
+   // Neon collar fits the character's real neck rather than floating.
+   cuboid(mesh,0,cy-.154,cz-.008,.123,.023,.083,dark,[.14,.16,.24]);
+   cuboid(illum,0,cy-.128,cz+.042,.119,.012,.007,combo>=20?P:C,
+    combo>=20?P:C,.35+.26*low,3);
+  }
   function stacks(size,low,quality){
    const positions=[-1,1].map(s=>({
      x:s*(size*2+.21),z:-1.54,s
@@ -218,7 +272,12 @@
    const quality=getQuality(),low=clamp(a.low||0,0,1),mid=clamp(a.mid||0,0,1);
    const combo=game?.combo||0,pulse=clamp((low+mid)*.63,0,1);
    // Only scenery outside the -1.15m spawn line. Gameplay geometry untouched.
+   // Ground-contact stage shadow and a real modular riser, fully BEHIND the lanes.
+   cuboid(mesh,0,.002,-1.57,size*4+.24,.007,.76,[.028,.039,.060],[.061,.068,.090],.55);
+   props?.drawPart('riser',mesh,surface,{scale:.34,offset:[0,.011,-1.57]});
    ledWall(t,low,mid,combo,quality);
+   // Mix actual magenta/cyan modular panels with animated low-opacity VFX.
+   props?.drawPart('led-magenta',mesh,surface,{scale:.32,offset:[-.24,.495,-1.932]});
    truss(size,t,pulse,quality);
    if(quality>0){
     props?.drawPart('truss',mesh,surface,{scale:.45,offset:[0,.87,-1.815]});
@@ -229,13 +288,19 @@
     props?.drawPart('strobe',mesh,surface,{scale:.30,offset:[0,.922,-1.745]});
    }
    stacks(size,low,quality);
-   avatar(t,low,mid,combo);
+   // Production Quaternius torso, animated by the existing native renderer.
+   // Keep procedural torso temporarily if a device cannot decode the model.
+   if(!props?.drawCharacter(mesh,surface,t,low,quality))avatar(t,low,mid,combo);
+   horseHead(t,low,combo,quality);
    if(props?.ready()){
     props.draw(mesh,surface); // original desk and mixer, unchanged proven GLBs
-    if(!props.drawPart('turntable',mesh,surface,[
+    if(!(props.drawPart('cdj',mesh,surface,[
+     {scale:.29,offset:[-.171,.314,-1.443]},
+     {scale:.29,offset:[ .171,.314,-1.443]}
+    ]) || props.drawPart('turntable',mesh,surface,[
      {scale:.30,offset:[-.171,.314,-1.443]},
      {scale:.30,offset:[ .171,.314,-1.443]}
-    ])){
+    ]))){
      for(const x of [-.17,.17]){
       annulus(mesh,x,.34,-1.443,.050,.064,M,1,20);
       disc(illum,x,.345,-1.443,.044,C,.40+.23*low,20);
@@ -244,6 +309,14 @@
    }else decks(t,low,quality);
    const facade=props?.drawPart('facade',mesh,surface,{scale:.36,offset:[0,.012,-1.282]});
    if(!facade)cuboid(mesh,0,.028,-1.275,.53,.227,.036,S,M,1);
+   // Accessories stay beside the controls, away from the horse-face silhouette.
+   if(quality>0){
+    props?.drawPart('laptop',mesh,surface,{scale:.24,offset:[-.255,.336,-1.596]});
+    props?.drawPart('headphones',mesh,surface,{scale:.18,offset:[.248,.329,-1.411]});
+    props?.drawPart('monitor',mesh,surface,{scale:.22,offset:[.319,.056,-1.470]});
+    props?.drawPart('laser',mesh,surface,{scale:.22,offset:[-.39,.08,-1.715]});
+    props?.drawPart('smoke',mesh,surface,{scale:.20,offset:[.39,.08,-1.715]});
+   }
    // Illuminated facia aligned with the genuine desk; no second podium crossing DJ.
    cuboid(illum,0,.201,-1.251,.46,.013,.006,P,P,.45+.26*low,3);
    if(combo>=20){
@@ -255,7 +328,7 @@
     }
    }
   }
-  return{render,version:'NEON FESTIVAL V30'};
+  return{render,version:'HORSE DJ V31'};
  }
- root.RitmoExterior={create,version:'NEON FESTIVAL V30'};
+ root.RitmoExterior={create,version:'HORSE DJ V31'};
 })(window);
