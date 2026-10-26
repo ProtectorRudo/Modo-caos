@@ -47,7 +47,7 @@
   }
   function drawHitWaves(t,size){
    for(let i=hitWaves.length-1;i>=0;i--){
-    const h=hitWaves[i],age=t-h.time,life=h.rating==='HOLD'?.95:.73;
+    const h=hitWaves[i],age=t-h.time/1000,life=h.rating==='HOLD'?.95:.73;
     if(age<0)continue;
     if(age>life){hitWaves.splice(i,1);continue}
     const p=age/life,c=COLORS[h.lane],x=(h.lane-1.5)*size,z=.65;
