@@ -17,7 +17,10 @@ test('AR court stays in one world position while the phone camera rotates or mov
   const one=new T.PerspectiveCamera(66,412/860,.01,50);
   const two=new T.PerspectiveCamera(66,412/860,.01,50);
   one.position.set(hit.x,1.55,hit.z+1.55);one.lookAt(worldTarget);
-  two.position.set(hit.x+.35,1.70,hit.z+1.55);two.lookAt(worldTarget);
+  two.position.set(hit.x+.35,1.70,hit.z+1.55);
+  // Move the phone WITHOUT re-aiming at the exact world point: a fixed
+  // virtual arena will shift on the screen, but not in the world.
+  two.quaternion.copy(one.quaternion);
   one.updateMatrixWorld();two.updateMatrixWorld();
   const oneScreen=worldTarget.clone().project(one),twoScreen=worldTarget.clone().project(two);
   const inv=stage.root.matrixWorld.clone().invert();
