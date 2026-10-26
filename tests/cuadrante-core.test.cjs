@@ -121,4 +121,40 @@ caseOf('first rival is more readable and slower ball offers time to react',()=>{
  const expected=(C.bounds.FRONT-C.bounds.R)/C.profiles[0].pace;
  assert.ok(expected>.79&&expected<.84,'first half of a center serve should provide ~.80 s to react');
 });
+caseOf('AR records a clean rebound at edges of visibly defended area',()=>{
+ const s=C.create({arDefense:true});C.start(s);s.phase='playing';
+ C.target(s,0,1.2);s.ball={x:.53,y:1.2,z:2.878,vx:0,vy:0,vz:5};
+ C.step(s);assert.ok(s.ball.vz<0);assert.equal(s.score[1],0);
+});
+caseOf('AR 110ms history saves a correctly aimed shot despite one late tracking frame',()=>{
+ const s=C.create({arDefense:true});C.start(s);s.phase='playing';
+ C.target(s,.68,1.43);
+ C.target(s,-.9,.48);
+ s.ball={x:.68,y:1.43,z:2.878,vx:0,vy:0,vz:4.8};
+ C.step(s);
+ assert.ok(s.ball.vz<0,'recent accurate AR pose must count');
+ assert.equal(s.score[1],0);
+ assert.ok(C.drain(s).some(e=>e.type==='graceHit'));
+});
+caseOf('AR does not grant automatic rebounds across the arena',()=>{
+ const s=C.create({arDefense:true});C.start(s);s.phase='playing';
+ C.target(s,1.25,1.79);
+ s.ball={x:-1.4,y:.4,z:2.878,vx:0,vy:0,vz:5};
+ C.step(s);
+ assert.equal(s.score[1],1);
+});
+caseOf('AR recent aim position expires instead of guarding forever',()=>{
+ const s=C.create({arDefense:true});C.start(s);s.phase='playing';
+ C.target(s,.75,1.2);C.target(s,-1.05,1.2);
+ s.ball={x:0,y:1.2,z:0,vx:0,vy:0,vz:0};
+ for(let i=0;i<18;i++)C.step(s);
+ s.ball={x:.75,y:1.2,z:2.878,vx:0,vy:0,vz:5};
+ C.step(s);assert.equal(s.score[1],1);
+});
+caseOf('regular 3D defense remains strict when AR assist is disabled',()=>{
+ const s=C.create();C.start(s);s.phase='playing';
+ C.target(s,0,1.2);
+ s.ball={x:.53,y:1.2,z:2.878,vx:0,vy:0,vz:5};
+ C.step(s);assert.equal(s.score[1],1);
+});
 console.log('CUADRANTE core PASS:',tests.length,'simulations');

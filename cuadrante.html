@@ -139,6 +139,24 @@ a{color:#b5f7ff}.hide{display:none!important}
  padding:4px 9px;color:#efffff;font-size:10px;font-weight:1000;letter-spacing:1px;
  text-shadow:0 2px 3px #000;background:#072431cf;white-space:nowrap}
 #ui.ar-aim #aimReticle{display:block}
+
+/* Distinguish device optical center from the real physics collision zone.
+   DEFENSA is projected from the world-locked paddle every WebXR frame. */
+#defenseZone{position:absolute;left:50%;top:51.5%;width:54px;height:54px;z-index:7;
+ transform:translate(-50%,-50%);pointer-events:none;display:none;
+ border:3px solid #81ffe8;border-radius:16px;
+ background:radial-gradient(circle,#55fcee27,#0228354a 60%,transparent 88%);
+ box-shadow:0 0 0 2px #05242c,0 0 17px 4px #16fce9c2,inset 0 0 16px #64ffe28a}
+#defenseZone:before,#defenseZone:after{content:"";position:absolute;inset:8px;
+ border:2px dashed #d0fff5a3;border-radius:9px}
+#defenseZone:after{inset:22px;border-radius:50%;border:2px solid #e1fff8}
+#defenseZone span{position:absolute;left:50%;bottom:-23px;transform:translateX(-50%);
+ font-size:10px;font-weight:1000;letter-spacing:.8px;color:#effffb;background:#032b36ec;
+ border:1px solid #64fff3ab;border-radius:5px;padding:2px 6px;white-space:nowrap;
+ text-shadow:0 1px 3px #000}
+#defenseZone.incoming{border-color:#ffb46b;box-shadow:0 0 0 2px #34251c,0 0 18px 4px #ff9349}
+#defenseZone.aligned{border-color:#baff9c;box-shadow:0 0 0 2px #13351f,0 0 18px 6px #79ff82}
+#defenseZone.edge{opacity:.58;border-style:dashed}
 </style></head><body>
 <video id="cameraFeed" autoplay muted playsinline></video><div id="stage"></div>
 <div id="home"><div class="wrap"><div class="heroArt" aria-label="Túnel futurista con pelota de energía naranja y cuadrado defensivo cian"><div class="tunnel"></div><div class="previewBall"></div><div class="previewPaddle"></div></div>
@@ -150,7 +168,7 @@ a{color:#b5f7ff}.hide{display:none!important}
 <div id="settings"><label>SONIDO <input type="range" id="sfxVol" min="0" max="100" value="65"></label><label>MÚSICA <input type="range" id="musicVol" min="0" max="100" value="24"></label><label>PRECISIÓN DEL CONTROL <input type="range" id="touchSense" min="60" max="145" value="100" step="5"><output id="senseVal">100%</output></label><label>CALIDAD <select id="quality"><option value="auto">AUTOMÁTICA</option><option value="high">ALTA</option><option value="medium">EQUILIBRADA</option><option value="low">RENDIMIENTO</option></select></label><div id="records"></div></div>
 <p class="fine">En AR, apuntá con el celular: la mira es tu defensa invisible y aparece un escudo cuando devolvés la pelota. En modo 3D arrastrá el dedo para mover tu defensa. Usá Chrome Android con ARCore en un lugar despejado. También podés jugar el modo 3D sin cámara.</p>
 <a href="./index.html" class="fine">‹ VOLVER A MODO CAOS</a></div></div></div>
-<div id="ui"><div id="aimReticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div id="aimCue" aria-live="off"></div><div id="arWorldOverlay"></div><svg id="placementSvg" aria-hidden="true"><path id="placementBorder"/><circle id="placementTarget" r="6"/></svg><div id="arDrawStatus" aria-live="polite"></div><div id="touchLayer"></div><div id="hitFlash" aria-hidden="true"></div><div id="hud"><span>VOS <strong id="youScore">0</strong></span><div id="rivalName">RIVAL 1<b>PULSO</b></div><span><strong id="rivalScore">0</strong> RIVAL</span><div id="contactGauge" aria-hidden="true"><i id="contactFill"></i></div></div><button id="exitBtn">‹ MENÚ</button><button id="recenterBtn" class="alt">⌖ RECENTRAR</button><button id="pauseBtn" aria-label="Pausar juego">Ⅱ</button><div id="combo"></div><div id="ticker"></div><div id="placeTitle">DETECTÁ EL PISO<small>Mové el celular despacio · cuando aparezca la marca VERDE, podés fijar la arena</small></div><div id="placeControls"><button class="alt" id="sizeMinus">−</button><button class="alt" id="rotateLeft">↶</button><button class="primary blue" id="fixArena" disabled>FIJAR ARENA</button><button class="alt" id="rotateRight">↷</button><button class="alt" id="sizePlus">＋</button></div><div id="labelPhase" aria-live="off"></div>
+<div id="ui"><div id="aimReticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div id="defenseZone" aria-hidden="true"><span>DEFENSA</span></div><div id="aimCue" aria-live="off"></div><div id="arWorldOverlay"></div><svg id="placementSvg" aria-hidden="true"><path id="placementBorder"/><circle id="placementTarget" r="6"/></svg><div id="arDrawStatus" aria-live="polite"></div><div id="touchLayer"></div><div id="hitFlash" aria-hidden="true"></div><div id="hud"><span>VOS <strong id="youScore">0</strong></span><div id="rivalName">RIVAL 1<b>PULSO</b></div><span><strong id="rivalScore">0</strong> RIVAL</span><div id="contactGauge" aria-hidden="true"><i id="contactFill"></i></div></div><button id="exitBtn">‹ MENÚ</button><button id="recenterBtn" class="alt">⌖ RECENTRAR</button><button id="pauseBtn" aria-label="Pausar juego">Ⅱ</button><div id="combo"></div><div id="ticker"></div><div id="placeTitle">DETECTÁ EL PISO<small>Mové el celular despacio · cuando aparezca la marca VERDE, podés fijar la arena</small></div><div id="placeControls"><button class="alt" id="sizeMinus">−</button><button class="alt" id="rotateLeft">↶</button><button class="primary blue" id="fixArena" disabled>FIJAR ARENA</button><button class="alt" id="rotateRight">↷</button><button class="alt" id="sizePlus">＋</button></div><div id="labelPhase" aria-live="off"></div>
 <div id="overlay"><div class="modal"><div class="tag" id="modalTag">CUADRANTE</div><h2 id="modalTitle">PAUSA</h2><p id="modalDesc"></p><div id="modalStats"></div><div class="buttons" id="modalButtons"></div><div id="intro"></div></div></div></div>
 <div id="load">PREPARANDO ARENA 3D…</div><div id="error" role="alert"></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>

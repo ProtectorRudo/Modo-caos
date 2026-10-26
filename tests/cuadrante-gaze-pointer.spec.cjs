@@ -27,7 +27,7 @@ test('AR gaze hides the large defender; world reticle appears and impact shield 
  });
  expect(result.demo).toBe(true);expect(result.ar).toMatchObject({
   playerHidden:true,rivalVisible:true,markerVisible:true,shieldInitiallyHidden:true});
- expect(result.ar.markerZ).toBeLessThan(0);
+ expect(result.ar.markerZ).toBeGreaterThan(2.80);
  expect(result.shieldOn).toBe(true);expect(result.mid).toBe(true);expect(result.faded).toBe(true);
  expect(result.demoRestored).toBe(true);
  expect(errors).toEqual([]);

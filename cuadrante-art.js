@@ -148,7 +148,9 @@ root.CuadranteArt=function(T){
    const t=new T.Mesh(new T.BoxGeometry(.085,.013,.008),aimMaterial);
    t.position.set(Math.cos(a)*.177,Math.sin(a)*.177,0);t.rotation.z=a;aimMarker.add(t);
   }
-  aimMarker.position.set(0,1.2,-.15);aimMarker.visible=false;
+  // Same plane as the REAL front collider. Older -0.15 placement
+  // misled players by showing their defense halfway down the court.
+  aimMarker.position.set(0,1.2,2.875);aimMarker.visible=false;
   let aimMode=false,shieldLife=0;
   function setAimMode(on){
    aimMode=!!on;you.visible=!aimMode;
@@ -261,7 +263,7 @@ root.CuadranteArt=function(T){
    smashPulse=Math.max(0,smashPulse-dt*3.3);
    aimMarker.visible=aimMode&&(s.phase==='playing'||s.phase==='serve');
    if(aimMode){
-    aimMarker.position.x=s.player.x;aimMarker.position.y=s.player.y;
+    aimMarker.position.x=s.player.x;aimMarker.position.y=s.player.y;aimMarker.position.z=2.875;
     aimMarker.rotation.z+=dt*1.5;
     aimMaterial.opacity=.52+.22*Math.sin(s.clock*6);
     defenseShield.position.x=s.player.x;defenseShield.position.y=s.player.y;
