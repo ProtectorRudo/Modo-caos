@@ -4,11 +4,15 @@
 const $=id=>document.getElementById(id),C=window.CuadranteCore;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let THREE,renderer,stage,camera,session,hitSource,referenceSpace,videoStream,state,modePlay='circuit';
-let inputMode='demo',placing=false,hasHit=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
+let inputMode='demo',placing=false,hasHit=false,recentering=false,yaw=0,offset={x:0,z:0},arenaScale=.66;
 let playing=false,prev=0,acc=0,notified=false,toastUntil=0,quality='auto',autoQuality='high',slowFrames=0,stableFrames=0;
 let pointers=new Map(),placeDistance=0,placeAngle=0,warningAt=0,records={games:0,wins:0,bestCombo:0,bestRally:0,bestArcade:0},audioCtx=null,audioAt=0;
 try{records={...records,...JSON.parse(localStorage.getItem('cuadrante-records')||'{}')}}catch(e){}
-const opts={music:.24,sfx:.65};
+const opts={music:.24,sfx:.65,sensitivity:1};
+try{
+ const saved=Number(localStorage.getItem('cuadrante-sensitivity'));
+ if(Number.isFinite(saved)&&saved>=.6&&saved<=1.45)opts.sensitivity=saved;
+}catch(e){}
 function save(){try{localStorage.setItem('cuadrante-records',JSON.stringify(records))}catch(e){}}
 function report(e){$('error').textContent='CUADRANTE: '+(e&&e.message||String(e));$('error').style.display='block';setTimeout(()=>$('error').style.display='none',7500)}
 function note(t,ms=1500){$('ticker').textContent=t;$('ticker').style.opacity='1';toastUntil=performance.now()+ms}
@@ -21,10 +25,21 @@ function sound(name){
  osc.type=name==='goal'||name==='victory'?'triangle':'sawtooth';
  osc.frequency.setValueAtTime(p[0],now);osc.frequency.exponentialRampToValueAtTime(p[1],now+p[2]);
  gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(Math.max(.001,.095*opts.sfx),now+.012);
- gain.gain.exponentialRampToValueAtTime(.0001,now+p[2]);osc.connect(gain).connect(audioCtx.destination);osc.start(now);osc.stop(now+p[2]+.03);
+ gain.gain.exponentialRampToValueAtTime(.0001,now+p[2]);
+ // A quiet stereo position cue makes angled returns readable with headphones.
+ if(audioCtx.createStereoPanner&&state&&name!=='click'&&name!=='launch'){
+  const pan=audioCtx.createStereoPanner();pan.pan.value=clamp(state.ball.x/1.76,-.72,.72);
+  osc.connect(gain).connect(pan).connect(audioCtx.destination);
+ }else osc.connect(gain).connect(audioCtx.destination);
+ osc.start(now);osc.stop(now+p[2]+.03);
 }
 function initAudio(){try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();audioCtx.resume().catch(()=>{})}catch(e){}}
 function haptic(ms){if(navigator.vibrate)try{navigator.vibrate(ms)}catch(e){}}
+function impactFlash(variant){
+ const fx=$('hitFlash');fx.className='';
+ // Restart a tiny CSS animation, without allocating particles or DOM nodes.
+ void fx.offsetWidth;fx.className=variant;
+}
 function music(){
  if(!audioCtx||opts.music<=0||!state||state.phase==='paused'||state.phase==='finished'||state.phase==='ready')return;
  if(audioCtx.currentTime<audioAt)return;
@@ -41,7 +56,14 @@ function selectMode(m){modePlay=m;$('modeCircuit').classList.toggle('active',m==
 $('modeCircuit').onclick=()=>selectMode('circuit');$('modeSurvive').onclick=()=>selectMode('survival');
 $('settingsBtn').onclick=()=>{$('settings').style.display=$('settings').style.display==='block'?'none':'block';displayRecords()};
 function displayRecords(){$('records').textContent='PARTIDAS '+records.games+' · VICTORIAS '+records.wins+' · COMBO '+records.bestCombo+' · MEJOR INTERCAMBIO '+records.bestRally+' · PUNTOS '+records.bestArcade}
-$('sfxVol').oninput=e=>opts.sfx=+e.target.value/100;$('musicVol').oninput=e=>opts.music=+e.target.value/100;$('quality').onchange=e=>{quality=e.target.value;applyQuality()};
+$('sfxVol').oninput=e=>opts.sfx=+e.target.value/100;$('musicVol').oninput=e=>opts.music=+e.target.value/100;
+$('touchSense').value=String(Math.round(opts.sensitivity*100));
+$('senseVal').textContent=Math.round(opts.sensitivity*100)+'%';
+$('touchSense').oninput=e=>{
+ opts.sensitivity=+e.target.value/100;$('senseVal').textContent=e.target.value+'%';
+ try{localStorage.setItem('cuadrante-sensitivity',String(opts.sensitivity))}catch(_){}
+};
+$('quality').onchange=e=>{quality=e.target.value;applyQuality()};
 function applyQuality(){
  if(!renderer)return;
  const mobile=window.innerWidth<950;
@@ -88,8 +110,9 @@ function setDemoCamera(){if(!camera||renderer?.isLite)return;const aspect=innerW
  camera.fov=aspect<1?66:57;camera.aspect=aspect;camera.position.set(0,1.68,aspect<1?7.5:6.6);camera.lookAt(0,1.2,-.65);camera.updateProjectionMatrix()}
 function resize(){if(!renderer||!camera)return;renderer.setSize(innerWidth,innerHeight,false);applyQuality();if(!renderer.xr.isPresenting)setDemoCamera()}
 window.addEventListener('resize',resize);
-function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;offset={x:0,z:0};arenaScale=.66;pointers.clear();
+function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;notified=false;placing=false;hasHit=false;recentering=false;offset={x:0,z:0};arenaScale=.66;pointers.clear();
  $('home').style.display='none';$('stage').style.display='block';$('ui').style.display='block';
+ $('recenterBtn').style.display='none';$('hitFlash').className='';
  $('overlay').style.display='none';$('ticker').style.opacity='0';$('placeControls').style.display='none';$('placeTitle').style.display='none';
  $('labelPhase').style.display='block';$('hud').style.display='flex';$('pauseBtn').style.display='block';$('touchLayer').style.pointerEvents='auto';
  $('cameraFeed').style.display='none';$('labelPhase').textContent='ARRASTRÁ PARA MOVER EL CUADRADO';$('load').style.display='none';
@@ -128,12 +151,19 @@ function refreshHud(){
  $('youScore').textContent=state.score[0];$('rivalScore').textContent=state.score[1];
  $('rivalName').innerHTML='RIVAL '+(state.duel+1)+'<b>'+C.profiles[state.duel].name+'</b>';
  const n=state.combo;$('combo').style.display=n>=3?'block':'none';$('combo').textContent=n>=3?'COMBO ×'+n:'';
+ // Contact-pressure meter uses proximity, not an unreliable future intercept
+ // through moving obstacles; it never lies about the projected landing.
+ const approaching=state.phase==='playing'&&state.ball.vz>.05;
+ const danger=approaching?clamp((state.ball.z+.2)/3.1,0,1):0;
+ const meter=$('contactFill');
+ meter.style.transform='scaleX('+danger.toFixed(3)+')';
+ meter.style.opacity=danger>.03?'1':'0';
  if(modePlay==='survival'&&state.phase!=='ready'&&!placing)$('labelPhase').textContent='SUPERVIVENCIA · '+state.survivalLives+' VIDAS · ARRASTRÁ PARA DEFENDER';
 }
 function handleEvents(events){
  for(const ev of events){const type=ev.type;
   if(type==='hit'||type==='perfect'||type==='smash'){
-   stage.spawnImpact(state.ball.x,state.ball.y,state.ball.z,type==='smash'?'smash':'you');sound(type);haptic(type==='smash'?[20,16,35]:type==='perfect'?28:12);
+   stage.spawnImpact(state.ball.x,state.ball.y,state.ball.z,type==='smash'?'smash':'you');sound(type);haptic(type==='smash'?[20,16,35]:type==='perfect'?28:12);impactFlash(type==='smash'?'smash':'hit');
    if(type==='smash')note('⚡ ¡SMASH GEOMÉTRICO!',920);else if(type==='perfect')note('¡DEVOLUCIÓN PERFECTA!',820);else if(ev.info?.edge)note('¡SALVADA!',650);
    if(state.combo===5)note('¡COMBO DE 5!',900);if(state.combo===10)note('¡INTERCAMBIO ÉPICO!',950);
   }
@@ -142,8 +172,8 @@ function handleEvents(events){
   if(type==='wall'){if(performance.now()-warningAt>200){sound('wall');warningAt=performance.now()}}
   if(type==='transformWarning'){sound('transformWarning');note('⚠ LA ARENA VA A CAMBIAR',680)}
   if(type==='transform'){sound('transform');note('ARENA: '+ev.info,1150)}
-  if(type==='goal'){sound('goal');haptic([35,30,55]);note('¡PUNTO PARA VOS!',1100)}
-  if(type==='conceded'){sound('conceded');haptic(70);note('PUNTO DEL RIVAL',850)}
+  if(type==='goal'){sound('goal');haptic([35,30,55]);impactFlash('goal');note('¡PUNTO PARA VOS!',1100)}
+  if(type==='conceded'){sound('conceded');haptic(70);impactFlash('miss');note('PUNTO DEL RIVAL',850)}
   if(type==='launch')sound('launch');
   if(type==='nextRival')note('¡SUBE LA DIFICULTAD! '+ev.info,1200);
  }
@@ -174,8 +204,19 @@ function pause(){if(!state||placing)return;if(state.phase==='paused'){C.resume(s
  button('SALIR AL MENÚ',()=>back(),'alt');
 }
 $('pauseBtn').onclick=pause;$('exitBtn').onclick=()=>back();
+function recenter(){
+ if(!playing||placing||inputMode!=='ar'||!renderer?.xr?.isPresenting||!state||state.phase==='finished')return;
+ C.pause(state);recentering=true;placing=true;hasHit=false;offset={x:0,z:0,rot:0};
+ pointers.clear();$('overlay').style.display='none';$('pauseBtn').textContent='Ⅱ';$('pauseBtn').style.display='none';
+ $('recenterBtn').style.display='none';$('hud').style.display='none';
+ $('placeTitle').style.display='block';$('placeTitle').firstChild.textContent='RECENTRAR ARENA';
+ $('placeControls').style.display='flex';$('fixArena').disabled=true;$('fixArena').textContent='FIJAR Y CONTINUAR';
+ $('labelPhase').textContent='BUSCANDO NUEVA SUPERFICIE · SIN PERDER TUS PUNTOS';
+ note('REUBICÁ LA ARENA · PUNTOS CONSERVADOS',1500);
+}
+$('recenterBtn').onclick=recenter;
 async function back(){
- if(!playing)return;playing=false;placing=false;
+ if(!playing)return;playing=false;placing=false;recentering=false;
  try{if(session){const old=session;session=null;await old.end()}}catch(e){}
  if(hitSource){try{hitSource.cancel()}catch(e){}hitSource=null}
  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null}
@@ -234,7 +275,15 @@ function doFix(){
  if(inputMode==='ar'&&!hasHit){note('APUNTÁ A UN PISO DESPEJADO',1250);return}
  placing=false;$('placeControls').style.display='none';$('placeTitle').style.display='none';$('hud').style.display='flex';$('pauseBtn').style.display='block';
  $('labelPhase').textContent=inputMode==='ar'?'AR REAL · ARRASTRÁ PARA DEFENDER':'CÁMARA SIN TRACKING · ARRASTRÁ PARA DEFENDER';
- C.start(state);note('¡ARRASTRÁ PARA MOVER EL CUADRADO!',1700);
+ $('recenterBtn').style.display=inputMode==='ar'?'block':'none';
+ if(recentering){
+  recentering=false;C.resume(state);acc=0;prev=0;
+  note('ARENA RECENTRADA · ¡SEGUÍ JUGANDO!',1550);
+ }else{
+  C.start(state);note('¡ARRASTRÁ PARA MOVER EL CUADRADO!',1700);
+ }
+ $('placeTitle').firstChild.textContent='FIJÁ TU ARENA';
+ $('fixArena').textContent='FIJAR ARENA';
 }
 $('fixArena').onclick=doFix;
 function adjustScale(k){arenaScale=clamp(arenaScale*k,.4,1.12);if(stage)stage.root.scale.setScalar(arenaScale)}
@@ -261,8 +310,8 @@ layer.addEventListener('pointermove',e=>{
   }return;
  }
  if(state.phase==='playing'||state.phase==='serve'){
-   const aspect=innerWidth/innerHeight;
-   C.target(state,state.player.x+dx/innerWidth*(aspect>1?4.6:5.1),state.player.y-dy/innerHeight*(aspect>1?3.2:3.4));
+   const move=C.touchDelta(dx,dy,innerWidth,innerHeight,opts.sensitivity);
+   C.target(state,state.player.x+move.x,state.player.y+move.y);
  }
 });
 for(const type of ['pointerup','pointercancel','lostpointercapture'])layer.addEventListener(type,e=>{pointers.delete(e.pointerId);placeDistance=0});

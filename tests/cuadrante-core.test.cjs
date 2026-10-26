@@ -38,4 +38,27 @@ caseOf('AR stage is placed ahead of phone, with player paddle on detected target
   assert.ok(Math.abs(frontal.x-hit.x)<1e-6&&Math.abs(frontal.z-hit.z)<1e-6);
  }
 });
+caseOf('AR recenter preserves the same duel, scoring and ball trajectory',()=>{
+ const s=C.create({seed:1234});s.duel=3;C.start(s);
+ for(let i=0;i<150;i++)C.step(s);
+ s.score=[3,2];s.arcade=2300;s.combo=4;
+ const prior={clock:s.clock,ball:{...s.ball},score:[...s.score],duel:s.duel,arcade:s.arcade,combo:s.combo};
+ C.pause(s);const pose=C.anchoredArena({x:1.5,y:0,z:-2},.4,.2,{x:.1,z:.1},.65);
+ assert.ok(Number.isFinite(pose.x)&&Number.isFinite(pose.z));
+ for(let i=0;i<120;i++)C.step(s);
+ assert.equal(s.clock,prior.clock);assert.deepEqual(s.ball,prior.ball);
+ C.resume(s);assert.deepEqual(s.score,prior.score);
+ assert.equal(s.duel,prior.duel);assert.equal(s.arcade,prior.arcade);assert.equal(s.combo,prior.combo);
+ C.step(s);assert.ok(s.clock>prior.clock);
+});
+caseOf('touch input is precise, resolution-independent, and jump bounded',()=>{
+ const a=C.touchDelta(80,-80,390,780,1),b=C.touchDelta(160,-160,780,1560,1);
+ assert.ok(Math.abs(a.x-b.x)<1e-12);assert.ok(Math.abs(a.y-b.y)<1e-12);
+ const gentle=C.touchDelta(80,-80,390,780,.60);
+ assert.ok(gentle.x<a.x&&gentle.y<a.y);
+ const fast=C.touchDelta(80,-80,390,780,1.45);
+ assert.ok(fast.x>a.x);
+ const jump=C.touchDelta(1800,-1800,390,780,1);
+ assert.ok(jump.x<=.92&&jump.y<=.55);
+});
 console.log('CUADRANTE core PASS:',tests.length,'simulations');
