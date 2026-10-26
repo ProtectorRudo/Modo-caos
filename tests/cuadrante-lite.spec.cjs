@@ -1,0 +1,23 @@
+const {test,expect}=require('@playwright/test');
+test.use({viewport:{width:960,height:520}});
+test('game remains fully playable when both external 3D CDNs fail',async({page})=>{
+ const pageErrors=[];
+ page.on('pageerror',err=>pageErrors.push(err.message));
+ await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());
+ await page.route('https://unpkg.com/**',r=>r.abort());
+ await page.goto('http://127.0.0.1:8765/cuadrante.html',{waitUntil:'domcontentloaded'});
+ await page.locator('#startDemo').click();
+ await expect(page.locator('#home')).toBeHidden({timeout:17000});
+ await expect(page.locator('#stage canvas')).toBeVisible({timeout:17000});
+ await expect(page.locator('#labelPhase')).toContainText('MODO LIGERO');
+ await page.mouse.move(470,255);await page.mouse.down();await page.mouse.move(650,220,{steps:4});await page.mouse.up();
+ await page.waitForTimeout(300);
+ await expect(page.locator('#youScore')).toHaveText('0');
+ await page.locator('#pauseBtn').click();
+ await expect(page.locator('#modalTitle')).toHaveText('PAUSA');
+ await page.getByRole('button',{name:'CONTINUAR'}).click();
+ await expect(page.locator('#overlay')).toBeHidden();
+ await page.locator('#exitBtn').click();
+ await expect(page.locator('#home')).toBeVisible();
+ expect(pageErrors).toEqual([]);
+});
