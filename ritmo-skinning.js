@@ -128,8 +128,11 @@
   for(let i=0;i<3;i++)acc[i]+=p[i]*weights[0];
   const groove=Math.sin(time*2.6)*.006;
   const bob=Math.sin(time*5.2)*(.004+.006*low);
+  // Raise the forearm/wrist skin towards the CDJ pads. Use actual GLB
+  // weight blending, not a vertex x-clamp: shoulder seams remain connected.
+  const armWeight=weights[1]+weights[2]+weights[3]+weights[4];
   // World dimensions match existing horse mask and deck precisely.
-  return [acc[0]*.86+groove,(acc[1]-1)*.68+.327+bob,-1.55+acc[2]*.68];
+  return [acc[0]*.86+groove,(acc[1]-1)*.68+.327+bob+.085*armWeight,-1.55+acc[2]*.68];
  }
  function create(){
   let model=null,status='loading';
