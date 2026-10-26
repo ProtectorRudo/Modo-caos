@@ -58,7 +58,7 @@ jobs:
           await page.locator('#startDemo').click();
           await page.locator('#stage canvas').waitFor({state:'visible',timeout:40000});
           await page.locator('#pauseBtn').click();
-          await page.locator('#modalTitle').getAttribute('textContent').then(x=>{if(x!=='PAUSA')throw Error('Pause broken: '+x)});
+          await page.locator('#modalTitle').textContent().then(x=>{if(x!=='PAUSA')throw Error('Pause broken: '+x)});
           await page.getByRole('button',{name:'CONTINUAR'}).click();
           await page.locator('#exitBtn').click();
           await page.locator('#home').waitFor({state:'visible'});
