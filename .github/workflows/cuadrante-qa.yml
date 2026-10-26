@@ -41,3 +41,14 @@ jobs:
           if(!home.includes('href="/cuadrante.html"'))throw Error('missing menu card');
           console.log('PASS: static arcade integration');
           NODE
+      - name: Install browser test runner and Chromium
+        run: |
+          npm install --no-save @playwright/test@1.56.1
+          npx playwright install chromium --with-deps
+      - name: Run Chromium WebGL gameplay smoke test
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/cuadrante-http.log 2>&1 &
+          sleep 2
+          npx playwright test tests/cuadrante-browser.spec.cjs --reporter=line
+        env:
+          CI: true
