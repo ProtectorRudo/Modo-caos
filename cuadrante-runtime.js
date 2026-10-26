@@ -137,8 +137,8 @@ function enter(mode){inputMode=mode;state=C.create({modePlay});playing=true;noti
  $('overlay').style.display='none';$('ticker').style.opacity='0';$('placeControls').style.display='none';$('placeTitle').style.display='none';
  $('labelPhase').style.display='block';$('hud').style.display='flex';$('pauseBtn').style.display='block';$('touchLayer').style.pointerEvents='auto';
  $('cameraFeed').style.display='none';$('labelPhase').textContent='ARRASTRÁ PARA MOVER EL CUADRADO';$('load').style.display='none';
- if(inputMode==='demo'){stage.root.position.set(0,0,0);stage.root.scale.setScalar(1);C.start(state);note('ARRASTRÁ PARA DEFENDER',2100)}
- else{placing=true;stage.root.position.set(0,0,-1);stage.root.scale.setScalar(arenaScale);
+ if(inputMode==='demo'){stage.root.visible=true;stage.root.position.set(0,0,0);stage.root.scale.setScalar(1);C.start(state);note('ARRASTRÁ PARA DEFENDER',2100)}
+ else{placing=true;stage.root.visible=false;stage.root.position.set(0,0,-1);stage.root.scale.setScalar(arenaScale);
  $('placeControls').style.display='flex';$('placeTitle').style.display='block';$('hud').style.display='none';$('pauseBtn').style.display='none';
  $('labelPhase').textContent=inputMode==='ar'?'BUSCANDO EL PISO · APUNTÁ EL CELULAR':'CÁMARA SIN SEGUIMIENTO ESPACIAL';}
 }
@@ -152,7 +152,7 @@ function placeFromFrame(frame,dt){
  }
  if(!pose){
   hasHit=false;floorSeconds=0;lastFloorHit=null;
-  $('fixArena').disabled=true;stage.setPlacementPreview?.(false);
+  stage.root.visible=false;$('fixArena').disabled=true;stage.setPlacementPreview?.(false);
   $('labelPhase').textContent=hits.length?'APUNTÁ A UNA SUPERFICIE HORIZONTAL':'BUSCANDO PISO REAL · MOVÉ EL CELULAR DESPACIO';
   return;
  }
@@ -172,7 +172,7 @@ function placeFromFrame(frame,dt){
  cam.getWorldDirection(dir);
  const baseYaw=Math.atan2(-dir.x,-dir.z);yaw=baseYaw;
  const world=C.anchoredArena(lastFloorHit,baseYaw,offset.rot||0,offset,arenaScale);
- stage.root.rotation.y=world.rotation;
+ stage.root.visible=true;stage.root.rotation.y=world.rotation;
  stage.root.position.set(world.x,world.y,world.z);
  stage.root.scale.setScalar(arenaScale);
  hasHit=floorSeconds>=.60;
@@ -252,7 +252,7 @@ function pause(){if(!state||placing)return;if(state.phase==='paused'){C.resume(s
 $('pauseBtn').onclick=pause;$('exitBtn').onclick=()=>back();
 function recenter(){
  if(!playing||placing||inputMode!=='ar'||!renderer?.xr?.isPresenting||!state||state.phase==='finished')return;
- C.pause(state);recentering=true;placing=true;hasHit=false;floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
+ C.pause(state);stage.root.visible=false;recentering=true;placing=true;hasHit=false;floorSeconds=0;lastFloorHit=null;offset={x:0,z:0,rot:0};$('ui').classList.add('ar-placing');
  pointers.clear();stage?.setPlacementPreview?.(false);$('overlay').style.display='none';$('pauseBtn').textContent='Ⅱ';$('pauseBtn').style.display='none';
  $('recenterBtn').style.display='none';$('hud').style.display='none';
  $('placeTitle').style.display='block';$('placeTitle').firstChild.textContent='RECENTRAR ARENA';
