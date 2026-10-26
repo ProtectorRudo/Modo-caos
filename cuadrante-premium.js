@@ -37,7 +37,7 @@ function createAudio(){
 }
 async function decorate(T,stage){
  if(!T||!stage?.root?.parent)return {models:0,reason:'no-active-3d-stage'};
- const group=new T.Group();group.name='cuadrante-cc0-props';
+ const group=new T.Group();group.name='cuadrante-cc0-side-props';
  stage.root.add(group);
  let loaded=0;
  const textureLoader=new T.TextureLoader();
@@ -53,8 +53,9 @@ async function decorate(T,stage){
   for(const mat of [stage.surfaceMaterials?.matTile,stage.surfaceMaterials?.altTile]){
    if(!mat)continue;
    mat.map=albedo;mat.normalMap=normal;mat.roughnessMap=rough;mat.metalnessMap=metal;
-   mat.metalness=.6;mat.roughness=.54;
-   mat.normalScale.set(.28,.28);mat.color.setHex(mat===stage.surfaceMaterials.matTile?0x8ea6af:0x7a929d);
+   mat.metalness=.43;mat.roughness=.53;
+   mat.transparent=true;mat.opacity=.58;mat.depthWrite=false;
+   mat.normalScale.set(.28,.28);mat.color.setHex(mat===stage.surfaceMaterials.matTile?0x79d7e4:0x74bfcf);
    mat.needsUpdate=true;
   }
  }else{
@@ -70,18 +71,14 @@ async function decorate(T,stage){
  let triangleBudget=40000;
  // Models are fixed visual decoration attached to AR world anchor, never collision bodies.
  // The dimensions are artist bounds, not real-world detection or player body tracking.
+ // Reuse only LIGHTWEIGHT side props. Huge doors, ceiling panels and
+ // square wall frames formerly obscured the ball, rival and real AR room.
+ // All imported props remain outside the core collision volume.
  const slots=[
-  ['columnAstra',[[-1.72,1.15,-2.3,.53,2.08],[1.72,1.15,-2.3,.53,2.08]]],
-  ['columnHollow',[[-1.72,1.13,-.5,.45,1.86],[1.72,1.13,-.5,.45,1.86]]],
-  ['columnSupport',[[-1.70,1.13,1.65,.42,1.9],[1.70,1.13,1.65,.42,1.9]]],
-  ['frameSquare',[[0,1.18,-2.89,2.85,1.9]]],
-  ['plateSet',[[0,.14,-2.35,1.5,.07]]],
-  ['darkPlatform',[[-1.25,.14,-1.6,.65,.09],[1.25,.14,-1.6,.65,.09]]],
-  ['columnPipes',[[-1.72,1.15,.72,.47,1.93],[1.72,1.15,.72,.47,1.93]]],
-  ['frameTall',[[0,1.18,-2.91,2.84,2.14]]],
-  ['metalPlatform',[[0,.14,-.76,1.55,.07]]],
-  ['railSet',[[-1.65,.25,-2.05,.6,.55],[1.65,.25,-2.05,.6,.55]]],
-  ['darkDoor',[[0,1.16,-3.0,1.14,2.1]]]
+  ['columnAstra',[[-1.92,.72,-2.29,.29,1.08],[1.92,.72,-2.29,.29,1.08]]],
+  ['columnHollow',[[-1.94,.66,-.78,.28,1.02],[1.94,.66,-.78,.28,1.02]]],
+  ['columnPipes',[[-1.95,.66,1.28,.29,1.00],[1.95,.66,1.28,.29,1.00]]],
+  ['columnSupport',[[-1.96,.67,-2.83,.28,.94],[1.96,.67,-2.83,.28,.94]]]
  ];
  const queue=slots.slice();
  async function loadSlot(key,placements){
