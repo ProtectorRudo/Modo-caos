@@ -4,16 +4,28 @@
 const E=id=>document.getElementById(id),G=window.RitmoCore,A=window.RitmoArt,audio=window.RitmoAudio.create();
 if(!G||!A)throw Error('Ritmo Caos requiere core y art');
 const art=A.create(E('rtSvg'),E('gameCanvas')),fx=window.RitmoFx?.create(E('fxCanvas')),
- stage3d=window.RitmoStage3D?.create(),haptics=window.RitmoHaptics?.create(navigator),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-let stage3dOK=false;
+ stagePremium=window.RitmoStagePremium?.create(),stage3d=window.RitmoStage3D?.create(),
+ haptics=window.RitmoHaptics?.create(navigator),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+let stage3dOK=false,activeStage=null,premiumUsable=!!stagePremium;
 window.modoCaosCustomRender=function(gl,view,W,t){
- const success=!!stage3d?.render(gl,view,W,t,locked?game:null,boardSize,audio.spectrum);
- stage3dOK=success;
+ const params=[gl,view,W,t,locked?game:null,boardSize,audio.spectrum];
+ let success=false,renderer=null;
+ // Premium always comes first, original tested stage remains functional backup.
+ if(premiumUsable){
+  try{success=!!stagePremium.render(...params)}catch(_){success=false}
+  if(success)renderer=stagePremium;
+  else premiumUsable=false; // stop trying a failing shader every XR frame
+ }
+ if(!success&&stage3d){
+  try{success=!!stage3d.render(...params)}catch(_){success=false}
+  if(success)renderer=stage3d;
+ }
+ activeStage=renderer;stage3dOK=success;
  E('rtSvg').style.display=success?'none':'block';
- if(!success&&window.modoCaosCustomArena)E('playerBadge').style.display='none';
+ if(!success)E('playerBadge').style.display='none';
  return success;
 };
-function noteSpot(lane){return (stage3dOK?stage3d?.spot(lane):null)||art.spot?.(lane)}
+function noteSpot(lane){return (stage3dOK?activeStage?.spot(lane):null)||art.spot?.(lane)}
 
 window.modoCaosCustomArena=true;
 window.modoCaosGestureConfig={min:.20,max:.32,step:.015,label:s=>(s*4).toFixed(2)+' m'};
@@ -167,9 +179,11 @@ E('sound').onclick=()=>{muted=!muted;audio.volume(muted);E('sound').textContent=
 const qualityModes=['auto','high','low'];
 const qualityNames=['✨ AUTO','✨ ALTA','✨ LIGERA'];
 E('quality').onclick=()=>{
- if(!stage3d){notify('RENDERIZADO CLÁSICO');return}
- const next=(qualityModes.indexOf(stage3d.mode())+1)%qualityModes.length;
- stage3d.setQuality(qualityModes[next]);
+ if(!stage3d&&!stagePremium){notify('RENDERIZADO CLÁSICO');return}
+ const renderer=activeStage||stagePremium||stage3d;
+ const next=(qualityModes.indexOf(renderer.mode())+1)%qualityModes.length;
+ stagePremium?.setQuality(qualityModes[next]);
+ stage3d?.setQuality(qualityModes[next]);
  E('quality').textContent=qualityNames[next];
  notify(next===0?'GRÁFICOS AUTOMÁTICOS':next===1?'GRÁFICOS ALTA CALIDAD':'GRÁFICOS MODO LIGERO',1000);
 };
@@ -209,7 +223,7 @@ function onEvents(){
    try{audio.feedback?.('HOLD_START',ev.lane,game.combo)}catch(_){}
   }else if(ev.type==='hold_complete'){
    fx?.burst(ev.lane,noteSpot(ev.lane),'HOLD',ev.combo,ev.points);
-   stage3d?.hit(ev.lane,'HOLD');
+   (activeStage||stagePremium||stage3d)?.hit(ev.lane,'HOLD');
    try{audio.feedback?.('HOLD_COMPLETE',ev.lane,ev.combo)}catch(_){}
    haptics?.scored(ev.note); // Exactly one miniature vibration on completed sustain
    notify('🌟 ¡SOSTENIDA PERFECTA! + PUNTOS',920);
@@ -221,7 +235,7 @@ function onEvents(){
    // Complete sustains get their own large effect and audio chord.
    if(note?.type!=='hold'){
     fx?.burst(ev.lane,noteSpot(ev.lane),ev.rating,ev.combo,ev.points);
-    stage3d?.hit(ev.lane,ev.rating);
+    (activeStage||stagePremium||stage3d)?.hit(ev.lane,ev.rating);
    }
    if(ev.rating!=='FALLO'){
     if(note?.type!=='hold'){
@@ -338,7 +352,7 @@ window.modoCaosXRFrame=function(t,frame,W){
   onEvents();if(game.state==='finished')conclude();
  }
  if(t-drawLast>33&&!stage3dOK){drawLast=t;art.ar(frame,W,locked?game:null,boardSize)}
- const tag=E('playerBadge'),spot=locked&&calibrated&&stage3dOK?stage3d?.spot(game.lane):null;
+ const tag=E('playerBadge'),spot=locked&&calibrated&&stage3dOK?activeStage?.spot(game.lane):null;
  if(tag){
   tag.style.display=spot&&!demo?'block':'none';
   if(spot){tag.style.left=spot[0]+'px';tag.style.top=(spot[1]-40)+'px';tag.textContent='◆ VOS'}
