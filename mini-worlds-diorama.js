@@ -179,7 +179,7 @@ root.MiniWorldsDiorama=function(T){
     const vec=vCenter.clone().sub(camPos),proj=vec.dot(ray);
     if(proj<-.1||proj>length+.1)continue;
     const closest=camPos.clone().addScaledVector(ray,Math.max(0,Math.min(length,proj)));
-    const dist=vCenter.distanceTo(closest);
+    const dist=vCenter.clone().sub(closest).length();
     const canopyRadius=Math.max(vSize.x,vSize.z)*.44;
     const heightRange=Math.abs(vCenter.y-closest.y)<=Math.max(.22,vSize.y*.60);
     if(heightRange&&dist<canopyRadius+.18){
