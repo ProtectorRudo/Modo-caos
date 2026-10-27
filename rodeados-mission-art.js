@@ -112,11 +112,22 @@ export function createRodeadosMissionArt(THREE,world){
    const placing=stage==='tactical';
    const base=placing?draft?.base:m.base,flag=placing?draft?.flag:m.object;
    const spots=placing?(draft?.spots||[]):m.spawnPoints;
-   ctfBase.visible=!!base;ctfFlag.visible=!!flag;flagBeacon.visible=!!flag;
+   ctfBase.visible=!!base;ctfFlag.visible=!!flag;
+   // The original enemy flag's beacon is fixed in world coordinates until
+   // collection; carried flag is attached to the TRACKED logical phone player.
+   // Neither flag is ever parented to the camera or moved by aim direction.
+   flagBeacon.visible=!!flag&&(placing||(!m.carry&&!m.dropAt));
    if(base)ctfBase.position.set(base.x,0,base.z);
    if(flag){
-    ctfFlag.position.set(!placing&&m.carry?game.player.x:m.dropAt?.x??flag.x,0,!placing&&m.carry?game.player.z:m.dropAt?.z??flag.z);
-    flagBeacon.position.set(flag.x,0,flag.z);
+    const placed=!placing?game.mission?.object:flag;
+    const loc=placing?{x:flag.x,z:flag.z,y:0}:game.mission&&game.mission.kind==='ctf'?
+      game.mission.carry?{x:game.player.x+.27,z:game.player.z+.12,y:.45}:
+      game.mission.dropAt?{...game.mission.dropAt,y:0}:{x:placed.x,z:placed.z,y:0}:
+      {x:flag.x,z:flag.z,y:0};
+    ctfFlag.position.set(loc.x,loc.y,loc.z);
+    flagBeacon.position.set(placed.x,0,placed.z);
+    const glow=ctfFlag.scale;
+    glow.setScalar(!placing&&m.carry?.68:1);
    }
    ctfFlag.rotation.y=Math.sin(tick*2)*.10;
    spawnBeacons.forEach((b,i)=>{
