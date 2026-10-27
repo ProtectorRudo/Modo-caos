@@ -218,3 +218,154 @@ button:active {filter:brightness(1.08)}
 #overlay.crp3d-ready #head #headline {
   text-shadow:0 4px 16px #001320,0 0 25px currentColor;
 }
+
+/* ━━━ Color Rush Pro finishing: live layout ━━━ */
+#overlay.crp-live #hud {
+  min-height:48px;
+  padding:6px 9px !important;
+  border-radius:12px;
+  font-size:10px !important;
+  background:linear-gradient(110deg,rgba(6,18,31,.82),rgba(6,25,36,.80)) !important;
+}
+#overlay.crp-live #hud b {font-size:clamp(17px,4.7vw,23px)!important;}
+#overlay.crp-live #head {
+  top:max(69px,calc(env(safe-area-inset-top) + 62px)) !important;
+  left:8px;
+  right:8px;
+}
+#overlay.crp-live #headline {
+  font-size:clamp(29px,7.1vw,39px) !important;
+  font-weight:950;
+  line-height:1.05;
+  letter-spacing:-.7px;
+}
+#overlay.crp-live #subtitle {
+  margin-top:3px;
+  padding:4px 10px;
+  font-size:clamp(10px,2.8vw,12px);
+  font-weight:750;
+  border-color:#4a90a244;
+  background:rgba(4,17,29,.60);
+}
+#overlay.crp-live #top-chip {
+  top:max(158px,calc(env(safe-area-inset-top) + 151px));
+  padding:4px 11px !important;
+  min-height:24px;
+  font-size:10px !important;
+  color:#f3ffff;
+  background:rgba(6,23,36,.70) !important;
+  border:1px solid #8cd5d85c !important;
+}
+#overlay.crp-live #timetrack {
+  top:max(197px,calc(env(safe-area-inset-top) + 190px));
+  width:76%;
+  left:12%;
+  height:7px !important;
+}
+#overlay.crp-live #timetrack:after {
+  content:"";
+  pointer-events:none;
+  position:absolute;
+  inset:0;
+  box-shadow:inset 0 1px 1px #e2ffff44;
+  border-radius:inherit;
+}
+#overlay.crp-live #diagbtn {
+  top:max(221px,calc(env(safe-area-inset-top) + 214px)) !important;
+  right:10px;
+  font-size:0 !important;
+  width:34px;
+  min-width:34px;
+  min-height:34px;
+  padding:4px !important;
+  opacity:.52;
+  border-radius:50%;
+  display:block;
+}
+#overlay.crp-live #diagbtn:after {
+  content:"⚙";
+  font-size:19px;
+  line-height:1;
+}
+#overlay.crp-live #bottom {
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  column-gap:7px;
+  row-gap:5px;
+  padding:0;
+}
+#overlay.crp-live #playerline {
+  grid-column:1/-1;
+  padding:6px 8px !important;
+  font-size:clamp(9px,2.6vw,11px) !important;
+  min-height:31px;
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+#overlay.crp-live #health-warning,
+#overlay.crp-live #posnote,
+#overlay.crp-live #debug,
+#overlay.crp-live #toolbar {grid-column:1/-1;}
+#overlay.crp-live #calibration-btn {
+  grid-column:1;
+  width:100%;
+  padding:7px 4px;
+  min-height:43px;
+  font-size:clamp(10px,2.7vw,12px);
+  white-space:nowrap;
+}
+#overlay.crp-live #mainbuttons {
+  grid-column:2;
+  display:flex;
+  min-width:0;
+  width:100%;
+}
+#overlay.crp-live #mainbuttons button {
+  min-width:0;
+  width:100%;
+  flex:1;
+  min-height:43px;
+  padding:7px 6px;
+  font-size:clamp(10px,2.7vw,12px);
+}
+#overlay.crp-live #burst {
+  top:24%;
+  font-size:clamp(29px,8vw,47px) !important;
+}
+#overlay #tiles .crp-player-dot {
+  fill:#d5fff7 !important;
+  stroke:#134051 !important;
+  stroke-width:5 !important;
+  filter:drop-shadow(0 0 8px #31f7d3) drop-shadow(0 0 14px #39ffe3);
+}
+#overlay #tiles .crp-player-label {
+  font-size:13px !important;
+  font-weight:1000 !important;
+  fill:#ffffff !important;
+  paint-order:stroke !important;
+  stroke:#073442 !important;
+  stroke-width:3px !important;
+  filter:drop-shadow(0 0 5px #32f0cb);
+}
+#overlay #crp-player-edge {
+  display:none;
+  position:absolute;
+  transform:translateX(-50%);
+  border:1px solid #d7ffee;
+  border-radius:15px;
+  padding:5px 13px;
+  background:rgba(7,45,60,.83);
+  color:#d8fff1;
+  box-shadow:0 0 15px #2ffbd355;
+  font-size:12px;
+  font-weight:1000;
+  letter-spacing:1px;
+  z-index:5;
+  pointer-events:none;
+  white-space:nowrap;
+}
+@media(max-height:760px) {
+  #overlay.crp-live #head {top:max(66px,calc(env(safe-area-inset-top) + 59px)) !important;}
+  #overlay.crp-live #headline {font-size:clamp(27px,7vw,35px) !important;}
+  #overlay.crp-live #top-chip {top:max(155px,calc(env(safe-area-inset-top) + 148px));}
+  #overlay.crp-live #timetrack {top:max(192px,calc(env(safe-area-inset-top) + 185px));}
+}
