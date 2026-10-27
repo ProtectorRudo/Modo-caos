@@ -23,7 +23,7 @@
   let context = null, program = null, sparksProgram = null, sparkBuffer = null;
   let buffers = null, lastSignature = '', ready = false, fault = false, failureCount = 0;
   let activeColor = -1, lastPlayingColor = -1, burstColor = -1, lastTargetRead = 0, lastBurst = '', burstAt = -10000, lastFrameAt = 0, samples = 0;
-  let measuredFps = 0, lastFpsAt = 0, gfxError = '';
+  let measuredFps = 0, lastFpsAt = 0, gfxError = '', lowFpsIntervals = 0, effectsEnabled = true;
   const STAR_COUNT = 56;
   const STRIDE = 12; // local xyz, normal xyz, UV, tile RGB, palette index
   const srcVertex = [
@@ -385,19 +385,26 @@
         g.enable(g.BLEND);g.blendFunc(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA);
         g.disable(g.CULL_FACE);g.depthFunc(g.LEQUAL);
         drawLit(g,pv,W,pose.transform.position,time,size);
-        drawWave(g,time);
-        drawSparks(g,pv,W,size,time);
+        if(effectsEnabled){drawWave(g,time);drawSparks(g,pv,W,size,time);}
       }
       if(!ready){ready=true;overlay.classList.add('crp3d-ready');window.ColorRushPro3D.status='active';window.ColorRushPro3D.active=true;}
+      if(samples%90===0 && typeof g.getError==='function'){
+        const err=g.getError();if(err!==g.NO_ERROR)throw Error('WebGL error '+err);
+      }
       samples++;
-      if(time-lastFpsAt>1000){measuredFps=samples*1000/Math.max(1,time-lastFpsAt);samples=0;lastFpsAt=time;window.ColorRushPro3D.fps=+measuredFps.toFixed(1);}
+      if(time-lastFpsAt>1000){
+        measuredFps=samples*1000/Math.max(1,time-lastFpsAt);
+        if(measuredFps<38)lowFpsIntervals++;else lowFpsIntervals=0;
+        if(lowFpsIntervals>=3){effectsEnabled=false;window.ColorRushPro3D.quality='lite';}
+        samples=0;lastFpsAt=time;window.ColorRushPro3D.fps=+measuredFps.toFixed(1);
+      }
       lastFrameAt=time;
     }catch(e){off(e);}
     finally{
       if(g)try{cleanGPU(g);}catch(e){off(e);}
     }
   }
-  window.ColorRushPro3D={version:'2.0.0',visualOnly:true,active:false,status:'waiting-xr',fps:0,lastError:null};
+  window.ColorRushPro3D={version:'2.0.0',visualOnly:true,active:false,status:'waiting-xr',fps:0,quality:'high',lastError:null};
   const old=window.modoCaosXRFrame;
   window.modoCaosXRFrame=function(time,frame,W){
     if(typeof old==='function')try{old(time,frame,W);}catch(e){console.warn('[Color Rush Pro3D] old visual hook',e);}
