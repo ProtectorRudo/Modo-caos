@@ -74,8 +74,7 @@ root.MiniWorldsMissionArt=function(T){
    }
    for(const p of props){
     if(p.exit){p.g.visible=data.exit.active;continue}
-    if(p.relay){p.g.visible=!game.map.runes[p.relay].restored}
-    if(p.relay===0){p.g.visible=!game.map.runes[0].restored}
+    if(p.relay!==undefined)p.g.visible=!game.map.runes[p.relay].restored;
     if(p.fragment){
      p.g.visible=p.fragment.dropped&&!p.fragment.claimed;
      p.g.position.set(p.fragment.x,p.fragment.y-.65,p.fragment.z);
