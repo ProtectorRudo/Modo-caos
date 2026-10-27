@@ -204,7 +204,7 @@ function makeAvatar(parent){
  mesh(sphere(.155,16,12),cream,-.175,-.085,.254,head);
  mesh(sphere(.155,16,12),cream,.175,-.085,.254,head);
  const snout=mesh(new T.ConeGeometry(.145,.31,5),cream,0,-.102,.41,head);
- snout.rotation.x=-Math.PI/2;
+ snout.rotation.x=Math.PI/2;
  mesh(sphere(.089,12,9),dark,0,-.128,.57,head).scale.set(1.25,.75,.60);
  for(const side of [-1,1]){
   const ear=group(head,side*.245,.348,-.052);
