@@ -25,6 +25,25 @@ function groundTexture(kind,seed){
   g.strokeStyle=i%2?'#718e79':'#fefff4';g.lineWidth=1.25;
   g.beginPath();g.moveTo(x,y);g.lineTo(x+(random()-.5)*9,y-4-random()*12);g.stroke();
  }
+ // Repeated fine cracks and mineral strata, drawn once into shared
+ // texture atlases rather than extra on-frame draw calls or paid assets.
+ if(kind==='stone')for(let i=0;i<95;i++){
+  const x=random()*512,y=random()*512;
+  g.globalAlpha=.08+random()*.13;
+  g.strokeStyle=i%3===0?'#313e3a':'#7c8276';
+  g.lineWidth=.65+random()*1.3;g.beginPath();g.moveTo(x,y);
+  g.lineTo(x+6+random()*18,y-3+random()*8);
+  g.lineTo(x+19+random()*18,y-5+random()*10);g.stroke();
+ }
+ if(kind==='wood'){
+  for(let i=0;i<135;i++){
+   const y=random()*512,x=random()*512;
+   g.globalAlpha=.075+random()*.14;
+   g.strokeStyle=i%2?'#4a3228':'#ccb38e';
+   g.lineWidth=.7+random()*1.1;g.beginPath();g.moveTo(x,y);
+   g.bezierCurveTo(x+20,y-2+random()*5,x+80,y+random()*6,x+130,y);g.stroke();
+  }
+ }
  g.globalAlpha=1;
  const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;
  t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2.3,2.3);
@@ -34,6 +53,9 @@ M.sand.map=groundTexture('sand',382);M.sand.roughness=.96;M.sand.needsUpdate=tru
 M.grass.map=groundTexture('grass',572);M.grass.roughness=.94;M.grass.needsUpdate=true;
 M.grass2.map=M.grass.map;M.grass2.needsUpdate=true;
 M.stone.map=groundTexture('stone',942);M.stone.roughness=.91;M.stone.needsUpdate=true;
+M.wood.map=groundTexture('wood',644);M.wood.roughness=.86;M.wood.needsUpdate=true;
+M.woodDark.map=M.wood.map;M.woodDark.roughness=.91;M.woodDark.needsUpdate=true;
+M.edge.map=M.stone.map;M.edge.needsUpdate=true;
 M.trail=new T.MeshStandardMaterial({color:0x776b55,map:M.stone.map,roughness:.98,metalness:0});
 M.oldRoad=new T.MeshStandardMaterial({color:0x626d69,map:M.stone.map,roughness:.96,metalness:0});
 
