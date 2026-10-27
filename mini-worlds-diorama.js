@@ -68,10 +68,6 @@ root.MiniWorldsDiorama=function(T){
   const leafGeo=new T.ConeGeometry(.22,.39,4),rockGeo=new T.DodecahedronGeometry(.22,0);
   geometry.push(stemGeo,budGeo,leafGeo,rockGeo);
   // These keep ground fully visible for controls: no mesh is a new floor.
-  const ambience=[
-   new T.Color(level?0xade1e7:0xf4e4bd),
-   new T.Color(level?0x91a8d3:0xb7d48d)
-  ];
   // Slightly inset, irregular vegetation edges break the perfect square outline.
   for(const p of map.platforms){
    if(p.kind==='bridge')continue;
@@ -82,14 +78,19 @@ root.MiniWorldsDiorama=function(T){
    // Pebbly ledges below the actual collision footprint; the top plane
    // remains untouched, including crate lids and graded walkways.
    const rNum=Math.max(4,Math.round((p.w+p.d)*.65));
+   // One draw call per island for the entire pebble rim, rather than
+   // dozens of independent rock meshes on every Android AR frame.
+   const pebbles=new T.InstancedMesh(rockGeo,stoneMat,rNum),obj=new T.Object3D();
    for(let j=0;j<rNum;j++){
     const a=j/rNum*TWO;
     const x=Math.cos(a)*(p.w*.49),z=Math.sin(a)*(p.d*.49);
-    const o=new T.Mesh(rockGeo,stoneMat);
-    o.position.set(x,-.20+(rand()-.5)*.16,z);
-    o.scale.set(.8+rand()*.8,.37+rand()*.5,.8+rand()*.6);
-    o.rotation.set(rand(),rand()*TWO,rand());holder.add(o);
+    obj.position.set(x,-.20+(rand()-.5)*.16,z);
+    obj.scale.set(.8+rand()*.8,.37+rand()*.5,.8+rand()*.6);
+    obj.rotation.set(rand(),rand()*TWO,rand());obj.updateMatrix();
+    pebbles.setMatrixAt(j,obj.matrix);
    }
+   pebbles.instanceMatrix.needsUpdate=true;pebbles.castShadow=false;
+   holder.add(pebbles);
   }
   // Per-region instancing: ~200 flowers/shrubs across both giant zones with
   // constant draw-call overhead instead of hundreds of independent meshes.
@@ -152,8 +153,8 @@ root.MiniWorldsDiorama=function(T){
    lastOcclusions=[];
    const heroPos=new T.Vector3(),camPos=new T.Vector3();
    stage.hero.root.getWorldPosition(heroPos);
-   const lookCamera=camera.isCamera?camera:camera;
-   lookCamera.getWorldPosition(camPos);
+   camera.getWorldPosition(camPos);
+   heroPos.y+=.72*(stage.root?.scale?.x||1);
    const ray=heroPos.clone().sub(camPos),length=ray.length();
    if(length<.4)return;
    ray.divideScalar(length);
@@ -161,6 +162,7 @@ root.MiniWorldsDiorama=function(T){
     // The pocket reindex manages visibility for out-of-room trees.
     if(!obj.visible||obj.userData?.beforeCutaway===false)continue;
     const center=new T.Vector3();obj.getWorldPosition(center);
+    center.y+=.29*(stage.root?.scale?.x||1);
     const proj=center.clone().sub(camPos).dot(ray);
     if(proj<=.1||proj>=length-.1)continue;
     const away=center.sub(camPos.addScaledVector(ray,proj)).length();
