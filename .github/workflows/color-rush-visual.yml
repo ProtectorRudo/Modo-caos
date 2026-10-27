@@ -8,6 +8,7 @@ on:
       - 'color-premium.css'
       - 'tests/color*visual*.cjs'
       - 'tests/color-pro3d-smoke.test.cjs'
+      - 'tests/color-pro3d-webgl.html'
       - '.github/workflows/color-rush-visual.yml'
   push:
     branches:
@@ -19,6 +20,7 @@ on:
       - 'color-premium.css'
       - 'tests/color*visual*.cjs'
       - 'tests/color-pro3d-smoke.test.cjs'
+      - 'tests/color-pro3d-webgl.html'
       - '.github/workflows/color-rush-visual.yml'
 permissions:
   contents: read
@@ -40,3 +42,23 @@ jobs:
           node --check color-premium-art.js
           node tests/color-premium-visual.test.cjs
           node tests/color-pro3d-smoke.test.cjs
+      - name: Compile GLSL shaders in real Chromium WebGL
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "::warning::Chromium not installed on runner. WebGL runtime test is unavailable."
+            exit 0
+          fi
+          URL="file://$PWD/tests/color-pro3d-webgl.html"
+          timeout 40s "$CHROME" --headless --no-sandbox --disable-dev-shm-usage --disable-gpu-sandbox --enable-webgl --enable-unsafe-swiftshader --use-angle=swiftshader --virtual-time-budget=5000 --dump-dom "$URL" 2>/tmp/color-chrome.log >/tmp/color-webgl.html || {
+            cat /tmp/color-chrome.log | tail -25
+            exit 1
+          }
+          grep -q 'data-status="PASS"' /tmp/color-webgl.html || {
+            grep -E 'id="result"|FAIL|NO_WEBGL' /tmp/color-webgl.html | head -10 || true
+            cat /tmp/color-chrome.log | tail -25
+            exit 1
+          }
+          echo "PASS: native WebGL 1 shaders compiled and rendered"
