@@ -21,19 +21,24 @@ root.MiniWorldsMissionArt=function(T){
    const wool=mat(tints[i%4],.11);
    const body=add(g,new T.SphereGeometry(.22,13,10),wool,0,.32,0);
    body.scale.set(.8,1.05,.76);
-   const head=add(g,new T.SphereGeometry(.21,14,10),light,0,.73,.025);
+   const head=add(g,new T.SphereGeometry(.185,16,12),light,0,.73,.025);
    // Utility gear makes survivors look like explorers, not infant plushies.
    const vest=add(g,new T.CylinderGeometry(.19,.23,.33,7),cap,0,.32,.01);
    const buckle=add(g,new T.BoxGeometry(.18,.065,.05),gold,0,.22,.22);
-   const hood=add(g,new T.ConeGeometry(.23,.21,7),wool,0,.96,-.026);
+   const hood=add(g,new T.CylinderGeometry(.205,.18,.23,9),cap,0,.88,-.036);
+   // Rescue survivors read as expedition members rather than plush mascots:
+   // copper visor and a small real backpack, all in the anchored 3D world.
+   add(g,new T.BoxGeometry(.27,.075,.09),gold,0,.77,.184);
+   add(g,new T.BoxGeometry(.24,.32,.16),cap,0,.38,-.22);
+   add(g,new T.BoxGeometry(.26,.045,.10),gold,0,.38,-.322);
    for(const side of [-1,1]){
     add(g,new T.BoxGeometry(.11,.17,.19),cap,side*.13,.07,.06);
     add(g,new T.BoxGeometry(.07,.20,.08),gold,side*.21,.36,.01);
    }
    for(const side of [-1,1]){
     add(g,new T.SphereGeometry(.027,8,6),eyes,side*.087,.74,.215);
-    const ear=add(g,new T.ConeGeometry(.055,.13,8),wool,side*.16,.98,-.04);
-    ear.rotation.z=-side*.18;
+    const strap=add(g,new T.BoxGeometry(.07,.23,.07),gold,side*.19,.47,.08);
+    strap.rotation.z=-side*.1;
    }
    add(g,new T.BoxGeometry(.055,.04,.03),gold,0,.61,.232);
    const halo=add(g,new T.TorusGeometry(.40,.04,7,28),cage,0,.59,0);
@@ -44,7 +49,7 @@ root.MiniWorldsMissionArt=function(T){
    marker.rotation.x=Math.PI;
    const markerHalo=add(g,new T.TorusGeometry(.18,.033,8,22),cage,0,1.72,0);
    markerHalo.rotation.x=Math.PI/2;
-   const glow=add(g,new T.SphereGeometry(.19,16,10),fx(tints[i%4]),0,.37,0);
+   const glow=add(g,new T.SphereGeometry(.135,16,10),mat(tints[i%4],.25),0,.37,0);
    glow.scale.set(1,.94,1);
    npcs.push({r,g,halo,body,head,marker,markerHalo,offset:i*2.2,celebrateAt:null});
   }
@@ -60,7 +65,7 @@ root.MiniWorldsMissionArt=function(T){
    const prism=add(g,new T.OctahedronGeometry(.31,1),mat(color,.88),0,1.12,0);
    const stripe=add(g,new T.TorusGeometry(.34,.035,8,30),fx(color),0,1.13,0);
    stripe.rotation.x=Math.PI/2;
-   const locator=add(g,new T.ConeGeometry(.14,.32,7),fx(color),0,2.03,0);
+   const locator=add(g,new T.ConeGeometry(.10,.24,8),gold,0,1.94,0);
    locator.rotation.x=Math.PI;
    const p={g,ring,prism,stripe,base,locator};props.push(p);return p;
   }
@@ -88,6 +93,8 @@ root.MiniWorldsMissionArt=function(T){
   add(tower,new T.TorusGeometry(.57,.08,9,32),fx(0xc7acff),0,.35,0);
   function update(game,dt,elapsed){
    const data=game?.mission;if(!data)return;
+   const lead=data.rescues.find(r=>!r.rescued&&!r.optional)||
+    data.rescues.find(r=>!r.rescued);
    for(const n of npcs){
     // The happy little villager bounces, twirls and rises before returning
     // to the town. Saving somebody must FEEL different from collecting a coin.
@@ -102,6 +109,9 @@ root.MiniWorldsMissionArt=function(T){
       n.head.position.y=.71+Math.sin(elapsed*2.7+n.offset)*.035;
       n.halo.rotation.z=elapsed*.78+n.offset;
       n.halo.material.opacity=.5+.24*Math.sin(elapsed*3+n.offset);
+      const focused=lead?.name===n.r.name;
+      n.marker.visible=focused;
+      n.markerHalo.visible=focused;
       n.marker.position.y=1.45+Math.sin(elapsed*3.3+n.offset)*.12;
       n.markerHalo.position.y=1.72+Math.sin(elapsed*3.3+n.offset)*.12;
       n.markerHalo.rotation.z=elapsed*1.3;}

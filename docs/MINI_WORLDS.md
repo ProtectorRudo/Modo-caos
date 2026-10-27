@@ -409,3 +409,19 @@ No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones
 - Nuevas pruebas `tests/mini-worlds-clean-art.test.cjs` junto a ~19 suites anteriores y validación `node --check`. Verifica prohibición de guía de piso durante juego, artefactos transparentes, ausencia de planos de cascada, colisiones sólidas y cantidad real de pickups.
 - GitHub Actions valida código y física simulada, **NO prueba física AR Android ni imagen real de un usuario**. Antes de producción comprobar capturas, respuesta joystick, cuerpos sólidos, objetivos, FPS, recentrado y versiones realmente desplegadas.
 - Como Vercel ha limitado API deploys, **verificar commit SHA exacto y archivos HTTPS**; no presentar una preview vieja como versión nueva.
+
+
+## Mini Worlds — Escenografía premium, PBR móvil y corrección del agua AR (27/10/2026)
+**Base:** `feat/mini-worlds-clean-adventure-20261027`. Rama aislada `feat/mini-worlds-premium-world-20261027`. No se modifica la producción, otros juegos ni el esquema compartido de Supabase.
+
+**Motivo:** capturas reales de tres partidas muestran geometría mint/celeste no deseada, manchas circulares en el terreno, materiales todavía planos, enemigos lejanos oscuros, rescatables poco identificables, portal de juguete y avisos de daño demasiado grandes.
+
+**Cambios concretos:**
+- **AR safe-mode para el agua:** la única superficie oceánica `PlaneGeometry(18.5,33)` era un shader transparente grande, potencial origen de los rombos celestes al intersectar el plano de cámara/compositor. Se etiqueta `MW_LARGE_TRANSPARENT_OCEAN_DEMO_ONLY`; se oculta en AR junto a la espuma de costa, mientras sigue disponible animado en modo demo. No se mueve ni reinicia el ancla, el nivel ni las superficies físicas. **Es una hipótesis técnica basada en las capturas, no un error de GPU demostrado**: pedir captura de esta versión para confirmar.
+- **Terreno:** círculos de tierra oscuros reemplazados por *senderos orgánicos irregulares* renderizados como una única `ShapeGeometry` por isla. Misma altura que el suelo de colisión, sin plataformas falsas. La madera incorpora vetas y la piedra pequeñas fisuras en mapas de 512×512 generados una vez y compartidos; filtrado anisotrópico 4×.
+- **Sombras:** opacidad de contacto más contenida para evitar las gigantes manchas negras de screenshots. No se activan luces de sombra en tiempo real costosas para móviles.
+- **Guardianes y rescates:** piezas de armadura de acero de mayor contraste, visor rojo/cobre, siluetas ligeramente más presentes; habitantes parecen expedicionarios equipados con mochila y visera. Marcador principal únicamente en el próximo rescatable exigido por la misión, sin alterar lógica ni puntos.
+- **Portal y coleccionables:** portal de extracción de piedra y cobre (sin esfera translúcida turquesa potencialmente problemática), monedas más compactas con emblema de reliquia. La física de recogida y acceso al portal sigue siendo la del core.
+- **HUD:** avisos de daño de 12–16 px en pastillas pequeñas, misión menos intrusiva, mapa voluntario y controles de móvil pequeño reajustados.
+
+**QA:** `tests/mini-worlds-premium-world.test.cjs` + todas las suites precedentes, workflow en la rama, `node --check`. La prueba confirma el contrato de seguridad de AR, rutas orgánicas, scripts, marcador y física lógica; **no demuestra FPS ni calidad física ARCore**. Sigue siendo imprescindible comprobar captura tras reproducir en Chrome Android y reportar objetos todavía atravesables o errores de visibilidad. Si Vercel API limita los despliegues, el release se hará en preview de GitHub y se cotejará el SHA antes de distribuir el enlace.

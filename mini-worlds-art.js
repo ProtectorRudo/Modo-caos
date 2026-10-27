@@ -25,6 +25,25 @@ function groundTexture(kind,seed){
   g.strokeStyle=i%2?'#718e79':'#fefff4';g.lineWidth=1.25;
   g.beginPath();g.moveTo(x,y);g.lineTo(x+(random()-.5)*9,y-4-random()*12);g.stroke();
  }
+ // Repeated fine cracks and mineral strata, drawn once into shared
+ // texture atlases rather than extra on-frame draw calls or paid assets.
+ if(kind==='stone')for(let i=0;i<95;i++){
+  const x=random()*512,y=random()*512;
+  g.globalAlpha=.08+random()*.13;
+  g.strokeStyle=i%3===0?'#313e3a':'#7c8276';
+  g.lineWidth=.65+random()*1.3;g.beginPath();g.moveTo(x,y);
+  g.lineTo(x+6+random()*18,y-3+random()*8);
+  g.lineTo(x+19+random()*18,y-5+random()*10);g.stroke();
+ }
+ if(kind==='wood'){
+  for(let i=0;i<135;i++){
+   const y=random()*512,x=random()*512;
+   g.globalAlpha=.075+random()*.14;
+   g.strokeStyle=i%2?'#4a3228':'#ccb38e';
+   g.lineWidth=.7+random()*1.1;g.beginPath();g.moveTo(x,y);
+   g.bezierCurveTo(x+20,y-2+random()*5,x+80,y+random()*6,x+130,y);g.stroke();
+  }
+ }
  g.globalAlpha=1;
  const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;
  t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2.3,2.3);
@@ -34,6 +53,9 @@ M.sand.map=groundTexture('sand',382);M.sand.roughness=.96;M.sand.needsUpdate=tru
 M.grass.map=groundTexture('grass',572);M.grass.roughness=.94;M.grass.needsUpdate=true;
 M.grass2.map=M.grass.map;M.grass2.needsUpdate=true;
 M.stone.map=groundTexture('stone',942);M.stone.roughness=.91;M.stone.needsUpdate=true;
+M.wood.map=groundTexture('wood',644);M.wood.roughness=.86;M.wood.needsUpdate=true;
+M.woodDark.map=M.wood.map;M.woodDark.roughness=.91;M.woodDark.needsUpdate=true;
+M.edge.map=M.stone.map;M.edge.needsUpdate=true;
 M.trail=new T.MeshStandardMaterial({color:0x776b55,map:M.stone.map,roughness:.98,metalness:0});
 M.oldRoad=new T.MeshStandardMaterial({color:0x626d69,map:M.stone.map,roughness:.96,metalness:0});
 
@@ -90,6 +112,7 @@ function makeOcean(parent,map){
    }`
  });
  const o=mesh(new T.PlaneGeometry(18.5,33,32,48),material,0,-.69,-11.35,parent);
+ o.name='MW_LARGE_TRANSPARENT_OCEAN_DEMO_ONLY';
  o.rotation.x=-P/2;o.receiveShadow=false;o.castShadow=false;o.renderOrder=-4;
  return {o,material};
 }
@@ -151,10 +174,24 @@ function platform(root,p,rand){
  if(!isBridge){
   // Worn oval footpath is inset into the real walkable ground, not a fake
   // platform. Shared high-res PBR grain adds a legible safe route.
-  const cap=mesh(new T.CircleGeometry(1,32),
-   p.kind==='ruins'||p.kind==='arena'?M.oldRoad:M.trail,0,.035,0,g);
-  cap.rotation.x=-P/2;cap.scale.set(Math.max(.4,p.w*.22),Math.max(.65,p.d*.37),1);
-  cap.castShadow=false;cap.receiveShadow=false;
+  // Irregular, inset stone-and-earth trail, rather than the large
+  // perfectly circular dark decal that looked like a shadow in screenshots.
+  // One flat world-space surface per true platform; no extra physical land.
+  const w=Math.max(.39,Math.min(.75,p.w*.23)),d=Math.max(.72,p.d*.37);
+  const outline=new T.Shape();
+  outline.moveTo(-w*.55,-d);
+  outline.lineTo(w*.27,-d*.97);
+  outline.lineTo(w*.82,-d*.64);
+  outline.lineTo(w*.66,-d*.19);
+  outline.lineTo(w*.93,d*.32);
+  outline.lineTo(w*.47,d*.88);
+  outline.lineTo(-w*.62,d);
+  outline.lineTo(-w*.96,d*.50);
+  outline.lineTo(-w*.71,-d*.36);
+  outline.closePath();
+  const cap=mesh(new T.ShapeGeometry(outline),
+   p.kind==='ruins'||p.kind==='arena'?M.oldRoad:M.trail,0,.028,0,g);
+  cap.rotation.x=-P/2;cap.castShadow=false;cap.receiveShadow=false;
  }
  // Rock rim and meadow already supplied by the batched coastline material.
  // No extra fake rocks or bright pastel flower beads clutter the playable
@@ -188,7 +225,14 @@ function causeway(root,w,i){
  }
  return grp;
 }
-function makeCoin(parent,x,y,z){const g=group(parent,x,y,z);mesh(cyl(.18,.18,.052,16),M.gold,0,0,0,g).rotation.x=P/2;mesh(new T.TorusGeometry(.125,.023,6,16),M.white,0,0,.034,g);mesh(cube(.035,.16,.03),M.white,0,0,.036,g);return g}
+function makeCoin(parent,x,y,z){
+ const g=group(parent,x,y,z);
+ g.name='ANCIENT COPPER RELIC · collectible';
+ mesh(cyl(.145,.145,.055,20),M.gold,0,0,0,g).rotation.x=P/2;
+ mesh(new T.TorusGeometry(.106,.012,7,20),M.woodDark,0,0,.035,g);
+ mesh(new T.OctahedronGeometry(.063,0),M.white,0,0,.041,g).scale.set(.55,1,.22);
+ return g;
+}
 function makeStar(parent,x,y,z){
  const g=group(parent,x,y,z);const shape=new T.Shape();for(let i=0;i<10;i++){let a=-P/2+i*P/5,rad=i%2?.15:.34;let px=Math.cos(a)*rad,py=Math.sin(a)*rad;i?shape.lineTo(px,py):shape.moveTo(px,py)}shape.closePath();
  const o=mesh(new T.ExtrudeGeometry(shape,{depth:.085,bevelEnabled:true,bevelSize:.025,bevelThickness:.022,bevelSegments:1,steps:1}),M.gold,0,0,0,g);o.position.z=-.04;return g;
@@ -404,7 +448,7 @@ function makeStage(map){
   return {root:g,crystal,petals,ring};
  });
  // Cheap readable contact shadows: no expensive real-time shadow map in AR.
- const shadowMat=new T.MeshBasicMaterial({color:0x0d2634,transparent:true,opacity:.25,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
+ const shadowMat=new T.MeshBasicMaterial({color:0x172329,transparent:true,opacity:.095,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
  const shadow=(x,z,size=1)=>{const o=mesh(new T.CircleGeometry(.35,24),shadowMat.clone(),x,.046,z,root);o.rotation.x=-P/2;o.scale.set(size,1,.67);o.castShadow=false;return o};
  const heroShadow=shadow(0,0,1.1);
  const enemyShadows=map.enemies.map(e=>shadow(e.x,e.z,.75));
@@ -430,7 +474,17 @@ function makeStage(map){
  const column=mesh(new T.CylinderGeometry(.015,.045,.8,8),beaconM,0,.4,0,previewBeacon);
  column.renderOrder=2000;column.castShadow=false;previewBeacon.visible=false;
  const flags=map.checkpoints.map(c=>{let g=group(root,c.x,c.y,c.z);mesh(cyl(.038,.04,.95,8),M.steel,0,.46,0,g);mesh(geoCone(.19,.4,3),M.gold,.19,.78,0,g).rotation.z=P/2;return g});
- let portal=group(root,0,1.45,-25.35);let ring=mesh(new T.TorusGeometry(.56,.12,11,35),M.purple,0,.60,0,portal);ring.rotation.y=.2;let center=mesh(sphere(.45,18,13),new T.MeshBasicMaterial({color:0x92ffe2,transparent:true,opacity:.25}),0,.59,0,portal);center.scale.z=.18;portal.visible=false;
+ const portal=group(root,0,1.45,-25.35);
+ portal.name='ANCIENT EXTRACTION GATE · 3D world anchored';
+ const outer=mesh(new T.TorusGeometry(.70,.11,8,40),M.stone,0,.67,0,portal);
+ const inner=mesh(new T.TorusGeometry(.56,.034,7,40),M.gold,0,.67,.03,portal);
+ outer.rotation.y=.11;inner.rotation.y=.11;
+ for(const side of [-1,1]){
+  mesh(cyl(.15,.19,.86,8),M.stone,side*.72,.33,-.05,portal);
+  mesh(cube(.34,.12,.28),M.gold,side*.72,.79,-.05,portal);
+ }
+ const keystone=mesh(new T.OctahedronGeometry(.19,0),M.gold,0,1.48,0,portal);
+ keystone.rotation.z=P/4;portal.visible=false;
  const warning=mesh(new T.RingGeometry(.84,1.3,40),new T.MeshBasicMaterial({color:0xff513e,transparent:true,opacity:.45,side:T.DoubleSide,depthWrite:false}),0,1.20,-23.2,root);warning.rotation.x=-P/2;warning.visible=false;
  const projectilePool=Array.from({length:14},()=>{let o=mesh(sphere(.12,9,7),M.red,0,0,0,root);o.visible=false;return o});
  const hazardPool=Array.from({length:8},()=>{let o=mesh(new T.RingGeometry(.40,.77,24),new T.MeshBasicMaterial({color:0xff583c,transparent:true,opacity:.57,side:T.DoubleSide,depthWrite:false}),0,0,0,root);o.rotation.x=-P/2;o.visible=false;return o});
@@ -635,7 +689,7 @@ function makeStage(map){
   hero.root.position.set(p.x,p.y,p.z);hero.root.rotation.y=p.face;
  heroShadow.position.set(p.x,(window.MiniWorldsCore?.platformY(s,p.x,p.z)??p.y)+.045,p.z);
  const shadowGap=Math.max(0,p.y-heroShadow.position.y);
- heroShadow.material.opacity=.26/(1+shadowGap*.85);
+ heroShadow.material.opacity=.13/(1+shadowGap*.85);
  heroShadow.scale.set(1.1-shadowGap*.1,1,(1.1-shadowGap*.1)*.67);
   let run=Math.min(1,Math.hypot(p.vx,p.vz)/2.7),t=elapsed*11;
   hero.body.position.y=.58+(p.grounded?Math.sin(t)*.025*run:Math.sin(elapsed*5)*.035);
