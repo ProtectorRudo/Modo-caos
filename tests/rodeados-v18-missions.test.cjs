@@ -15,31 +15,44 @@ test('all seven modes have individual durations, instructions, reproducible obje
  }
 });
 
-test('flag planner supports exactly 6 or 7 spawn locations and rejects unsafe closeness',()=>{
- const f=G.normalizeFlagPlan({
-  base:{x:0,z:0},flag:{x:0,z:.1},spots:Array.from({length:6},()=>({x:.01,z:.01}))
- });
- assert.equal(f.spots.length,6);
- assert.ok(near(f.base,f.flag)>=.9);
- assert.ok(f.spots.every(p=>Math.hypot(p.x,p.z)>=2.75));
- assert.equal(G.normalizeFlagPlan(null).spots.length,7);
+test('CTF must have six or seven individually confirmed points with types and no silent relocation',()=>{
+ const g=G.create({mode:'ctf',seed:31});
+ assert.equal(g.mission.configured,false);
+ assert.equal(G.missionAction(g).ok,false);
+ const points=Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return {x:+(Math.sin(a)*3.35).toFixed(2),z:+(Math.cos(a)*3.35).toFixed(2)}});
+ const invalid={base:{x:0,z:.6},flag:{x:0,z:-.65},spots:points.slice(0,5)};
+ assert.equal(G.configureFlagPlan(g,invalid).ok,false);
+ const plan={base:{x:0,z:.6},flag:{x:0,z:-.65},spots:points,kinds:['basic','flanker','spider','creep','tank','random']};
+ const saved=G.configureFlagPlan(g,plan);
+ assert.equal(saved.ok,true);assert.equal(g.mission.configured,true);
+ assert.deepEqual(g.mission.spawnPoints,points,'markers never silently migrate');
+ assert.deepEqual(g.mission.spawnTypes,plan.kinds,'each point stores its chosen enemy type');
+ G.begin(g);g.spawnClock=1000;G.movePlayer(g,g.mission.base);
+ const e=G.spawn(g,'fast');
+ assert.equal(e.type,'basic','type of spawn number one overrides unrelated default random kind');
+ assert.equal(e.x,points[0].x);assert.equal(e.z,points[0].z);
+ assert.equal(e.role,'interceptor');
+ assert.equal(G.configureFlagPlan(g,plan).ok,false,'cannot change map during combat');
 });
 
-test('flag: actual player position takes a flag, returns to base and scores each delivery',()=>{
- const g=G.create({mode:'ctf',seed:234,flagPlan:{base:{x:0,z:.78},flag:{x:0,z:-.8},spots:G.normalizeFlagPlan().spots.slice(0,6)}});
+test('flag: manual retrieval and delivery requires explicit button AND player proximity',()=>{
+ const g=G.create({mode:'ctf',seed:234}),points=G.normalizeFlagPlan().spots.slice(0,6);
+ const plan={base:{x:0,z:.77},flag:{x:0,z:-.75},spots:points};
+ assert.equal(G.configureFlagPlan(g,plan).ok,true);
  G.begin(g);g.spawnClock=1000;
- assert.equal(g.mission.spawnPoints.length,6);
- const e=G.spawn(g,'flanker');assert.ok(e);
- assert.ok(near(e,g.player)>=2.45);
- assert.equal(e.missionAssigned,true);
+ assert.equal(g.mission.captures,0);
+ assert.equal(G.missionAction(g).reason,'acercate_al_objetivo');
  G.movePlayer(g,g.mission.object);G.advance(g,.05);
- assert.equal(g.mission.carry,true);
+ assert.equal(g.mission.carry,false,'walking past flag cannot auto-pickup');
+ assert.equal(G.missionAction(g).ok,true);assert.equal(g.mission.carry,true);
  G.movePlayer(g,g.mission.base);G.advance(g,.05);
- assert.equal(g.mission.captures,1);
+ assert.equal(g.mission.captures,0,'walking onto base cannot auto-score');
+ assert.equal(G.missionAction(g).ok,true);assert.equal(g.mission.captures,1);
  assert.equal(g.mission.carry,false);
- assert.ok(g.score>=750);
- G.movePlayer(g,g.mission.object);G.advance(g,.05);
- G.movePlayer(g,g.mission.base);G.advance(g,.05);
+ G.movePlayer(g,g.mission.object);
+ assert.equal(G.missionAction(g).ok,true);
+ G.movePlayer(g,g.mission.base);
+ assert.equal(G.missionAction(g).ok,true);
  assert.equal(g.mission.captures,2);
  assert.ok(G.missionStatus(g).text.includes('2'));
 });
@@ -66,6 +79,7 @@ test('timewarp: EMP slows the encounter for three seconds without slowing the ga
  const e=G.spawn(g,'basic');e.portal=0;e.stun=0;
  assert.equal(G.pulse(g),true);
  assert.equal(g.mission.slowUntil,3);
+ assert.equal(g.skillCooldown,13,'timewarp refreshes EMP faster than classic');
  G.advance(g,.06);
  assert.ok(g.elapsed>.059);
  assert.ok(g.elapsed<.07);
