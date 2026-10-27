@@ -83,4 +83,29 @@ assert.equal(M.MISSIONS.length,3,'three meaningfully different missions must be 
  assert(!art.includes('camera.position')&&!art.includes('stage.root.position'),'mission art must not move anchored AR');
  assert(pocket.includes('dynamicAlways')&&core.includes('function updateMagicShots'),'old anchor and combat must remain');
 }
+{
+ const root=path.join(__dirname,'..'),get=n=>fs.readFileSync(path.join(root,n),'utf8');
+ const runtime=get('mini-worlds-runtime.js'),html=get('mini-worlds.html');
+ for(const def of M.MISSIONS){
+  assert.equal(def.steps?.length,3,def.title+' must explain mission in three simple steps');
+  assert(def.steps.every(x=>typeof x==='string'&&x.length>=18),'each mission step must be readable');
+  assert(def.bonus?.startsWith('EXTRA:'),'each mission has optional replay incentive');
+ }
+ for(const id of ['readyKicker','readyTitle','readyCopy','readySteps','readyBonus','readyClock','begin']){
+  assert(html.includes('id="'+id+'"'),'missing pre-mission briefing element '+id);
+ }
+ assert(html.includes('¡ENTENDIDO, A JUGAR!'),'briefing must have a single obvious start button');
+ assert(html.includes('aria-modal="true"')&&html.includes('role="dialog"'),'accessible briefing dialog missing');
+ assert(runtime.includes('function refreshMissionBriefing()'),'mission intro must be dynamic');
+ assert(runtime.includes("for(const instruction of def.steps"),'all three steps must render');
+ assert(runtime.includes("refreshMissionBriefing();layout('ready')"),'3D demo and AR must show briefing before gameplay');
+ assert(runtime.includes("refreshMissionBriefing();layout('ready');"),'ready UI must be synchronized');
+ assert(runtime.includes("$('fixWorld').disabled=true;refreshMissionBriefing();layout('ready');"),'AR placement must display mission briefing, not a generic success title');
+ assert(runtime.includes("C.start(game);mapOpen=true;"),'time starts only on button press');
+ const start=runtime.slice(runtime.indexOf('function startGame(){'),runtime.indexOf('function pause(){'));
+ assert(start.includes("layout('playing')")&&!start.includes('notice('),'start must dismiss briefing without popups');
+ assert(runtime.includes("$('ready').hidden=state!=='ready'"),'intro must vanish while game is active');
+ assert(runtime.includes("$('begin').onclick=startGame"),'real start action must be wired');
+ assert(runtime.includes("const steps=$('readySteps');steps.replaceChildren()"),'briefing must refresh on repeat missions without duplicating instructions');
+}
 console.log('MINI WORLDS mission arc: 3 objective types, timed failures, physically rescued civilians, 3-wave reactor, boss lock, 3-medal grading, persistent town UI and AR invariants: PASS');
