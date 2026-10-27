@@ -1,4 +1,4 @@
-import {buildCaosWeapon} from './rodeados-weapons-v20.js?v=20';
+import {WEAPON_FILES,attachEnemyWeapon} from './rodeados-weapons-v22.js?v=22';
 /* RODEADOS 360 V14 — automatic game-ready enemy skins.
  * No file inputs, no Sketchfab login, no extra actions by the player.
  * Optional visual overlay ONLY; unchanged world XR anchor & combat headshots.
@@ -103,6 +103,29 @@ export async function installAutoRobots({THREE,art,signal,debug}){
   heavy=await prepareOne({THREE,art,primary:SECONDARY,backup:BACKUP_HEAVY,label:'ARMORED GUARD'});
  }catch(e){console.warn('Second humanoid unavailable, using standard armored material fallback',e)}
  if(signal?.aborted)return stats;
+ const weaponAssets=Object.create(null),gunStatus={loaded:[],unavailable:[]};
+ // Bundled CC0 assets: no consumer file picker, login or marketplace.
+ await Promise.all(Object.entries(WEAPON_FILES).map(async ([tier,file])=>{
+  const slug=tier==='pistol'?'quaternius-scifigun/models/pistol/pistol':
+    tier==='tactical'?'quaternius-scifimodularguns/models/ar_1/ar_1':
+    tier==='plasma'?'quaternius-scifigun/models/rifle/rifle':
+    'quaternius-ultimate-gun/models/assault_rifle_1/assault_rifle_1';
+  const urls=[new URL('./assets/rodeados/'+file,import.meta.url).href,
+    'https://raw.githubusercontent.com/Papyszoo/CC0-Public-Domain-Models/main/packs/'+slug+'.glb'];
+  let loaded=false;
+  for(const url of urls){
+   try{
+    const bytes=await fetchValidatedGLB(url);
+    const asset=await failAfter(new Promise((resolve,reject)=>
+      new GLTFLoader().parse(bytes,'',resolve,reject)),7000);
+    if(!asset.scene)throw Error('GLB without gun scene');
+    if(tier==='enemy')weaponAssets.enemy=asset.scene;
+    else if(!art.setWeaponAsset(tier,asset.scene))throw Error('gun fit rejected');
+    loaded=true;gunStatus.loaded.push(tier);break;
+   }catch(e){console.warn('Quaternius weapon retry',tier,e.message)}
+  }
+  if(!loaded)gunStatus.unavailable.push(tier);
+ }));
  const creatures=Object.create(null);
  await Promise.all(CREATURES.map(async spec=>{
    try{
@@ -123,22 +146,13 @@ export async function installAutoRobots({THREE,art,signal,debug}){
     const anim=variant.adapter.create({actor,enemy,THREE:engine});
     anim.variant=creature?enemy.type:'standard';
     if(creature)return anim;
-    // V20 uses the same licensed-freehand-crafted compact weapon profile as
-    // first-person; the previous chest-sized six giant cubes are removed.
-    const weapon=buildCaosWeapon(engine,{tier:'tactical',enemy:true});
-    weapon.name='enemy-compact-carbine';
-    weapon.position.set(.10,1.18,.31);
-    weapon.rotation.x=-.08;
-    actor.group.add(weapon);
-    const previousUpdate=anim.update.bind(anim),previousDispose=anim.dispose.bind(anim);
-    anim.update=e=>{
-      previousUpdate(e);
-      weapon.visible=e.portal<.62;
-      const shooting=e.state==='attack'&&e.stun<=0;
-      weapon.userData.setFiring(shooting&&Math.sin(e.age*21)>.60,e.age);
-      weapon.position.z=.31+(shooting?Math.sin(e.age*28)*.009:0);
-    };
-    anim.dispose=()=>{previousDispose();actor.group.remove(weapon);weapon.userData.dispose()};
+    // Only mount a CC0 rifle if the rig includes a genuine right hand.
+    // Otherwise show no gun, never a giant floating chest-shaped block.
+    const held=attachEnemyWeapon(engine,actor,anim,weaponAssets.enemy);
+    const originalUpdate=anim.update.bind(anim),originalDispose=anim.dispose.bind(anim);
+    anim.weaponMounted=!!held;
+    anim.update=e=>{originalUpdate(e);held?.update(e)};
+    anim.dispose=()=>{held?.dispose();originalDispose()};
     return anim;
    },
    setFacing(deg){standard.adapter.setFacing(deg);heavy?.adapter.setFacing(deg);
@@ -160,6 +174,7 @@ export async function installAutoRobots({THREE,art,signal,debug}){
   })();
   stats.phase='active';
   stats.source=standard.source;
+  stats.weapons=gunStatus;
   stats.models=[{name:'TACTICAL',source:standard.source,triangles:standard.adapter.summary.tris},
    {name:'HEAVY',source:heavy?.source||'fallback',triangles:heavy?.adapter.summary.tris||0},
    ...CREATURES.map(spec=>({name:spec.label,source:creatures[spec.type]?.source||'procedural-fallback',
@@ -169,7 +184,7 @@ export async function installAutoRobots({THREE,art,signal,debug}){
   stats.triangles=standard.adapter.summary.tris;
   stats.facingDegrees=standard.adapter.summary.facingDegrees;
   stats.selectedClips=standard.adapter.summary.selectedClips;
-  stats.reason='Defective heavy model quarantined: stable tactical actor with visible procedural rifle; stored second GLB remains for future repair';
+  stats.reason='Only right-hand-attached CC0 rifles appear; no identified hand joint => enemy weapon hidden';
   return stats;
  }catch(e){
   stats.phase='fallback';stats.reason=e.message;
