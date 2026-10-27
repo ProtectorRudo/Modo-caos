@@ -135,7 +135,7 @@ root.MiniWorldsDiorama=function(T){
    patchGroups.push(host);
   }
   // A few authentic-looking, non-opaque magical ambient fireflies. One draw.
-  const sparkMat=new T.PointsMaterial({color:0x9abfb1,size:.045,transparent:true,opacity:.32,depthWrite:false,sizeAttenuation:true});
+  const sparkMat=new T.PointsMaterial({color:0x9abfb1,size:.025,transparent:true,opacity:.20,depthWrite:false,sizeAttenuation:true});
   const sparkGeo=new T.BufferGeometry(),coords=[];
   for(let j=0;j<10;j++){
    const p=map.platforms[(j*7)%map.platforms.length];

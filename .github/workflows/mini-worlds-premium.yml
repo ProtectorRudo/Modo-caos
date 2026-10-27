@@ -1,7 +1,7 @@
-name: Mini Worlds cinematic clarity and AR artifact regression QA
+name: Mini Worlds premium world polish QA
 on:
   push:
-    branches: [feat/mini-worlds-clean-adventure-20261027]
+    branches: [feat/mini-worlds-premium-pass-20261027]
   workflow_dispatch:
 jobs:
   test:

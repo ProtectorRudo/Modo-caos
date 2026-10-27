@@ -31,11 +31,11 @@ assert(!art.includes('const arch=group(root,0,0,-25.1)'),
  'unregistered horizon arch should not look like a real traversable path');
 assert(!art.includes('for(let j=0;j<5;j++){\n   const z=1.0'),
  'visual-only submerged/outside fake rocks must not return');
-assert(art.includes('M.trail=new T.MeshStandardMaterial')&&art.includes('new T.CircleGeometry(1,32)'),
+assert(art.includes('M.trail=new T.MeshStandardMaterial')&&art.includes('new T.CircleGeometry(1,40)'),
  'walkable terrain needs genuine detailed world-space trail not a screen overlay');
 assert(diorama.includes('const density=p.kind===\'arena\'?3'),
  'decorative scatter density should remain deliberately sparse');
-assert(finish.includes('i%4!==0'),'special world beacons must not overwhelm the mission targets');
+assert(finish.includes('if(i!==8)return'),'special world beacons must not overwhelm the mission targets');
 assert(premium.includes('if(level===0)'),'first rescue mission must not fetch unused premium trees');
 assert(premium.includes('name.startsWith(\'medieval\')'),'only relevant ancient architecture should download');
 assert(runtime.includes("C.start(game);mapOpen=false;"),

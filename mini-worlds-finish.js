@@ -10,7 +10,7 @@ root.MiniWorldsFinish=function(T){
   if(!stage?.worldRoot||!stage?.hero?.root)return null;
   const world=stage.worldRoot,visible=[],sparks=[];
   const palette=level?[0x9bcbff,0xe4a4ff,0xffd17b,0x83ffe2]:colors;
-  const shimmer=new T.MeshBasicMaterial({color:0xe4f1e3,transparent:true,opacity:.34,blending:T.AdditiveBlending,depthWrite:false});
+  const shimmer=new T.MeshBasicMaterial({color:0xe4f1e3,transparent:true,opacity:.16,blending:T.AdditiveBlending,depthWrite:false});
   const gemMaterials=palette.map(c=>new T.MeshPhysicalMaterial({
    color:c,metalness:.24,roughness:.19,clearcoat:.85,clearcoatRoughness:.1,
    emissive:c,emissiveIntensity:.38
@@ -24,7 +24,7 @@ root.MiniWorldsFinish=function(T){
   // The decorations are always next to existing land, never extra floating
   // platforms that would trick players into jumping off a collider.
   stage.map.platforms.forEach((p,i)=>{
-   if(i===7||i%4!==0)return; // Keep just three ancient wayfinders, not one floating gem per island.
+   if(i!==8)return; // Exactly one real landmark; no distracting floating shards across AR.
    const tint=i%4,side=i%2===0?1:-1,edge=p.w*.49;
    const holder=new T.Group();
    holder.name='MINI WORLDS / premium wayfinder / platform '+i;
