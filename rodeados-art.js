@@ -600,7 +600,7 @@ export function createRodeadosArt(THREE,scene,camera){
  setWeaponTier('pistol');
  const gloves=new THREE.Group();rifle.add(gloves);
  for(const side of [-1,1]){
-  const arm=new THREE.Group();arm.position.set(side*.20,-.21,.19);gloves.add(arm);
+  const arm=new THREE.Group();arm.position.set(side*.085,-.19,.13);gloves.add(arm);
   const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.065,.115,.37,9),M.steel);
   sleeve.rotation.x=-.55;arm.add(sleeve);
   sphere(arm,M.edge,[0,.17,-.10],[.07,.065,.09]);
@@ -618,29 +618,68 @@ export function createRodeadosArt(THREE,scene,camera){
    const holder=new THREE.Group();
    source.scale.setScalar(ratio);
    source.position.set(-center.x*ratio,-center.y*ratio,-center.z*ratio);
-   holder.position.set(0,-.25,.20);holder.rotation.x=-.20;
+   holder.position.set(0,-.13,.105);holder.rotation.x=-.15;
    holder.add(source);rifle.add(holder);
    if(fpsArms)rifle.remove(fpsArms);
    fpsArms=holder;gloves.visible=false;return true;
   }catch(e){console.warn('FPS hands unavailable; using original sleeves',e);return false}
  }
  const camTemp=new THREE.Vector3(),quatTemp=new THREE.Quaternion();
- const baseWeaponOffset=new THREE.Vector3(.23,-.245,-.40);
+ const weaponOffset=new THREE.Vector3(),weaponCenter=new THREE.Vector3();
+ let lastWeaponCamera=null;
  function positionWeapon(viewCamera,flash){
-  viewCamera.getWorldPosition(camTemp);viewCamera.getWorldQuaternion(quatTemp);
-  rifle.position.copy(camTemp).add(baseWeaponOffset.clone()
-   .add(new THREE.Vector3(0,-recoil*.016,recoil*.08)).applyQuaternion(quatTemp));
+  // The XR compositor uses the FIRST eye's matrices, not ArrayCamera's parent.
+  // That distinction matters for camera-relative objects on Android/ARCore.
+  const eye=viewCamera?.cameras?.[0]||viewCamera;
+  if(!eye)return;
+  lastWeaponCamera=eye;
+  eye.getWorldPosition(camTemp);eye.getWorldQuaternion(quatTemp);
+  const projection=eye.projectionMatrix?.elements;
+  const horizontal=Math.abs(projection?.[0])>0.1?Math.abs(projection[0]):2.2;
+  const vertical=Math.abs(projection?.[5])>0.1?Math.abs(projection[5]):1.75;
+  const depth=currentWeapon==='pistol'?.63:.76;
+  // Place at x=+0.25 and y=-0.48 of clip space REGARDLESS of portrait FOV.
+  // The previous fixed +23 cm x offset put small GLBs completely offscreen
+  // on narrow, tall Android phones (x NDC >1.3 on some ARCore cameras).
+  weaponOffset.set(
+   THREE.MathUtils.clamp(.25*depth/horizontal,.012,.14),
+   THREE.MathUtils.clamp(-.48*depth/vertical,-.28,-.10)-recoil*.015,
+   -depth+recoil*.04
+  );
+  rifle.position.copy(camTemp).add(weaponOffset.applyQuaternion(quatTemp));
   rifle.quaternion.copy(quatTemp);
-  rifle.rotateY(-.065);rifle.rotateX(-recoil*.12-(flash?.018:0));
+  rifle.rotateY(-.055);rifle.rotateX(-recoil*.075-(flash?.012:0));
   for(const [name,model] of Object.entries(weaponModels)){
    model.userData.setFiring(name===currentWeapon&&!importedWeapons.has(name)&&!!flash,performance.now()*.001);
   }
   for(const [name,model] of importedWeapons){
    model.userData.setFiring(name===currentWeapon&&!!flash,performance.now()*.001);
   }
-  // A real imported gun occupies the bottom-right; tiny restrained sway.
   activeWeapon.rotation.z=(currentWeapon==='plasma'?.008:.003)*Math.sin(performance.now()*.0024);
   gloves.rotation.x=-.09-recoil*.06;
+ }
+ function getWeaponFraming(){
+  const eye=lastWeaponCamera;
+  const info={tier:currentWeapon,source:importedWeapons.has(currentWeapon)?'quaternius-glb':'safe-procedural',
+   visible:rifle.visible&&activeWeapon.visible,meshCount:0,inView:false,center:null,bounds:null};
+  if(!eye)return info;
+  eye.updateWorldMatrix(true,false);
+  activeWeapon.updateWorldMatrix(true,true);
+  activeWeapon.traverse(o=>{if(o.isMesh&&o.visible&&o.parent?.visible!==false)info.meshCount++});
+  const bb=new THREE.Box3().setFromObject(activeWeapon);
+  if(bb.isEmpty())return info;
+  activeWeapon.getWorldPosition(weaponCenter);
+  const center=weaponCenter.clone().project(eye);
+  const xs=[],ys=[],zs=[];
+  for(const x of [bb.min.x,bb.max.x])for(const y of [bb.min.y,bb.max.y])for(const z of [bb.min.z,bb.max.z]){
+   const corner=new THREE.Vector3(x,y,z).project(eye);
+   xs.push(corner.x);ys.push(corner.y);zs.push(corner.z);
+  }
+  info.center={x:+center.x.toFixed(3),y:+center.y.toFixed(3),z:+center.z.toFixed(3)};
+  info.bounds={left:Math.min(...xs),right:Math.max(...xs),bottom:Math.min(...ys),top:Math.max(...ys)};
+  info.inView=info.visible&&info.meshCount>0&&info.bounds.right>-.95&&info.bounds.left<.95&&
+    info.bounds.top>-.95&&info.bounds.bottom<.95&&zs.some(z=>z>-1&&z<1);
+  return info;
  }
  function clear(){
   if(bombProjectile){root.remove(bombProjectile);bombProjectile=null}
@@ -669,7 +708,7 @@ export function createRodeadosArt(THREE,scene,camera){
     handMountedWeapons,
    robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
- return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setWeaponAsset,setFPSArms,getRobotAdapterStatus,
+ return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setWeaponAsset,setFPSArms,getRobotAdapterStatus,getWeaponFraming,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
    darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
    scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity),
