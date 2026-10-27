@@ -198,7 +198,7 @@ function drawMiniMap(){
 function layout(state){
  phase=state;const active=state==='playing'||state==='paused'||state==='ready'||state==='placing'||state==='won';
  $('landing').hidden=state!=='home';$('viewport').hidden=!active&&state!=='failed';$('hud').hidden=state==='home'||state==='placing';
- $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';$('missionGoal').hidden=state!=='playing'&&state!=='paused';
+ $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';$('missionGoal').hidden=state!=='playing'&&state!=='paused';$('missionHint').hidden=state!=='playing'&&state!=='paused';
  $('chaosMeter').hidden=state==='home'||state==='placing';
  if(state==='home')document.body.classList.remove('fury-mode','boss-encounter');
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';
@@ -414,6 +414,8 @@ function updateHUD(){
  const remaining=Math.max(0,Math.ceil(game.mission.seconds-game.clock));
  $('clock').textContent='⏱ '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');
  $('missionGoal').textContent=M.status(game);
+ const nav=M.guidance(game);$('missionHint').textContent=nav?(nav.arrow+' '+nav.label+(nav.near?' · CERCA':'')):'';
+ $('missionHint').hidden=!nav||(phase!=='playing'&&phase!=='paused');
  if(game.mission.reactor){$('missionReactor').hidden=phase!=='playing'&&phase!=='paused';$('missionReactorFill').style.width=(game.mission.reactor.health/game.mission.reactor.maxHealth*100)+'%'}
  else $('missionReactor').hidden=true;
  const b=game.map.boss;$('bossHud').hidden=!b.active||!b.alive;
