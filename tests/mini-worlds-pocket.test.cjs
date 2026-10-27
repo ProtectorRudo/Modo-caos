@@ -1,56 +1,60 @@
-/* MINI WORLDS: compact XR portal rooms, reversible navigation and anchor invariance.
- * Run: node tests/mini-worlds-pocket.test.cjs
+/* MINI WORLDS — two spacious AR continents, meaningful virtual exploration,
+ * reversible navigation and strict spatial anchor preservation.
  */
 'use strict';
-const assert=require('node:assert/strict');
-const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const code=fs.readFileSync(path.join(__dirname,'../mini-worlds-pocket.js'),'utf8');
-const core=fs.readFileSync(path.join(__dirname,'../mini-worlds-core.js'),'utf8');
-const art=fs.readFileSync(path.join(__dirname,'../mini-worlds-art.js'),'utf8');
-const runtime=fs.readFileSync(path.join(__dirname,'../mini-worlds-runtime.js'),'utf8');
-const html=fs.readFileSync(path.join(__dirname,'../mini-worlds.html'),'utf8');
-const C=require('../mini-worlds-core.js');
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const get=n=>fs.readFileSync(path.join(__dirname,'..',n),'utf8');
+const C=require('../mini-worlds-core.js'),ctx={window:{}};
+vm.runInNewContext(get('mini-worlds-pocket.js'),ctx);
+const P=ctx.window.MiniWorldsPocket;
 class G{
  constructor(){this.children=[];this.position={x:0,y:0,z:0};this.visible=true;this.parent=null;this.name=''}
- add(o){if(o.parent)o.parent.children=o.parent.children.filter(c=>c!==o);o.parent=this;this.children.push(o)}
+ add(o){if(o.parent)o.parent.children=o.parent.children.filter(x=>x!==o);o.parent=this;this.children.push(o)}
 }
-const ctx={window:{}};vm.runInNewContext(code,ctx);
-const P=ctx.window.MiniWorldsPocket;
-assert.equal(P.ROOMS.length,4);
-assert.equal(P.roomAtZ(0),0);assert.equal(P.roomAtZ(-8),1);
-assert.equal(P.roomAtZ(-14),2);assert.equal(P.roomAtZ(-24),3);
-const footprint=P.displayLength(.215);
-assert(footprint.width>2&&footprint.width<3,'living-room width must remain 2–3 m');
-assert(footprint.length<2.5,'active room length must fit ordinary home');
+assert.equal(P.ROOMS.length,2,'four cramped pocket rooms should become two long chapters');
+assert.equal(P.roomAtZ(1.2),0);
+assert.equal(P.roomAtZ(-5),0,'no early jump to another world after five steps');
+assert.equal(P.roomAtZ(-8),0,'old automatic portal at -5 should be gone');
+assert.equal(P.roomAtZ(-11),0,'player should be able to cross two former rooms without jumping');
+assert.equal(P.roomAtZ(-14),1);
+assert.equal(P.roomAtZ(-24),1);
+const size=P.displayLength(.235);
+assert(size.width>3.5&&size.length>4,'the AR island should be noticeably larger');
+assert(size.width<4.5&&size.length<4.8,'each region must remain usable from one safe standing spot');
 const anchor=new G(),world=new G();anchor.add(world);
-anchor.position.x=.25;anchor.position.y=-.11;anchor.position.z=-.48;
-const nodes=[0,-8,-14,-24].map((z,i)=>{const o=new G();o.position.z=z;o.name='sector '+i;world.add(o);return o});
-const hero=new G(),ocean=new G();hero.position.z=0;ocean.position.z=-11.35;
-ocean.scale={x:1,y:1,z:1,set(x,y,z){this.x=x;this.y=y;this.z=z}};
-world.add(hero);world.add(ocean);
-const stage={root:anchor,worldRoot:world,map:C.level(0),hero:{root:hero},ocean:{ocean,o:ocean}};
+anchor.position={x:.25,y:-.11,z:-.48};
+const nodes=[-2,-8,-16,-24].map((z,i)=>{const o=new G();o.position.z=z;o.name='segment '+i;world.add(o);return o});
+const hero=new G(),sea=new G();sea.scale={x:1,y:1,z:1,set(x,y,z){this.x=x;this.y=y;this.z=z}};
+world.add(hero);world.add(sea);
+const stage={root:anchor,worldRoot:world,map:C.level(0),hero:{root:hero},ocean:{o:sea}};
 const pocket=P.create({Group:G},stage);
-assert.equal(pocket.room,0);assert.equal(nodes[0].parent.visible,true);
+assert.equal(pocket.room,0);
+assert.equal(nodes[0].parent.visible,true);
+assert.equal(nodes[1].parent.visible,true,'both first chapter biomes share one world');
+assert.equal(nodes[2].parent.visible,false);
 assert.equal(nodes[3].parent.visible,false);
-assert.equal(ocean.parent,world,'water follows the fixed pocket footprint');
-assert.equal(ocean.scale.x,.66);assert.equal(ocean.scale.y,.265);
-assert.equal(world.position.z,0);
-for(const [z,room] of [[-8,1],[-14,2],[-24,3],[-14,2],[-8,1],[0,0]]){
- const result=pocket.sync(z);
- assert.equal(pocket.room,room);assert(result&&result.room===room);
- assert.equal(world.position.z,P.ROOMS[room].offset);
- assert.equal(world.position.y,P.ROOMS[room].floor*1.55);
+assert.equal(sea.parent,world,'water stays in local chapter instead of moving tracked XR anchor');
+assert.equal(sea.scale.x,.92);assert.equal(sea.scale.y,.56);
+assert.equal(pocket.sync(-8),false,'walking in the first large region must never teleport');
+assert.equal(pocket.transitions,0);
+assert.equal(pocket.sync(-11.9),false);
+for(const [z,id] of [[-13,1],[-25,1],[-9,0],[-16,1],[-1,0]]){
+ const was=pocket.room,transition=pocket.sync(z);
+ assert.equal(pocket.room,id);
+ assert.equal(Boolean(transition),was!==id,'only region boundaries may trigger a portal');
+ assert.equal(world.position.z,P.ROOMS[id].offset);
+ assert.equal(world.position.y,P.ROOMS[id].floor*1.55);
  assert.equal(anchor.position.x,.25);assert.equal(anchor.position.y,-.11);assert.equal(anchor.position.z,-.48);
- assert.equal(nodes[room].parent.visible,true,'active room must appear');
- for(let i=0;i<4;i++)if(i!==room)assert.equal(nodes[i].parent.visible,false,'distant rooms must not render');
- assert.equal(hero.parent,world,'witch must remain visible and follow logical progress');
- assert(Math.abs(ocean.position.z+world.position.z+2)<.001,'water is stable in room space');
+ assert.equal(hero.parent,world,'fox must never be hidden by a sector switch');
+ assert(Math.abs(sea.position.z+world.position.z+5.35)<.001);
+ for(let i=0;i<4;i++)assert.equal(nodes[i].parent.visible,Math.floor(i/2)===id,'entire 2-region visual partition follows physics');
 }
-assert.equal(pocket.transitions,6,'forward and reverse transitions must work');
-assert.equal(pocket.sync(0),false,'no room reallocation while idle');
-assert(runtime.includes('stage.pocket?.sync(game.player.z)'),'core logical progress drives portal switching');
-assert(runtime.includes('stage.root.rotation.y'),'fixed tracked anchor must be retained');
-assert(runtime.includes('scale=.215'),'default physical placement must be compact');
-assert(art.includes('root:anchorRoot,worldRoot:root'),'world scene transform must be independent of XR anchor');
-assert(html.includes('mini-worlds-pocket.js')&&html.includes('portalFlash'),'portal transitions must be loaded');
-console.log('MINI WORLDS: 4 pocket rooms, 2 virtual floors, 2.5×1.9 m footprint, 6 reversible transitions and immutable AR anchor — PASS');
+assert.equal(pocket.transitions,4,'only deliberate long-distance crossings change zones');
+assert.equal(pocket.sync(0),false);
+const runtime=get('mini-worlds-runtime.js'),html=get('mini-worlds.html'),art=get('mini-worlds-art.js');
+assert(runtime.includes('stage.pocket?.sync(game.player.z)'),'logical progress drives portal switching');
+assert(runtime.includes('scale=.235'),'the bigger AR footprint must be the actual default');
+assert(runtime.includes('stage.root.rotation.y'),'tracked XR anchor must remain independent from virtual region');
+assert(art.includes('root:anchorRoot,worldRoot:root'),'world transform cannot become XR anchor');
+assert(html.includes('mini-worlds-pocket.js')&&html.includes('mini-worlds-diorama.js'));
+console.log('MINI WORLDS: 2 long AR regions >3.5m, no jump at old portal, reverse traversal, immutable anchor, wider lagoon: PASS');
