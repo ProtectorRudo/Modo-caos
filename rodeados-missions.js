@@ -186,6 +186,7 @@
   dt=clamp(Number(dt)||0,0,.07);if(dt<=0)return g;
   const m=g.mission,life=g.lives,previous=new Map(g.enemies.map(e=>[e.id,{x:e.x,z:e.z,cd:e.attackCD}]));
   const oldPlayer={...g.player};
+  if(m.kind==='rescue'&&!m.hostageActive&&!m.nextLevelAt)beginRescueStage(g,{first:true});
   if(m.kind==='colossus'){
    g.spawnClock=10000;
    if(!g.enemies.some(e=>e.missionBoss)&&m.bossIndex<3)spawnColossus(g);
@@ -205,12 +206,37 @@
    if(hurt){m.reactor=Math.max(0,m.reactor-hurt*1.65);g.lives=life;event(m,'⚠ NÚCLEO AL '+Math.ceil(m.reactor)+'%')}
    if(m.reactor<=0)G.finish(g,'reactor_destruido');
   }
-  if(m.kind==='timewarp'&&g.elapsed<m.slowUntil){
-   for(const e of g.enemies){const was=previous.get(e.id);if(!was)continue;
-    e.x=was.x+(e.x-was.x)*.23;e.z=was.z+(e.z-was.z)*.23;
-    e.attackCD=Math.max(e.attackCD,was.cd-dt*.23);
+  if(m.kind==='timewarp'){
+   const cycle=g.elapsed%12;
+   const phase=g.elapsed<m.slowUntil||cycle>=6&&cycle<9?'FRACTURA':cycle>=9?'ACELERADO':'NORMAL';
+   m.phaseRemaining=phase==='FRACTURA'?g.elapsed<m.slowUntil?m.slowUntil-g.elapsed:9-cycle:
+     phase==='ACELERADO'?12-cycle:6-cycle;
+   if(m.timePhase!==phase){
+    m.timePhase=phase;m.timeCycles+=phase==='FRACTURA'?1:0;
+    event(m,phase==='FRACTURA'?'⏳ ¡TIEMPO ROTO! · ENEMIGOS CONGELADOS':
+      phase==='ACELERADO'?'⚠ REBOTE TEMPORAL · ENEMIGOS VELOCES':'⌛ TIEMPO NORMAL');
+    g.fx.push({type:'timeRift',phase,t:g.elapsed});
    }
-   g.lives=Math.min(100,g.lives+(Math.max(0,life-g.lives)*.75));
+   for(const e of g.enemies){
+    const was=previous.get(e.id);if(!was)continue;
+    if(phase==='FRACTURA'){
+     e.x=was.x+(e.x-was.x)*.025;e.z=was.z+(e.z-was.z)*.025;
+     e.attackCD=Math.max(e.attackCD,was.cd-dt*.025);
+     e.stun=Math.max(e.stun,.17);
+    }else if(phase==='ACELERADO'&&e.portal<=0&&e.stun<=0){
+     e.x+=(e.x-was.x)*.45;e.z+=(e.z-was.z)*.45;
+    }
+   }
+   if(phase==='FRACTURA')g.lives=Math.min(100,g.lives+Math.max(0,life-g.lives)*.85);
+  }
+  if(m.kind==='rescue'){
+   if(!m.hostageActive&&!m.nextLevelAt)beginRescueStage(g,{first:true});
+   if(m.carry){
+    m.hostageHealth=Math.max(0,m.hostageHealth-Math.max(0,life-g.lives)*(m.level>=8?1.3:1));
+    if(m.hostageHealth<=0){m.hostageLost=true;G.finish(g,'rehen_perdido');event(m,'💔 EL REHÉN FUE ALCANZADO')}
+   }
+   if(g.elapsed>=m.levelDeadline&&m.hostageActive){m.hostageLost=true;G.finish(g,'tiempo_de_rescate');event(m,'⏱️ NO LLEGASTE A TIEMPO')}
+   if(m.nextLevelAt&&g.elapsed>=m.nextLevelAt&&g.phase==='playing')beginRescueStage(g);
   }
   if(m.kind==='mutant'){
    const index=Math.floor(g.elapsed/15);
@@ -312,9 +338,9 @@
  G.pulse=function(g){
   const done=orig.pulse(g);
   if(done&&g.mission?.kind==='timewarp'){
-   g.skillCooldown=13;
-   g.mission.slowUntil=g.elapsed+3;
-   event(g.mission,'⏳ TIEMPO ROTO · 3 SEGUNDOS');
+   g.skillCooldown=11;
+   g.mission.slowUntil=g.elapsed+4;
+   event(g.mission,'⏳ TIEMPO ROTO · 4 SEGUNDOS');
   }
   return done;
  };
