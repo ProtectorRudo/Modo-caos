@@ -62,11 +62,16 @@ const server=http.createServer((req,res)=>{
    assert.equal(ready.selectedClips?.idle,'idle','standing upright idle must not play crouch idle');
    assert.equal(ready.selectedClips?.walk,'walk','forward walking must not choose aim_crouch_walk');
    assert.equal(ready.selectedClips?.dash,'run');
-   assert.equal(ready.selectedClips?.attack,'melee');
+   assert(['aim_shoot','rifle_shoot','shoot','ready_shoot','fire','aim_idle','ready_idle','melee'].includes(ready.selectedClips?.attack),
+     'shooting state must use an upright rifle-compatible animation: '+JSON.stringify(ready.selectedClips));
    assert(Object.values(ready.selectedClips||{}).every(name=>!name||!/crouch|prone|jump|down|slide/i.test(name)),
      'never play non-upright animations while attacking player: '+JSON.stringify(ready.selectedClips));
   }
   assert.equal(ready.maxExternal,4,'protect mobile WebXR by limiting simultaneous animated GLBs');
+  assert.deepEqual(ready.roleProfiles?.slice().sort(),['commander','raider','scout'],
+    'three distinct tactical render profiles installed automatically');
+  if(real)assert(Object.values(ready.roleRigged||{}).every(Boolean),
+    'premium role variants must retain the imported real skeleton and clip library: '+JSON.stringify(ready.roleRigged));
   assert(Array.isArray(ready.models)&&ready.models.length===4,
    'two humanoids and two licensed CC0 creatures must be tracked: '+JSON.stringify(ready.models));
   if(real)assert(ready.models[1].triangles>400,
@@ -88,13 +93,14 @@ const server=http.createServer((req,res)=>{
    await page.waitForFunction(()=>__RodeadosDebug.viewWeapon?.framing?.inView,null,{timeout:6000});
    const hero=await page.evaluate(()=>__RodeadosDebug.viewWeapon.framing);
    assert.equal(hero.source,'polyhaven-pbr-762-rifle','first-person weapon must be a realistic CC0 rifle');
-   assert(Math.abs(hero.center.x)<.22&&hero.center.y<-.20,
-     'large rifle should occupy lower center below crosshair: '+JSON.stringify(hero));
+   assert(hero.center.x>.15&&hero.center.x<.64&&hero.center.y<-.23,
+     'V30 rifle must be lower-right and leave the reticle unobstructed: '+JSON.stringify(hero));
    assert(hero.meshCount>=4,'realistic gun includes metal/slide/grip geometry: '+JSON.stringify(hero));
    assert(hero.dominantVisible===true,
      'photorealistic pistol must be substantively visible, unobstructed and above HUD: '+JSON.stringify(hero));
-   assert(hero.coverage>=.90&&hero.bounds.right<.66&&hero.bounds.bottom>-.88,
-     'pistol must fit the portrait safe rectangle, not just touch the right edge: '+JSON.stringify(hero));
+   assert(hero.coverage>=.90&&hero.bounds.right<.96&&hero.bounds.bottom>-.99&&
+     hero.aim.angleOnScreenDeg>30&&hero.aim.angleOnScreenDeg<59,
+     'PBR rifle must fit portrait safe bounds and hold a natural 1st-person pixel angle: '+JSON.stringify(hero));
 
   }
   if(!real)await page.locator('#startDemo').click();
@@ -103,8 +109,13 @@ const server=http.createServer((req,res)=>{
   assert(shown.external>=2,'new imported models must replace original visuals at round start: '+JSON.stringify(shown));
   assert(Number.isInteger(shown.handMountedWeapons)&&shown.handMountedWeapons>=0,
     'any enemy gun must pass a right-hand joint check, never use floating chest gun');
-  assert(shown.variants.standard>=2&&shown.variants.heavy===0,
-    'quarantined model must never render with broken headset; stable armed soldiers must remain: '+JSON.stringify(shown.variants));
+  assert(shown.variants.heavy===0,'defective heavy headset model must never enter combat');
+  const looks=['standard','scout','raider'].filter(name=>(shown.variants[name]||0)>0);
+  assert(looks.length>=2,
+   'first-wave robots must use two genuinely distinct skinned materials: '+JSON.stringify(shown.variants));
+  assert(shown.atmosphere?.worldAnchored===true&&shown.atmosphere?.plumes===4&&
+    shown.atmosphere?.sheets===8&&shown.atmosphere?.alphaMax<=.095,
+   'smoke must be lightweight, subtle and anchored to the real AR floor: '+JSON.stringify(shown.atmosphere));
   await page.locator('#fire').tap();
   assert((await page.evaluate(()=>__RodeadosDebug.game.shots))>0,'shot still works with automatic GLB');
   assert.equal(await page.evaluate(()=>__RodeadosDebug.game.ammo),28,'infinite bullets must stay unlimited');
