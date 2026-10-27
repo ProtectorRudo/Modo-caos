@@ -1,0 +1,42 @@
+name: Color Rush visual-only regression
+on:
+  pull_request:
+    paths:
+      - 'color-solo.html'
+      - 'color-pro-3d.js'
+      - 'color-premium-art.js'
+      - 'color-premium.css'
+      - 'tests/color*visual*.cjs'
+      - 'tests/color-pro3d-smoke.test.cjs'
+      - '.github/workflows/color-rush-visual.yml'
+  push:
+    branches:
+      - 'design/color-rush-pro-3d-20261027'
+    paths:
+      - 'color-solo.html'
+      - 'color-pro-3d.js'
+      - 'color-premium-art.js'
+      - 'color-premium.css'
+      - 'tests/color*visual*.cjs'
+      - 'tests/color-pro3d-smoke.test.cjs'
+      - '.github/workflows/color-rush-visual.yml'
+permissions:
+  contents: read
+jobs:
+  visual-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Check Node runtime
+        run: node --version
+      - name: Verify visual-only patch doesn't modify game logic
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check color-pro-3d.js
+          node --check color-premium-art.js
+          node tests/color-premium-visual.test.cjs
+          node tests/color-pro3d-smoke.test.cjs
