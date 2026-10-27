@@ -442,9 +442,13 @@ function frame(t,xrFrame){
   events();song();
  }else{acc=0;jumpQueued=false;punchQueued=false}
  // Animation errors never prevent drawing or conceal the whole world.
- try{stage.update(game,dt,elapsed);stage.finish?.update(game,dt,elapsed)}catch(e){
+ try{stage.update(game,dt,elapsed)}catch(e){
   if(lastFault!==String(e)){lastFault=String(e);console.error('[MINI WORLDS] Animation error:',e)}
   frameFaults++;
+ }
+ // Optional finishing effects must never interrupt core, XR pose or renderer.
+ try{stage.finish?.update(game,dt,elapsed)}catch(e){
+  frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Optional finish error:',e)}
  }
  if(stage.previewBeacon)stage.previewBeacon.visible=mode==='ar'&&(placing||phase==='ready');
  if(mode==='demo')setCamera();
