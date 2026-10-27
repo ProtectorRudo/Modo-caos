@@ -1,0 +1,27 @@
+name: RODEADOS V27 — rifle barrel points at crosshair
+on:
+  push:
+    branches: [fix/rodeados-v27-rifle-aim-to-reticle]
+    paths:
+      - 'rodeados-art.js'
+      - 'rodeados-runtime.js'
+      - 'tests/rodeados-v25-visual.cjs'
+      - 'tests/rodeados-xr-smoke.test.cjs'
+      - '.github/workflows/rodeados-v27-qa.yml'
+permissions: {contents: read}
+jobs:
+  rifle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: node --check rodeados-art.js && node --check rodeados-runtime.js
+      - run: node --test tests/rodeados-v18-missions.test.cjs tests/rodeados-v17.test.cjs
+      - run: npm install --no-save --ignore-scripts playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/rodeados-v25-visual.cjs
+      - run: node tests/rodeados-xr-smoke.test.cjs
+      - run: node tests/rodeados-v19-xr-tactical.test.cjs

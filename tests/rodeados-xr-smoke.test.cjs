@@ -122,6 +122,10 @@ const server=http.createServer((req,res)=>{
    'large rifle should be lower screen and leave reticle unobstructed: '+JSON.stringify(weapon));
  assert(weapon.framing.dominantVisible,
   'at least 90% of a substantial gun silhouette must fit inside safe play area, not just a tiny sliver: '+JSON.stringify(weapon));
+ assert(weapon.framing.aim.upward===true,
+   'rifle barrel must visually point above stock instead of floor: '+JSON.stringify(weapon));
+ assert(weapon.framing.aim.towardReticle>.70,
+   'rifle barrel must point toward real aim reticle, not an unrelated floor point: '+JSON.stringify(weapon));
  assert(weapon.framing.coverage>=.9,
   'at least 90% of actual weapon mesh must be inside portrait play area: '+JSON.stringify(weapon));
  assert(weapon.framing.bounds.right<.65&&weapon.framing.bounds.left>-.63,

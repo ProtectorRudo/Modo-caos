@@ -15,7 +15,7 @@ const server=http.createServer((req,res)=>{
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   const page=await browser.newPage({viewport:{width:393,height:852},deviceScaleFactor:1,isMobile:true,hasTouch:true});
   const problems=[];page.on('pageerror',e=>problems.push(e.message));
-  await page.goto('http://127.0.0.1:'+server.address().port+'/rodeados.html?v=25',{waitUntil:'domcontentloaded'});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/rodeados.html?v=27',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.__RodeadosAutoRobots?.status?.weapons?.rifleLoaded===true,null,{timeout:30000});
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>window.__RodeadosDebug?.stage==='playing',null,{timeout:14000});
@@ -23,7 +23,12 @@ const server=http.createServer((req,res)=>{
   const framing=await page.evaluate(()=>__RodeadosDebug.viewWeapon.framing);
   assert.equal(framing.source,'polyhaven-pbr-762-rifle');
   assert(framing.coverage>.90&&framing.bounds.right<.67&&framing.width!==0);
-  const outfile=path.resolve(root,'docs/QA/rodeados-v26-rifle-mobile.png');
+  console.log('FPS_AIM',JSON.stringify(framing.aim));
+  assert(framing.aim.upward===true,
+   'the rifle muzzle must project ABOVE the shoulder stock, not into the floor: '+JSON.stringify(framing.aim));
+  assert(framing.aim.towardReticle>.70,
+   'the rifle barrel must visually aim toward the center reticle: '+JSON.stringify(framing.aim));
+  const outfile=path.resolve(root,'docs/QA/rodeados-v27-rifle-aim-mobile.png');
   fs.mkdirSync(path.dirname(outfile),{recursive:true});
   await page.screenshot({path:outfile,animations:'disabled'});
   console.log('FPS_SCREENSHOT',outfile,'bounds',JSON.stringify(framing),'pngBytes',fs.statSync(outfile).size,'errors',JSON.stringify(problems));
