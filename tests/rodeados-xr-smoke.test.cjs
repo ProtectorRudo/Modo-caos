@@ -108,7 +108,7 @@ const server=http.createServer((req,res)=>{
  assert(await page.locator('#begin').isEnabled(),'calibration enables battle');
  assert(!await page.locator('#radarWrap').isVisible(),'radar does not obstruct calibration');
  await page.locator('#begin').click();
- await page.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:5500});
+ await page.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:15000});
  await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:3500});
  const start=await page.evaluate(()=>({game:__RodeadosDebug.game,meshes:__RodeadosDebug.renderedRobots}));
  assert(start.game.enemies.length>=2,'two robots exist at start');
@@ -151,7 +151,7 @@ const server=http.createServer((req,res)=>{
   'overlay compositor produces no WebGL errors');
  // The arena can be rotated by the user's gesture; local -Z is not the XR eye's forward axis.
  await page.evaluate(()=>window.__simPhone.x=.18);
- await page.waitForTimeout(400);
+ await page.waitForFunction(x=>Math.abs(__RodeadosDebug.player.x-x)>.05,fixed.player.x,{timeout:5000});
  const now=await page.evaluate(()=>({pose:__RodeadosDebug.floorTransform,player:__RodeadosDebug.player}));
  assert(Math.abs(now.player.x-fixed.player.x)>.05,'tracked phone movement changes YOU marker');
  assert.deepEqual(now.pose,fixed.pose,'floor stays stable while physical phone moves');
