@@ -82,8 +82,19 @@ const server=http.createServer((req,res)=>{
    assert.deepEqual([...ready.weaponSources].sort(),['pistol','plasma','tactical'],
       'all 3 first-person tiers must use real gun meshes, not procedural blocks');
    assert.deepEqual(ready.weapons.unavailable,[],'no missing CC0 weapon downloads');
+   assert.equal(ready.weapons.pbrLoaded,true,
+     '1K textured Poly Haven CC0 PBR hero pistol must be installed, not low-poly fallback: '+JSON.stringify(ready.weapons));
+   await page.locator('#startDemo').click();
+   await page.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:10000});
+   await page.waitForFunction(()=>__RodeadosDebug.viewWeapon?.framing?.inView,null,{timeout:6000});
+   const hero=await page.evaluate(()=>__RodeadosDebug.viewWeapon.framing);
+   assert.equal(hero.source,'polyhaven-cc0-pbr','first-person hero weapon must use Poly Haven textured GLB');
+   assert(hero.center.x>.30&&hero.center.y<-.24,
+     'weapon should be bottom-right and off the crosshair: '+JSON.stringify(hero));
+   assert(hero.meshCount>=4,'realistic gun includes metal/slide/grip geometry: '+JSON.stringify(hero));
+
   }
-  await page.locator('#startDemo').click();
+  if(!real)await page.locator('#startDemo').click();
   await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:11000});
   const shown=await page.evaluate(()=>__RodeadosAutoRobots.status);
   assert(shown.external>=2,'new imported models must replace original visuals at round start: '+JSON.stringify(shown));
