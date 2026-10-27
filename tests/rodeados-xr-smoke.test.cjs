@@ -118,6 +118,8 @@ const server=http.createServer((req,res)=>{
  assert(Math.abs(weapon.framing.center.x)<.9&&Math.abs(weapon.framing.center.y)<.9,
   'weapon center stays on screen in portrait WebXR rather than off the right edge: '+JSON.stringify(weapon));
  assert.equal(weapon.framing.inView,true,'some of the gun actually overlaps the physical XR viewport');
+ assert(weapon.framing.center.x>.3&&weapon.framing.center.y<-.22,
+   'FPS gun must be in lower right, NOT centered over the enemy: '+JSON.stringify(weapon));
 
  await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:3500});
  const start=await page.evaluate(()=>({game:__RodeadosDebug.game,meshes:__RodeadosDebug.renderedRobots}));

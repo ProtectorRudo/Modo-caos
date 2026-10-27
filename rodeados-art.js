@@ -1,6 +1,6 @@
 import {createWolfSpider} from './rodeados-spider.js?v=16';
 import {buildCaosWeapon} from './rodeados-weapons-v20.js?v=20';
-import {fitQuaterniusWeapon} from './rodeados-weapons-v22.js?v=22';
+import {fitQuaterniusWeapon,fitPolyHavenServicePistol} from './rodeados-weapons-v22.js?v=24';
 /* RODEADOS 360 — original stylized, articulated robot art.
    Techniques adapted from our Blackzone Three.js pipeline: real meter scale,
    MeshStandardMaterial, limb pivots, stable ground shadows and true 3-D objects. */
@@ -578,6 +578,7 @@ export function createRodeadosArt(THREE,scene,camera){
  const tactical=buildCaosWeapon(THREE,{tier:'tactical'});
  const plasma=buildCaosWeapon(THREE,{tier:'plasma'});
  const weaponModels={pistol,tactical,plasma},importedWeapons=new Map();
+ let heroPistol=false;
  for(const w of Object.values(weaponModels)){w.rotation.y=Math.PI;rifle.add(w)}
  let currentWeapon='pistol',activeWeapon=pistol;
  function setWeaponAsset(tier,source){
@@ -591,13 +592,27 @@ export function createRodeadosArt(THREE,scene,camera){
   setWeaponTier(currentWeapon);
   return true;
  }
+ function setPremiumPistol(source){
+  const hero=fitPolyHavenServicePistol(THREE,source);
+  if(!hero)return false;
+  const old=importedWeapons.get('pistol');
+  if(old){rifle.remove(old);old.userData.dispose?.()}
+  hero.rotation.set(-.02,Math.PI+.49,-.045,'XYZ');
+  importedWeapons.set('pistol',hero);
+  heroPistol=true;rifle.add(hero);
+  setWeaponTier(currentWeapon);
+  return true;
+ }
  function setWeaponTier(tier){
   currentWeapon=Object.prototype.hasOwnProperty.call(weaponModels,tier)?tier:'pistol';
   activeWeapon=importedWeapons.get(currentWeapon)||weaponModels[currentWeapon];
   for(const [key,obj] of Object.entries(weaponModels))obj.visible=key===currentWeapon&&!importedWeapons.has(key);
   for(const [key,obj] of importedWeapons)obj.visible=key===currentWeapon;
+  // The old auto-fitted WRAD arms could overlap the small photorealistic gun,
+  // making it look toy-sized. Keep hands hidden only with the high-detail pistol.
+  if(fpsArms)fpsArms.visible=!(heroPistol&&currentWeapon==='pistol');
+  gloves.visible=!fpsArms&&!(heroPistol&&currentWeapon==='pistol');
  }
- setWeaponTier('pistol');
  const gloves=new THREE.Group();rifle.add(gloves);
  for(const side of [-1,1]){
   const arm=new THREE.Group();arm.position.set(side*.085,-.19,.13);gloves.add(arm);
@@ -621,11 +636,15 @@ export function createRodeadosArt(THREE,scene,camera){
    holder.position.set(0,-.13,.105);holder.rotation.x=-.15;
    holder.add(source);rifle.add(holder);
    if(fpsArms)rifle.remove(fpsArms);
-   fpsArms=holder;gloves.visible=false;return true;
+   fpsArms=holder;gloves.visible=false;
+   setWeaponTier(currentWeapon);
+   return true;
   }catch(e){console.warn('FPS hands unavailable; using original sleeves',e);return false}
  }
+ setWeaponTier('pistol');
  const camTemp=new THREE.Vector3(),quatTemp=new THREE.Quaternion();
  const weaponOffset=new THREE.Vector3(),weaponCenter=new THREE.Vector3();
+ const oneTime=new THREE.Vector3();
  let lastWeaponCamera=null;
  function positionWeapon(viewCamera,flash){
   // The XR compositor uses the FIRST eye's matrices, not ArrayCamera's parent.
@@ -637,30 +656,39 @@ export function createRodeadosArt(THREE,scene,camera){
   const projection=eye.projectionMatrix?.elements;
   const horizontal=Math.abs(projection?.[0])>0.1?Math.abs(projection[0]):2.2;
   const vertical=Math.abs(projection?.[5])>0.1?Math.abs(projection[5]):1.75;
-  const depth=currentWeapon==='pistol'?.63:.76;
-  // Place at x=+0.25 and y=-0.48 of clip space REGARDLESS of portrait FOV.
-  // The previous fixed +23 cm x offset put small GLBs completely offscreen
-  // on narrow, tall Android phones (x NDC >1.3 on some ARCore cameras).
+  // Occupy the LOWER-RIGHT 20-25% of the phone, not the crosshair.
+  // Use actual XR eye projection, in both portrait and landscape.
+  const pistolMode=currentWeapon==='pistol';
+  const depth=pistolMode?.78:.86;
+  const targetX=pistolMode?.73:.70,targetY=pistolMode?-.57:-.61;
   weaponOffset.set(
-   THREE.MathUtils.clamp(.25*depth/horizontal,.012,.14),
-   THREE.MathUtils.clamp(-.48*depth/vertical,-.28,-.10)-recoil*.015,
-   -depth+recoil*.04
+   THREE.MathUtils.clamp(targetX*depth/horizontal,.07,.28),
+   THREE.MathUtils.clamp(targetY*depth/vertical,-.39,-.14)-recoil*.012,
+   -depth+recoil*.029
   );
   rifle.position.copy(camTemp).add(weaponOffset.applyQuaternion(quatTemp));
   rifle.quaternion.copy(quatTemp);
-  rifle.rotateY(-.055);rifle.rotateX(-recoil*.075-(flash?.012:0));
+  rifle.rotateY(-.035);rifle.rotateX(-recoil*.065-(flash?.010:0));
+  // High-end pistol: visible three-quarter side silhouette, pointed inward
+  // towards the reticle. Small recoil and breathing motion, no giant blocks.
+  const motion=performance.now()*.001;
+  const shift=(pistolMode?.0018:.0025)*Math.sin(motion*1.6);
+  rifle.position.add(oneTime.set(shift,Math.sin(motion*1.17)*.0015,0).applyQuaternion(quatTemp));
+  if(heroPistol&&pistolMode)activeWeapon.scale.setScalar(.69);
+  else activeWeapon.scale.setScalar(pistolMode?.86:.78);
   for(const [name,model] of Object.entries(weaponModels)){
    model.userData.setFiring(name===currentWeapon&&!importedWeapons.has(name)&&!!flash,performance.now()*.001);
   }
   for(const [name,model] of importedWeapons){
    model.userData.setFiring(name===currentWeapon&&!!flash,performance.now()*.001);
   }
-  activeWeapon.rotation.z=(currentWeapon==='plasma'?.008:.003)*Math.sin(performance.now()*.0024);
+  activeWeapon.rotation.z=(currentWeapon==='plasma'?.005:.002)*Math.sin(performance.now()*.0024);
+  if(heroPistol&&pistolMode){activeWeapon.rotation.y=Math.PI+.49;activeWeapon.rotation.x=-.02}
   gloves.rotation.x=-.09-recoil*.06;
  }
  function getWeaponFraming(){
   const eye=lastWeaponCamera;
-  const info={tier:currentWeapon,source:importedWeapons.has(currentWeapon)?'quaternius-glb':'safe-procedural',
+  const info={tier:currentWeapon,source:heroPistol&&currentWeapon==='pistol'?'polyhaven-cc0-pbr':importedWeapons.has(currentWeapon)?'quaternius-glb':'safe-procedural',
    visible:rifle.visible&&activeWeapon.visible,meshCount:0,inView:false,center:null,bounds:null};
   if(!eye)return info;
   eye.updateWorldMatrix(true,false);
@@ -708,7 +736,7 @@ export function createRodeadosArt(THREE,scene,camera){
     handMountedWeapons,
    robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
- return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setWeaponAsset,setFPSArms,getRobotAdapterStatus,getWeaponFraming,
+ return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setWeaponAsset,setPremiumPistol,setFPSArms,getRobotAdapterStatus,getWeaponFraming,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
    darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
    scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity),

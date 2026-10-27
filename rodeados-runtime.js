@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=17';
+import {createRodeadosArt} from './rodeados-art.js?v=24';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=19';
 import {createTacticalPlanner} from './rodeados-tactical-ui.js?v=19';
@@ -35,7 +35,7 @@ let lastConfirmedPlan=null;
    .then(({installManulPreview})=>installManulPreview({THREE,art,notice:msg=>console.info(msg)}))
    .catch(err=>console.warn('Developer preview unavailable',err));
  }else{
-  import('./rodeados-robots-auto.js?v=17')
+  import('./rodeados-robots-auto.js?v=24')
    .then(({installAutoRobots})=>installAutoRobots({THREE,art,debug:true}))
    .catch(err=>console.warn('Rodeados tactical skin unavailable; safe original bot fallback',err));
  }

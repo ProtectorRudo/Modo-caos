@@ -1,0 +1,34 @@
+name: RODEADOS V24 - realistic PBR FPS release gate
+on:
+  push:
+    branches: [feat/rodeados-v24-polyhaven-premium-fps]
+    paths: ['rodeados-*.js','rodeados.html','tests/rodeados*','assets/rodeados/*.glb','.github/workflows/rodeados-v24-qa.yml']
+  pull_request:
+    paths: ['rodeados-*.js','rodeados.html','tests/rodeados*','assets/rodeados/*.glb']
+permissions: {contents: read}
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: node --check rodeados-weapons-v22.js && node --check rodeados-art.js && node --check rodeados-robots-auto.js && node --check rodeados-runtime.js
+      - run: node --test tests/rodeados-v18-missions.test.cjs tests/rodeados-v17.test.cjs tests/rodeados-spider-v16.test.cjs
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: npm install --no-save --ignore-scripts playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: RODEADOS_REAL_ASSET=1 node tests/rodeados-auto-robots.test.cjs
+      - run: node tests/rodeados-browser.test.cjs
+      - run: node tests/rodeados-v18-browser.test.cjs
+      - run: node tests/rodeados-xr-smoke.test.cjs
+      - run: node tests/rodeados-v19-xr-tactical.test.cjs
