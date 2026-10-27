@@ -93,6 +93,11 @@ function newStage(){
  if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose()}
  level=M.MISSIONS[missionId].level;
  game=C.create(level);M.init(game,missionId);
+ const residents=progress.missions.residents.length;
+ // Buildings have genuine permanent, fair gameplay benefits, not just icons.
+ if(residents>=1)game.player.blasterBoost=.065; // workshop: 20% quicker firing
+ if(residents>=3)game.mission.seconds+=15;       // garden: extra oxygen/time
+ if(residents>=5)game.player.invuln=2.4;          // observatory: brief spawn shield
  stage=window.MiniWorldsArt(T).makeStage(game.map);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
@@ -155,7 +160,29 @@ function drawMiniMap(){
  for(const p of game.map.platforms){g.fillStyle=p.kind==='bridge'?'#c5ab7c':p.kind==='beach'?'#e1ca91':'#73b79b';
   g.fillRect(X(p.x-p.w/2),Z(p.z+p.d/2),p.w*(W-16)/17,p.d*(H-16)/29)}
  for(const e of game.map.enemies)if(e.alive){g.fillStyle='#ff9874';g.beginPath();g.arc(X(e.x),Z(e.z),2.3,0,Math.PI*2);g.fill()}
+ // Mission targets share EXACT logical coordinates with player and collision.
+ const mission=game.mission;
+ const mark=(x,z,symbol,color)=>{
+  g.beginPath();g.arc(X(x),Z(z),4.25,0,Math.PI*2);g.fillStyle='#142c3d';g.fill();
+  g.strokeStyle=color;g.lineWidth=1.35;g.stroke();
+  g.fillStyle=color;g.font='bold 8px system-ui';g.textAlign='center';g.textBaseline='middle';
+  g.fillText(symbol,X(x),Z(z)+.3);
+ };
+ if(mission){
+  for(const r of mission.rescues)if(!r.rescued)mark(r.x,r.z,'+',r.optional?'#b4d7ff':'#8affcb');
+  if(mission.id===0)for(const i of mission.relays)if(!game.map.runes[i].restored){
+   const p=game.map.runes[i];mark(p.x,p.z,'⚡','#ffe38c');
+  }
+  if(mission.id===1)mark(mission.reactor.x,mission.reactor.z,'◆','#80eeff');
+  if(mission.id===2)for(const f of mission.fragments){
+   if(f.claimed)continue;
+   if(f.dropped)mark(f.x,f.z,'◆','#ffde87');
+   else {const e=game.map.enemies[f.id];if(e.alive)mark(e.x,e.z,'!','#ff9d81')}
+  }
+  if(mission.exit.active)mark(mission.exit.x,mission.exit.z,'P','#d5b4ff');
+ }
  const b=game.map.boss;if(b.alive){g.fillStyle='#f2bf65';g.beginPath();g.arc(X(b.x),Z(b.z),4,0,Math.PI*2);g.fill()}
+ g.textAlign='left';g.textBaseline='alphabetic';
  const p=game.player;g.save();g.translate(X(p.x),Z(p.z));g.rotate(-p.face+Math.PI);
  g.fillStyle='#faffff';g.beginPath();g.moveTo(0,-6);g.lineTo(4,5);g.lineTo(-4,5);g.closePath();g.fill();g.restore();
  g.font='bold 9px system-ui';g.fillStyle='#e9fff6';g.fillText('TU AVENTURA',8,12);
@@ -310,7 +337,7 @@ function recenter(){
 }
 function startGame(){
  if(phase!=='ready')return;
- C.start(game);layout('playing');hideModal();notice('🦊 '+M.MISSIONS[missionId].short,2600);haptic(15);
+ C.start(game);mapOpen=true;$('mapToggle').textContent='✕';layout('playing');hideModal();notice('🦊 '+M.MISSIONS[missionId].short,2600);haptic(15);
 }
 function pause(){
  if(!game||phase==='home')return;
@@ -397,7 +424,7 @@ function events(){
   else if(e.type==='jump')beep(e.double?'double':'jump');
   else if(e.type==='spellCast'){beep('blaster');haptic(9)}
   else if(e.type==='spellHit'){beep('coin');haptic(13)}
-  else if(e.type==='runeRestored'){beep('star');haptic([18,30,34]);notice('✨ ¡FLORES RESTAURADAS! +5',900)}
+  else if(e.type==='runeRestored'){beep('star');haptic([18,30,34]);notice(missionId===0&&game.mission.relays.includes(e.id)?'⚡ ¡BALIZA ACTIVADA!':'✨ ¡FLORES RESTAURADAS! +5',1100)}
   else if(e.type==='boxHit'){beep('hit');haptic(12)}
   else if(e.type==='boxBreak'){beep('smash');haptic([18,25,20])}
   else if(e.type==='treasure'){beep('star');haptic(22)}
@@ -564,9 +591,9 @@ function fillLanding(){
  const residents=progress.missions.residents.length;
  $('villageCount').textContent=residents+' HABITANTES RESCATADOS';
  const buildings=[
-  ['🔧','TALLER DE KAI',1,'El blaster vuelve a funcionar'],
-  ['🌺','JARDÍN DE FLOR',3,'Las flores recuperan su energía'],
-  ['🔭','OBSERVATORIO',5,'La luz del mundo vuelve a brillar']
+  ['🔧','TALLER DE KAI',1,'BLASTER MÁS RÁPIDO'],
+  ['🌺','JARDÍN DE FLOR',3,'+15 SEGUNDOS POR MISIÓN'],
+  ['🔭','OBSERVATORIO',5,'ESCUDO AL COMENZAR']
  ];
  $('villageGrid').innerHTML='';
  for(const [emoji,title,needed,description] of buildings){
@@ -578,7 +605,7 @@ function fillLanding(){
  }
  $('villageHint').textContent=residents===0?'EL VACÍO ARRASÓ LA ALDEA. TU PRIMER RESCATE LA EMPIEZA A RECONSTRUIR.':
    residents>=5?'¡TRES EDIFICIOS RESTAURADOS! VOLVÉ A TUS MISIONES POR LAS 3 ESTRELLAS.':
-   'CADA NUEVO HABITANTE RECUPERA UN PEDAZO DE TU ALDEA.';
+   'CADA HABITANTE DESBLOQUEA BENEFICIOS: TALLER = MÁS DISPAROS, JARDÍN = +15S, OBSERVATORIO = ESCUDO.';
 }
 $('demoPlay').addEventListener('click',()=>play('demo'));$('arPlay').addEventListener('click',()=>play('ar'));
 $('fixWorld').onclick=fixWorld;$('begin').onclick=startGame;
