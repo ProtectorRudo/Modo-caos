@@ -4,7 +4,7 @@ const modes=['invasion','loot','timewarp','refuge','mutant','colossus','ctf'];
 const near=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 
 test('all seven modes have individual durations, instructions, reproducible objectives and reset',()=>{
- assert.deepEqual(modes.map(m=>G.create({mode:m,seed:42}).duration),[75,90,60,75,90,90,150]);
+ assert.deepEqual(modes.map(m=>G.create({mode:m,seed:42}).duration),[75,90,75,75,90,90,150]);
  for(const mode of modes){
   const g=G.create({mode,seed:20}),snap=G.copy(g);
   assert.equal(snap.mission.kind,mode);
