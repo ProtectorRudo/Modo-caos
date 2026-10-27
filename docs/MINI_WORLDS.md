@@ -355,3 +355,23 @@ No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones
 - `tests/mini-worlds-solid-scenery.test.cjs`: corre 60 Hz para verificar colisiones reales, salto sobre piedra baja, desactivación de obstáculos invisibles, disparo bloqueado, monstruos con cuerpo, rutas de rescate abiertas y acoplamiento de recursos 3D. Se ejecuta junto con todas las suites previas.
 
 **Límites reales:** pruebas automáticas sin teléfono AR físico; obstáculos aproximados mediante volúmenes conservadores, no geometría triangular completa, para mantener FPS móvil. Es imprescindible inspeccionar capturas reales y confirmar que ni la cámara, ni el joystick, ni los portales se descalibran.
+
+
+## Mini Worlds — dirección visual «Ancient Vanguard» (27/10/2026)
+
+**Orden del usuario:** dejar atrás la apariencia infantil y ejecutar realmente una evolución estética premium, sin romper jugabilidad, colisiones, rescates, joystick, portal ni AR. Rama de preview `feat/mini-worlds-cinematic-adventure-20261027`, creada desde `fix/mini-worlds-solid-scenery-20261027`.
+
+### Cambios implementados, NO conceptuales
+- **`mini-worlds-cinematic.js` (nuevo):** sistema de arte original acoplado a Three.js que reutiliza el `worldRoot` existente. Construye 12 guardianes corrompidos de geometría angular y materiales PBR (patrullas acorazadas, lanceros, centinelas voladores y guardianes pesados), un centinela antiguo como jefe con silueta de piedra y metal, brazales, visor hostil y núcleo débil; añade equipo de explorador a KAI (protectores, arnés, mochila y una carabina energética reforzada). Los grupos lógicos, posiciones, hitboxes, animación de movimiento y daño siguen siendo los del motor original. **No se usaron modelos de franquicias ni recursos pagos.**
+- KAI ya no tiene proporciones de bebé: cambios reales en `mini-worlds-art.js` que reducen ojos y cabeza, aumentan la sobriedad del pelaje, la textura del traje y los materiales del blaster (metal cepillado y cobre).
+- Escenarios: objetos arqueológicos de piedra negra, cobre envejecido, inscripciones luminosas y pórticos ruinosos en posiciones fijas **dentro** de las islas ya existentes; se registran cuerpos físicos para obeliscos y columnas mediante `stage.registerSolid`. Si obstruyen caminos críticos, la decoración no se renderiza. No se amplían superficies de pisada ni se alteran reglas de salto.
+- **`mini-worlds-mission-art.js`**: habitantes rescatables dejan de parecer muñecos redondos; incorporan capucha, botas, brazales y equipo, con materiales más naturales y ojos más discretos. Su comportamiento de rescate se conserva.
+- Materiales e iluminación: arena mineral, rocas basálticas, vegetación verde profundo, acero, cobre, turquesa selectivo; menos pasteles, brillos más focalizados. La vista 3D adopta fondo neblinoso acorde.
+- **`mini-worlds.html`**: menú, tarjetas, botones, HUD y minimapa cambian a una identidad de fantasía de aventura, oscura pero legible, con acentos cobre/turquesa. La portada reemplaza palmeras emoji y cabeza de juguete por un tratamiento tipográfico «KAI — LOS MUNDOS PERDIDOS».
+- Se deshabilita **solo para esta rama artística** la sustitución asíncrona de guardianes por los antiguos Cute Monsters GLTF; el cargador y archivos locales se conservan como respaldo para las versiones anteriores. Los paquetes gratuitos KayKit, Quaternius y Kenney de naturaleza siguen disponibles.
+- El módulo nuevo es opcional y sus fallos no deben bloquear controles ni AR. Todos los cambios están en el árbol de escena anclado, NO en el dispositivo/cámara.
+
+### QA y límites
+- Nuevo `tests/mini-worlds-cinematic.test.cjs`: montaje de guardianes, equipo real de KAI, jefe, puntos de interés, identidad HTML, invariantes de física y mundo anclado. CI suma ese test a toda la batería de 17 suites anteriores y chequeos sintácticos.
+- No equivale a una prueba visual real del teléfono. Pendiente: capturas comparables antes/después, estabilidad 30/60 FPS en Chrome Android/ARCore, visibilidad de KAI, espacio alrededor de objetivos, y verificación del ciclo completo de tres misiones. No declarar «10/10» sin eso.
+- Producción del arcade original y `main` permanecen intactas. Supabase compartido con Viralio no se toca. La puesta en Vercel, en caso de restricción por cuota, debe reportarse honestamente.
