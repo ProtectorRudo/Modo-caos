@@ -177,7 +177,9 @@ root.MiniWorldsDiorama=function(T){
     // Evaluate the nearest point on the camera/hero segment to the tree.
     bbox.setFromObject(obj);bbox.getCenter(vCenter);bbox.getSize(vSize);
     const vec=vCenter.clone().sub(camPos),proj=vec.dot(ray);
-    if(proj<-.1||proj>length+.1)continue;
+    // Even a trunk behind KAI can have a canopy protruding in FRONT of him.
+    const canopyHalfExtent=Math.max(vSize.x,vSize.y,vSize.z)*.52;
+    if(proj< -canopyHalfExtent||proj>length+canopyHalfExtent)continue;
     const closest=camPos.clone().addScaledVector(ray,Math.max(0,Math.min(length,proj)));
     const dist=vCenter.clone().sub(closest).length();
     const canopyRadius=Math.max(vSize.x,vSize.z)*.44;
