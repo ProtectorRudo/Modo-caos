@@ -17,7 +17,7 @@ const server=http.createServer((req,res)=>{
  const url='http://127.0.0.1:'+server.address().port+'/rodeados.html';
  await p.goto(url,{waitUntil:'domcontentloaded'});
  await p.waitForFunction(()=>!!window.__RodeadosDebug,null,{timeout:30000});
- assert.equal(await p.locator('#mode option').count(),12,'7 fresh + 5 classic modes');
+ assert.equal(await p.locator('#mode option').count(),13,'8 fresh + 5 classic modes');
  await p.selectOption('#mode','ctf');
  assert(await p.locator('#flagIntro').isVisible(),'instructions for REAL XR map editing visible');
  assert(!await p.locator('#flagPlanner').isVisible(),'deceptive preset planner is hidden');
