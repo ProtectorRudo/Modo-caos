@@ -73,7 +73,7 @@ function clear(){
  spatialLock=null;lockedPose=null;steeringYaw=null;heldSteeringYaw=null;
  arCompositor?.dispose();arCompositor=null;arCompositorError='';
  $('arWorldOverlay').style.display='none';xrEmptyScene=null;
- renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.disposeKayKit?.();stage.diorama?.dispose?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
+ renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar','mw-defense');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.disposeKayKit?.();stage.diorama?.dispose?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
  camera=null;view=null;game=null;placing=false;lockedPose=null;source=null;hasHit=false;
 }
 function renderSetup(){
@@ -99,6 +99,7 @@ function newStage(){
  if(residents>=3)game.mission.seconds+=15;       // garden: extra oxygen/time
  if(residents>=5)game.player.invuln=2.4;          // observatory: brief spawn shield
  stage=window.MiniWorldsArt(T).makeStage(game.map);
+ document.body.classList.toggle('mw-defense',missionId===1);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
  stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
@@ -386,7 +387,7 @@ async function shareResult(){
    ' · 🐾 '+m.rescues.filter(r=>r.rescued).length+' rescatados\n' +
    '¿Podés superar mi marca?';
  try{
-  if(navigator.share)await navigator.share({title:'Mini Worlds · Desafío',text:message,url:location.origin+location.pathname});
+  if(navigator.share)await navigator.share({title:'Mini Worlds · Desafío',text:message,url:location.href});
   else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(message+'\n'+location.href);notice('¡RETO COPIADO! COMPARTILO CON TUS AMIGOS',2200)}
   else notice('COPIAR RESULTADO NO DISPONIBLE EN ESTE NAVEGADOR',2400);
  }catch(e){if(e?.name!=='AbortError')notice('NO PUDO COMPARTIRSE · INTENTÁ DE NUEVO',2500)}
