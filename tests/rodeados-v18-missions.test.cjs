@@ -79,7 +79,7 @@ test('timewarp: EMP slows the encounter for three seconds without slowing the ga
  const e=G.spawn(g,'basic');e.portal=0;e.stun=0;
  assert.equal(G.pulse(g),true);
  assert.equal(g.mission.slowUntil,3);
- assert.equal(g.skillCooldown,13,'timewarp refreshes EMP faster than classic');
+ assert.equal(g.skillCooldown,11,'timewarp refreshes EMP faster than classic');
  G.advance(g,.06);
  assert.ok(g.elapsed>.059);
  assert.ok(g.elapsed<.07);
