@@ -35,7 +35,7 @@ assert(art.includes('M.trail=new T.MeshStandardMaterial')&&art.includes('new T.C
  'walkable terrain needs genuine detailed world-space trail not a screen overlay');
 assert(diorama.includes('const density=p.kind===\'arena\'?3'),
  'decorative scatter density should remain deliberately sparse');
-assert(finish.includes('i%4!==0'),'special world beacons must not overwhelm the mission targets');
+assert(finish.includes('if(i!==8)return'),'special world beacons must not overwhelm the mission targets');
 assert(premium.includes('if(level===0)'),'first rescue mission must not fetch unused premium trees');
 assert(premium.includes('name.startsWith(\'medieval\')'),'only relevant ancient architecture should download');
 assert(runtime.includes("C.start(game);mapOpen=false;"),
