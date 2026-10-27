@@ -123,12 +123,12 @@ test('premium render uses world-size sharp canvas without magnified low resoluti
  assert.doesNotMatch(source,/const rad=CELL\*\.74/);
  assert.doesNotMatch(source,/mapCanvas\.width=N\*3/);
 });
-test('small-screen HUD ranks three players, with own rank always visible',()=>{
+test('arcade HUD ranks four players, with own rank always visible',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(20);
  const markup=g.get('rank').innerHTML;
- assert.equal((markup.match(/class="rankrow"/g)||[]).length,3);
+ assert.equal((markup.match(/class="rankrow /g)||[]).length,4);
  assert.match(markup,/VOS/);
- assert.match(g.get('kills').textContent,/^× /);
+ assert.equal(g.get('killCount').textContent,'0');
  assert.match(g.get('bestCurrent').textContent,/%/);
 });
 
@@ -141,3 +141,22 @@ test('connected territory is converted to coherent vector boundary loops',()=>{
 });
 
 test('reference HUD includes best score, transparent layout and a subtle paper grid',()=>{assert.match(source,/id="bestCurrent"/);assert.match(source,/class="best-live"/);assert.match(source,/const tileStep=74/);assert.doesNotMatch(source,/const dotStep=84/);});
+
+test('arcade progression rail, milestones and portraits render on initial game',()=>{
+ const g=boot(419);g.get('start').onclick();g.tick(10);
+ assert.match(source,/id="progressRail"/);
+ assert.match(source,/id="railPercent"/);
+ assert.match(source,/class="milestone m1"/);
+ assert.match(source,/id="recordPointer"/);
+ assert.match(source,/class="killIcon"/);
+ assert.match(g.get('railPercent').textContent,/%$/);
+ assert.match(g.get('rank').innerHTML,/rankAvatar/);
+ assert.match(g.get('rank').innerHTML,/rankPlace/);
+});
+test('mechanical character and layered neon trails use original vector rendering',()=>{
+ assert.match(source,/Metallic roof bevel/);
+ assert.match(source,/raised|Raised/);
+ assert.match(source,/#2448b5/);
+ assert.match(source,/procedural motif/);
+ assert.match(source,/function drawMini\(\)/);
+});
