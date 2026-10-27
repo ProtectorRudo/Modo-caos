@@ -88,7 +88,7 @@ input[type=text]:focus{border-color:#42bcca}
 <script>
 (function(){
 'use strict';
-const N=172, CELL=13, SIZE=N*N, WORLD=N*CELL, CX=WORLD/2, CY=WORLD/2, R=WORLD/2-29, RUN=1/60, TOTAL=0;
+const N=172, CELL=13, SIZE=N*N, WORLD=N*CELL, CX=WORLD/2, CY=WORLD/2, R=WORLD/2-29, RUN=1/60;
 const COLORS=['#27c7d7','#ffbd3f','#f16c96','#a45be6','#53d96e','#f0824c','#3a90eb','#da56bb','#84c94b','#df6862','#9279df','#39b99a'];
 const NAMES=['VOS','Luna','Pixel','Fuego','Ninja','Mora','Kira','Zeta','Neo','Chispa','Toro','Sol'];
 const $=id=>document.getElementById(id),canvas=$('game'),c=canvas.getContext('2d',{alpha:false}), mini=$('mini'),mc=mini.getContext('2d');
@@ -96,7 +96,7 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)), random=(a,b)=>a+Math.random()*(b
 const angleTo=(a,b)=>Math.atan2(b.y-a.y,b.x-a.x),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const angleDelta=(a,b)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
 const colorToRGB=hex=>[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
-let screenW=innerWidth, screenH=innerHeight, dpr=1,game=null,mode='home',clock=0,camX=CX,camY=CY,zoom=1,desiredAngle=null,keys={},pointer=null,lastHud=-1,msgTime=0,muted=false,ac=null,settingColor=0;
+let screenW=innerWidth, screenH=innerHeight, dpr=1,game=null,mode='home',clock=0,camX=CX,camY=CY,zoom=1,desiredAngle=null,keys={},pointer=null,lastHud=-1,msgTime=0,muted=false,ac=null,settingColor=0,selectedSkin=0,particles=[],bursts=[];
 const land=new Uint8Array(SIZE),trails=new Uint16Array(SIZE),inArena=new Uint8Array(SIZE);
 let landCount=0, terrainCanvas=document.createElement('canvas');terrainCanvas.width=N;terrainCanvas.height=N;
 const terrainCtx=terrainCanvas.getContext('2d',{alpha:true});
@@ -110,6 +110,34 @@ function updateMap(){
  for(let k=0;k<SIZE;k++){const v=land[k];if(!inArena[k]||!v)continue;const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]);let o=k*4;buf[o]=rgb[0];buf[o+1]=rgb[1];buf[o+2]=rgb[2];buf[o+3]=255;}
  terrainCtx.putImageData(data,0,0);mapCtx.clearRect(0,0,N*3,N*3);mapCtx.imageSmoothingEnabled=true;mapCtx.imageSmoothingQuality='high';mapCtx.drawImage(terrainCanvas,0,0,N*3,N*3);
 }
+
+function burstAt(x,y,color,count=16,strength=85){
+ for(let i=0;i<count;i++){
+  if(particles.length>220)particles.shift();
+  const a=Math.random()*Math.PI*2,v=random(strength*.25,strength),life=random(.32,.78);
+  particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,age:0,life,color,size:random(2.5,7),spin:random(-5,5)});
+ }
+}
+function captureEffect(points,p,color,share){
+ const path=points.slice(-160);path.push({x:p.x,y:p.y});
+ if(path.length>1)bursts.push({points:path,color,life:.68,age:0});
+ const n=Math.min(24,Math.max(5,Math.round(share*900)));
+ for(let j=0;j<n;j++){
+  const q=path[Math.floor(j/Math.max(1,n-1)*(path.length-1))]||p;
+  burstAt(q.x,q.y,color,2,38);
+ }
+}
+function tickEffects(dt){
+ for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=1-dt*2.5;p.vy*=1-dt*2.5;if(p.age>=p.life)particles.splice(i,1);}
+ for(let i=bursts.length-1;i>=0;i--){bursts[i].age+=dt;if(bursts[i].age>=bursts[i].life)bursts.splice(i,1);}
+}
+function drawEffects(){
+ c.save();
+ for(const b of bursts){if(b.points.length<2)continue;const f=1-b.age/b.life;c.globalAlpha=Math.max(0,f*.68);c.strokeStyle='#ffffff';c.lineJoin='round';c.lineCap='round';c.lineWidth=4+(1-f)*16;c.beginPath();c.moveTo(b.points[0].x,b.points[0].y);for(let k=1;k<b.points.length;k++)c.lineTo(b.points[k].x,b.points[k].y);c.stroke();}
+ for(const p of particles){c.globalAlpha=Math.max(0,1-p.age/p.life);c.fillStyle=p.color;c.save();c.translate(p.x,p.y);c.rotate(p.spin*p.age);c.fillRect(-p.size/2,-p.size/2,p.size,p.size);c.restore();}
+ c.restore();
+}
+
 function audio(type){
  if(muted||!game)return;
  try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
@@ -130,16 +158,16 @@ function spawnPoint(){
 }
 function makePerson(id,pnt){
  return {id,name:id===0?($('nick').value.trim().slice(0,16)||'VOS'):NAMES[id],x:pnt.x,y:pnt.y,angle:random(-Math.PI,Math.PI),
- target:null,speed:id===0?145:random(114,137),turn:id===0?4.45:random(2.5,3.65),alive:true,outside:false,trailPoints:[],trailCells:[],trailSeen:new Map(),lastCell:-1,kills:0,score:0,area:0,respawn:0,
- stage:0,goal:null,goalAt:0,protectedUntil:clock+1.8,thinking:0};
+ target:null,speed:id===0?156:random(117,137),turn:id===0?6.3:random(2.8,4.05),alive:true,outside:false,trailPoints:[],trailCells:[],trailSeen:new Map(),lastCell:-1,kills:0,score:0,area:0,respawn:0,
+ stage:0,goal:null,goalAt:0,protectedUntil:clock+1.8,thinking:0,edgeCharge:0,boostUntil:0,style:id%3};
 }
 function countAreas(){
  if(!game)return;const counts=new Int32Array(12);for(let k=0;k<SIZE;k++)if(land[k])counts[land[k]-1]++;
  for(const p of game.people){p.area=counts[p.id];p.score=100*p.area/landCount;}game.ordered=game.people.filter(p=>p.alive).sort((a,b)=>b.area-a.area);
 }
 function reset(){
- clock=0;lastHud=-1;land.fill(0);trails.fill(0);game={people:[],ordered:[],kills:0,started:0,record:0,lastArea:0};let player={x:CX,y:CY};
- game.people.push(makePerson(0,player));base(game.people[0],6);
+ clock=0;lastHud=-1;land.fill(0);trails.fill(0);game={people:[],ordered:[],kills:0,started:0,record:0,lastArea:0};particles=[];bursts=[];let player={x:CX,y:CY};
+ game.people.push(makePerson(0,player));game.people[0].angle=-Math.PI/2;base(game.people[0],6);
  for(let i=1;i<12;i++){const pos=spawnPoint();const p=makePerson(i,pos);game.people.push(p);base(p,random(3.5,5)|0);}
  countAreas();game.lastArea=game.people[0].area;updateMap();camX=CX;camY=CY;desiredAngle=null;pointer=null;keys={};mode='play';
  $('home').classList.add('hidden');$('result').classList.add('hidden');$('paused').classList.add('hidden');$('hud').style.display='block';$('controls').style.opacity='1';$('msg').classList.remove('show');game.started=clock;
@@ -153,7 +181,7 @@ function death(p,killer=-1){
  if(!p.alive||(killer>=0&&killer!==p.id&&clock<p.protectedUntil))return;
  clearTrail(p);p.alive=false;
  if(p.id!==0){for(let k=0;k<SIZE;k++)if(land[k]===p.id+1)land[k]=0;}
- updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;popup('¡ELIMINACIÓN!');audio('kill');vibrate(30);}}
+ burstAt(p.x,p.y,COLORS[(p.id+settingColor)%12],28,100);updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;popup('¡ELIMINACIÓN!');audio('kill');vibrate(30);}}
  if(p.id===0){audio('death');vibrate([80,70,110]);end(false);}else{p.respawn=clock+random(1.8,3.8);countAreas();}
 }
 function respawn(p){
@@ -162,6 +190,7 @@ function respawn(p){
 }
 function capture(p){
  if(!p.trailCells.length){clearTrail(p);return;}
+ countAreas();const beforeArea=p.area;const outline=p.trailPoints.map(q=>({x:q.x,y:q.y}));
  for(const k of p.trailCells)if(inArena[k])land[k]=p.id+1;
  // Flood fill from every reachable boundary cell. Only fully enclosed pockets change owner.
  const seen=new Uint8Array(SIZE),queue=new Int32Array(SIZE);let tail=0,head=0;
@@ -171,14 +200,15 @@ function capture(p){
  while(head<tail){const k=queue[head++],x=k%N,y=(k/N)|0;if(x>0)add(k-1);if(x<N-1)add(k+1);if(y>0)add(k-N);if(y<N-1)add(k+N);}
  for(let k=0;k<SIZE;k++)if(inArena[k]&&!seen[k]&&land[k]!==p.id+1)land[k]=p.id+1;
  clearTrail(p);countAreas();updateMap();
- if(p.id===0){let gained=game.people[0].area;const points=Math.max(0,Math.round((gained-(game.lastArea||0))*100/landCount*10)/10);game.lastArea=gained;
+ const increase=Math.max(0,p.area-beforeArea);if(increase>0){captureEffect(outline,p,COLORS[(p.id+settingColor)%12],increase/landCount);}
+ if(p.id===0){const points=Math.round(increase*100/landCount*10)/10;game.lastArea=p.area;
  if(points>=.15){popup('+'+points.toFixed(1)+'%');audio('capture');vibrate(25);}if(game.people[0].score>game.record)game.record=game.people[0].score;
  if(game.people[0].score>=99.8){end(true);return;}}
 }
 function markTrail(p,k){
  if(p.lastCell===k)return;
- const seenAt=p.trailSeen.get(k);
- if(seenAt!==undefined&&p.trailCells.length-seenAt>3){death(p,p.id);return;}
+ // Crossing your own exposed trail is allowed; its cells remain vulnerable
+ // until the entire loop reconnects to claimed territory.
  const mask=trails[k],other=mask&~(1<<p.id);
  if(other){for(let i=0;i<12;i++)if(other&(1<<i))death(game.people[i],p.id);}
  if(!p.alive)return;
@@ -186,7 +216,13 @@ function markTrail(p,k){
  p.lastCell=k;
 }
 function move(p,dt){
- const prevX=p.x,prevY=p.y,step=p.speed*dt;let x=prevX+Math.cos(p.angle)*step,y=prevY+Math.sin(p.angle)*step;
+ const prevX=p.x,prevY=p.y;
+ const radial=Math.atan2(prevY-CY,prevX-CX),edge=R-Math.hypot(prevX-CX,prevY-CY);
+ const tangent=Math.abs(Math.cos(p.angle-radial))<.45;
+ if(p.id===0){p.edgeCharge=(edge<68&&tangent)?Math.min(1,p.edgeCharge+dt*2.4):Math.max(0,p.edgeCharge-dt*2.5);
+ if(p.edgeCharge>=.7&&clock>=p.boostUntil){p.boostUntil=clock+1.1;burstAt(p.x,p.y,COLORS[settingColor],10,36);}}
+ const boosting=p.id===0&&clock<p.boostUntil;
+ const step=p.speed*(boosting?1.32:1)*dt;let x=prevX+Math.cos(p.angle)*step,y=prevY+Math.sin(p.angle)*step;
  if(!inside(x,y)){if(p.id===0){death(p);return;}p.angle=Math.atan2(CY-p.y,CX-p.x);p.goal={x:CX,y:CY};return;}
  const sections=Math.max(1,Math.ceil(step/(CELL*.3)));
  for(let i=1;i<=sections;i++){
@@ -226,7 +262,10 @@ function stepBot(p,dt){
  if(!p.alive){if(clock>=p.respawn)respawn(p);return;}
  p.thinking-=dt;
  if(!p.goal||dist(p,p.goal)<27||p.thinking< -6.5){chooseBotGoal(p);p.thinking=0;}
- if(p.outside&&p.trailCells.length>25&&p.stage!==3){p.stage=3;p.goal=nearestHome(p);p.goalAt=clock;}
+ if(p.outside&&p.trailCells.length>(p.style===1?20:31)&&p.stage!==3){p.stage=3;p.goal=nearestHome(p);p.goalAt=clock;}
+ // Cautious opponents retreat when a rival approaches.
+ if(p.outside&&p.stage!==3&&p.style===1){for(const q of game.people){if(q.id===p.id||!q.alive)continue;
+ if(Math.hypot(q.x-p.x,q.y-p.y)<155){p.stage=3;p.goal=nearestHome(p);break;}}}
  // Nearby exposed trails are tempting tactical targets.
  if(Math.random()<dt*.22){let target=null,best=155*155;
  for(let k=0;k<SIZE;k+=2){if(!trails[k]||trails[k]===(1<<p.id))continue;const x=(k%N+.5)*CELL,y=((k/N|0)+.5)*CELL,d=(x-p.x)**2+(y-p.y)**2;if(d<best){best=d;target={x,y};}}
@@ -235,7 +274,7 @@ function stepBot(p,dt){
  move(p,dt);
 }
 function step(dt){
- clock+=dt;const p=game.people[0];if(p.alive){
+ clock+=dt;tickEffects(dt);const p=game.people[0];if(p.alive){
  let aim=desiredAngle;
  if(keys.ArrowUp||keys.KeyW)aim=-Math.PI/2;
  if(keys.ArrowDown||keys.KeyS)aim=Math.PI/2;
@@ -300,6 +339,7 @@ function render(){
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
  c.restore();
  c.strokeStyle='#68b9b39c';c.lineWidth=8;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
+ drawEffects();
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
  drawUnit(game.people[0]);c.restore();
 }
@@ -341,7 +381,7 @@ let last=performance.now(),acc=0;
 function frame(t){const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;if(mode==='play'&&game){acc=Math.min(acc+dt,.13);let loops=0;while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}}else acc=0;render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 // Read-only diagnostics: ?qa=1 exposes counters to automated smoke tests.
-if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'territoryQA',{get:()=>game?{mode,area:game.people[0].score,alive:game.people[0].alive,players:game.people.filter(p=>p.alive).length,clock:clock,kills:game.kills,tiles:game.people[0].area,x:game.people[0].x,y:game.people[0].y,angle:game.people[0].angle,outside:game.people[0].outside,trail:game.people[0].trailCells.length,botTerritory:game.people.slice(1).reduce((n,p)=>n+p.area,0)}: {mode}});
+if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'territoryQA',{get:()=>game?{mode,area:game.people[0].score,alive:game.people[0].alive,players:game.people.filter(p=>p.alive).length,clock:clock,kills:game.kills,tiles:game.people[0].area,x:game.people[0].x,y:game.people[0].y,angle:game.people[0].angle,outside:game.people[0].outside,trail:game.people[0].trailCells.length,botTerritory:game.people.slice(1).reduce((n,p)=>n+p.area,0),edgeCharge:game.people[0].edgeCharge,boosting:clock<game.people[0].boostUntil,particleCount:particles.length}: {mode}});
 })();
 </script>
 </body>
