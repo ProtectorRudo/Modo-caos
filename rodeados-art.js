@@ -571,183 +571,121 @@ export function createRodeadosArt(THREE,scene,camera){
    if(s.life<=0){root.remove(s.mesh);s.mesh.material.dispose();sparks.splice(i,1)}
   }
  }
- // The player weapon is the ONLY camera-following object; the world stays anchored.
- // V20 removes old oversized slab pistol, tactical and plasma shapes entirely.
- const rifle=new THREE.Group();scene.add(rifle);
- const pistol=buildCaosWeapon(THREE,{tier:'pistol'});
- const tactical=buildCaosWeapon(THREE,{tier:'tactical'});
- const plasma=buildCaosWeapon(THREE,{tier:'plasma'});
- const weaponModels={pistol,tactical,plasma},importedWeapons=new Map();
- let heroPistol=false;
- for(const w of Object.values(weaponModels)){w.rotation.y=Math.PI;rifle.add(w)}
- let currentWeapon='pistol',activeWeapon=pistol;
- function setWeaponAsset(tier,source){
-  if(!weaponModels[tier]||!source)return false;
-  const next=fitQuaterniusWeapon(THREE,source,tier);
-  if(!next)return false;
-  next.rotation.y=Math.PI;
-  const old=importedWeapons.get(tier);
-  if(old){rifle.remove(old);old.userData.dispose?.()}
-  importedWeapons.set(tier,next);rifle.add(next);
-  setWeaponTier(currentWeapon);
-  return true;
- }
- function setPremiumPistol(source){
-  const hero=fitPolyHavenServicePistol(THREE,source);
-  if(!hero)return false;
-  const old=importedWeapons.get('pistol');
-  if(old){rifle.remove(old);old.userData.dispose?.()}
-  hero.rotation.set(-.02,Math.PI+.49,-.045,'XYZ');
-  importedWeapons.set('pistol',hero);
-  heroPistol=true;rifle.add(hero);
-  setWeaponTier(currentWeapon);
-  return true;
- }
+
+ // The world remains anchored in XR; the gun is a dedicated FPS HUD 3D scene.
+ // Rendering this independently of ARCore projection prevents the cropped gun.
+ const weaponScene=new THREE.Scene();
+ const weaponCamera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,.01,6);
+ weaponCamera.position.set(0,0,0);weaponCamera.lookAt(0,0,-1);
+ weaponScene.add(new THREE.AmbientLight(0xffffff,2.15));
+ const gunLight=new THREE.DirectionalLight(0xffffff,2.3);gunLight.position.set(-2,3,2);weaponScene.add(gunLight);
+ const rimLight=new THREE.DirectionalLight(0x9bdce9,1.05);rimLight.position.set(1,-1,-2);weaponScene.add(rimLight);
+ const rifle=new THREE.Group();weaponScene.add(rifle);
+ const fallback=buildCaosWeapon(THREE,{tier:'tactical'});
+ fallback.rotation.y=Math.PI;rifle.add(fallback);
+ const importedWeapons=new Map();
+ let premiumRifle=null,activeWeapon=fallback,currentWeapon='pistol',fpsArms=null,layout=null;
  function setWeaponTier(tier){
-  currentWeapon=Object.prototype.hasOwnProperty.call(weaponModels,tier)?tier:'pistol';
-  activeWeapon=importedWeapons.get(currentWeapon)||weaponModels[currentWeapon];
-  for(const [key,obj] of Object.entries(weaponModels))obj.visible=key===currentWeapon&&!importedWeapons.has(key);
-  for(const [key,obj] of importedWeapons)obj.visible=key===currentWeapon;
-  // The old auto-fitted WRAD arms could overlap the small photorealistic gun,
-  // making it look toy-sized. Keep hands hidden only with the high-detail pistol.
-  if(fpsArms)fpsArms.visible=!(heroPistol&&currentWeapon==='pistol');
-  gloves.visible=!fpsArms&&!(heroPistol&&currentWeapon==='pistol');
+  currentWeapon=['pistol','tactical','plasma'].includes(tier)?tier:'pistol';
+  // Rifle visible from first second; upgrades change performance, not gun size.
+  activeWeapon=premiumRifle||importedWeapons.get('tactical')||fallback;
+  fallback.visible=activeWeapon===fallback;
+  for(const m of importedWeapons.values())m.visible=m===activeWeapon;
+  if(premiumRifle)premiumRifle.visible=true;
+  layout=null;
  }
- const gloves=new THREE.Group();rifle.add(gloves);
- for(const side of [-1,1]){
-  const arm=new THREE.Group();arm.position.set(side*.085,-.19,.13);gloves.add(arm);
-  const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.065,.115,.37,9),M.steel);
-  sleeve.rotation.x=-.55;arm.add(sleeve);
-  sphere(arm,M.edge,[0,.17,-.10],[.07,.065,.09]);
-  sphere(arm,M.dark,[0,.21,-.18],[.065,.07,.085]);
+ function setWeaponAsset(tier,source){
+  if(!['pistol','tactical','plasma'].includes(tier)||!source)return false;
+  const model=fitQuaterniusWeapon(THREE,source,tier);
+  if(!model)return false;
+  model.rotation.y=Math.PI;
+  const old=importedWeapons.get(tier);if(old){rifle.remove(old);old.userData.dispose?.()}
+  importedWeapons.set(tier,model);rifle.add(model);setWeaponTier(currentWeapon);return true;
  }
- let fpsArms=null;
+ function setPremiumPistol(_source){return false} // User replaced pistol with rifle.
+ function setPremiumRifle(source){
+  if(!source)return false;
+  const model=fitQuaterniusWeapon(THREE,source,'tactical');
+  if(!model)return false;
+  model.name='polyhaven-pbr-762-rifle';
+  model.userData.realPBR=true;
+  model.userData.source='Poly Haven · Bolt Action Rifle 7.62 · Mateusz Sadek · CC0';
+  model.rotation.set(-.11,Math.PI+.32,.015);
+  if(premiumRifle){rifle.remove(premiumRifle);premiumRifle.userData.dispose?.()}
+  premiumRifle=model;rifle.add(model);setWeaponTier(currentWeapon);return true;
+ }
  function setFPSArms(source){
-  try{
-   if(!source||!source.isObject3D)return false;
-   const bbox=new THREE.Box3().setFromObject(source);
-   const size=bbox.getSize(new THREE.Vector3()),center=bbox.getCenter(new THREE.Vector3());
-   if(!Number.isFinite(size.x)||size.x<.02||size.y<.02||size.z<.01)return false;
-   const ratio=Math.min(.53/size.x,.49/size.y,.65/size.z,1.25);
-   if(!Number.isFinite(ratio)||ratio<=0)return false;
-   const holder=new THREE.Group();
-   source.scale.setScalar(ratio);
-   source.position.set(-center.x*ratio,-center.y*ratio,-center.z*ratio);
-   holder.position.set(0,-.13,.105);holder.rotation.x=-.15;
-   holder.add(source);rifle.add(holder);
-   if(fpsArms)rifle.remove(fpsArms);
-   fpsArms=holder;gloves.visible=false;
-   setWeaponTier(currentWeapon);
-   return true;
-  }catch(e){console.warn('FPS hands unavailable; using original sleeves',e);return false}
+  // The WRAD hands were not calibrated to this rifle and overlapped the optic.
+  // Do not add independent hands until we have a proven rifle-specific rig.
+  return !!source;
+ }
+ function resizeWeaponViewport(w=innerWidth,h=innerHeight){
+  if(w<=0||h<=0)return;
+  weaponCamera.aspect=w/h;weaponCamera.updateProjectionMatrix();
+  layout=null;
  }
  setWeaponTier('pistol');
- const camTemp=new THREE.Vector3(),quatTemp=new THREE.Quaternion();
- const weaponOffset=new THREE.Vector3(),weaponCenter=new THREE.Vector3();
- const oneTime=new THREE.Vector3(),testPoint=new THREE.Vector3();
- const meshBox=new THREE.Box3(),corner=new THREE.Vector3();
- let lastWeaponCamera=null,layout=null;
- // Weapon occupies a deliberately unobstructed portion of portrait UI:
- // left of the three combat buttons and BELOW the centered reticle.
- // Values are normalized device coordinates, 1=top/right, -1=bottom/left.
- const weaponSafe={left:.08,right:.77,bottom:-.56,top:-.025};
- function measureWeapon(eye){
-  eye.updateWorldMatrix(true,false);
-  activeWeapon.updateWorldMatrix(true,true);
+ const corner=new THREE.Vector3();
+ const safe={left:-.61,right:.64,bottom:-.86,top:-.08};
+ function measureWeapon(){
+  weaponCamera.updateMatrixWorld(true);
+  rifle.updateMatrixWorld(true);
   let left=Infinity,right=-Infinity,bottom=Infinity,top=-Infinity,front=false,meshes=0;
-  activeWeapon.traverse(obj=>{
-   if(!obj.isMesh||!obj.visible)return;
-   if(!obj.geometry?.boundingBox)obj.geometry?.computeBoundingBox();
-   const bb=obj.geometry?.boundingBox;if(!bb)return;
+  activeWeapon.traverse(o=>{
+   if(!o.isMesh||!o.visible||!o.geometry)return;
+   if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();
+   const bb=o.geometry.boundingBox;if(!bb)return;
    meshes++;
    for(const x of [bb.min.x,bb.max.x])for(const y of [bb.min.y,bb.max.y])for(const z of [bb.min.z,bb.max.z]){
-    corner.set(x,y,z).applyMatrix4(obj.matrixWorld).project(eye);
+    corner.set(x,y,z).applyMatrix4(o.matrixWorld).project(weaponCamera);
     if(!Number.isFinite(corner.x)||!Number.isFinite(corner.y)||!Number.isFinite(corner.z))continue;
-    if(corner.z>=-1&&corner.z<=1)front=true;
+    if(corner.z>-1&&corner.z<1)front=true;
     left=Math.min(left,corner.x);right=Math.max(right,corner.x);
     bottom=Math.min(bottom,corner.y);top=Math.max(top,corner.y);
    }
   });
   const width=right-left,height=top-bottom;
-  const clipW=Math.max(0,Math.min(right,weaponSafe.right)-Math.max(left,weaponSafe.left));
-  const clipH=Math.max(0,Math.min(top,weaponSafe.top)-Math.max(bottom,weaponSafe.bottom));
-  const coverage=width>0&&height>0?clipW*clipH/(width*height):0;
-  return {left,right,bottom,top,width,height,coverage,front,meshes,
-   centerX:(left+right)*.5,centerY:(bottom+top)*.5,
-   visible:rifle.visible&&activeWeapon.visible&&meshes>0};
+  const sw=Math.max(0,Math.min(right,safe.right)-Math.max(left,safe.left));
+  const sh=Math.max(0,Math.min(top,safe.top)-Math.max(bottom,safe.bottom));
+  return {left,right,bottom,top,width,height,front,meshes,
+   centerX:(left+right)/2,centerY:(bottom+top)/2,
+   coverage:width>0&&height>0?sw*sh/width/height:0};
  }
- function positionWeapon(viewCamera,flash){
-  const eye=viewCamera?.cameras?.[0]||viewCamera;if(!eye)return;
-  lastWeaponCamera=eye;
-  eye.getWorldPosition(camTemp);eye.getWorldQuaternion(quatTemp);
-  const p=eye.projectionMatrix?.elements;
-  const px=Math.abs(p?.[0])>.1?Math.abs(p[0]):2.2;
-  const py=Math.abs(p?.[5])>.1?Math.abs(p[5]):1.75;
-  const shiftX=Number.isFinite(p?.[8])?p[8]:0;
-  const shiftY=Number.isFinite(p?.[9])?p[9]:0;
-  const pistolMode=currentWeapon==='pistol',depth=pistolMode?.66:.78;
-  const needsLayout=!layout||layout.tier!==currentWeapon||layout.asset!==activeWeapon||
-   Math.abs(layout.px-px)>.015||Math.abs(layout.py-py)>.015||
-   Math.abs(layout.shiftX-shiftX)>.015||Math.abs(layout.shiftY-shiftY)>.015;
-  if(needsLayout){
-   // Instead of anchoring the gun's ORIGIN at x=.73 NDC and hoping its
-   // silhouette is still visible, fit the ACTUAL textured mesh bounds.
-   let scale=heroPistol&&pistolMode?1.05:pistolMode?.95:.88;
-   let x=(.39+shiftX)*depth/px,y=(-.25+shiftY)*depth/py;
-   for(let i=0;i<4;i++){
+ function positionWeapon(_arCamera,flash){
+  if(!rifle.visible)return;
+  if(!layout||layout.asset!==activeWeapon){
+   let x=.02,y=-.19,scale=1.3;
+   const cx=.01,cy=-.48,targetW=1.08,targetH=.64;
+   for(let k=0;k<8;k++){
     activeWeapon.scale.setScalar(scale);
-    weaponOffset.set(x,y,-depth);
-    rifle.position.copy(camTemp).add(weaponOffset.applyQuaternion(quatTemp));
-    rifle.quaternion.copy(quatTemp);rifle.rotateY(-.045);
-    let bb=measureWeapon(eye);
-    if(!bb.front||!Number.isFinite(bb.width)||bb.width<=0)break;
-    // The gun should be a meaningful visual element, but must fit above
-    // the FIRE / BOMB / EMP panel and not cover the center aiming reticle.
-    const maxWidth=weaponSafe.right-weaponSafe.left;
-    const maxHeight=weaponSafe.top-weaponSafe.bottom;
-    let factor=Math.min(1,maxWidth/bb.width,maxHeight/bb.height);
-    if(factor===1&&bb.width<.32&&bb.height<.28){
-     factor=Math.min(1.32, .36/bb.width, .32/bb.height);
-    }
-    scale=THREE.MathUtils.clamp(scale*factor,.66,1.42);
-    // Convert correction of the projected mesh CENTER to camera-local meters.
-    x+=THREE.MathUtils.clamp((.405-bb.centerX)*depth/px,-.27,.27);
-    y+=THREE.MathUtils.clamp((-.285-bb.centerY)*depth/py,-.27,.27);
+    rifle.position.set(x,y,-1.3);
+    rifle.rotation.set(-.065,-.075,.006);
+    const b=measureWeapon();
+    if(!b.front||!Number.isFinite(b.width)||b.width<=.01||b.height<=.01)break;
+    const ratio=Math.min(targetW/b.width,targetH/b.height);
+    scale=THREE.MathUtils.clamp(scale*ratio,.20,4.5);
+    const proj=weaponCamera.projectionMatrix.elements;
+    x+=THREE.MathUtils.clamp((cx-b.centerX)*1.3/Math.abs(proj[0]),-.55,.55);
+    y+=THREE.MathUtils.clamp((cy-b.centerY)*1.3/Math.abs(proj[5]),-.55,.55);
    }
-   layout={tier:currentWeapon,asset:activeWeapon,px,py,shiftX,shiftY,depth,x,y,scale};
+   layout={asset:activeWeapon,x,y,scale};
   }
-  activeWeapon.scale.setScalar(layout.scale);
-  weaponOffset.set(layout.x,layout.y-recoil*.01,-layout.depth+recoil*.022);
-  rifle.position.copy(camTemp).add(weaponOffset.applyQuaternion(quatTemp));
-  rifle.quaternion.copy(quatTemp);
-  rifle.rotateY(-.045);rifle.rotateX(-recoil*.06-(flash?.008:0));
   const t=performance.now()*.001;
-  rifle.position.add(oneTime.set(Math.sin(t*1.5)*.0011,Math.sin(t*1.3)*.0012,0).applyQuaternion(quatTemp));
-  for(const [name,model] of Object.entries(weaponModels))
-   model.userData.setFiring(name===currentWeapon&&!importedWeapons.has(name)&&!!flash,t);
-  for(const [name,model] of importedWeapons)
-   model.userData.setFiring(name===currentWeapon&&!!flash,t);
-  activeWeapon.rotation.z=currentWeapon==='plasma'?Math.sin(t*2.5)*.004:0;
-  if(heroPistol&&pistolMode){activeWeapon.rotation.y=Math.PI+.31;activeWeapon.rotation.x=-.055}
-  gloves.rotation.x=-.09-recoil*.06;
+  activeWeapon.scale.setScalar(layout.scale);
+  rifle.position.set(layout.x+Math.sin(t*1.8)*.0011,layout.y+Math.sin(t*1.3)*.0012-recoil*.012,-1.3+recoil*.027);
+  rifle.rotation.set(-.065-recoil*.08,-.075,.006);
+  fallback.userData.setFiring(activeWeapon===fallback&&!!flash,t);
+  for(const model of importedWeapons.values())model.userData.setFiring(activeWeapon===model&&!!flash,t);
+  premiumRifle?.userData.setFiring(!!flash,t);
  }
  function getWeaponFraming(){
-  const eye=lastWeaponCamera;
-  const info={tier:currentWeapon,
-   source:heroPistol&&currentWeapon==='pistol'?'polyhaven-cc0-pbr':
-     importedWeapons.has(currentWeapon)?'quaternius-glb':'safe-procedural',
-   visible:rifle.visible&&activeWeapon.visible,meshCount:0,inView:false,
-   dominantVisible:false,coverage:0,center:null,bounds:null};
-  if(!eye)return info;
-  const bounds=measureWeapon(eye);
-  info.meshCount=bounds.meshes;
-  info.bounds={left:bounds.left,right:bounds.right,bottom:bounds.bottom,top:bounds.top};
-  info.center={x:+bounds.centerX.toFixed(3),y:+bounds.centerY.toFixed(3),z:0};
-  info.coverage=+bounds.coverage.toFixed(3);
-  info.inView=info.visible&&bounds.front&&bounds.coverage>.65;
-  info.dominantVisible=info.inView&&bounds.coverage>.90&&bounds.width>=.24&&bounds.height>=.16&&
-   bounds.left>0&&bounds.right<.85&&bounds.top<.08&&bounds.bottom>-.65;
-  return info;
+  const b=measureWeapon(),visible=rifle.visible&&activeWeapon.visible&&b.front&&b.meshes>0;
+  const inView=visible&&b.coverage>.90;
+  return {tier:currentWeapon,
+   source:premiumRifle?'polyhaven-pbr-762-rifle':activeWeapon===fallback?'safe-tactical-rifle':'quaternius-tactical-rifle',
+   visible,meshCount:b.meshes,inView,dominantVisible:inView&&b.width>.65&&b.height>.30,
+   coverage:+b.coverage.toFixed(3),center:{x:+b.centerX.toFixed(3),y:+b.centerY.toFixed(3),z:0},
+   bounds:{left:b.left,right:b.right,bottom:b.bottom,top:b.top},viewport:'independent-fps-pass'};
  }
  function clear(){
   if(bombProjectile){root.remove(bombProjectile);bombProjectile=null}
@@ -776,7 +714,7 @@ export function createRodeadosArt(THREE,scene,camera){
     handMountedWeapons,
    robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
- return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setWeaponAsset,setPremiumPistol,setFPSArms,getRobotAdapterStatus,getWeaponFraming,
+ return {root,arena,rifle,weaponScene,weaponCamera,resizeWeaponViewport,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setWeaponAsset,setPremiumPistol,setPremiumRifle,setFPSArms,getRobotAdapterStatus,getWeaponFraming,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
    darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
    scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity),

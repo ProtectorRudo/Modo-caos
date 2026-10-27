@@ -24,7 +24,7 @@ export function createRodeadosArCompositor(THREE,host,maxPixelRatio=1.2){
  const trackedCamera=new THREE.PerspectiveCamera();
  trackedCamera.matrixAutoUpdate=false;
  let frames=0,lastError=null,drawn=0;
- function render(world,xrCamera){
+ function render(world,xrCamera,weaponScene=null,weaponCamera=null){
   const eye=xrCamera?.cameras?.[0]||xrCamera;
   if(!eye?.matrixWorld||!eye?.projectionMatrix)return false;
   trackedCamera.matrix.copy(eye.matrixWorld);
@@ -38,8 +38,14 @@ export function createRodeadosArCompositor(THREE,host,maxPixelRatio=1.2){
   trackedCamera.matrixWorldNeedsUpdate=false;
   try{
    renderer.render(world,trackedCamera);
+   const worldDrawCalls=renderer.info.render.calls;
+   if(weaponScene&&weaponCamera){
+    const saved=renderer.autoClear;renderer.autoClear=false;
+    renderer.clearDepth();renderer.render(weaponScene,weaponCamera);
+    renderer.autoClear=saved;
+   }
    frames++;
-   drawn=renderer.info.render.calls;
+   drawn=worldDrawCalls;
    lastError=null;
    return true;
   }catch(err){
