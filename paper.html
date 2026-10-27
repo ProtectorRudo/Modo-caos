@@ -213,6 +213,13 @@ input[type=text]:focus{border-color:#42bcca}
 #shopNotice{min-height:24px;margin:10px 1px 0;font-size:11px;font-weight:900;color:#45988d}
 .coinMessage{font-size:12px;font-weight:900;color:#b0872d;margin:9px 0}
 @media(max-height:740px){#home .panel{padding:13px 16px}#home .preview{height:80px;margin:6px 0}#home .description{margin:6px 3px}.heroRosterHead{margin-top:8px}.heroChoice{padding:4px 1px}.heroGlyph{height:30px;width:35px;font-size:20px}#heroDetails{margin:6px 0;padding:5px 9px}.shopItem{padding:6px}.itemArt{height:45px}}
+
+/* Prevent tall panels from becoming unreachable on compact Android browsers. */
+#home{align-items:flex-start;padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(14px,env(safe-area-inset-bottom))}
+#home .panel{margin:auto;flex:none}
+#shop{align-items:flex-start;padding-top:max(10px,env(safe-area-inset-top));padding-bottom:max(10px,env(safe-area-inset-bottom))}
+#shop .panel{margin:auto;flex:none}
+@media(prefers-reduced-motion:reduce){.heroChoice,.shopItem,.shopTab{transition:none!important}}
 </style>
 </head>
 <body>
@@ -318,7 +325,7 @@ function loadWardrobe(){
  return{coins:Number.isFinite(raw.coins)?Math.max(0,Math.min(999999,Math.floor(raw.coins))):0,owned,equipped,hero};
 }
 let wardrobe=loadWardrobe(),shopCategory='outfit',shopReturn='home',emoteUntil=0,emoteLabel='',celebrationBursts=[];
-selectedSkin=wardrobe.hero;
+selectedSkin=wardrobe.hero;settingColor=[0,5,3,4][wardrobe.hero];
 function saveWardrobe(){try{localStorage.setItem(STORE_KEY,JSON.stringify({coins:wardrobe.coins,owned:[...wardrobe.owned],equipped:wardrobe.equipped,hero:wardrobe.hero}));}catch(e){}}
 function awardCoins(amount){
  const n=Math.max(0,Math.min(400,Math.floor(Number(amount)||0)));if(!n)return 0;
@@ -334,7 +341,10 @@ function buyOrEquip(id){
 }
 function setHero(i){
  if(!Number.isInteger(i)||i<0||i>=HEROES.length)return false;
- selectedSkin=i;wardrobe.hero=i;saveWardrobe();renderHeroPicker();
+ selectedSkin=i;wardrobe.hero=i;settingColor=[0,5,3,4][i];
+ const swatches=document.querySelectorAll('#colors button');
+ swatches.forEach((el,j)=>{if(j===settingColor)el.classList.add('active');else el.classList.remove('active');});
+ saveWardrobe();renderHeroPicker();
  return true;
 }
 function refreshWallet(){
@@ -911,7 +921,7 @@ $('shopTabs').onclick=e=>{const node=e.target.closest('[data-tab]');if(node){sho
 $('shopGrid').onclick=e=>{const node=e.target.closest('[data-buy]');if(node)buyOrEquip(node.dataset.buy);};
 renderHeroPicker();refreshWallet();
 
-COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Color '+(i+1));b.style.background=col;b.className=i===0?'active':'';b.onclick=()=>{settingColor=i;document.querySelectorAll('#colors button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('colors').append(b);});
+COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Color '+(i+1));b.style.background=col;b.className=i===settingColor?'active':'';b.onclick=()=>{settingColor=i;document.querySelectorAll('#colors button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('colors').append(b);});
 $('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';
 fit();window.addEventListener('resize',fit);
 let last=performance.now(),acc=0;
