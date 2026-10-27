@@ -118,6 +118,24 @@ h1 span{color:#7bffe1;display:block}
 #missionAction:disabled{opacity:.55}
 #demoMove{position:absolute;bottom:max(193px,env(safe-area-inset-bottom) + 172px);left:9px;display:none;z-index:20;gap:3px;grid-template-columns:repeat(3,35px);grid-template-rows:repeat(2,36px)}
 #demoMove button{padding:4px;font-size:16px;background:#0d3049e8;color:white;border:1px solid #6cbac9;border-radius:8px}
+#flagIntro{border:1px solid #47b7a9;border-radius:16px;background:#0b2636;padding:12px;margin:10px 0 15px}
+#flagIntro p{font-size:13px}
+#tacticalPanel{position:absolute;bottom:max(13px,env(safe-area-inset-bottom));left:10px;right:10px;padding:14px;border-radius:18px;background:linear-gradient(148deg,#081a2df2,#124058f2);border:1px solid #81e9e3;z-index:30;pointer-events:auto;display:none;box-shadow:0 0 25px #01182580}
+#tacticalStep{font-size:16px;font-weight:950;color:#ffe7a6;letter-spacing:.2px}
+#tacticalHelp{font-size:12px;color:#e7fff8;margin:7px 0 10px;line-height:1.45}
+#tacticalChoose{display:none;align-items:center;gap:8px;margin:7px 0}
+#tacticalChoose label{font-size:10px;font-weight:800;flex:1}
+#tacticalChoose select{background:#163347;color:#fff;border:1px solid #5ed2cb;border-radius:8px;padding:9px;flex:2}
+.tacticalButtons{display:flex;gap:7px}
+.tacticalButtons button{flex:1;font-size:12px;padding:12px 8px}
+#tacticalConfirm{display:none}
+#tacticalUndo{max-width:108px}
+#tacticalPanel #tacticalMark{background:linear-gradient(125deg,#ffeab6,#ffbb62)}
+#missionObjective{top:max(148px,env(safe-area-inset-top) + 132px);background:#07172aaa;border-radius:12px;padding:8px}
+#missionObjective strong{font-size:clamp(13px,3.4vw,18px)}
+#missionObjective span{line-height:1.4}
+#botGuide{top:24%;font-size:12px;opacity:.95}
+#tacticalPanel~#combat{display:none}
 </style></head>
 <body>
 <section id="home"><main>
@@ -129,15 +147,12 @@ h1 span{color:#7bffe1;display:block}
 <div class="tags"><b>🎯 APUNTADO REAL</b><b>👹 CRIATURAS 3D</b><b>📍 25 CELDAS</b><b>💣 BOMBA CAOS</b></div>
 <label for="mode" class="eyebrow">ELEGÍ TU MISIÓN</label>
 <select id="mode"><optgroup label="7 MISIONES NUEVAS"><option value="invasion">⚔️ INVASIÓN EN CASA · 75 s</option><option value="loot">💰 BOTÍN MALDITO · 90 s</option><option value="timewarp">⏳ TIEMPO ROTO · 60 s</option><option value="refuge">🛡️ EL ÚLTIMO REFUGIO · 75 s</option><option value="mutant">⚡ CAOS MUTANTE · 90 s</option><option value="colossus">👹 COLOSOS 360 · 3 jefes</option><option value="ctf">🚩 CAPTURA LA BANDERA · 150 s</option></optgroup><optgroup label="MISIONES CLÁSICAS"><option value="survival">SUPERVIVENCIA 360 · 90 s</option><option value="infinite">CAOS INFINITO · sin límite</option><option value="reflex">REFLEJOS EXTREMOS · 60 s</option><option value="joker">EL BURLÓN · 75 s</option><option value="boss">JEFE FINAL · 90 s</option></optgroup></select>
-<div id="flagPlanner" aria-label="Editor táctico para Captura la Bandera" style="display:none">
- <strong class="eyebrow">🚩 PERSONALIZÁ TU BATALLA</strong>
- <p class="note">Seleccioná dónde está tu base, la bandera enemiga y los 6 o 7 puntos donde aparecen rivales. Las distancias se miden en metros desde el piso calibrado.</p>
- <div class="flagTools"><button type="button" data-flag-tool="base">🛡️ MI BASE</button><button type="button" data-flag-tool="flag">🚩 BANDERA</button><button type="button" data-flag-tool="spawn">🔴 ENEMIGOS</button></div>
- <svg id="flagMap" viewBox="0 0 300 300" aria-label="Plano editable de las bases y puntos de aparición"></svg>
- <p id="flagPlannerHint" class="note" role="status"></p>
- <div class="flagTools"><button id="flagSix" type="button">6 PUNTOS</button><button id="flagSeven" type="button">7 PUNTOS</button><button id="flagReset" type="button">↻ REINICIAR</button></div>
- <span class="eyebrow" id="flagCount">7 ENTRADAS ENEMIGAS</span>
- <p class="note">La disposición se conserva para esta configuración, pero en una nueva sesión AR hay que volver a fijar el origen espacial. No cruces muebles ni corras mirando la pantalla.</p>
+<div id="flagIntro" style="display:none" aria-label="Configuración táctica en realidad aumentada">
+ <strong class="eyebrow">🎯 AHORA ARMÁS EL CAMPO EN AR</strong>
+ <p>Fijá el piso y colocá TU BASE (desde donde está el teléfono), la BANDERA y cada punto enemigo mirando el suelo y tocando <b>MARCAR</b>. No hay posiciones automáticas ocultas.</p>
+ <label for="tacticalCount">Cantidad de entradas enemigas</label>
+ <select id="tacticalCount"><option value="6">6 puntos enemigos</option><option value="7" selected>7 puntos enemigos</option></select>
+ <p class="note">En cada punto elegís el tipo: soldado, perseguidor, araña, criatura, pesado o aleatorio. Podés corregir con DESHACER antes de confirmar el mapa.</p>
  </div>
 <div class="buttons"><button id="startAR" class="gold">📷 ENTRAR EN REALIDAD AUMENTADA</button><button id="startDemo" class="secondary">🎮 ENTRENAMIENTO 3D SIN CÁMARA</button>
 <a href="/salas.html?game=rodeados-360" class="secondary">👥 SALAS DE 2 A 4 · BETA ESPACIAL</a></div>
@@ -155,7 +170,13 @@ h1 span{color:#7bffe1;display:block}
 <div id="touch" aria-label="Mover, agrandar, achicar y girar pista"></div><div id="placementHelp" role="status"></div><button id="manualPlace">📍 COLOCAR PISTA MANUALMENTE</button>
 <svg id="cellsvg" xmlns="http://www.w3.org/2000/svg" aria-label="Elegí tu celda"></svg>
 <div id="reticle"></div><div id="shotPulse" aria-hidden="true"></div><div id="botGuide" role="status"></div><div id="hitCross">✕</div><div id="damageFlash"></div><div id="waveBanner" role="status"></div><div id="combo"></div><div id="radarWrap"><canvas id="radar" width="216" height="216" aria-label="Radar de robots a 360 grados"></canvas><span>360° · VOS</span></div><div id="warning"></div><div id="online"></div>
-<div id="calControls"><button id="smaller" class="secondary">−</button><button id="size" class="secondary" disabled>2,60 m</button><button id="larger" class="secondary">+</button><button id="turn" class="secondary">↻ 15°</button><button id="refreshFloor">🎯 CENTRAR EN EL PISO</button><button id="lock" class="gold">📍 FIJAR PISTA</button></div>
+<div id="tacticalPanel" role="group" aria-label="Colocación táctica real en realidad aumentada">
+ <div id="tacticalStep">1 · TU BASE</div>
+ <div id="tacticalHelp">Colocate donde querés empezar y tocá MARCAR MI BASE.</div>
+ <div id="tacticalChoose"><label for="tacticalKind">ENEMIGO DE ESTA ENTRADA</label>
+ <select id="tacticalKind"><option value="basic">SOLDADO</option><option value="flanker">PERSEGUIDOR</option><option value="spider">ARAÑA</option><option value="creep">CRIATURA</option><option value="tank">PESADO</option><option value="random">ALEATORIO</option></select></div>
+ <div class="tacticalButtons"><button id="tacticalUndo" class="secondary" type="button">↶ DESHACER</button><button id="tacticalMark" class="gold" type="button">📍 MARCAR MI BASE</button><button id="tacticalConfirm" class="gold" type="button">✅ CONFIRMAR MAPA</button></div>
+ </div><div id="calControls"><button id="smaller" class="secondary">−</button><button id="size" class="secondary" disabled>2,60 m</button><button id="larger" class="secondary">+</button><button id="turn" class="secondary">↻ 15°</button><button id="refreshFloor">🎯 CENTRAR EN EL PISO</button><button id="lock" class="gold">📍 FIJAR PISTA</button></div>
 <div id="cellControls"><div id="calprogress"><i id="calfill"></i></div><button id="center" class="secondary">👣 ESTOY EN LA CELDA CENTRAL</button><button id="begin" class="gold" disabled>▶ ¡DEFENDERME!</button><button id="changeCell" class="secondary">📍 ELEGIR OTRA CELDA</button></div>
 <div id="actions"><button id="recal" class="secondary">🎯 RECALIBRAR</button><button id="resume" class="gold">▶ CONTINUAR</button></div>
 <button id="missionAction" type="button" aria-label="Interactuar con el objetivo">🚩 RECOGER</button><div id="demoMove"><div></div><button type="button" data-demo-move="forward">▲</button><div></div><button type="button" data-demo-move="left">◀</button><button type="button" data-demo-move="back">▼</button><button type="button" data-demo-move="right">▶</button></div><div id="ammo">∞  BALAS</div><div id="weaponLabel" aria-live="polite">✦ PISTOLA DE ENERGÍA</div><div id="combat"><button id="bomb" aria-label="Lanzar Bomba Caos, explosión de área">💣 BOMBA CAOS</button><button id="special">⚡ EMP</button><button id="fire">◎ DISPARAR</button></div>
