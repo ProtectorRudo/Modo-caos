@@ -332,7 +332,10 @@ function addScenery(s,def){
  const avoid=[{x:0,z:1.2,r:.75},s.checkpoint&&{...s.checkpoint,r:.65},
   ...(s.mission?.rescues||[]).map(r=>({...r,r:.68})),
   ...s.map.runes.map(r=>({...r,r:.62})),
-  ...s.map.boxes.filter(b=>b.alive).map(b=>({...b,r:.52}))].filter(Boolean);
+  ...s.map.boxes.filter(b=>b.alive).map(b=>({...b,r:.52})),
+  s.mission?.exit&&{...s.mission.exit,r:.58},
+  s.mission?.reactor&&{...s.mission.reactor,r:.66},
+  ...s.map.checkpoints.map(c=>({...c,r:.46}))].filter(Boolean);
  if(avoid.some(p=>Math.hypot(p.x-x,p.z-z)<radius+p.r))return null;
  if(s.map.walkways.some(w=>{
   const dx=w.x2-w.x1,dz=w.z2-w.z1,len2=dx*dx+dz*dz;
@@ -369,10 +372,29 @@ function moveEnemies(s,dt){
  if(e.type==='patrol'){let tx=focus?p.x:e.baseX+Math.sin(e.t)*.75,tz=focus?p.z:e.baseZ;let len=Math.hypot(tx-e.x,tz-e.z)||1;e.x+=clamp((tx-e.x)/len*.74*dt,-.1,.1);e.z+=clamp((tz-e.z)/len*.74*dt,-.1,.1)}
  else if(e.type==='defender'){e.x=e.baseX+Math.sin(e.t*.7)*.25;e.z=e.baseZ}
  }
- if(focus&&e.type==='thrower'&&e.attack<=0){e.attack=2.8;emit(s,'enemyFire',{id:e.id});s.projectiles.push({x:e.x,y:1.35,z:e.z,vx:(p.x-e.x)/Math.max(.5,d)*2.9,vz:(p.z-e.z)/Math.max(.5,d)*2.9,life:2.9})}
+ // Ground enemies also have physical bodies: KAI slides around them
+  // instead of visibly passing through their chest.
+  if(e.type!=='flying'&&Math.abs(p.y-e.y)<.94){
+   const dx=p.x-e.x,dz=p.z-e.z,d=Math.hypot(dx,dz);
+   if(d<.51){
+    const nx=d>.0001?dx/d:1,nz=d>.0001?dz/d:0;
+    p.x=e.x+nx*.51;p.z=e.z+nz*.51;
+    const toward=p.vx*nx+p.vz*nz;
+    if(toward<0){p.vx-=toward*nx;p.vz-=toward*nz}
+   }
+  }
+  if(focus&&e.type==='thrower'&&e.attack<=0){e.attack=2.8;emit(s,'enemyFire',{id:e.id});s.projectiles.push({x:e.x,y:1.35,z:e.z,vx:(p.x-e.x)/Math.max(.5,d)*2.9,vz:(p.z-e.z)/Math.max(.5,d)*2.9,life:2.9})}
  if(d<(e.type==='flying'?.62:.58)&&p.y<e.y+.9&&e.stun<=0)damage(s,e.type);
  }
- for(const q of s.projectiles){q.x+=q.vx*dt;q.z+=q.vz*dt;q.life-=dt;if(Math.hypot(p.x-q.x,p.z-q.z)<.35&&Math.abs(p.y+.4-q.y)<1){damage(s,'projectile');q.life=0}}
+ for(const q of s.projectiles){
+  q.x+=q.vx*dt;q.z+=q.vz*dt;q.life-=dt;
+  // Enemy bolts hit stone and tree trunks, never magically pass through.
+  if((s.map.scenery||[]).some(o=>o.enabled!==false&&
+   Math.hypot(q.x-o.x,q.z-o.z)<o.radius+.08&&q.y>o.y&&q.y<o.y+o.height)){
+    q.life=0;continue;
+  }
+  if(Math.hypot(p.x-q.x,p.z-q.z)<.35&&Math.abs(p.y+.4-q.y)<1){damage(s,'projectile');q.life=0}
+ }
  s.projectiles=s.projectiles.filter(q=>q.life>0);
 }
 function updateBoss(s,dt){
