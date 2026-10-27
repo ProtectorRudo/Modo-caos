@@ -434,14 +434,26 @@ function updateMotion(t,pose){
  const local=art.root.worldToLocal(THREEVec(p.x,p.y,p.z));
  const next=THREEVec(local.x+calOffset.x,0,local.z+calOffset.z);
  if(!Number.isFinite(next.x)||!Number.isFinite(next.z))return;
- if(Math.hypot(next.x-game.player.x,next.z-game.player.z)>1.45&&stage==='playing'){
+ const travel=Math.hypot(next.x-game.player.x,next.z-game.player.z);
+ if(game.mode!=='ctf'&&travel>1.45&&stage==='playing'){
   game.paused=true;setPhase('paused');notice('CAMBIO BRUSCO DE POSICIÓN · RECALIBRÁ',3);return;
  }
- if(stage==='playing'&&(Math.abs(next.x)>(game.mode==='ctf'?8:floorSize*.5+.35)||Math.abs(next.z)>(game.mode==='ctf'?8:floorSize*.5+.35))){
-   game.paused=true;setPhase('paused');hint('VOLVÉ A LA ZONA DESPEJADA · SIN CORRER');
-   notice('⚠ FUERA DE LA ARENA SEGURA · RECALIBRÁ',3);return;
-  }
-  playerPos.lerp(next,.32);
+ // The original 2.6 m platform is only the CTF HOME BASE, not a movement
+ // boundary. Requiring RECALIBRAR when approaching a flag outside it made
+ // the mode impossible to finish. Preserve the XR world anchor unchanged.
+ if(game.mode!=='ctf'&&stage==='playing'&&
+    (Math.abs(next.x)>floorSize*.5+.35||Math.abs(next.z)>floorSize*.5+.35)){
+  game.paused=true;setPhase('paused');hint('VOLVÉ A LA ZONA DESPEJADA · SIN CORRER');
+  notice('⚠ FUERA DE LA ARENA SEGURA · RECALIBRÁ',3);return;
+ }
+ if(game.mode==='ctf'&&travel>2.2){
+  // Smooth a sudden AR relocalization without teleporting the player or
+  // resetting / moving the anchored flag; walking keeps working.
+  const factor=Math.min(1,1.3/travel);
+  next.x=game.player.x+(next.x-game.player.x)*factor;
+  next.z=game.player.z+(next.z-game.player.z)*factor;
+ }
+ playerPos.lerp(next,game.mode==='ctf'?.52:.32);
  G.movePlayer(game,{x:playerPos.x,z:playerPos.z});lastTracked=t;
 }
 function countdownBegin(){
