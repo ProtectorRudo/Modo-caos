@@ -131,7 +131,7 @@ function newStage(){
   const collider=stage.registerSolid(data.obj,data);
   // If this decorative physical obstacle would block a required path,
   // remove THAT prop instead of leaving a ghost/pass-through object.
-  if(!collider&&data.kind!=='column'&&data.obj)data.obj.visible=false;
+  if(!collider&&data.obj)data.obj.visible=false;
  }
  const stageRef=stage;
  // Native, bundled CC0 assets never block controls. Keep the original art if any GLB cannot load.
