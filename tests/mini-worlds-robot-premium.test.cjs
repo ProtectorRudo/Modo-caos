@@ -29,5 +29,5 @@ assert(runtime.includes('stage.finish?.update(game,dt,elapsed)'),'effects must a
 assert(pocket.includes('dynamicAlways')&&pocket.includes('reindex()'),'immutable XR room contract');
 assert(finish.includes("world.add(holder)")&&finish.includes("stage.hero.root.add(finish)"),'effects must be world anchored');
 assert(!finish.includes('camera.position')&&!finish.includes('world.position.z='),'visual effects cannot re-anchor XR');
-assert(html.includes('mini-worlds-finish.js')&&html.includes('zorro aventurero')&&html.includes('DISPARAR'),'fox UI missing');
+assert(html.includes('mini-worlds-finish.js')&&html.includes('KAI debe rescatar habitantes')&&html.includes('DISPARAR'),'fox UI missing');
 console.log('MINI WORLDS fox blaster: original stylized fox, weapon, physical projectile engine and anchored scenery: PASS');
