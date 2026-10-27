@@ -28,7 +28,7 @@ export function createTacticalPlanner({G, $,getGame,getRay,getArena,isDemo,onCom
   let x,z;
   if(isDemo()&&v.y>=-.10){
    const h=Math.hypot(v.x,v.z)||1;
-   const range=!draft.base?0.45:!draft.flag?1.12:3.35;
+   const range=!draft.base?0.08:!draft.flag?1.12:3.35;
    x=o.x+v.x/h*range;z=o.z+v.z/h*range;
   }else{
    if(v.y>=-.10)return aim=null;
