@@ -23,7 +23,7 @@
  const point=(p,fallback,bound)=>p&&Number.isFinite(p.x)&&Number.isFinite(p.z)?
   {x:+clamp(p.x,-bound,bound).toFixed(3),z:+clamp(p.z,-bound,bound).toFixed(3)}:{...fallback};
  function normalizeFlagPlan(plan,arena=2.6){
-  const limit=Math.max(.72,arena/2-.19);
+  const limit=Math.max(.72,arena/2-.08);
   const base=point(plan?.base,{x:0,z:limit*.72},limit);
   let flag=point(plan?.flag,{x:0,z:-limit*.72},limit);
   if(d(base,flag)<.9)flag={x:0,z:base.z>0?-limit:limit};
@@ -203,6 +203,13 @@
    if(boss){
     const phase=boss.hp>boss.maxHp*.62?1:boss.hp>boss.maxHp*.27?2:3;
     if(phase>m.bossPhase){m.bossPhase=phase;event(m,'⚠ GIGANTE EN FASE '+phase);boss.stun=.25}
+    // Distinct pressure curve: recovery + aggression, never a cosmetic-only phase.
+    if(m.bossPhase===2)boss.attackCD=Math.min(boss.attackCD,1.2);
+    else if(m.bossPhase===3){boss.attackCD=Math.min(boss.attackCD,.82);
+     if(boss.portal<=0&&boss.stun<=0){const dx=g.player.x-boss.x,dz=g.player.z-boss.z,L=Math.hypot(dx,dz);
+      if(L>2.65){boss.x+=dx/L*.20*dt;boss.z+=dz/L*.20*dt;orientAwayFromPhone(g,boss)}
+     }
+    }
    }else if(m.bossIndex>=3)missionWin(g,'colosos_derrotados');
   }
   if(g.phase==='finished'&&g.finishedReason==='tiempo'){
@@ -289,7 +296,10 @@
    case 'invasion':return {text:'PORTALES · OLEADA '+(g.wave||1),detail:m.signal};
    case 'loot':return {text:'BOTÍN '+m.loot+'/5 · '+remain+'s',detail:m.signal,button:'💰 EXTRAER',canAct:m.loot>0};
    case 'timewarp':return {text:g.elapsed<m.slowUntil?'⏳ TIEMPO ROTO ACTIVO':'⏳ ACTIVÁ EMP',detail:m.signal};
-   case 'refuge':return {text:'REACTOR '+Math.ceil(m.reactor)+'% · '+m.stations.filter(x=>x.active).length+'/3',detail:m.signal,button:'⚡ ACTIVAR',canAct:true};
+   case 'refuge':{
+     const left=m.stations.filter(p=>!p.active),closest=left.length?Math.min(...left.map(p=>objectiveDistance(g,p))):Infinity;
+     return {text:'REACTOR '+Math.ceil(m.reactor)+'% · '+m.stations.filter(x=>x.active).length+'/3',detail:left.length?(closest<.46?'⚡ ESTACIÓN ALCANZADA · ACTIVÁ':'ACERCATE A ESTACIÓN · '+closest.toFixed(1)+' m'):'✅ 3 ESTACIONES ACTIVADAS · DEFENDÉ EL NÚCLEO',button:'⚡ ACTIVAR',canAct:closest<.46};
+   }
    case 'mutant':return {text:'⚡ '+m.mutation,detail:m.signal};
    case 'colossus':return {text:'COLOSOS '+Math.min(3,m.bossIndex)+'/3 · FASE '+m.bossPhase,detail:m.signal};
    case 'ctf':{
