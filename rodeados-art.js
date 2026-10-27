@@ -602,6 +602,26 @@ export function createRodeadosArt(THREE,scene,camera){
   tactical.visible=currentWeapon==='tactical';plasma.visible=currentWeapon==='plasma';
  }
  setWeaponTier('pistol');
+ let fpsArms=null;
+ function setFPSArms(source){
+  try{
+   if(!source||!source.isObject3D)return false;
+   const box=new THREE.Box3().setFromObject(source);
+   const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+   if(!Number.isFinite(size.x)||size.x<.02||size.y<.02||size.z<.01)return false;
+   const ratio=Math.min(.69/size.x,.65/size.y,.95/size.z,1.5);
+   if(!Number.isFinite(ratio)||ratio<=0)return false;
+   const holder=new THREE.Group();
+   source.scale.setScalar(ratio);
+   source.position.set(-center.x*ratio,-center.y*ratio,-center.z*ratio);
+   holder.position.set(0,-.27,.03);
+   holder.rotation.x=-.22;
+   holder.add(source);rifle.add(holder);
+   if(fpsArms)rifle.remove(fpsArms);
+   fpsArms=holder;gloves.visible=false;
+   return true;
+  }catch(e){console.warn('FPS model unavailable, retaining original hands',e);return false}
+ }
  const gunM=material(0x202d3a,.8,.27),gunEdge=material(0x677c8f,.75,.24);
  part(rifle,gunM,[0,-.055,-.36],[.17,.16,.58]);
  part(rifle,gunEdge,[0,.022,-.42],[.18,.055,.29]);
@@ -647,7 +667,7 @@ export function createRodeadosArt(THREE,scene,camera){
   return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,spiders,variants,
    robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
- return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,getRobotAdapterStatus,
+ return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setFPSArms,getRobotAdapterStatus,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
    darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
    scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity),
