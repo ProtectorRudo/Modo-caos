@@ -276,3 +276,9 @@ No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones
 **Pruebas:** `node tests/mini-worlds-missions.test.cjs`; la CI de rama `.github/workflows/mini-worlds-premium.yml` ejecuta además las 13 suites originales y sintaxis de módulos. Testea progresión/rescate, acceso al portal, reactor con daño físico y derrota, jefe protegido y cristales, límites de tiempo y ausencia de manipulación de worldAnchor; no equivale a una prueba física Android.
 
 **Pendiente para producción:** rendimiento real de los nuevos objetivos en WebXR/ARCore, visualización real de cada isla, lectura del minimapa en Android, experiencia de una misión completa con usuario, balance y sonido contextual. El modelo 3D exacto KAI de Sketchfab sigue sin poder descargarse de forma autenticada (documentado arriba): la rama utiliza un zorro 3D original, no el asset exacto.
+
+### Instrucciones de misión antes de jugar — 27/10/2026
+- `readyCard` se abre para **las 3 misiones**, en modo 3D y tras fijar el mundo en AR. Muestra nombre, objetivo, límite de tiempo, **3 pasos breves** y desafío opcional. La misión se toma de `MiniWorldsMissions.MISSIONS[id].steps` y `.bonus`, no de texto genérico.
+- Única acción: **«¡ENTENDIDO, A JUGAR!»**. El contador se pone en marcha solo en `C.start(game)` y el panel se oculta en `layout('playing')` sin emitir un nuevo anuncio que tape la escena.
+- Después del botón solo queda el HUD de progreso y minimapa que el jugador puede cerrar. La tarjeta vuelve a aparecer al reiniciar o al pasar a otra misión, sin duplicar los pasos. `fixWorld` ya no sobrescribe el título de misión con «MUNDO FIJADO».
+- Pruebas agregadas al test de misiones, cubriendo las tres guías, botón, punto de activación del reloj y visibilidad del panel. **Pendiente** QA visual en teléfono.
