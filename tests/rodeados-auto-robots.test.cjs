@@ -77,11 +77,18 @@ const server=http.createServer((req,res)=>{
      'bundled rigged FPS arms must actually load without user interaction');
    assert(ready.models[2].triangles>0,'CC0 stalker GLB must load locally: '+JSON.stringify(ready.models));
    assert(ready.models[3].triangles>0,'CC0 champion GLB must load locally: '+JSON.stringify(ready.models));
+   assert.deepEqual([...ready.weapons.loaded].sort(),['enemy','pistol','plasma','tactical'],
+      'all four CC0 Quaternius assets must load from bundled GLBs: '+JSON.stringify(ready.weapons));
+   assert.deepEqual([...ready.weaponSources].sort(),['pistol','plasma','tactical'],
+      'all 3 first-person tiers must use real gun meshes, not procedural blocks');
+   assert.deepEqual(ready.weapons.unavailable,[],'no missing CC0 weapon downloads');
   }
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:11000});
   const shown=await page.evaluate(()=>__RodeadosAutoRobots.status);
   assert(shown.external>=2,'new imported models must replace original visuals at round start: '+JSON.stringify(shown));
+  assert(Number.isInteger(shown.handMountedWeapons)&&shown.handMountedWeapons>=0,
+    'any enemy gun must pass a right-hand joint check, never use floating chest gun');
   assert(shown.variants.standard>=2&&shown.variants.heavy===0,
     'quarantined model must never render with broken headset; stable armed soldiers must remain: '+JSON.stringify(shown.variants));
   await page.locator('#fire').tap();
