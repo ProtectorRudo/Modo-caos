@@ -138,10 +138,10 @@ function countAreas(){
  for(const p of game.people){p.area=counts[p.id];p.score=100*p.area/landCount;}game.ordered=game.people.filter(p=>p.alive).sort((a,b)=>b.area-a.area);
 }
 function reset(){
- clock=0;lastHud=-1;land.fill(0);trails.fill(0);game={people:[],ordered:[],kills:0,started:0,record:0};let player={x:CX,y:CY};
+ clock=0;lastHud=-1;land.fill(0);trails.fill(0);game={people:[],ordered:[],kills:0,started:0,record:0,lastArea:0};let player={x:CX,y:CY};
  game.people.push(makePerson(0,player));base(game.people[0],6);
  for(let i=1;i<12;i++){const pos=spawnPoint();const p=makePerson(i,pos);game.people.push(p);base(p,random(3.5,5)|0);}
- countAreas();updateMap();camX=CX;camY=CY;desiredAngle=null;pointer=null;keys={};mode='play';
+ countAreas();game.lastArea=game.people[0].area;updateMap();camX=CX;camY=CY;desiredAngle=null;pointer=null;keys={};mode='play';
  $('home').classList.add('hidden');$('result').classList.add('hidden');$('paused').classList.add('hidden');$('hud').style.display='block';$('controls').style.opacity='1';$('msg').classList.remove('show');game.started=clock;
  showHud();setTimeout(()=>{$('controls').style.opacity='.5'},2400);
 }
@@ -152,7 +152,7 @@ function clearTrail(p){
 function death(p,killer=-1){
  if(!p.alive)return;
  clearTrail(p);p.alive=false;
- for(let k=0;k<SIZE;k++)if(land[k]===p.id+1)land[k]=0;
+ if(p.id!==0){for(let k=0;k<SIZE;k++)if(land[k]===p.id+1)land[k]=0;}
  updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;popup('¡ELIMINACIÓN!');audio('kill');vibrate(30);}}
  if(p.id===0){audio('death');vibrate([80,70,110]);end(false);}else{p.respawn=clock+random(1.8,3.8);countAreas();}
 }
@@ -308,7 +308,7 @@ function end(win){
  try{localStorage.setItem('territoryloop_best',String(best));}catch(e){}
  $('finaltitle').textContent=win?'¡DOMINASTE EL MAPA!':'TE CORTARON LA ESTELA';
  $('finalscore').textContent=p.score.toFixed(1)+'%';$('finaldesc').textContent=win?'¡Conquistaste todo el territorio!':'Una estela descubierta es una invitación para tus rivales. ¡Volvé por la revancha!';
- $('finalkills').textContent=game.kills;$('finalbest').textContent=best.toFixed(1)+'%';$('finalrank').textContent='#'+(game.ordered.findIndex(q=>q.id===0)+1||12);
+ $('finalkills').textContent=game.kills;$('finalbest').textContent=best.toFixed(1)+'%';$('finalrank').textContent='#'+(1+game.people.filter(q=>q.id!==0&&q.area>p.area).length);
  $('result').classList.remove('hidden');$('hud').style.display='none';
 }
 function readBest(){try{return Number(localStorage.getItem('territoryloop_best'))||0;}catch(e){return 0;}}
