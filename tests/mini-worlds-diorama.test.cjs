@@ -64,7 +64,7 @@ for(let level=0;level<2;level++){
  assert.equal(diorama.patchGroups.length,2,'instances must be batched into two visible chapters');
  assert(diorama.objects.length>=14,'each island should have a sculpted cliff rim');
  const rims=diorama.objects.flatMap(x=>x.children||[]).filter(x=>x.geometry?.attributes?.position);
- assert(rims.length>=12,'real vertex-colored cliffs must be present');
+ assert.equal(rims.length,map.platforms.filter(p=>p.kind!=='bridge').length,'every non-bridge island should have a real sculpted cliff');
  const instances=diorama.patchGroups.flatMap(g=>g.children).filter(x=>x.isInstancedMesh);
  assert(instances.length>=6,'multiple shared instanced flower, shrub and stone packs');
  assert(instances.every(x=>x.count<190),'must cap AR instance counts for mid-range Android');
