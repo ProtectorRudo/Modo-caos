@@ -46,51 +46,63 @@
     '}'
   ].join('\n');
   const srcFragment = [
-    'precision mediump float;',
-    'uniform float uTime, uKind, uTarget, uPreview, uEnergy;',
-    'uniform vec3 uEye;',
-    'varying vec3 vNormal, vWorld, vTint;',
-    'varying vec2 vUV;',
-    'varying float vColorId;',
-    'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
-    'void main(){',
-    ' vec3 N=normalize(vNormal);',
-    ' vec3 V=normalize(uEye-vWorld);',
-    ' vec3 L=normalize(vec3(-0.38,0.83,0.47));',
-    ' float diff=max(dot(N,L),0.0);',
-    ' float spec=pow(max(dot(N,normalize(L+V)),0.0),35.0);',
-    ' float fres=pow(1.0-max(dot(N,V),0.0),3.0);',
-    ' float b=hash(floor(vUV*vec2(250.0,175.0)));',
-    ' float milling=0.035*sin(vUV.y*490.0)+0.024*b;',
-    ' float focus=1.0-step(0.25,abs(vColorId-uTarget));',
-    ' float wave=0.5+0.5*sin(uTime*4.4-vUV.x*3.5+vUV.y*4.7);',
-    ' vec3 col=vec3(0.0);float a=1.0;',
-    ' if(uKind<0.5){',
-    '  vec3 steel=vec3(0.067,0.115,0.157);',
-    '  float edge=0.31+0.62*diff+0.25*fres+milling;',
-    '  col=steel*edge+vec3(0.48,0.62,0.72)*spec*0.57;',
-    '  col+=vTint*(0.025+focus*0.05);',
-    ' }else if(uKind<1.5){',
-    '  float grid=max(smoothstep(0.978,1.0,abs(sin(vUV.x*14.0))),smoothstep(0.978,1.0,abs(sin(vUV.y*14.0))));',
-    '  float brushed=0.045*sin(vUV.x*155.0)*sin(vUV.y*81.0);',
-    '  float sheen=pow(max(dot(N,normalize(L+V)),0.0),54.0);',
-    '  float pulse=focus*(0.08+0.13*wave);',
-    '  col=vTint*(0.39+0.23*diff+0.27*fres+0.13*wave+pulse)+vec3(0.92,0.98,1.0)*sheen*0.49;',
-    '  col=col*(1.0-0.11*grid)+brushed;',
-    '  col+=vec3(0.09,0.13,0.18)*pow(1.0-vUV.y,8.0);',
-    '  a=mix(1.0,0.87,uPreview);',
-    ' }else if(uKind<2.5){',
-    '  col=vTint*(0.75+0.19*wave+focus*0.21);',
-    '  col+=vec3(0.18,0.24,0.26)*spec;',
-    ' }else if(uKind<3.5){',
-    '  col=vec3(0.0,0.035,0.048); a=mix(0.17,0.29,abs(vUV.y));',
-    ' }else{',
-    '  col=vTint*(0.19+0.12*wave+focus*0.10);',
-    '  a=(0.30+focus*0.11)*uEnergy;',
-    ' }',
-    ' col=max(col,vec3(0.0));',
-    ' gl_FragColor=vec4(min(col,vec3(1.0)),a);',
-    '}'
+    "precision mediump float;",
+    "uniform float uTime, uKind, uTarget, uPreview, uEnergy;",
+    "uniform vec3 uEye;",
+    "varying vec3 vNormal, vWorld, vTint;",
+    "varying vec2 vUV;",
+    "varying float vColorId;",
+    "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}",
+    "void main(){",
+    " vec3 N=normalize(vNormal),V=normalize(uEye-vWorld);",
+    " vec3 L=normalize(vec3(-0.38,0.83,0.47));",
+    " vec3 L2=normalize(vec3(0.62,0.42,-0.62));",
+    " float ndl=max(dot(N,L),0.0),ndv=max(dot(N,V),0.0);",
+    " float fres=pow(1.0-ndv,3.0);",
+    " float h1=pow(max(dot(N,normalize(L+V)),0.0),58.0);",
+    " float h2=pow(max(dot(N,normalize(L2+V)),0.0),115.0);",
+    " float grain=hash(floor(vUV*vec2(155.0,131.0)))-.5;",
+    " float focus=1.0-step(0.3,abs(vColorId-uTarget));",
+    " float pulse=0.5+0.5*sin(uTime*4.0);",
+    " vec3 col=vec3(0.0);",
+    " float a=1.0;",
+    " if(uKind<0.5){",
+    "   // Brushed graphite alloy, two soft studio highlights and machined finish.",
+    "   float brushed=0.010*sin(vUV.y*330.0)+0.014*grain;",
+    "   vec3 steel=vec3(0.15,0.19,0.23);",
+    "   float ambient=0.34+0.52*ndl+0.18*fres;",
+    "   col=steel*(ambient+brushed);",
+    "   col+=vec3(.61,.78,.87)*h1*.35+vec3(.20,.48,.63)*h2*.22;",
+    "   col+=vTint*(.025+.018*focus);",
+    " }else if(uKind<1.5){",
+    "   // Dense lacquered glass, not perforated plastic.",
+    "   vec2 uv=vUV;",
+    "   float rim=max(abs(uv.x-.5),abs(uv.y-.5))*2.0;",
+    "   float depth=smoothstep(.45,1.0,rim);",
+    "   float barrel=1.0-smoothstep(.0,.52,length(uv-vec2(.5)));",
+    "   float studio=1.0-smoothstep(.026,.17,abs(uv.y-(.82-.27*uv.x)));",
+    "   float studio2=1.0-smoothstep(.01,.11,abs(uv.y-(.25-.09*uv.x)));",
+    "   float spot=pow(max(dot(N,normalize(L+V)),0.0),73.0);",
+    "   float grainGlass=0.006*grain;",
+    "   float iris=.08+.07*barrel;",
+    "   float focusBoost=focus*(.05+.10*pulse);",
+    "   col=vTint*(.64+.20*ndl+.10*fres+iris-depth*.19+focusBoost+grainGlass);",
+    "   col+=vec3(.82,.97,1.0)*(studio*.20+studio2*.075+spot*.24);",
+    "   col+=vTint*.07*pow(fres,1.4);",
+    "   a=mix(1.0,.88,uPreview);",
+    " }else if(uKind<2.5){",
+    "   // Thin lightpipe integrated into the glass bezel.",
+    "   col=vTint*(.67+.09*pulse+.20*focus);",
+    "   col+=vec3(.14,.22,.24)*h1;",
+    " }else if(uKind<3.5){",
+    "   col=vec3(.004,.012,.022);",
+    "   a=.22;",
+    " }else{",
+    "   col=vTint*(.24+.14*pulse+.16*focus);",
+    "   a=(.24+.15*focus)*uEnergy;",
+    " }",
+    " gl_FragColor=vec4(clamp(col,0.0,1.0),a);",
+    "}",
   ].join('\n');
 
   const starVS=[
@@ -186,23 +198,23 @@
     }
     for(let i=0;i<25;i++){
       const x=i%5-2,z=(i/5|0)-2,ci=tileColors[i],c=rgbPalette[ci]||rgbPalette[0];
-      quad('shadows',id(x-.478,-.016,z-.478),id(x+.478,-.016,z-.478),
-        id(x+.478,-.016,z+.478),id(x-.478,-.016,z+.478),id(0,1,0),c,ci);
-      box('metal',x,z,.926,.926,0,.053,c,ci);
-      ring('metal',x,z,.466,.393,.053,.082,c,ci);
-      quad('glass',id(x-.390,.080,z-.390),id(x+.390,.080,z-.390),
-        id(x+.390,.080,z+.390),id(x-.390,.080,z+.390),id(0,1,0),c,ci);
-      const e=.400,h=.087,th=.012;
+      quad('shadows',id(x-.468,-.014,z-.468),id(x+.468,-.014,z-.468),
+        id(x+.468,-.014,z+.468),id(x-.468,-.014,z+.468),id(0,1,0),c,ci);
+      box('metal',x,z,.936,.936,0,.041,c,ci);
+      ring('metal',x,z,.467,.429,.042,.073,c,ci);
+      quad('glass',id(x-.426,.061,z-.426),id(x+.426,.061,z-.426),
+        id(x+.426,.061,z+.426),id(x-.426,.061,z+.426),id(0,1,0),c,ci);
+      const e=.425,h=.075,th=.007;
       // Clear, readable glass centers: no distracting neon crosses.
       // Glass edge luminescence
-      box('light',x,z-.390,.780,.010,.084,.095,c,ci);
-      box('light',x,z+.390,.780,.010,.084,.095,c,ci);
-      box('light',x-.390,z,.010,.780,.084,.095,c,ci);
-      box('light',x+.390,z,.010,.780,.084,.095,c,ci);
+      box('light',x,z-.426,.852,.007,.070,.076,c,ci);
+      box('light',x,z+.426,.852,.007,.070,.076,c,ci);
+      box('light',x-.426,z,.007,.852,.070,.076,c,ci);
+      box('light',x+.426,z,.007,.852,.070,.076,c,ci);
       // Four rivet cavities and corner clamps
       for(const s of [-1,1])for(const q of [-1,1]){
-        box('metal',x+s*.435,z+q*.435,.040,.036,.053,.078,c,ci);
-        box('aura',x+s*.434,z+q*.434,.015,.016,.080,.083,c,ci);
+        box('metal',x+s*.446,z+q*.446,.029,.029,.042,.077,c,ci);
+        box('aura',x+s*.446,z+q*.446,.009,.009,.078,.081,c,ci);
       }
     }
     // Compact sci-fi arena frame; less than 8cm virtual height above surface.
