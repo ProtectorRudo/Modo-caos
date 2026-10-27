@@ -6,7 +6,6 @@
 root.MiniWorldsAssets=function(T){
  const BASE='./assets/mini-worlds/kenney/';
  const models=[
- 'tree-palmdetailedtall','tree-palmbend','tree-palmshort','tree-detailed',
  'plant-bushdetailed','grass-leafslarge','flower-yellowb','rock-largea',
  'rock-tallb','stone-largeb','cliff-waterfall-rock','bridge-woodround',
  'canoe','campfire-stones','crate','crate-strong','coin-gold','star','chest'
@@ -64,7 +63,12 @@ root.MiniWorldsAssets=function(T){
    const rock=/^(rock-|stone-|cliff-waterfall-rock)/.test(name);
    const solid=tree||rock||name==='campfire-stones';
    if(solid&&stage.registerSolid){
-    const radius=tree?.19:rock?Math.min(.42,.15+height*.18):.18;
+    // Real scaled mesh footprint, not a fixed decorative guess. Broadleaf
+    // canopies are excluded; the trunk is slender. Stone blocks use the
+    // max horizontal half-width, capped conservatively for mobile gameplay.
+    const size=new T.Vector3();
+    new T.Box3().setFromObject(obj).getSize(size);
+    const radius=tree?.16:rock?Math.min(.52,Math.max(.15,Math.max(size.x,size.z)*.40)):.18;
     const collider=stage.registerSolid(obj,{x,y,z,height:Math.max(.25,height),radius,kind:tree?'tree':rock?'rock':'prop'});
     if(!collider){obj.parent?.remove(obj);return}
    }
@@ -79,9 +83,10 @@ root.MiniWorldsAssets=function(T){
     // Decorative pieces stay on the outside rim, clear of the avatar corridor and enemies.
     // Leave a clear playable corridor. Scenic vegetation should frame a
     // memorable vista, not bury the knight under dozens of palm crowns.
-    if(i%2===0)flora(i%4?'tree-palmbend':'tree-palmdetailedtall',x-wx-.26,height,z+wz*.22,1.27+random()*.24,random()*6.28);
-    if(i%3===0)flora('tree-palmshort',x+wx+.25,height,z-wz*.36,1.0+random()*.18,random()*6.28);
-    flora('plant-bushdetailed',x+wx+.15,height,z+(random()-.5)*p.d*.75,.37+random()*.15,random()*6.28);
+    // No stacked Kenney toy trees: native slender cypress already provides
+    // canopy silhouettes with real collision. The nature pack adds only
+    // low plants and flowers, well away from the player's eye line.
+    if(i%3===0)flora('plant-bushdetailed',x+wx+.12,height,z+(random()-.5)*p.d*.65,.26+random()*.08,random()*6.28);
     flora(i%2?'flower-yellowb':'grass-leafslarge',x-wx+.18,height,z+(random()-.5)*p.d*.75,.23+random()*.1,random()*6.28);
    }
    if(p.kind==='ruins'||p.kind==='waterfall'||p.kind==='arena'){
@@ -89,13 +94,13 @@ root.MiniWorldsAssets=function(T){
     pick('rock-tallb',x+wx+.33,height-.22,z+.25,.68+random()*.22,random()*6.28);
     if(i%2===0)pick('rock-largea',x+wx+.18,height-.06,z+.16,.36+random()*.11,random()*6.28);
    }
-   if(level&&i===3){flora('tree-detailed',x-wx-.65,height-.1,z,2.05,.3);flora('tree-detailed',x+wx+.5,height,z-.5,1.50,2)}
+   // Deliberately omit the former 2.05 m broadleaf tree which blocked KAI.
   }
   const beach=tiles[0],camp=tiles[1],bridge=tiles[2],waterfall=tiles[6];
   pick('canoe',beach.x-3.1,-.56,beach.z+1.3,.75,.3);
   pick('campfire-stones',camp.x+camp.w/2+.42,camp.y,camp.z+.15,.55,.23);
   pick('bridge-woodround',bridge.x-bridge.w/2-1.3,bridge.y-.15,bridge.z+.15,.54,.8);
-  pick('cliff-waterfall-rock',waterfall.x+waterfall.w/2+.26,waterfall.y-.12,waterfall.z-.50,.88,1.4);
+  // No oversized waterfall block: it previously concealed the fox and could not be accurately occupied.
   // Replace primitive pickups with actual textured 3D assets. Hitboxes and
   // collectible IDs belong to MiniWorldsCore and never depend on the model.
   const replace=(original,name,height)=>{
