@@ -26,5 +26,9 @@ const art=fs.readFileSync(path.join(__dirname,'..','mini-worlds-assets.js'),'utf
 assert.ok(html.includes('mini-worlds-assets.js'));
 assert.ok(html.includes('type="importmap"'));
 assert.ok(runtime.includes('MiniWorldsAssets(T).decorate'));
-for(const name of names)assert.ok(art.includes("'"+name+"'"),name+' is not referenced by scene loader');
+const excluded=['tree-palmdetailedtall','tree-palmbend','tree-palmshort','tree-detailed'];
+for(const name of names.filter(n=>!excluded.includes(n)))
+ assert.ok(art.includes("'"+name+"'"),name+' should be available to the scene loader');
+for(const name of excluded)
+ assert(!art.includes("'"+name+"'"),'toy-like giant-tree mesh must never load in AR: '+name);
 console.log('MINI WORLDS assets: '+names.length+' valid CC0 GLB files ('+bytes+' bytes), wired to renderer.');
