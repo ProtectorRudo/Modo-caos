@@ -58,6 +58,11 @@ export function createRodeadosMissionArt(THREE,world){
  const core=beacon(refugeRoot,{x:0,z:-.4},cyan,1.7);
  const reactor=mesh(core,new THREE.IcosahedronGeometry(.37,1),cyan,0,.66,0);
  const shield=mesh(core,new THREE.IcosahedronGeometry(.55,1),glow(0x23b6ff,.17),0,.66,0);
+ const stations=[{x:-.96,z:-.82},{x:.96,z:-.82},{x:0,z:1.0}].map((p,i)=>{
+  const b=beacon(refugeRoot,p,gold,.8);
+  mesh(b,new THREE.BoxGeometry(.17,.16,.17),gold,0,.33,0);
+  return b;
+ });
  const ctfBase=beacon(ctfRoot,{x:0,z:.8},blue,1.6);
  const ctfFlag=flag(ctfRoot,{x:0,z:-.8},red);
  const spawnBeacons=Array.from({length:7},()=>beacon(ctfRoot,{x:7,z:7},red,.45));
@@ -88,6 +93,10 @@ export function createRodeadosMissionArt(THREE,world){
    lootBase.visible=true;
   }
   if(mode==='refuge'){
+   stations.forEach((b,i)=>{const active=!!m.stations?.[i]?.active;
+    b.scale.setScalar(active?1.22:1+.07*Math.sin(tick*3+i));
+    b.children.forEach(mesh=>{if(mesh.material?.emissive)mesh.material.emissiveIntensity=active?1.2:.2});
+   });
    const hp=Math.max(0,m.reactor)/100;
    reactor.scale.setScalar(1+.08*Math.sin(tick*3));
    shield.scale.setScalar(1+Math.sin(tick*2)*.08);
