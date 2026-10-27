@@ -4,6 +4,7 @@ on:
     paths:
       - 'color-solo.html'
       - 'color-pro-3d.js'
+      - 'color-pro-finish.js'
       - 'color-premium-art.js'
       - 'color-premium.css'
       - 'tests/color*visual*.cjs'
@@ -12,7 +13,7 @@ on:
       - '.github/workflows/color-rush-visual.yml'
   push:
     branches:
-      - 'design/color-rush-pro-3d-20261027'
+      - 'design/color-rush-pro-polish-20261027'
     paths:
       - 'color-solo.html'
       - 'color-pro-3d.js'
@@ -39,6 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           node --check color-pro-3d.js
+          node --check color-pro-finish.js
           node --check color-premium-art.js
           node tests/color-premium-visual.test.cjs
           node tests/color-pro3d-smoke.test.cjs
