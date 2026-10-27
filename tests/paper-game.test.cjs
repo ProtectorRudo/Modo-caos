@@ -26,7 +26,7 @@ function boot(seed=419){
  const loc={search:'?qa=1',href:'https://example.test/paper.html'};
  const storage=new Map();
  // Instrument test sandbox only; production game source remains unchanged.
- const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R,territoryLoops,updateMap,grantRewards,REWARDS};\\n// Read-only diagnostics:'.replace('\\n','\n'));
+ const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R,territoryLoops,updateMap,grantRewards,REWARDS,buyOrEquip,awardCoins,setHero,saveWardrobe,loadWardrobe,wardrobe,SHOP_ITEMS,celebrateAt};\\n// Read-only diagnostics:'.replace('\\n','\n'));
  const browser=Function('document','window','location','performance','requestAnimationFrame','innerWidth','innerHeight','devicePixelRatio','localStorage','navigator','setTimeout','URLSearchParams','Math',instrumented);
  browser(doc,win,loc,{now:()=>now},fn=>frame=fn,430,850,1,
   {getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))},{vibrate(){}},()=>{},URLSearchParams,fakeMath);
@@ -56,6 +56,8 @@ test('12 agents, territory HUD and pause controls initialize',()=>{
 });
 test('a real closed circuit captures interior cells and raises player percentage',()=>{
  const g=boot(419);g.get('start').onclick();const first=g.win.territoryQA.area;
+ // Isolate terrain capture from combat RNG: dedicated enemy AI tests run independently.
+ for(const rival of g.win.__paperTest.getGame().people.slice(1)){rival.alive=false;rival.respawn=99999;}
  const points=[[1265,1118],[1280,968],[975,967],[973,1265],[1118,1118]];
  let n=0,last=0,captured=false;let previousOutside=false;
  for(let i=0;i<1100;i++){
@@ -198,4 +200,64 @@ test('arcade portraits and player scale are original vector and CSS geometry',()
  assert.match(source,/\.portraitMech\.skin3/);
  assert.match(source,/#rewardToast\.visible/);
  assert.match(source,/id="railTarget"|class="railTarget"/);
+});
+
+test('original heroes each have a distinct identity and can be selected',()=>{
+ const g=boot(419);
+ assert.match(source,/name:'NOVA'/);assert.match(source,/name:'BOMBO'/);
+ assert.match(source,/name:'KIRA'/);assert.match(source,/name:'RAYO'/);
+ const h=g.win.__paperTest;
+ assert.equal(h.setHero(2),true);
+ assert.equal(h.wardrobe.hero,2);
+ assert.match(g.get('heroDetails').innerHTML,/estratega/);
+ assert.equal(h.setHero(-1),false);
+ assert.equal(h.wardrobe.hero,2);
+});
+test('store will never charge for insufficient funds or charge twice',()=>{
+ const g=boot(419),h=g.win.__paperTest;
+ const id='outfit_armor';
+ const price=h.SHOP_ITEMS.find(x=>x.id===id).price;
+ assert.equal(h.buyOrEquip(id),false);
+ assert.equal(h.wardrobe.coins,0);
+ h.awardCoins(price+30);
+ assert.equal(h.buyOrEquip(id),true);
+ assert.equal(h.wardrobe.coins,30);
+ assert.equal(h.wardrobe.equipped.outfit,id);
+ assert.equal(h.buyOrEquip(id),true);
+ assert.equal(h.wardrobe.coins,30);
+ assert.equal(h.loadWardrobe().equipped.outfit,id);
+});
+test('wardrobe balance and equipped emote persist into fresh match',()=>{
+ const g=boot(419),h=g.win.__paperTest;
+ h.awardCoins(160);
+ assert.equal(h.buyOrEquip('emote_laugh'),true);
+ const saved=h.loadWardrobe();
+ assert.equal(saved.coins,75);
+ assert.equal(saved.equipped.emote,'emote_laugh');
+ g.get('start').onclick();
+ assert.equal(h.getGame().people.length,12);
+ assert.equal(h.wardrobe.equipped.emote,'emote_laugh');
+ assert.match(g.get('rank').innerHTML,/portraitMech/);
+});
+test('game grants currency on conquest and elimination, without real-money checkout',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const h=g.win.__paperTest,game=h.getGame();
+ const start=h.wardrobe.coins;
+ const enemy=game.people[1];enemy.protectedUntil=-1;
+ h.death(enemy,0);
+ assert.ok(h.wardrobe.coins>=start+25);
+ assert.ok(game.earnedCoins>=25);
+ assert.doesNotMatch(source,/stripe\.com|mercadopago\.com|paypal\.com/i);
+});
+test('shop has four cosmetic categories with a close action',()=>{
+ const g=boot(419);
+ assert.match(source,/id="shopGrid"/);
+ assert.match(source,/id="shopTabs"/);
+ assert.match(source,/id="openShopHome"/);
+ assert.equal(g.get('openShopHome').onclick instanceof Function,true);
+ g.get('openShopHome').onclick();
+ assert.match(g.get('shopGrid').innerHTML,/outfit_cap/);
+ g.get('closeShop').onclick();
+ assert.match(source,/celebration_confetti/);
+ assert.match(source,/trail_rainbow/);
 });
