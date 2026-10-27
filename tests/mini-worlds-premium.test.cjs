@@ -53,13 +53,14 @@ function stage(level){
  const tropical=await Premium(T,{loadModel:fakeLoader}).decorate(a,0);
  assert.equal(tropical.loaded,4);
  assert.equal(tropical.failed,0);
- assert(tropical.placed>=12&&tropical.canopies>=9,'tropical level must contain actual artist GLBs');
+ assert(tropical.canopies>=2&&tropical.canopies<=5,'forest needs a few genuine canopies, never a dozen giant ones');
+ assert(tropical.placed>=tropical.canopies,'other art can enhance the restrained canopies');
  assert.equal(a.kenneyFoliage.visible,false,'duplicate Kenney canopy hidden only once loaded');
  assert.equal(a.proceduralHidden,true);
  const b=stage(1);
  const cliff=await Premium(T,{loadModel:fakeLoader}).decorate(b,1);
  assert.equal(cliff.loaded,7);
- assert(cliff.placed>=12,'cliff level should include medieval ruins');
+ assert(cliff.placed>=5&&cliff.canopies<=5,'cliff level should include medieval ruins without giant forest overlap');
  assert(b.root.children[0].children.length>0);
  const noNet=stage(0);
  const fail=await Premium(T,{loadModel:async()=>{throw Error('network offline')}}).decorate(noNet,0);
@@ -85,6 +86,8 @@ function stage(level){
  assert(!race.premiumNativeActive,'disposed scene must not enable new art');
  assert(html.includes('mini-worlds-premium.js'),'browser must load module');
  assert(original.includes('MiniWorldsPremium(T).decorate(stageRef,level)'));
+ assert(src.includes('const restricted=[')&&src.includes('stage.mission?.rescues'),'trees must leave rescue and relay corridors clear');
+ assert(src.includes('diameter>1.45'),'imported tree widths must be constrained, not only height');
  assert(original.includes('stage.disposePremium?.()'));
  assert(kenney.includes('KENNEY FOLIAGE FALLBACK')&&kenney.includes('premiumNativeActive'));
  console.log('MINI WORLDS premium: 4 Quaternius + 3 KayKit CC0 GLBs, tropical/cliff layouts, offline/partial/network-race fallback — PASS');
