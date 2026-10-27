@@ -87,7 +87,7 @@ const UPRIGHT_CLIPS=Object.freeze({
  idle:['idle','ready_idle','aim_idle'],
  walk:['walk','ready_walk','aim_walk'],
  dash:['run','sprint','ready_run','aim_run'],
- attack:['melee','shoot','ready_idle'],
+ attack:['aim_shoot','rifle_shoot','shoot','ready_shoot','fire','aim_idle','ready_idle','melee'],
  stun:['hit','idle'],
  taunt:['ready_idle','idle']
 });
@@ -157,6 +157,13 @@ export function buildAdapter(THREE,gltf,meta){
       next?.reset().fadeIn(.12).play();active=next;
      }
      mixer?.update(delta);
+     // The firing posture keeps a two-handed upright silhouette. Small
+     // recoil is applied AFTER the clip updates actual bones, never replacing
+     // skinned animation with a cartoon whole-body wobble.
+     if(active&&state==='attack'){
+      for(const j of joints)if(j.axis==='arm')
+       j.bone.rotation.x-=Math.max(0,Math.sin(now*22))*.035;
+     }
      // Non-animated rig: use actual skeleton joints, not a wobbling cube.
      if(!active){
       const t=now*7+e.id*.6,walking=state==='walk'||state==='dash';
