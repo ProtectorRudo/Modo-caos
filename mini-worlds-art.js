@@ -19,6 +19,24 @@ function groundTexture(kind,seed){
   g.globalAlpha=.055+random()*.22;
   g.beginPath();g.ellipse(x,y,size*(kind==='grass'?.55:1.35),size,random()*Math.PI,0,Math.PI*2);g.fill();
  }
+ // Soft mineral fissures and erosion: procedural canvas detail baked once,
+ // not costly shaders or repeated sprites on mobile WebXR.
+ if(kind==='stone'){
+  g.globalAlpha=.13;g.strokeStyle='#343f3c';g.lineWidth=1.35;
+  for(let i=0;i<82;i++){
+   let x=random()*512,y=random()*512;
+   g.beginPath();g.moveTo(x,y);
+   for(let k=0;k<4;k++){x+=(random()-.5)*29;y+=random()*17;g.lineTo(x,y)}
+   g.stroke();
+  }
+ }
+ if(kind==='sand'){
+  g.globalAlpha=.12;g.strokeStyle='#675a46';g.lineWidth=.8;
+  for(let i=0;i<120;i++){
+   const x=random()*512,y=random()*512;
+   g.beginPath();g.moveTo(x,y);g.lineTo(x+4+random()*15,y+random()*2);g.stroke();
+  }
+ }
  g.globalAlpha=.15;
  if(kind==='grass')for(let i=0;i<760;i++){
   const x=random()*512,y=random()*512;
@@ -165,7 +183,7 @@ function platform(root,p,rand){
  if(p.kind==='ruins')g.userData.ruins=addRuins(g,p.w*.28,.02,-p.d*.20);
  // Waterfall region is now a natural stone clearing, without any
  // unregistered cyan polygon or freestanding toy obelisk.
- if(p.kind==='arena'){let ring=mesh(new T.TorusGeometry(1.95,.07,8,64),M.gold,0,.04,0,g);ring.rotation.x=-P/2;
+ if(p.kind==='arena'){let ring=mesh(new T.TorusGeometry(1.95,.05,8,64),M.gold,0,.04,0,g);ring.rotation.x=-P/2;
  for(let i=0;i<8;i++){const a=i*P/4;const ob=mesh(cyl(.08,.14,.45,7),M.stone,Math.cos(a)*2.28,.16,Math.sin(a)*2.05,g);ob.rotation.z=(rand()-.5)*.2}}
  return g;
 }
