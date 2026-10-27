@@ -122,7 +122,7 @@ root.MiniWorldsPremium=function(T,options={}){
   const restricted=[{x:0,z:1.2},...(stage.mission?.rescues||[]),
     ...(stage.map.runes||[])];
   const safe=(x,z,r)=>restricted.every(p=>Math.hypot(x-p.x,z-p.z)>r);
-  const patches=[3,6,9,12];
+  const patches=[]; // no Quaternius spherical shrub crowns
   for(let i=0;i<patches.length;i++){
     const p=stageTiles[patches[i]];if(!p)continue;
     const x=p.x+(i%2?-.5:.5)*p.w+.10;
