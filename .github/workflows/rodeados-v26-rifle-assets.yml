@@ -1,0 +1,77 @@
+name: RODEADOS V26 - vendor CC0 Poly Haven rifle
+on:
+  push:
+    branches: [feat/rodeados-v26-rifle-screen-space]
+    paths: ['.github/workflows/rodeados-v26-rifle-assets.yml']
+  workflow_dispatch:
+permissions: {contents: write}
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: true}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - name: Download authoritative CC0 1K rifle glTF and textures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import requests, pathlib, hashlib, json
+          asset='bolt_action_rifle_7_62'
+          root=pathlib.Path('/tmp/mc-pbr-rifle');root.mkdir(parents=True,exist_ok=True)
+          client=requests.Session()
+          client.headers.update({'User-Agent':'ModoCaosAR/1.0'})
+          r=client.get(f'https://api.polyhaven.com/files/{asset}',timeout=35);r.raise_for_status()
+          data=r.json();print('types:',list(data))
+          obj=data.get('gltf',{}).get('1k',{})
+          record=obj.get('gltf',obj)
+          if not isinstance(record,dict) or 'url' not in record: raise RuntimeError('No official 1K gltf model')
+          files=[('bolt_action_rifle_7_62.gltf',record)]
+          files.extend((name,v) for name,v in record.get('include',{}).items() if isinstance(v,dict) and v.get('url'))
+          for name,entry in files:
+            dest=(root/name).resolve()
+            if not dest.is_relative_to(root.resolve()):raise RuntimeError('unsafe file path')
+            dest.parent.mkdir(parents=True,exist_ok=True)
+            response=client.get(entry['url'],timeout=100);response.raise_for_status()
+            buf=response.content
+            if entry.get('md5') and hashlib.md5(buf).hexdigest()!=entry['md5']:raise RuntimeError('invalid md5: '+name)
+            if entry.get('size') and len(buf)!=entry['size']:raise RuntimeError('invalid size: '+name)
+            dest.write_bytes(buf)
+            print('downloaded',name,len(buf))
+          model=json.loads((root/'bolt_action_rifle_7_62.gltf').read_text())
+          print('MESHCHECK',len(model.get('meshes',[])),'NODES',[(n.get('name'),n.get('mesh')) for n in model.get('nodes',[])][:45])
+          assert len(model.get('meshes',[]))>=1
+          PY
+      - name: Convert and downsize PBR to mobile GLB
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts @gltf-transform/cli@4.5.1
+          mkdir -p assets/rodeados
+          ./node_modules/.bin/gltf-transform copy /tmp/mc-pbr-rifle/bolt_action_rifle_7_62.gltf /tmp/mc-rifle.glb
+          ./node_modules/.bin/gltf-transform resize /tmp/mc-rifle.glb assets/rodeados/player-pbr-rifle.glb --width 640 --height 640
+      - name: Check final GLB and size
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,struct
+          f=pathlib.Path('assets/rodeados/player-pbr-rifle.glb');b=f.read_bytes()
+          assert b[:4]==b'glTF' and struct.unpack_from('<II',b,4)==(2,len(b))
+          assert len(b)<10_000_000,('GLB too heavy',len(b))
+          n,kind=struct.unpack_from('<I4s',b,12);assert kind==b'JSON'
+          d=json.loads(b[20:20+n]);assert d.get('meshes') and d.get('materials')
+          print('Ready PBR rifle:',len(b),'bytes',len(d['meshes']),'meshes',len(d['materials']),'materials')
+          PY
+      - name: Commit actual licensed asset to feature branch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/rodeados/player-pbr-rifle.glb
+          if ! git diff --cached --quiet; then
+            git commit -m 'assets(rodeados): include CC0 1K PBR bolt-action rifle'
+            git push origin HEAD:feat/rodeados-v26-rifle-screen-space
+          fi
