@@ -10,7 +10,7 @@ export function createTacticalPlanner({G, $,getGame,getRay,getArena,isDemo,onCom
   const p=draft,i=p.spots.length,step=!p.base?'base':!p.flag?'flag':i<p.count?'spawn':'confirm';
   $('tacticalStep').textContent=step==='base'?'1 · TU BASE':step==='flag'?'2 · BANDERA ENEMIGA':step==='spawn'?'3 · ENTRADA ENEMIGA '+(i+1)+'/'+p.count:'4 · REVISÁ Y CONFIRMÁ';
   $('tacticalHelp').textContent=step==='base'?'APUNTÁ AL PISO DONDE QUERÉS EMPEZAR. TOCÁ MARCAR.':
-   step==='flag'?'APUNTÁ AL PISO DONDE VA A ESTAR LA BANDERA, AL MENOS A 1 METRO DE TU BASE.':
+   step==='flag'?'LA BANDERA VA FUERA DE TU BASE: APUNTÁ A UN PISO LEJANO (MÍNIMO 2,35 METROS). PODÉS MOVERTE PARA ELEGIR EL PUNTO.':
    step==='spawn'?'ELEGÍ EL TIPO Y EL LUGAR DE ESTA ENTRADA. DEBE QUEDAR A MÁS DE 2,65 METROS DE TU BASE.':
    'LOS MARCADORES ESTÁN FIJOS AL PISO. CONFIRMÁ PARA EMPEZAR.';
   $('tacticalChoose').style.display=step==='spawn'?'flex':'none';
@@ -28,14 +28,14 @@ export function createTacticalPlanner({G, $,getGame,getRay,getArena,isDemo,onCom
   let x,z;
   if(isDemo()&&v.y>=-.10){
    const h=Math.hypot(v.x,v.z)||1;
-   const range=!draft.base?0.08:!draft.flag?1.12:3.35;
+   const range=!draft.base?0.08:!draft.flag?3.45:3.75;
    x=o.x+v.x/h*range;z=o.z+v.z/h*range;
   }else{
    if(v.y>=-.10)return aim=null;
-   const t=-o.y/v.y;if(t<.25||t>13)return aim=null;
+   const t=-o.y/v.y;if(t<.25||t>24)return aim=null;
    x=o.x+v.x*t;z=o.z+v.z*t;
   }
-  if(Math.max(Math.abs(x),Math.abs(z))>5.1)return aim=null;
+  if(Math.max(Math.abs(x),Math.abs(z))>8)return aim=null;
   return aim={x:+x.toFixed(2),z:+z.toFixed(2)};
  }
  function mark(){
@@ -44,10 +44,14 @@ export function createTacticalPlanner({G, $,getGame,getRay,getArena,isDemo,onCom
   if(!at){onNotice('🎯 INCLINÁ EL TELÉFONO HACIA EL PISO PARA MARCAR',3);return}
   const limit=getArena()/2-.12;
   if(!p.base||!p.flag){
-   if(Math.max(Math.abs(at.x),Math.abs(at.z))>limit){onNotice('⚠ PUNTO FUERA DEL TABLERO · BUSCÁ LA CUADRÍCULA',3);return}
-   if(!p.base)p.base={...at};
-   else if(dist(p.base,at)<1){onNotice('⚠ SEPARÁ LA BANDERA POR LO MENOS 1 METRO',3);return}
-   else p.flag={...at};
+   if(!p.base){
+    if(Math.max(Math.abs(at.x),Math.abs(at.z))>limit){onNotice('⚠ TU BASE DEBE QUEDAR EN LA CUADRÍCULA INICIAL',3);return}
+    p.base={...at};
+   }else{
+    if(dist(p.base,at)<2.35){onNotice('⚠ BANDERA MUY CERCA · ALEJALA AL MENOS 2,35 METROS',3);return}
+    if(Math.max(Math.abs(at.x),Math.abs(at.z))<=getArena()/2+.12){onNotice('⚠ LA BANDERA DEBE ESTAR FUERA DE TU BASE',3);return}
+    p.flag={...at};
+   }
   }else if(p.spots.length<p.count){
    if(dist(p.base,at)<2.65){onNotice('⚠ ENEMIGO DEMASIADO CERCA DE TU BASE',3);return}
    if(p.spots.some(v=>dist(v,at)<.40)){onNotice('⚠ LOS DOS PUNTOS ENEMIGOS SE SUPERPONEN',3);return}
