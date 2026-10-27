@@ -82,19 +82,19 @@ const server=http.createServer((req,res)=>{
    assert.deepEqual([...ready.weaponSources].sort(),['pistol','plasma','tactical'],
       'all 3 first-person tiers must use real gun meshes, not procedural blocks');
    assert.deepEqual(ready.weapons.unavailable,[],'no missing CC0 weapon downloads');
-   assert.equal(ready.weapons.pbrLoaded,true,
-     '1K textured Poly Haven CC0 PBR hero pistol must be installed, not low-poly fallback: '+JSON.stringify(ready.weapons));
+   assert.equal(ready.weapons.rifleLoaded,true,
+     '1K textured Poly Haven CC0 PBR rifle must be installed, not small pistol: '+JSON.stringify(ready.weapons));
    await page.locator('#startDemo').click();
    await page.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:10000});
    await page.waitForFunction(()=>__RodeadosDebug.viewWeapon?.framing?.inView,null,{timeout:6000});
    const hero=await page.evaluate(()=>__RodeadosDebug.viewWeapon.framing);
-   assert.equal(hero.source,'polyhaven-cc0-pbr','first-person hero weapon must use Poly Haven textured GLB');
-   assert(hero.center.x>.30&&hero.center.y<-.24,
-     'weapon should be bottom-right and off the crosshair: '+JSON.stringify(hero));
+   assert.equal(hero.source,'polyhaven-pbr-762-rifle','first-person weapon must be a realistic CC0 rifle');
+   assert(Math.abs(hero.center.x)<.22&&hero.center.y<-.20,
+     'large rifle should occupy lower center below crosshair: '+JSON.stringify(hero));
    assert(hero.meshCount>=4,'realistic gun includes metal/slide/grip geometry: '+JSON.stringify(hero));
    assert(hero.dominantVisible===true,
      'photorealistic pistol must be substantively visible, unobstructed and above HUD: '+JSON.stringify(hero));
-   assert(hero.coverage>=.90&&hero.bounds.right<.85&&hero.bounds.bottom>-.65,
+   assert(hero.coverage>=.90&&hero.bounds.right<.66&&hero.bounds.bottom>-.88,
      'pistol must fit the portrait safe rectangle, not just touch the right edge: '+JSON.stringify(hero));
 
   }
