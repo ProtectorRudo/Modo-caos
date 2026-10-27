@@ -365,12 +365,9 @@ function makeStage(map){
  // shows through every opening without covering the route.
  // Adventure 2 is a stormy cliff journey with glowing stones, high rock needles and relics.
  if(map.n===1){
-  for(let i=0;i<22;i++){
-   const z=-1-i*1.04,x=(i%2?1:-1)*(2.9+rand()*2.3);
-   let cliff=addRock(root,x,-.2,z,.5+rand()*.45);cliff.scale.y=1.5+rand()*2.8;
-   if(i%3===0){let crystal=mesh(geoCone(.14,.68,6),M.purple,x,.4,z,root);crystal.rotation.z=.26;}
-  }
-  addRuins(root,-2.3,1,-15.7);addRuins(root,2.15,.8,-19);
+  // Old off-route cliff sculptures had no matching physics and read as
+  // toy decorations. The ancient-sentinel art module supplies real, solid
+  // ruins instead. Keep only lightweight intangible floating relics below.
   for(let i=0;i<7;i++){
    let obj=mesh(new T.IcosahedronGeometry(.14+rand()*.08,0),M.gold,Math.sin(i*2.8)*3,2.1+rand()*1.3,-4-i*2.6,root);
    obj.userData.hover=true;
