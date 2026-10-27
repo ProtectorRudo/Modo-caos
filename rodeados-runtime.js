@@ -537,51 +537,24 @@ function pause(){
  function cacheLiveAim(frame,t){
   if(!xrSession||!frame||!space)return;
   try{
-   // Use the SAME projection/view matrix as the WebXR compositor. The
-   // reticle is at the middle of that projection; it is not guaranteed to be
-   // the XRFrame pose's unprojected -Z vector (asymmetric AR viewport).
-   // Projecting NDC center onto the actual eye is crucial on Android.
-   const xrCam=renderer.xr.getCamera(camera);
-   const eye=xrCam?.cameras?.[0]||xrCam;
-   if(!eye)throw Error('XR view camera missing');
-   eye.updateMatrixWorld(true);
+   const pose=frame.getViewerPose(space);
+   if(!pose)return;
    art.root.updateMatrixWorld(true);
-   const origin=new THREE.Vector3(),onReticle=new THREE.Vector3(0,0,.5);
-   eye.getWorldPosition(origin);
-   onReticle.unproject(eye);
-   const dir=onReticle.sub(origin).normalize();
+   const p=pose.transform.position,q=pose.transform.orientation;
+   const origin=THREEVec(p.x,p.y,p.z);
+   const dir=THREEVec(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));
    const localOrigin=art.root.worldToLocal(origin);
-   const localDirection=dir.applyQuaternion(art.root.getWorldQuaternion(new THREE.Quaternion()).invert()).normalize();
-   if(![localOrigin.x,localOrigin.y,localOrigin.z,localDirection.x,localDirection.y,localDirection.z].every(Number.isFinite))
-    throw Error('Invalid view-ray');
-   latestAim={
-    origin:{x:localOrigin.x,y:localOrigin.y,z:localOrigin.z},
-    direction:{x:localDirection.x,y:localDirection.y,z:localDirection.z},
-    source:'projected-XR-reticle'
-   };
-   lastAimStamp=performance.now();
-  }catch(err){
-   // Do not read stale XRFrame in event listeners. On a view unavailable
-   // during this specific animation frame, use the current viewer pose.
-   try{
-    const pose=frame.getViewerPose(space);
-    if(!pose)return;
-    art.root.updateMatrixWorld(true);
-    const p=pose.transform.position,q=pose.transform.orientation;
-    const origin=THREEVec(p.x,p.y,p.z);
-    const dir=THREEVec(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));
-    const localOrigin=art.root.worldToLocal(origin);
-    const localDirection=dir.applyQuaternion(art.root.getWorldQuaternion(new THREE.Quaternion()).invert()).normalize();
-    if([localOrigin.x,localOrigin.y,localOrigin.z,localDirection.x,localDirection.y,localDirection.z].every(Number.isFinite)){
-     latestAim={origin:{x:localOrigin.x,y:localOrigin.y,z:localOrigin.z},
-      direction:{x:localDirection.x,y:localDirection.y,z:localDirection.z},
-      source:'viewer-pose-fallback'};
-     lastAimStamp=performance.now();
-    }
-   }catch(e){
-    aimFailures++;
-    if(aimFailures%180===1)console.warn('RODEADOS XR aiming failed',err,e);
+   const localDirection=dir.applyQuaternion(art.root.quaternion.clone().invert()).normalize();
+   if([localOrigin.x,localOrigin.y,localOrigin.z,localDirection.x,localDirection.y,localDirection.z].every(Number.isFinite)){
+    latestAim={
+     origin:{x:localOrigin.x,y:localOrigin.y,z:localOrigin.z},
+     direction:{x:localDirection.x,y:localDirection.y,z:localDirection.z}
+    };
+    lastAimStamp=performance.now();
    }
+  }catch(err){
+   aimFailures++;
+   if(aimFailures%180===1)console.warn('RODEADOS: no se pudo muestrear mira XR en fotograma activo',err);
   }
  }
  function activeRay(){
