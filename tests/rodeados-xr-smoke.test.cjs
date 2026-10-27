@@ -120,6 +120,12 @@ const server=http.createServer((req,res)=>{
  assert.equal(weapon.framing.inView,true,'some of the gun actually overlaps the physical XR viewport');
  assert(weapon.framing.center.x>.3&&weapon.framing.center.y<-.22,
    'FPS gun must be in lower right, NOT centered over the enemy: '+JSON.stringify(weapon));
+ assert(weapon.framing.dominantVisible,
+  'at least 90% of a substantial gun silhouette must fit inside safe play area, not just a tiny sliver: '+JSON.stringify(weapon));
+ assert(weapon.framing.coverage>=.9,
+  'at least 90% of actual weapon mesh must be inside portrait play area: '+JSON.stringify(weapon));
+ assert(weapon.framing.bounds.right<.85&&weapon.framing.bounds.left>0,
+  'FPS gun must not disappear into right edge or cover centered reticle: '+JSON.stringify(weapon));
 
  await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:3500});
  const start=await page.evaluate(()=>({game:__RodeadosDebug.game,meshes:__RodeadosDebug.renderedRobots}));
