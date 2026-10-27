@@ -74,16 +74,16 @@ test('loot: shooting a chest opens it, but extract requires recovered loot and r
  assert.equal(g.phase,'finished');assert.equal(g.mission.completed,true);
 });
 
-test('timewarp: EMP slows the encounter for three seconds without slowing the game clock',()=>{
+test('timewarp: EMP freezes encounter for four seconds without slowing the game clock',()=>{
  const g=G.create({mode:'timewarp',seed:7});G.begin(g);g.spawnClock=1000;
  const e=G.spawn(g,'basic');e.portal=0;e.stun=0;
  assert.equal(G.pulse(g),true);
- assert.equal(g.mission.slowUntil,3);
+ assert.equal(g.mission.slowUntil,4);
  assert.equal(g.skillCooldown,11,'timewarp refreshes EMP faster than classic');
  G.advance(g,.06);
  assert.ok(g.elapsed>.059);
  assert.ok(g.elapsed<.07);
- assert.ok(G.missionStatus(g).text.includes('ACTIVO'));
+ assert.ok(G.missionStatus(g).text.includes('CONGELADO'));
 });
 
 test('refuge: enemy attack damages the reactor, not the player shield',()=>{
