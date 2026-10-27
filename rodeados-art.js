@@ -627,6 +627,24 @@ export function createRodeadosArt(THREE,scene,camera){
  setWeaponTier('pistol');
  const corner=new THREE.Vector3();
  const safe={left:-.61,right:.64,bottom:-.86,top:-.08};
+ const aimStock=new THREE.Vector3(),aimMuzzle=new THREE.Vector3();
+ function getRifleAimMetrics(){
+  // +Z = front/muzzle of the aligned GLB, -Z = buttstock.
+  // Check actual screen projection, not just weapon intersection with frustum.
+  const length=activeWeapon.userData?.modelLength||.62;
+  rifle.updateMatrixWorld(true);weaponCamera.updateMatrixWorld(true);
+  aimStock.set(0,0,-length*.50).applyMatrix4(activeWeapon.matrixWorld).project(weaponCamera);
+  aimMuzzle.set(0,0,length*.50).applyMatrix4(activeWeapon.matrixWorld).project(weaponCamera);
+  const dx=aimMuzzle.x-aimStock.x,dy=aimMuzzle.y-aimStock.y;
+  const rx=-aimStock.x,ry=-aimStock.y,n=Math.hypot(dx,dy)*Math.hypot(rx,ry)||1;
+  return {
+   stock:{x:+aimStock.x.toFixed(3),y:+aimStock.y.toFixed(3)},
+   muzzle:{x:+aimMuzzle.x.toFixed(3),y:+aimMuzzle.y.toFixed(3)},
+   towardReticle:+((dx*rx+dy*ry)/n).toFixed(3),
+   upward:aimMuzzle.y>aimStock.y+.22,
+   muzzleCloserToReticle:Math.hypot(aimMuzzle.x,aimMuzzle.y)<Math.hypot(aimStock.x,aimStock.y)
+  };
+ }
  function measureWeapon(){
   weaponCamera.updateMatrixWorld(true);
   rifle.updateMatrixWorld(true);
@@ -659,7 +677,7 @@ export function createRodeadosArt(THREE,scene,camera){
    for(let k=0;k<8;k++){
     activeWeapon.scale.setScalar(scale);
     rifle.position.set(x,y,-1.3);
-    rifle.rotation.set(-.065,-.075,.006);
+    rifle.rotation.set(-.078,-.10,-.68);
     const b=measureWeapon();
     if(!b.front||!Number.isFinite(b.width)||b.width<=.01||b.height<=.01)break;
     const ratio=Math.min(targetW/b.width,targetH/b.height);
@@ -673,7 +691,7 @@ export function createRodeadosArt(THREE,scene,camera){
   const t=performance.now()*.001;
   activeWeapon.scale.setScalar(layout.scale);
   rifle.position.set(layout.x+Math.sin(t*1.8)*.0011,layout.y+Math.sin(t*1.3)*.0012-recoil*.012,-1.3+recoil*.027);
-  rifle.rotation.set(-.065-recoil*.08,-.075,.006);
+  rifle.rotation.set(-.078-recoil*.08,-.10,-.68);
   fallback.userData.setFiring(activeWeapon===fallback&&!!flash,t);
   for(const model of importedWeapons.values())model.userData.setFiring(activeWeapon===model&&!!flash,t);
   premiumRifle?.userData.setFiring(!!flash,t);
@@ -685,7 +703,7 @@ export function createRodeadosArt(THREE,scene,camera){
    source:premiumRifle?'polyhaven-pbr-762-rifle':activeWeapon===fallback?'safe-tactical-rifle':'quaternius-tactical-rifle',
    visible,meshCount:b.meshes,inView,dominantVisible:inView&&b.width>.65&&b.height>.30,
    coverage:+b.coverage.toFixed(3),center:{x:+b.centerX.toFixed(3),y:+b.centerY.toFixed(3),z:0},
-   bounds:{left:b.left,right:b.right,bottom:b.bottom,top:b.top},viewport:'independent-fps-pass'};
+   bounds:{left:b.left,right:b.right,bottom:b.bottom,top:b.top},viewport:'independent-fps-pass',aim:getRifleAimMetrics()};
  }
  function clear(){
   if(bombProjectile){root.remove(bombProjectile);bombProjectile=null}
