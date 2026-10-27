@@ -99,6 +99,7 @@ function newStage(){
  if(residents>=3)game.mission.seconds+=15;       // garden: extra oxygen/time
  if(residents>=5)game.player.invuln=2.4;          // observatory: brief spawn shield
  stage=window.MiniWorldsArt(T).makeStage(game.map);
+ stage.mission=game.mission;
  document.body.classList.toggle('mw-defense',missionId===1);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
  stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
