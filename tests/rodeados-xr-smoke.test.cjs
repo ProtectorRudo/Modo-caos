@@ -114,7 +114,7 @@ const server=http.createServer((req,res)=>{
  // rifle because they validated NDC 'upward' rather than on-screen pixel angle.
  await page.waitForFunction(()=>__RodeadosDebug.viewWeapon?.framing?.visible===true,null,{timeout:7500});
  const weapon=await page.evaluate(()=>__RodeadosDebug.viewWeapon);
- if(process.env.RODEADOS_AUDIT_IMAGE==='1'){
+ if(process.env.RODEADOS_AUDIT_IMAGE==='1'||(process.env.GITHUB_HEAD_REF||'').includes('rodeados-v30-fps-perspective-audit')){
   const jpg=await page.screenshot({type:'jpeg',quality:32});
   console.log('FPS_AUDIT_IMAGE_JPEG_BASE64='+jpg.toString('base64'));
  }
