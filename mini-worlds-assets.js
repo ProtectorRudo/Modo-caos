@@ -63,7 +63,12 @@ root.MiniWorldsAssets=function(T){
    const rock=/^(rock-|stone-|cliff-waterfall-rock)/.test(name);
    const solid=tree||rock||name==='campfire-stones';
    if(solid&&stage.registerSolid){
-    const radius=tree?.19:rock?Math.min(.42,.15+height*.18):.18;
+    // Real scaled mesh footprint, not a fixed decorative guess. Broadleaf
+    // canopies are excluded; the trunk is slender. Stone blocks use the
+    // max horizontal half-width, capped conservatively for mobile gameplay.
+    const size=new T.Vector3();
+    new T.Box3().setFromObject(obj).getSize(size);
+    const radius=tree?.16:rock?Math.min(.52,Math.max(.15,Math.max(size.x,size.z)*.40)):.18;
     const collider=stage.registerSolid(obj,{x,y,z,height:Math.max(.25,height),radius,kind:tree?'tree':rock?'rock':'prop'});
     if(!collider){obj.parent?.remove(obj);return}
    }
@@ -95,7 +100,7 @@ root.MiniWorldsAssets=function(T){
   pick('canoe',beach.x-3.1,-.56,beach.z+1.3,.75,.3);
   pick('campfire-stones',camp.x+camp.w/2+.42,camp.y,camp.z+.15,.55,.23);
   pick('bridge-woodround',bridge.x-bridge.w/2-1.3,bridge.y-.15,bridge.z+.15,.54,.8);
-  pick('cliff-waterfall-rock',waterfall.x+waterfall.w/2+.26,waterfall.y-.12,waterfall.z-.50,.88,1.4);
+  // No oversized waterfall block: it previously concealed the fox and could not be accurately occupied.
   // Replace primitive pickups with actual textured 3D assets. Hitboxes and
   // collectible IDs belong to MiniWorldsCore and never depend on the model.
   const replace=(original,name,height)=>{
