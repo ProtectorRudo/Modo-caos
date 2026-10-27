@@ -90,6 +90,7 @@ function makeOcean(parent,map){
    }`
  });
  const o=mesh(new T.PlaneGeometry(18.5,33,32,48),material,0,-.69,-11.35,parent);
+ o.name='MW_LARGE_TRANSPARENT_OCEAN_DEMO_ONLY';
  o.rotation.x=-P/2;o.receiveShadow=false;o.castShadow=false;o.renderOrder=-4;
  return {o,material};
 }
@@ -151,10 +152,24 @@ function platform(root,p,rand){
  if(!isBridge){
   // Worn oval footpath is inset into the real walkable ground, not a fake
   // platform. Shared high-res PBR grain adds a legible safe route.
-  const cap=mesh(new T.CircleGeometry(1,32),
-   p.kind==='ruins'||p.kind==='arena'?M.oldRoad:M.trail,0,.035,0,g);
-  cap.rotation.x=-P/2;cap.scale.set(Math.max(.4,p.w*.22),Math.max(.65,p.d*.37),1);
-  cap.castShadow=false;cap.receiveShadow=false;
+  // Irregular, inset stone-and-earth trail, rather than the large
+  // perfectly circular dark decal that looked like a shadow in screenshots.
+  // One flat world-space surface per true platform; no extra physical land.
+  const w=Math.max(.39,Math.min(.75,p.w*.23)),d=Math.max(.72,p.d*.37);
+  const outline=new T.Shape();
+  outline.moveTo(-w*.55,-d);
+  outline.lineTo(w*.27,-d*.97);
+  outline.lineTo(w*.82,-d*.64);
+  outline.lineTo(w*.66,-d*.19);
+  outline.lineTo(w*.93,d*.32);
+  outline.lineTo(w*.47,d*.88);
+  outline.lineTo(-w*.62,d);
+  outline.lineTo(-w*.96,d*.50);
+  outline.lineTo(-w*.71,-d*.36);
+  outline.closePath();
+  const cap=mesh(new T.ShapeGeometry(outline),
+   p.kind==='ruins'||p.kind==='arena'?M.oldRoad:M.trail,0,.028,0,g);
+  cap.rotation.x=-P/2;cap.castShadow=false;cap.receiveShadow=false;
  }
  // Rock rim and meadow already supplied by the batched coastline material.
  // No extra fake rocks or bright pastel flower beads clutter the playable
@@ -404,7 +419,7 @@ function makeStage(map){
   return {root:g,crystal,petals,ring};
  });
  // Cheap readable contact shadows: no expensive real-time shadow map in AR.
- const shadowMat=new T.MeshBasicMaterial({color:0x0d2634,transparent:true,opacity:.25,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
+ const shadowMat=new T.MeshBasicMaterial({color:0x172329,transparent:true,opacity:.095,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
  const shadow=(x,z,size=1)=>{const o=mesh(new T.CircleGeometry(.35,24),shadowMat.clone(),x,.046,z,root);o.rotation.x=-P/2;o.scale.set(size,1,.67);o.castShadow=false;return o};
  const heroShadow=shadow(0,0,1.1);
  const enemyShadows=map.enemies.map(e=>shadow(e.x,e.z,.75));
@@ -635,7 +650,7 @@ function makeStage(map){
   hero.root.position.set(p.x,p.y,p.z);hero.root.rotation.y=p.face;
  heroShadow.position.set(p.x,(window.MiniWorldsCore?.platformY(s,p.x,p.z)??p.y)+.045,p.z);
  const shadowGap=Math.max(0,p.y-heroShadow.position.y);
- heroShadow.material.opacity=.26/(1+shadowGap*.85);
+ heroShadow.material.opacity=.13/(1+shadowGap*.85);
  heroShadow.scale.set(1.1-shadowGap*.1,1,(1.1-shadowGap*.1)*.67);
   let run=Math.min(1,Math.hypot(p.vx,p.vz)/2.7),t=elapsed*11;
   hero.body.position.y=.58+(p.grounded?Math.sin(t)*.025*run:Math.sin(elapsed*5)*.035);
