@@ -375,6 +375,22 @@ function next(){
  refreshMissionBriefing();
  notice('¡NUEVA MISIÓN DESBLOQUEADA!',2400);
 }
+// Opt-in share from the results screen: encourages friendly personal
+// challenges, without pretending that live multiplayer is available.
+async function shareResult(){
+ const m=game?.mission;if(!m)return;
+ const stars=M.medal(game),record=Math.max(0,Math.round(game.clock));
+ const message='🦊 MINI WORLDS · ¡TE DESAFÍO!\n' +
+   '🏆 '+M.MISSIONS[missionId].title+' · '+'⭐'.repeat(Math.max(1,stars))+'\n' +
+   '⏱ '+Math.floor(record/60)+':'+String(record%60).padStart(2,'0') +
+   ' · 🐾 '+m.rescues.filter(r=>r.rescued).length+' rescatados\n' +
+   '¿Podés superar mi marca?';
+ try{
+  if(navigator.share)await navigator.share({title:'Mini Worlds · Desafío',text:message,url:location.origin+location.pathname});
+  else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(message+'\n'+location.href);notice('¡RETO COPIADO! COMPARTILO CON TUS AMIGOS',2200)}
+  else notice('COPIAR RESULTADO NO DISPONIBLE EN ESTE NAVEGADOR',2400);
+ }catch(e){if(e?.name!=='AbortError')notice('NO PUDO COMPARTIRSE · INTENTÁ DE NUEVO',2500)}
+}
 function victory(){
  if(phase==='won')return;
  const m=game.mission;
@@ -391,6 +407,7 @@ function victory(){
  save();layout('won');beep('win');haptic([30,70,30,70,90]);
  const options=[];
  if(missionId<2)options.push({label:'▶ SIGUIENTE MISIÓN',action:next});
+ options.push({label:'📲 DESAFIAR A UN AMIGO',secondary:true,action:shareResult});
  options.push({label:'↻ INTENTAR LAS 3 ESTRELLAS',secondary:true,action:()=>{hideModal();newStage();layout('ready')}});
  options.push({label:'🏡 VOLVER A LA ALDEA',secondary:true,action:()=>home()});
  const district=progress.missions.residents.length>=5?'¡OBSERVATORIO RECONSTRUIDO!':progress.missions.residents.length>=3?'¡JARDÍN RECONSTRUIDO!':progress.missions.residents.length>=1?'¡TALLER DESBLOQUEADO!':'';
