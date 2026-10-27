@@ -83,12 +83,12 @@ const server=http.createServer((req,res)=>{
  await page.locator('#tacticalMark').tap();
  const base=await page.evaluate(()=>__RodeadosDebug.tacticalPlan.base);
  assert(base&&Math.abs(base.z)<1.22,'user explicitly marked the starting base on the anchored arena: '+JSON.stringify(base));
- await page.evaluate(()=>window.__simTilt=-.38);
- await page.waitForFunction(v=>__RodeadosDebug.tacticalAim&&Math.abs(__RodeadosDebug.tacticalAim.z-v)>.95,base.z,{timeout:6000});
+ await page.evaluate(()=>window.__simTilt=-.23);
+ await page.waitForFunction(v=>__RodeadosDebug.tacticalAim&&Math.abs(__RodeadosDebug.tacticalAim.z-v)>2.45,base.z,{timeout:6000});
  await page.locator('#tacticalMark').tap();
  let plan=await page.evaluate(()=>__RodeadosDebug.tacticalPlan);
  assert(plan.flag,'flag placed by different actual AR reticle ray');
- assert(Math.hypot(plan.base.x-plan.flag.x,plan.base.z-plan.flag.z)>=1,'base and flag safely separated');
+ assert(Math.hypot(plan.base.x-plan.flag.x,plan.base.z-plan.flag.z)>=2.35,'base and flag safely separated');
  await page.locator('#tacticalUndo').tap();
  assert.equal(await page.evaluate(()=>__RodeadosDebug.tacticalPlan.flag),null,'undo previous AR marker');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.mission.configured),false);

@@ -153,7 +153,7 @@ function updateBattleFeedback(t){
  drawRadar(t);
 }
 function showBotDirection(){
- if(stage!=='playing'&&stage!=='paused')return;
+ if(stage!=='playing'&&stage!=='paused'||game.mode==='ctf')return;
  const cue=$('botGuide'),targets=game.enemies.filter(e=>e.hp>0&&e.portal<.3);
  if(game.mode==='ctf'&&game.mission?.configured){
   const m=game.mission,objective=m.carry?m.base:(m.dropAt||m.object);
@@ -210,7 +210,8 @@ function updateHud(force=false){
  $('bomb').textContent=game.bombCharges>0?'💣 BOMBA CAOS':'💣 '+Math.ceil(game.bombCooldown)+'s';
  if(online)$('online').textContent=online.status+' · '+(online.isHost?'ANFITRIÓN':'INVITADO')+' · '+online.mode;
  const ms=G.missionStatus?.(game);
- if(ms){$('missionTitle').textContent=ms.text;$('missionDetail').textContent=ms.detail||'';
+ if(ms){$('missionTitle').textContent=game.mode==='ctf'?(ms.detail||'BUSCÁ LA BANDERA'):ms.text;
+  $('missionDetail').textContent=game.mode==='ctf'?'':ms.detail||'';
   if(ms.button){$('missionAction').textContent=ms.button;$('missionAction').disabled=!ms.canAct}
  }
 }
@@ -248,7 +249,7 @@ function setPhase(next){
  visible('missionAction',next==='playing'&&['loot','ctf','refuge'].includes(game.mode),'block');
  visible('tacticalPanel',next==='tactical','block');
  visible('demoMove',demo&&next==='playing'&&['ctf','loot','refuge'].includes(game.mode),'grid');
- visible('radarWrap',next==='playing'||next==='paused','block');visible('botGuide',next==='playing'||next==='paused','block');
+ visible('radarWrap',next==='playing'||next==='paused','block');visible('botGuide',game.mode!=='ctf'&&(next==='playing'||next==='paused'),'block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
  visible('actions',next==='paused');$('pause').textContent=next==='paused'?'▶ CONTINUAR':'Ⅱ PAUSA';
  $('topHud').style.display=['ready','countdown','playing','paused','finished'].includes(next)?'flex':'none';
@@ -436,7 +437,7 @@ function updateMotion(t,pose){
  if(Math.hypot(next.x-game.player.x,next.z-game.player.z)>1.45&&stage==='playing'){
   game.paused=true;setPhase('paused');notice('CAMBIO BRUSCO DE POSICIÓN · RECALIBRÁ',3);return;
  }
- if(stage==='playing'&&(Math.abs(next.x)>floorSize*.5+.35||Math.abs(next.z)>floorSize*.5+.35)){
+ if(stage==='playing'&&(Math.abs(next.x)>(game.mode==='ctf'?8:floorSize*.5+.35)||Math.abs(next.z)>(game.mode==='ctf'?8:floorSize*.5+.35))){
    game.paused=true;setPhase('paused');hint('VOLVÉ A LA ZONA DESPEJADA · SIN CORRER');
    notice('⚠ FUERA DE LA ARENA SEGURA · RECALIBRÁ',3);return;
   }
@@ -1009,7 +1010,7 @@ document.querySelectorAll('[data-demo-move]').forEach(b=>{
 $('missionAction')?.addEventListener('click',()=>{
  if(stage!=='playing')return;
  const r=G.missionAction?.(game);
- if(!r?.ok)notice(r?.reason==='acercate_a_tu_base'?'ACERCATE A TU BASE':r?.reason==='primero_abri_un_cofre'?'DISPARÁ PRIMERO A UNA CAJA':'ACERCATE AL OBJETIVO',2);
+ if(!r?.ok)notice(r?.reason==='acercate_a_tu_base'?'ACERCATE A TU BASE':r?.reason==='primero_abri_un_cofre'?'DISPARÁ PRIMERO A UNA CAJA':'ACERCATE A LA BANDERA O TU BASE',2);
  else {notice(game.mission?.signal||'¡OBJETIVO!',2);updateHud(true)}
 });
 const tactical=createTacticalPlanner({
@@ -1071,4 +1072,4 @@ globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(g
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
  get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get floorRendering(){return art.getFloorStatus()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get openingEyePosition(){return openingEyePosition},get lastShotAt(){return lastShot},get shotStatus(){return lastShotStatus},get aimAge(){return latestAim?performance.now()-lastAimStamp:null},get aim(){return latestAim},get aimFailures(){return aimFailures},
- get missionStatus(){return G.missionStatus?.(game)},get flagPlan(){return game.mission?.plan},get tacticalPlan(){return tactical.draft},get tacticalAim(){return tactical.aim},get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
+ get missionStatus(){return G.missionStatus?.(game)},get flagPlan(){return game.mission?.plan},get tacticalPlan(){return tactical.draft},get tacticalAim(){return tactical.aim},get flagRender(){return missionArt.getFlagRender()},get flagWorldRender(){return missionArt.getFlagWorldRender()},get viewWeapon(){return {tier:G.weaponTier?.(game),meshes:art.rifle.children.length}},get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};

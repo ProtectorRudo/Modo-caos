@@ -48,6 +48,22 @@ const server=http.createServer((req,res)=>{
  await p.locator('#tacticalConfirm').click();
  await p.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:10000});
  const current=await p.evaluate(()=>__RodeadosDebug.game);
+ const flag=await p.evaluate(()=>__RodeadosDebug.flagRender);
+ assert(Math.hypot(expected.base.x-expected.flag.x,expected.base.z-expected.flag.z)>=2.35,
+  'flag must be clearly outside starting base');
+ assert.equal(flag.x,expected.flag.x,'flag render keeps exact confirmed world-local x');
+ assert.equal(flag.z,expected.flag.z,'flag render keeps exact confirmed world-local z');
+ const worldBefore=await p.evaluate(()=>__RodeadosDebug.flagWorldRender);
+ await p.locator('[data-demo-move="forward"]').tap();
+ await p.waitForTimeout(180);
+ const after=await p.evaluate(()=>({player:__RodeadosDebug.player,flag:__RodeadosDebug.flagRender,world:__RodeadosDebug.flagWorldRender}));
+ assert(Math.hypot(after.player.x-expected.base.x,after.player.z-expected.base.z)>.04,
+  'player moved through game world');
+ assert(Math.hypot(after.flag.x-flag.x,after.flag.z-flag.z)<.001,
+  'the flag remains anchored independently of player movement');
+ assert(Math.hypot(after.world.x-worldBefore.x,after.world.z-worldBefore.z)<.001,
+  'world renderer keeps flag fixed while camera moves');
+
  assert.equal(current.mode,'ctf');assert.equal(current.mission.configured,true);
  assert.deepEqual(current.mission.spawnPoints,expected.spots,'actual enemy points match the visible manual pins');
  assert.equal(current.mission.spawnTypes[0],'spider');
@@ -55,7 +71,8 @@ const server=http.createServer((req,res)=>{
  assert(await p.locator('#missionAction').isVisible());
  assert(await p.locator('#demoMove').isVisible());
  assert(await p.locator('#missionAction').isDisabled(),'retrieve disabled when not near the flag');
- assert((await p.locator('#missionTitle').textContent()).includes('CAPTURAS'));
+ assert((await p.locator('#missionTitle').textContent()).includes('BANDERA'),'HUD focuses on destination without duplicate captures');
+ assert((await p.locator('#waveLabel').textContent()).includes('CAPTURAS'),'top HUD shows captured count');
  await p.reload({waitUntil:'domcontentloaded'});
  await p.waitForFunction(()=>!!window.__RodeadosDebug,null,{timeout:30000});
  await p.selectOption('#mode','loot');

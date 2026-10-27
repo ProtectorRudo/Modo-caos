@@ -20,9 +20,9 @@ test('CTF must have six or seven individually confirmed points with types and no
  assert.equal(g.mission.configured,false);
  assert.equal(G.missionAction(g).ok,false);
  const points=Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return {x:+(Math.sin(a)*3.35).toFixed(2),z:+(Math.cos(a)*3.35).toFixed(2)}});
- const invalid={base:{x:0,z:.6},flag:{x:0,z:-.65},spots:points.slice(0,5)};
+ const invalid={base:{x:0,z:.6},flag:{x:0,z:-3.45},spots:points.slice(0,5)};
  assert.equal(G.configureFlagPlan(g,invalid).ok,false);
- const plan={base:{x:0,z:.6},flag:{x:0,z:-.65},spots:points,kinds:['basic','flanker','spider','creep','tank','random']};
+ const plan={base:{x:0,z:.6},flag:{x:0,z:-3.45},spots:points,kinds:['basic','flanker','spider','creep','tank','random']};
  const saved=G.configureFlagPlan(g,plan);
  assert.equal(saved.ok,true);assert.equal(g.mission.configured,true);
  assert.deepEqual(g.mission.spawnPoints,points,'markers never silently migrate');
@@ -37,7 +37,7 @@ test('CTF must have six or seven individually confirmed points with types and no
 
 test('flag: manual retrieval and delivery requires explicit button AND player proximity',()=>{
  const g=G.create({mode:'ctf',seed:234}),points=G.normalizeFlagPlan().spots.slice(0,6);
- const plan={base:{x:0,z:.60},flag:{x:0,z:-.75},spots:points};
+ const plan={base:{x:0,z:.60},flag:{x:0,z:-3.45},spots:points};
  assert.equal(G.configureFlagPlan(g,plan).ok,true);
  G.begin(g);g.spawnClock=1000;
  assert.equal(g.mission.captures,0);
@@ -173,10 +173,48 @@ test('colossus has real HP phases and a timed loss condition',()=>{
 
 test('Capture the Flag timeout counts completed captures, not combat kills',()=>{
  const g=G.create({mode:'ctf',seed:17});const p=G.normalizeFlagPlan();
- const cfg={base:{x:0,z:.6},flag:{x:0,z:-.62},spots:p.spots.slice(0,6)};
+ const cfg={base:{x:0,z:.6},flag:{x:0,z:-3.45},spots:p.spots.slice(0,6)};
  assert(G.configureFlagPlan(g,cfg).ok);G.begin(g);g.spawnClock=10000;
  g.elapsed=149.99;G.advance(g,.04);assert.equal(g.mission.completed,false);
  const h=G.create({mode:'ctf',seed:17});assert(G.configureFlagPlan(h,cfg).ok);
  G.begin(h);h.spawnClock=10000;h.mission.captures=2;h.elapsed=149.99;G.advance(h,.04);
  assert.equal(h.mission.completed,true);
+});
+
+test('enemy flag stays exactly where placed until pickup, then follows player and resets when delivered',()=>{
+ const g=G.create({mode:'ctf',seed:123});
+ const plan={base:{x:0,z:0},flag:{x:3.8,z:-1.7},spots:G.normalizeFlagPlan().spots.slice(0,6)};
+ assert.equal(G.configureFlagPlan(g,plan).ok,true);
+ assert.deepEqual(g.mission.object,plan.flag,'outside home platform exact user coordinates');
+ G.begin(g);g.spawnClock=10000;
+ const fixed=G.flagLocation(g);
+ assert.deepEqual(fixed,{...plan.flag,y:0,state:'fixed'});
+ G.movePlayer(g,{x:2,z:-1});
+ assert.deepEqual(G.flagLocation(g),fixed,'uncollected flag must NEVER follow phone');
+ assert.equal(G.missionAction(g).ok,false,'cannot pick up remotely');
+ G.movePlayer(g,plan.flag);
+ assert.equal(G.flagLocation(g).state,'fixed','simply approaching must not pick it up');
+ assert.equal(G.missionAction(g).ok,true);
+ assert.equal(G.flagLocation(g).state,'carried');
+ G.movePlayer(g,{x:1.75,z:-.45});
+ assert.equal(G.flagLocation(g).x,1.75,'the carried flag follows mobile tracked position');
+ assert.equal(G.flagLocation(g).z,-.45);
+ G.movePlayer(g,plan.base);
+ assert.equal(G.flagLocation(g).state,'carried','entering base does not auto-score');
+ assert.equal(G.missionAction(g).ok,true);
+ assert.equal(g.mission.captures,1);
+ assert.deepEqual(G.flagLocation(g),fixed,'flag respawns at ORIGINAL location after delivery');
+ assert.deepEqual(g.mission.object,plan.flag,'immutable logical flag target');
+});
+
+test('flag must be outside base perimeter and player movement can reach it',()=>{
+ const pts=G.normalizeFlagPlan().spots.slice(0,6);
+ const g=G.create({mode:'ctf'});
+ assert.equal(G.validateFlagPlan({base:{x:0,z:0},flag:{x:0,z:-1.4},spots:pts},g.arena).ok,false);
+ assert.equal(G.validateFlagPlan({base:{x:0,z:0},flag:{x:0,z:-2.34},spots:pts},g.arena).ok,false);
+ const far={base:{x:0,z:0},flag:{x:0,z:-5.7},spots:pts};
+ assert.equal(G.configureFlagPlan(g,far).ok,true);
+ G.begin(g);G.movePlayer(g,{x:0,z:-5.7});
+ assert.equal(g.player.z,-5.7,'phone/player no longer clipped to the original 2.6m platform');
+ assert.equal(G.missionAction(g).ok,true);
 });
