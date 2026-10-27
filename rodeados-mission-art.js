@@ -105,7 +105,7 @@ export function createRodeadosMissionArt(THREE,world){
  rod(civilian,[-.08,.865,.245],[.08,.865,.245],.027,stripe);
  const rescueBeacon=beacon(rescueRoot,{x:0,z:-3},gold,1.15);
  const rescueBase=beacon(rescueRoot,{x:0,z:0},cyan,1.12);
- const rescueSpawns=Array.from({length:7},()=>beacon(rescueRoot,{x:40,z:40},red,.56));
+ const rescueSpawns=Array.from({length:7},()=>{const b=beacon(rescueRoot,{x:40,z:40},red,.56);b.visible=false;return b});
  const mutators=Array.from({length:4},(_,i)=>{
   const a=i*Math.PI/2,p={x:Math.sin(a)*1.18,z:Math.cos(a)*1.18};
   return beacon(mutantRoot,p,i%2?red:gold,.55);
