@@ -390,8 +390,8 @@ function updateHUD(){
  if(!game)return;
  $('health').textContent='♥'.repeat(game.player.hearts)+'♡'.repeat(3-game.player.hearts);
  $('coinCount').textContent=String(game.coins).padStart(2,'0');$('starCount').textContent=game.stars+'/3';
- const remaining=Math.max(0,game.mission.seconds-game.clock);
- $('clock').textContent='⏱ '+Math.floor(remaining/60)+':'+String(Math.ceil(remaining%60)).padStart(2,'0');
+ const remaining=Math.max(0,Math.ceil(game.mission.seconds-game.clock));
+ $('clock').textContent='⏱ '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');
  $('missionGoal').textContent=M.status(game);
  if(game.mission.reactor){$('missionReactor').hidden=false;$('missionReactorFill').style.width=(game.mission.reactor.health/game.mission.reactor.maxHealth*100)+'%'}
  else $('missionReactor').hidden=true;
