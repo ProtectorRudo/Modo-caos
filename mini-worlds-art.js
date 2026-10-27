@@ -148,7 +148,7 @@ function platform(root,p,rand){
  }
  if(isBridge){for(let i=0;i<6;i++){let z=-p.d*.42+i*p.d/5;mesh(cube(p.w*.9,.065,.18),i%2?M.wood:M.woodDark,0,.02,z,g)}
   for(const x of [-p.w*.47,p.w*.47]){for(let j=0;j<3;j++){let z=-p.d*.44+j*p.d*.44;mesh(cyl(.043,.052,.8,7),M.woodDark,x,.31,z,g)}mesh(cube(.05,.055,p.d),M.wood,x,.66,0,g)}}
- if(p.kind==='ruins')addRuins(g,p.w*.28,.02,-p.d*.20);
+ if(p.kind==='ruins')g.userData.ruins=addRuins(g,p.w*.28,.02,-p.d*.20);
  if(p.kind==='waterfall'){
   mesh(cube(.26,1.12,.24),M.stone,p.w*.43,.54,-.55,g);
   let water=mesh(cube(.06,.9,.92),M.water,p.w*.40,.5,-.45,g);water.material=M.water;
@@ -343,7 +343,7 @@ function makeStage(map){
   }
   if(p.kind==='ruins'){
    for(const side of [-1,1]){
-    nativeSolids.push({obj:platforms[i],x:p.x+p.w*.28+side*.42,z:p.z-p.d*.20,y:p.y,height:1.45,radius:.18,kind:'column'});
+    nativeSolids.push({obj:platforms[i].userData.ruins,x:p.x+p.w*.28+side*.42,z:p.z-p.d*.20,y:p.y,height:1.45,radius:.18,kind:'column'});
    }
   }
   if(prev&&i!==2&&p.z-prev.z> -4.1){ /* bridging gaps intentionally remain jumpable */ }
