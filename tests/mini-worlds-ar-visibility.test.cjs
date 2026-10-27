@@ -45,7 +45,7 @@ assert(runtime.includes('renderer.info.render.calls'),'WebGL draw diagnostics mi
 assert(html.includes('body.mw-immersive-ar #viewport canvas{display:none!important}'),'XR canvas must not cover native framebuffer');
 assert(html.includes('id="arStatus"'),'status overlay must be present in AR gameplay');
 assert(runtime.includes("document.body.classList.add('mw-immersive-ar')"),'native XR session must hide DOM canvas');
-assert(runtime.includes("document.body.classList.remove('mw-immersive-ar')"),'home must restore DOM canvas');
+assert(/document\.body\.classList\.remove\('mw-immersive-ar'(?:,'mw-defense')?\)/.test(runtime),'home must restore DOM canvas, including defense HUD cleanup');
 assert(runtime.includes("renderer.domElement.style.display='none'"),'browser canvas must be hidden on XR launch');
 assert(runtime.includes('renderer.xr.getBaseLayer?.()'),'must detect native XR framebuffer presence');
 assert(runtime.includes('arDebugVisible'),'AR guide must be togglable during gameplay');

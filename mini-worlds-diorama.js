@@ -148,7 +148,8 @@ root.MiniWorldsDiorama=function(T){
   let lastOcclusions=[],counter=0;
   function visibility(camera){
    const premium=stage.premiumLayer;
-   if(!camera||!premium)return;
+   const candidates=[...(premium?.children||[]),...(stage.kaykitDecor||[])];
+   if(!camera||!candidates.length)return;
    for(const obj of lastOcclusions)obj.visible=obj.userData.beforeCutaway!==false;
    lastOcclusions=[];
    const heroPos=new T.Vector3(),camPos=new T.Vector3();
@@ -158,7 +159,7 @@ root.MiniWorldsDiorama=function(T){
    const ray=heroPos.clone().sub(camPos),length=ray.length();
    if(length<.4)return;
    ray.divideScalar(length);
-   for(const obj of premium.children){
+   for(const obj of candidates){
     // The pocket reindex manages visibility for out-of-room trees.
     if(!obj.visible||obj.userData?.beforeCutaway===false)continue;
     const center=new T.Vector3();obj.getWorldPosition(center);

@@ -202,14 +202,43 @@ function spellDamage(s,target,kind,shot){
  emit(s,'spellHit',{x:target.x,y:kind==='boss'?target.y+1.3:kind==='enemy'?target.y+1.1:(platformY(s,target.x,target.z)??0)+.45,z:target.z,kind});
  return true;
 }
+// Narrow, deterministic aim assistance solves small mobile-screen targets.
+// Player must still FACE the target, fire, and let the projectile physically
+// travel and collide. It never shoots through objects or behind the fox.
+function chooseShotAim(s,forward){
+ const p=s.player,dir=forward||{x:Math.sin(p.face),z:Math.cos(p.face)};
+ let best=null,bestScore=Infinity;
+ function consider(target,kind,priority=0){
+  if(!target)return;
+  const x=target.x-p.x,z=target.z-p.z,d=Math.hypot(x,z);
+  if(d<.45||d>7.0)return;
+  const dot=(x*dir.x+z*dir.z)/d;
+  if(dot<.88)return; // 28° cone; never snap behind or sideways
+  const height=kind==='boss'?1.2:kind==='rune'?.4:kind==='box'?.5:.5;
+  if(Math.abs(p.y+.76-(target.y+height))>2.6)return;
+  const miss=1-dot,score=miss*5+d*.065+priority;
+  if(score<bestScore){bestScore=score;best={kind,id:target.id,x:target.x,z:target.z,distance:d,dx:x/d,dz:z/d}}
+ }
+ const mission=s.mission;
+ // Prioritize objectives over decoration, especially crystal mechanisms.
+ for(const r of s.map.runes)if(!r.restored)consider(r,'rune',mission?.id===0?-.40:.30);
+ for(const e of s.map.enemies)if(e.alive)consider(e,'enemy',mission?.id===1?-.14:0);
+ for(const b of s.map.boxes)if(b.alive)consider(b,'box',.35);
+ const boss=s.map.boss;
+ if(boss.active&&boss.alive&&boss.weak>0&&boss.invuln<=0)consider(boss,'boss',-.15);
+ return best;
+}
 function attack(s){
  const p=s.player;if(s.phase!=='playing'||p.attack>.05)return false;
- const fury=s.chaos.fury>0,face=p.face,dir={x:Math.sin(face),z:Math.cos(face)};
+ const fury=s.chaos.fury>0,face=p.face,forward={x:Math.sin(face),z:Math.cos(face)};
+ const locked=chooseShotAim(s,forward),dir=locked||forward;
  p.attack=(fury?.23:.32)-Math.min(.075,Math.max(0,p.blasterBoost||0));p.attackId++;
- const shot={id:p.attackId,x:p.x+dir.x*.40,z:p.z+dir.z*.40,y:p.y+.76,
-  dx:dir.x,dz:dir.z,ttl:1.10,speed:fury?10.1:8.3,ignore:[]};
+ p.lastShotAim=locked?{kind:locked.kind,id:locked.id,dx:dir.dx,dz:dir.dz,time:s.clock}:null;
+ const vx=Number.isFinite(dir.dx)?dir.dx:dir.x,vz=Number.isFinite(dir.dz)?dir.dz:dir.z;
+ const shot={id:p.attackId,x:p.x+vx*.40,z:p.z+vz*.40,y:p.y+.76,
+  dx:vx,dz:vz,ttl:1.10,speed:fury?10.1:8.3,ignore:[]};
  s.magicShots.push(shot);
- emit(s,'spellCast',{id:shot.id,x:shot.x,y:shot.y,z:shot.z,dx:dir.x,dz:dir.z,fury});
+ emit(s,'spellCast',{id:shot.id,x:shot.x,y:shot.y,z:shot.z,dx:vx,dz:vz,fury,aim:locked?.kind||null});
  // Tiny immediate magic cone fixes close-contact responsiveness.
  let hits=0;
  const veryNear=(obj,r)=>Math.hypot(obj.x-p.x,obj.z-p.z)<r;

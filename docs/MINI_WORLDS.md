@@ -307,3 +307,25 @@ No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones
 ### QA y limitaciones
 - CI con `tests/mini-worlds-pocket.test.cjs` verifica que no haya salto a los 5/8/11 pasos de profundidad, área más grande, único umbral y world anchor inmutable; `tests/mini-worlds-diorama.test.cjs` valida mallas reales, instancing y liberación de recursos; el resto de 14 suites continúa.
 - **No son pruebas físicas.** Se necesita probar captura real en Chrome Android/ARCore: anclaje, visualización de las dos regiones completas, FPS móvil, oclusión dinámica, geometrías, portales y juego de misiones 1-3. No afirmar que ya iguala a la imagen conceptual de Astro Bot.
+
+
+## Mini Worlds — combate justo, textura nítida y arte CC0 (27/10/2026)
+
+**Rama aislada:** `feat/mini-worlds-game-feel-premium-20261027`, base `feat/mini-worlds-grand-islands-20261027`. No hacer merge ni tocar producción del arcade original sin verificación en Android.
+
+### Jugabilidad primero
+- El blaster añade asistencia **limitada a 28° delante del protagonista** y alcance de 7 unidades. Prioriza balizas en rescate y enemigos en defensa; el proyectil continúa siendo físico, con subpasos, hitboxes y obstáculos. No gira para disparar por detrás, no apunta fuera de cámara ni atraviesa cajas/monstruos.
+- Nuevo `MiniWorldsMissions.guidance(s)`: objetivo contextual y dirección relativa al personaje, como «RESCATÁ A LUMI», «ACTIVÁ LA BALIZA», «DETENÉ AL INVASOR» o «ENTRÁ AL PORTAL». Aparece en un indicador pequeño sin interrumpir la partida ni abrir paneles de instrucciones.
+- Habitantes rescatados realizan un pequeño salto, giro y desaparición celebratoria durante ~0,9 s en el mundo AR, sin congelar controles.
+- Tras ganar, el jugador puede tocar **«DESAFIAR A UN AMIGO»** para compartir (Web Share API) su misión, medallas, tiempo y rescates; alternativa copiar. Desafío social asíncrono, **no** multijugador real.
+
+### Calidad gráfica y costo móvil
+- Texturas de arena, piedra y césped generadas a 512×512 (antes 128×128), anisotropía 4× y atlas sRGB; se conservan materiales PBR, mipmaps y texturas compartidas. Límite inicial de resolución de demo ~1,75x en celular; ajuste dinámico según FPS.
+- `mini-worlds-kaykit.js` carga opcionalmente **un solo GLB de 396.480 bytes** que contiene un subconjunto del `KayKit Forest Nature Pack` gratuito (rocas, arbustos y tres siluetas de árboles), con **una textura atlas compartida**. El GLB es una compilación CC0 de Station Sciences: https://github.com/Station-Sciences/bot-crossing/blob/8cd9d76b3bf5eddaec7d4ba88f0d1c0547a312dc/public/assets/CREDITS.md, archivo `public/assets/forest.glb`. Origen de los modelos: Kay Lousberg https://kaylousberg.itch.io/kaykit-forest — licencia CC0 1.0, uso comercial permitido. El GLB remoto se sirve desde raw.githubusercontent.com a una revisión fija, no se incluye el binario en este repositorio. Si la red o CORS falla, el juego continúa con el arte disponible.
+- Hasta 14 instancias decorativas: colocación en bordes de plataformas y sin ampliar superficies transitables; quedan en el `worldRoot` del ancla espacial, entran al `pocket.reindex()`, comparten mesh/atlas y se limpian con `disposeKayKit`. Las copas del GLB participan del cutaway de KAI para no taparlo.
+- **Ningún modelo adicional debe descargarse o cargarse manualmente por el jugador**. El runtime resuelve GLB automáticamente; Android real/FPS/carga efectiva de la URL exigen verificación física.
+- La versión anterior ya contiene Quaternius y Kenney. Esta integración es complementaria y optativa para no romper los árboles/monstruos existentes.
+
+### Pruebas y limitaciones
+- `tests/mini-worlds-gamefeel.test.cjs`: prueba acierto con asistencia de frente, rechazo de blancos laterales, impacto físico en cajas antes de enemigos, progreso del indicador de misión y presencia de recursos y limpieza de GLB. Más 15 suites previas en GitHub Actions.
+- **No afirmar que el arte ya tiene calidad cinematográfica 10/10 o FPS estables sin capturas y prueba física Chrome Android/ARCore.** Las capas de recursos remotos pueden fallar por red/cambios del host; la publicación principal permanece sin modificar.

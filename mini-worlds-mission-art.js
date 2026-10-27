@@ -38,7 +38,7 @@ root.MiniWorldsMissionArt=function(T){
    markerHalo.rotation.x=Math.PI/2;
    const glow=add(g,new T.SphereGeometry(.26,16,10),fx(tints[i%4]),0,.36,0);
    glow.scale.set(1,.94,1);
-   npcs.push({r,g,halo,body,head,marker,markerHalo,offset:i*2.2});
+   npcs.push({r,g,halo,body,head,marker,markerHalo,offset:i*2.2,celebrateAt:null});
   }
   function beacon(x,y,z,title,color){
    const g=at(x,y,z,title);
@@ -81,8 +81,17 @@ root.MiniWorldsMissionArt=function(T){
   function update(game,dt,elapsed){
    const data=game?.mission;if(!data)return;
    for(const n of npcs){
-    n.g.visible=!n.r.rescued;
-    if(n.g.visible){n.head.position.y=.71+Math.sin(elapsed*2.7+n.offset)*.035;
+    // The happy little villager bounces, twirls and rises before returning
+    // to the town. Saving somebody must FEEL different from collecting a coin.
+    if(n.r.rescued&&n.celebrateAt===null)n.celebrateAt=elapsed;
+    const leaving=n.celebrateAt!==null,age=leaving?elapsed-n.celebrateAt:0;
+    n.g.visible=!leaving||age<.93;
+    if(n.g.visible){
+      n.g.position.y=n.r.y+(leaving?Math.sin(Math.min(1,age/.93)*Math.PI)*.53:0);
+      n.g.rotation.y=leaving?age*7.1:0;
+      const pulse=leaving?1+Math.sin(Math.min(1,age/.93)*Math.PI)*.40:1;
+      n.g.scale.setScalar(pulse);
+      n.head.position.y=.71+Math.sin(elapsed*2.7+n.offset)*.035;
       n.halo.rotation.z=elapsed*.78+n.offset;
       n.halo.material.opacity=.5+.24*Math.sin(elapsed*3+n.offset);
       n.marker.position.y=1.45+Math.sin(elapsed*3.3+n.offset)*.12;

@@ -112,3 +112,10 @@ GLBs de `kikoncuo/jevfire`, commit fijo `5df83b558bf635e006d31f8f2fc2798d0e3ff05
 - Creador: **Realidad Aumentada Empezando Desde Cero**. Licencia **CC BY 4.0**. El modelo oficial NO está empaquetado actualmente: Sketchfab exige autenticación para descargar archivos https://sketchfab.com/developers/download-api/downloading-models.
 - El personaje instalado por esta rama **es una creación procedimental original** en `mini-worlds-art.js`, no un archivo GLB de KAI. No se debe atribuir su geometría al autor del modelo Sketchfab ni afirmar que es idéntico.
 - Blaster, luces, colas, cuerpo y elementos visuales de este zorro se generan mediante geometría Three.js y materiales propios. Las criaturas Quaternius y los 19 props Kenney conservan sus licencias anteriores.
+
+
+## KayKit Forest Nature Pack — decoraciones optativas (27/10/2026)
+- Fuente original: **Kay Lousberg, KayKit Forest Nature Pack FREE**, https://kaylousberg.itch.io/kaykit-forest, CC0 1.0. El FREE incluye árboles, rocas y arbustos (no incluye el terreno modular de las versiones pagas).
+- Subconjunto GLB empaquetado y compartido por Station Sciences (bot-crossing), CC0, `forest.glb`, 396.480 bytes: https://github.com/Station-Sciences/bot-crossing/blob/8cd9d76b3bf5eddaec7d4ba88f0d1c0547a312dc/public/assets/CREDITS.md
+- Archivo remoto con commit fijado: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/8cd9d76b3bf5eddaec7d4ba88f0d1c0547a312dc/public/assets/forest.glb
+- **No incorporado físicamente al repo**: se carga automáticamente cuando el jugador entra al nivel; fallback procedural/Quaternius/Kenney si falla. No confundir con los extras de KayKit de pago ni con el KAI exacto de Sketchfab que continúa pendiente.

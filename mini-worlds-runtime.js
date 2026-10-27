@@ -9,7 +9,7 @@ let spatialLock=null,placementSerial=0,steeringYaw=null,heldSteeringYaw=null;
 let anchorPoseAtLock=null,anchorDriftWarned=false,trackingResetWarned=false;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
 let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=null;
-let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
+let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.75:2.0),slowFrames=0,fastFrames=0;
 let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePointers=new Map(),pinch=null;
 let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0,arDebugVisible=false;
 let mapOpen=false,arQuality=1.12,comboVisibleUntil=0,coinPulseUntil=0,portalHoldUntil=0;
@@ -73,7 +73,7 @@ function clear(){
  spatialLock=null;lockedPose=null;steeringYaw=null;heldSteeringYaw=null;
  arCompositor?.dispose();arCompositor=null;arCompositorError='';
  $('arWorldOverlay').style.display='none';xrEmptyScene=null;
- renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.diorama?.dispose?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
+ renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar','mw-defense');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.disposeKayKit?.();stage.diorama?.dispose?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
  camera=null;view=null;game=null;placing=false;lockedPose=null;source=null;hasHit=false;
 }
 function renderSetup(){
@@ -90,7 +90,7 @@ function renderSetup(){
  renderer.setAnimationLoop(frame);
 }
 function newStage(){
- if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.diorama?.dispose?.();stage.dispose()}
+ if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.disposeKayKit?.();stage.diorama?.dispose?.();stage.dispose()}
  level=M.MISSIONS[missionId].level;
  game=C.create(level);M.init(game,missionId);
  const residents=progress.missions.residents.length;
@@ -99,6 +99,7 @@ function newStage(){
  if(residents>=3)game.mission.seconds+=15;       // garden: extra oxygen/time
  if(residents>=5)game.player.invuln=2.4;          // observatory: brief spawn shield
  stage=window.MiniWorldsArt(T).makeStage(game.map);
+ document.body.classList.toggle('mw-defense',missionId===1);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
  stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
@@ -121,6 +122,13 @@ function newStage(){
    if(stats?.placed)console.info('[MINI WORLDS] Real Quaternius nature scene:',stats);
    else console.info('[MINI WORLDS] Kenney/procedural fallback retained:',stats);
   }).catch(e=>console.warn('[MINI WORLDS] Optional Quaternius scenery not available:',e.message));
+ }
+ // One compact CC0 KayKit pack adds real high-resolution atlas-backed
+ // shrubs and rock silhouettes. No optional asset blocks gameplay.
+ if(window.MiniWorldsKayKit){
+  Promise.resolve().then(()=>window.MiniWorldsKayKit(T).decorate(stageRef,level)).then(stats=>{
+   if(stage===stageRef&&stats?.placed)console.info('[MINI WORLDS] Curated KayKit forest details',stats.placed);
+  }).catch(e=>console.warn('[MINI WORLDS] KayKit fallback:',e.message));
  }
  // Animated characters are optional and NEVER delay or replace physics.
  if(window.MiniWorldsCharacters){
@@ -191,7 +199,7 @@ function drawMiniMap(){
 function layout(state){
  phase=state;const active=state==='playing'||state==='paused'||state==='ready'||state==='placing'||state==='won';
  $('landing').hidden=state!=='home';$('viewport').hidden=!active&&state!=='failed';$('hud').hidden=state==='home'||state==='placing';
- $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';$('missionGoal').hidden=state!=='playing'&&state!=='paused';
+ $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';$('missionGoal').hidden=state!=='playing'&&state!=='paused';$('missionHint').hidden=state!=='playing'&&state!=='paused';
  $('chaosMeter').hidden=state==='home'||state==='placing';
  if(state==='home')document.body.classList.remove('fury-mode','boss-encounter');
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';
@@ -368,6 +376,22 @@ function next(){
  refreshMissionBriefing();
  notice('¡NUEVA MISIÓN DESBLOQUEADA!',2400);
 }
+// Opt-in share from the results screen: encourages friendly personal
+// challenges, without pretending that live multiplayer is available.
+async function shareResult(){
+ const m=game?.mission;if(!m)return;
+ const stars=M.medal(game),record=Math.max(0,Math.round(game.clock));
+ const message='🦊 MINI WORLDS · ¡TE DESAFÍO!\n' +
+   '🏆 '+M.MISSIONS[missionId].title+' · '+'⭐'.repeat(Math.max(1,stars))+'\n' +
+   '⏱ '+Math.floor(record/60)+':'+String(record%60).padStart(2,'0') +
+   ' · 🐾 '+m.rescues.filter(r=>r.rescued).length+' rescatados\n' +
+   '¿Podés superar mi marca?';
+ try{
+  if(navigator.share)await navigator.share({title:'Mini Worlds · Desafío',text:message,url:location.href});
+  else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(message+'\n'+location.href);notice('¡RETO COPIADO! COMPARTILO CON TUS AMIGOS',2200)}
+  else notice('COPIAR RESULTADO NO DISPONIBLE EN ESTE NAVEGADOR',2400);
+ }catch(e){if(e?.name!=='AbortError')notice('NO PUDO COMPARTIRSE · INTENTÁ DE NUEVO',2500)}
+}
 function victory(){
  if(phase==='won')return;
  const m=game.mission;
@@ -384,6 +408,7 @@ function victory(){
  save();layout('won');beep('win');haptic([30,70,30,70,90]);
  const options=[];
  if(missionId<2)options.push({label:'▶ SIGUIENTE MISIÓN',action:next});
+ options.push({label:'📲 DESAFIAR A UN AMIGO',secondary:true,action:shareResult});
  options.push({label:'↻ INTENTAR LAS 3 ESTRELLAS',secondary:true,action:()=>{hideModal();newStage();layout('ready')}});
  options.push({label:'🏡 VOLVER A LA ALDEA',secondary:true,action:()=>home()});
  const district=progress.missions.residents.length>=5?'¡OBSERVATORIO RECONSTRUIDO!':progress.missions.residents.length>=3?'¡JARDÍN RECONSTRUIDO!':progress.missions.residents.length>=1?'¡TALLER DESBLOQUEADO!':'';
@@ -407,6 +432,8 @@ function updateHUD(){
  const remaining=Math.max(0,Math.ceil(game.mission.seconds-game.clock));
  $('clock').textContent='⏱ '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');
  $('missionGoal').textContent=M.status(game);
+ const nav=M.guidance(game);$('missionHint').textContent=nav?(nav.arrow+' '+nav.label+(nav.near?' · CERCA':'')):'';
+ $('missionHint').hidden=!nav||(phase!=='playing'&&phase!=='paused');
  if(game.mission.reactor){$('missionReactor').hidden=phase!=='playing'&&phase!=='paused';$('missionReactorFill').style.width=(game.mission.reactor.health/game.mission.reactor.maxHealth*100)+'%'}
  else $('missionReactor').hidden=true;
  const b=game.map.boss;$('bossHud').hidden=!b.active||!b.alive;
@@ -476,7 +503,7 @@ function frame(t,xrFrame){
    arFpsTotal+=dt;arFpsFrames++;
    if(arFpsFrames>=180){
     const fps=arFpsFrames/Math.max(.001,arFpsTotal);
-    const next=fps<27?.83:fps<36?.95:fps>47?1.12:arQuality;
+    const next=fps<25?.93:fps<36?1.05:fps>47?1.20:arQuality;
     if(Math.abs(next-arQuality)>.04){arQuality=next;arCompositor.setQuality(next)}
     arFpsTotal=0;arFpsFrames=0;
    }
@@ -486,8 +513,8 @@ function frame(t,xrFrame){
   else if(dt<.022){fastFrames++;slowFrames=Math.max(0,slowFrames-1)}
   if(slowFrames>50&&pixelTarget>1.01){
    pixelTarget=Math.max(1,pixelTarget-.2);renderer.setPixelRatio(pixelTarget);slowFrames=0;
-  }else if(fastFrames>210&&pixelTarget<Math.min(devicePixelRatio||1,1.5)){
-   pixelTarget=Math.min(Math.min(devicePixelRatio||1,1.5),pixelTarget+.1);renderer.setPixelRatio(pixelTarget);fastFrames=0;
+  }else if(fastFrames>210&&pixelTarget<Math.min(devicePixelRatio||1,1.75)){
+   pixelTarget=Math.min(Math.min(devicePixelRatio||1,1.75),pixelTarget+.1);renderer.setPixelRatio(pixelTarget);fastFrames=0;
   }
  }
  if(placing&&mode==='ar')applyHit(xrFrame);

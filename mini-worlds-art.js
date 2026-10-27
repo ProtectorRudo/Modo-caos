@@ -8,27 +8,27 @@ const M={sand:mat('#e9ca8f'),edge:mat('#9d754e'),soil:mat('#685445'),grass:mat('
 // the stage. The same colors remain deliberately playful, not photorealistic.
 const groundTextures=[];
 function groundTexture(kind,seed){
- const c=document.createElement('canvas');c.width=128;c.height=128;
+ const c=document.createElement('canvas');c.width=512;c.height=512;
  const g=c.getContext('2d');let state=seed;const random=()=>{state=(state*1664525+1013904223)>>>0;return state/4294967296};
- g.fillStyle='#f1eee7';g.fillRect(0,0,128,128);
- for(let i=0;i<440;i++){
-  const x=random()*128,y=random()*128,size=.5+random()*2.1;
+ g.fillStyle='#f1eee7';g.fillRect(0,0,512,512);
+ for(let i=0;i<5200;i++){
+  const x=random()*512,y=random()*512,size=1.5+random()*5.3;
   if(kind==='sand')g.fillStyle=i%3===0?'#c8c2b3':'#ffffff';
   else if(kind==='grass')g.fillStyle=i%3===0?'#bcc9bc':'#f6fff1';
   else g.fillStyle=i%3===0?'#c2c0bc':'#ffffff';
-  g.globalAlpha=.11+random()*.25;
+  g.globalAlpha=.055+random()*.22;
   g.beginPath();g.ellipse(x,y,size*(kind==='grass'?.55:1.35),size,random()*Math.PI,0,Math.PI*2);g.fill();
  }
  g.globalAlpha=.15;
- if(kind==='grass')for(let i=0;i<110;i++){
-  const x=random()*128,y=random()*128;
-  g.strokeStyle=i%2?'#718e79':'#fefff4';g.lineWidth=.65;
-  g.beginPath();g.moveTo(x,y);g.lineTo(x+(random()-.5)*4,y-2-random()*4);g.stroke();
+ if(kind==='grass')for(let i=0;i<760;i++){
+  const x=random()*512,y=random()*512;
+  g.strokeStyle=i%2?'#718e79':'#fefff4';g.lineWidth=1.25;
+  g.beginPath();g.moveTo(x,y);g.lineTo(x+(random()-.5)*9,y-4-random()*12);g.stroke();
  }
  g.globalAlpha=1;
  const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;
  t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2.3,2.3);
- t.anisotropy=2;groundTextures.push(t);return t;
+ t.anisotropy=4;groundTextures.push(t);return t;
 }
 M.sand.map=groundTexture('sand',382);M.sand.roughness=.96;M.sand.needsUpdate=true;
 M.grass.map=groundTexture('grass',572);M.grass.roughness=.94;M.grass.needsUpdate=true;
@@ -579,6 +579,11 @@ function makeStage(map){
   hero.muzzleFlash.scale.setScalar(1.2+Math.sin(elapsed*92)*.23);
   hero.blaster.position.z=.22-Math.max(0,p.attack)*.13;
   hero.blaster.rotation.x=-Math.max(0,p.attack)*.38;
+  const assist=p.lastShotAim&&s.clock-p.lastShotAim.time<.28;
+  const diff=assist?Math.atan2(Math.sin(Math.atan2(p.lastShotAim.dx,p.lastShotAim.dz)-p.face),
+                              Math.cos(Math.atan2(p.lastShotAim.dx,p.lastShotAim.dz)-p.face)):0;
+  hero.blaster.rotation.y+=(diff-hero.blaster.rotation.y)*Math.min(1,dt*14);
+  wandTip.material.emissiveIntensity=assist?3.3:2.6;
   for(let i=0;i<magicOrbs.length;i++){
    const b=s.magicShots?.[i],o=magicOrbs[i];
    o.visible=!!b;
