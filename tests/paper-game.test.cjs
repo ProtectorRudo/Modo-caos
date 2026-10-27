@@ -26,7 +26,7 @@ function boot(seed=419){
  const loc={search:'?qa=1',href:'https://example.test/paper.html'};
  const storage=new Map();
  // Instrument test sandbox only; production game source remains unchanged.
- const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R,territoryLoops,updateMap};\\n// Read-only diagnostics:'.replace('\\n','\n'));
+ const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R,territoryLoops,updateMap,grantRewards,REWARDS};\\n// Read-only diagnostics:'.replace('\\n','\n'));
  const browser=Function('document','window','location','performance','requestAnimationFrame','innerWidth','innerHeight','devicePixelRatio','localStorage','navigator','setTimeout','URLSearchParams','Math',instrumented);
  browser(doc,win,loc,{now:()=>now},fn=>frame=fn,430,850,1,
   {getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))},{vibrate(){}},()=>{},URLSearchParams,fakeMath);
@@ -159,4 +159,43 @@ test('mechanical character and layered neon trails use original vector rendering
  assert.match(source,/#2448b5/);
  assert.match(source,/procedural motif/);
  assert.match(source,/function drawMini\(\)/);
+});
+
+test('reward thresholds unlock exactly once, with real effects',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const h=g.win.__paperTest,player=h.getGame().people[0];
+ assert.deepEqual(h.REWARDS.map(r=>r.at),[2,6,12,25]);
+ assert.equal(h.getGame().rewards.size,0);
+ player.score=2.3;h.grantRewards(player);
+ assert.equal(h.getGame().rewards.size,1);
+ assert.ok(player.boostUntil>0);
+ assert.match(g.get('rewardTitle').textContent,/TURBO/);
+ h.grantRewards(player);
+ assert.equal(h.getGame().rewards.size,1,'claim must not repeat');
+ player.score=6.5;h.grantRewards(player);
+ assert.equal(h.getGame().rewards.size,2);
+ assert.equal(h.getGame().epicTrail,true);
+ player.score=25.3;h.grantRewards(player);
+ assert.equal(h.getGame().rewards.size,4);
+ assert.equal(h.getGame().crowned,true);
+ assert.match(g.get('rewardTitle').textContent,/CORONA/);
+});
+test('earned milestones and boosts reset on the next match',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const h=g.win.__paperTest,player=h.getGame().people[0];
+ player.score=25.1;h.grantRewards(player);
+ assert.equal(h.getGame().rewards.size,4);
+ g.get('restart').onclick();
+ assert.equal(h.getGame().rewards.size,0);
+ assert.equal(h.getGame().epicTrail,false);
+ assert.equal(h.getGame().crowned,false);
+ assert.equal(g.win.territoryQA.rewards,0);
+});
+test('arcade portraits and player scale are original vector and CSS geometry',()=>{
+ const g=boot(419);g.get('start').onclick();g.tick(10);
+ assert.match(g.get('rank').innerHTML,/portraitMech/);
+ assert.match(source,/c\.scale\(p\.id===0\?1\.82:1\.42/);
+ assert.match(source,/\.portraitMech\.skin3/);
+ assert.match(source,/#rewardToast\.visible/);
+ assert.match(source,/id="railTarget"|class="railTarget"/);
 });
