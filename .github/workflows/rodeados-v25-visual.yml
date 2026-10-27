@@ -2,7 +2,7 @@ name: RODEADOS V25 - mobile weapon visual proof
 on:
   push:
     branches: [fix/rodeados-v25-fps-visible-safe-area]
-    paths: ['.github/workflows/rodeados-v25-visual.yml']
+    paths: ['.github/workflows/rodeados-v25-visual.yml','tests/rodeados-v25-visual.cjs']
 permissions:
   contents: write
 jobs:
