@@ -9,7 +9,7 @@ let spatialLock=null,placementSerial=0,steeringYaw=null,heldSteeringYaw=null;
 let anchorPoseAtLock=null,anchorDriftWarned=false,trackingResetWarned=false;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
 let orbitYaw=.36,orbitHeight=4.2,orbitZoom=1,orbitFingers=new Map(),orbitPinch=null;
-let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.8),slowFrames=0,fastFrames=0;
+let pixelTarget=Math.min(devicePixelRatio||1,innerWidth<700?1.75:2.0),slowFrames=0,fastFrames=0;
 let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePointers=new Map(),pinch=null;
 let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0,arDebugVisible=false;
 let mapOpen=false,arQuality=1.12,comboVisibleUntil=0,coinPulseUntil=0,portalHoldUntil=0;
@@ -483,7 +483,7 @@ function frame(t,xrFrame){
    arFpsTotal+=dt;arFpsFrames++;
    if(arFpsFrames>=180){
     const fps=arFpsFrames/Math.max(.001,arFpsTotal);
-    const next=fps<27?.83:fps<36?.95:fps>47?1.12:arQuality;
+    const next=fps<25?.93:fps<36?1.05:fps>47?1.20:arQuality;
     if(Math.abs(next-arQuality)>.04){arQuality=next;arCompositor.setQuality(next)}
     arFpsTotal=0;arFpsFrames=0;
    }
@@ -493,8 +493,8 @@ function frame(t,xrFrame){
   else if(dt<.022){fastFrames++;slowFrames=Math.max(0,slowFrames-1)}
   if(slowFrames>50&&pixelTarget>1.01){
    pixelTarget=Math.max(1,pixelTarget-.2);renderer.setPixelRatio(pixelTarget);slowFrames=0;
-  }else if(fastFrames>210&&pixelTarget<Math.min(devicePixelRatio||1,1.5)){
-   pixelTarget=Math.min(Math.min(devicePixelRatio||1,1.5),pixelTarget+.1);renderer.setPixelRatio(pixelTarget);fastFrames=0;
+  }else if(fastFrames>210&&pixelTarget<Math.min(devicePixelRatio||1,1.75)){
+   pixelTarget=Math.min(Math.min(devicePixelRatio||1,1.75),pixelTarget+.1);renderer.setPixelRatio(pixelTarget);fastFrames=0;
   }
  }
  if(placing&&mode==='ar')applyHit(xrFrame);
