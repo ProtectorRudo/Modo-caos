@@ -136,7 +136,7 @@ function newStage(){
  else if(mode==='ar'&&lockedPose)stage.root.position.copy(lockedPose);
  else stage.root.position.set(0,0,0);
  if(mode==='demo')setCamera(true);
- elapsed=0;acc=0;updateHUD();$('zoneTitle').textContent='MISIÓN '+(missionId+1)+' · '+M.MISSIONS[missionId].title;
+ elapsed=0;acc=0;refreshMissionBriefing();updateHUD();$('zoneTitle').textContent='MISIÓN '+(missionId+1)+' · '+M.MISSIONS[missionId].title;
 }
 function setCamera(first=false){
  if(!camera||!game)return;
@@ -190,7 +190,7 @@ function drawMiniMap(){
 function layout(state){
  phase=state;const active=state==='playing'||state==='paused'||state==='ready'||state==='placing'||state==='won';
  $('landing').hidden=state!=='home';$('viewport').hidden=!active&&state!=='failed';$('hud').hidden=state==='home'||state==='placing';
- $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';$('missionGoal').hidden=state==='home'||state==='placing';
+ $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';$('missionGoal').hidden=state!=='playing'&&state!=='paused';
  $('chaosMeter').hidden=state==='home'||state==='placing';
  if(state==='home')document.body.classList.remove('fury-mode','boss-encounter');
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';
@@ -201,7 +201,21 @@ function layout(state){
  $('positionPad').style.pointerEvents=state==='placing'?'auto':'none';
  if(state==='home')hideModal();
 }
-function demoCameraPlacement(){lockedPose=null;worldYaw=0;layout('ready');notice('¡TU MISIÓN COMIENZA!',1400);$('readyTitle').textContent=M.MISSIONS[missionId].title;$('readyCopy').textContent=M.MISSIONS[missionId].subtitle+' · Joystick para caminar · SALTAR · DISPARAR.'}
+function refreshMissionBriefing(){
+ const def=M.MISSIONS[missionId];if(!def)return;
+ const clock=Math.ceil(game?.mission?.seconds??def.seconds);
+ $('readyKicker').textContent='MINI WORLDS · MISIÓN '+(missionId+1)+'/3';
+ $('readyTitle').textContent=def.title;
+ $('readyCopy').textContent=def.subtitle;
+ $('readyClock').textContent='⏱ '+Math.floor(clock/60)+':'+String(clock%60).padStart(2,'0')+' PARA CUMPLIRLA';
+ $('readyBonus').textContent=def.bonus||'★ EXTRA: completá los desafíos opcionales para sumar estrellas.';
+ const steps=$('readySteps');steps.replaceChildren();
+ for(const instruction of def.steps||[def.subtitle]){
+  const li=document.createElement('li');li.textContent=instruction;steps.appendChild(li);
+ }
+ $('begin').textContent='▶ ¡ENTENDIDO, A JUGAR!';
+}
+function demoCameraPlacement(){lockedPose=null;worldYaw=0;refreshMissionBriefing();layout('ready');}
 async function play(modeRequested){
  if(phase!=='home')return;
  audioInit();mode=modeRequested;missionId=clamp(missionId,0,progress.missions.unlocked);level=M.MISSIONS[missionId].level;
@@ -316,9 +330,9 @@ async function fixWorld(){
  anchorPoseAtLock=null;anchorDriftWarned=false;trackingResetWarned=false;
  const placeNonce=++placementSerial;
  const hitAtLock=lastHit;
- $('fixWorld').disabled=true;layout('ready');$('readyTitle').textContent='¡MUNDO FIJADO!';
+ $('fixWorld').disabled=true;refreshMissionBriefing();layout('ready');
  notice('¡LISTO! · PISTA FIJA EN EL PISO',1800);haptic(18);
- $('readyCopy').textContent=M.MISSIONS[missionId].subtitle+' · Joystick para caminar · SALTAR · DISPARAR.';
+ // Mission briefing is already shown, and the XR anchor remains unchanged.
  if(hitAtLock?.createAnchor)try{
   const created=await hitAtLock.createAnchor();
   if(placementSerial===placeNonce&&!placing&&mode==='ar')anchor=created;
@@ -337,7 +351,7 @@ function recenter(){
 }
 function startGame(){
  if(phase!=='ready')return;
- C.start(game);mapOpen=true;$('mapToggle').textContent='✕';layout('playing');hideModal();notice('🦊 '+M.MISSIONS[missionId].short,2600);haptic(15);
+ C.start(game);mapOpen=true;$('mapToggle').textContent='✕';layout('playing');hideModal();haptic(15);
 }
 function pause(){
  if(!game||phase==='home')return;
@@ -350,8 +364,7 @@ function pause(){
 }
 function next(){
  missionId=Math.min(2,missionId+1);hideModal();newStage();layout('ready');
- $('readyTitle').textContent=M.MISSIONS[missionId].title;
- $('readyCopy').textContent=M.MISSIONS[missionId].subtitle+' · Joystick para caminar · SALTAR · DISPARAR.';
+ refreshMissionBriefing();
  notice('¡NUEVA MISIÓN DESBLOQUEADA!',2400);
 }
 function victory(){
@@ -393,7 +406,7 @@ function updateHUD(){
  const remaining=Math.max(0,Math.ceil(game.mission.seconds-game.clock));
  $('clock').textContent='⏱ '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');
  $('missionGoal').textContent=M.status(game);
- if(game.mission.reactor){$('missionReactor').hidden=false;$('missionReactorFill').style.width=(game.mission.reactor.health/game.mission.reactor.maxHealth*100)+'%'}
+ if(game.mission.reactor){$('missionReactor').hidden=phase!=='playing'&&phase!=='paused';$('missionReactorFill').style.width=(game.mission.reactor.health/game.mission.reactor.maxHealth*100)+'%'}
  else $('missionReactor').hidden=true;
  const b=game.map.boss;$('bossHud').hidden=!b.active||!b.alive;
  document.body.classList.toggle('boss-encounter',b.active&&b.alive&&phase==='playing');
