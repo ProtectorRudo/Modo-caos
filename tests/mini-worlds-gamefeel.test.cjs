@@ -58,4 +58,28 @@ function clean(s){
  assert(html.includes('mini-worlds-kaykit.js')&&runtime.includes('MiniWorldsKayKit(T).decorate(stageRef,level)'),'entrypoint must use the new sourced assets');
  assert(runtime.includes('stage.disposeKayKit?.()'),'cleanup in stage transitions and AR teardown');
 }
+{
+ const M=require('../mini-worlds-missions.js');
+ const s=C.create(0);M.init(s,0);C.start(s);
+ let nav=M.guidance(s);
+ assert(nav?.label.startsWith('RESCATÁ A '),'initial mission should direct towards a real villager');
+ assert(['↑','↗','→','↘','↓','↙','←','↖'].includes(nav.arrow));
+ for(const r of s.mission.rescues.slice(0,2))r.rescued=true;
+ nav=M.guidance(s);assert.equal(nav.label,'ACTIVÁ LA BALIZA','the guidance must switch to the next actual mechanism');
+ s.mission.relays.forEach(id=>s.map.runes[id].restored=true);
+ s.mission.exit.active=true;
+ nav=M.guidance(s);assert.equal(nav.label,'ENTRÁ AL PORTAL');
+}
+{
+ const M=require('../mini-worlds-missions.js');
+ const s=C.create(1);M.init(s,1);C.start(s);
+ let nav=M.guidance(s);assert(nav?.label==='PROTEGÉ EL REACTOR'||nav?.label==='DETENÉ AL INVASOR');
+ const run=src('mini-worlds-runtime.js'),html=src('mini-worlds.html');
+ assert(html.includes('id="missionHint"'),'next-goal directional hint must be visible');
+ assert(run.includes('const nav=M.guidance(game)'),'runtime must use live mission coordinates');
+ assert(run.includes("stage.disposeKayKit?.()"),'real imported meshes must be freed during retry');
+ assert(run.includes('async function shareResult()'),'shareable medal must require voluntary action');
+ assert(run.includes("action:shareResult"),'result sharing must be accessible from victory');
+ assert(!run.includes('window.open("https://wa.me/'),'no unsolicited external sharing on any game event');
+}
 console.log('MINI WORLDS game feel: physically honest forward aim, obstacle interception, 512px crisp ground, KayKit CC0 GLB, loading fallback & occlusion: PASS');
