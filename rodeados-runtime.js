@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=24';
+import {createRodeadosArt} from './rodeados-art.js?v=25';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=19';
 import {createTacticalPlanner} from './rodeados-tactical-ui.js?v=19';
