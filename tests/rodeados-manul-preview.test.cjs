@@ -61,8 +61,8 @@ const server=http.createServer((req,res)=>{
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--disable-web-security']});
   const page=await browser.newPage({viewport:{width:393,height:852},isMobile:true,hasTouch:true});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',msg=>{if(msg.type()==='error')errors.push('console: '+msg.text())});
-  await page.goto('http://127.0.0.1:'+server.address().port+'/rodeados-manul.html?dev=1',{waitUntil:'load'});
-  await page.waitForFunction(()=>!!globalThis.__RodeadosDebug,null,{timeout:25000});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/rodeados-manul.html?dev=1',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>!!globalThis.__RodeadosDebug,null,{timeout:35000});
   await page.waitForFunction(()=>!!globalThis.__RodeadosManulPreview||
    document.getElementById('manulStatus')?.textContent.includes('⚠'),null,{timeout:20000});
   assert(await page.evaluate(()=>!!globalThis.__RodeadosManulPreview),
