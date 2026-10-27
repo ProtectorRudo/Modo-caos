@@ -22,7 +22,7 @@
   const bootTime = performance.now();
   let context = null, program = null, sparksProgram = null, sparkBuffer = null;
   let buffers = null, lastSignature = '', ready = false, fault = false, failureCount = 0;
-  let activeColor = -1, lastTargetRead = 0, lastBurst = '', burstAt = -10000, lastFrameAt = 0, samples = 0;
+  let activeColor = -1, lastPlayingColor = -1, burstColor = -1, lastTargetRead = 0, lastBurst = '', burstAt = -10000, lastFrameAt = 0, samples = 0;
   let measuredFps = 0, lastFpsAt = 0, gfxError = '';
   const STAR_COUNT = 56;
   const STRIDE = 12; // local xyz, normal xyz, UV, tile RGB, palette index
@@ -269,12 +269,12 @@
   }
   function drawSparks(g,pv,W,scale,time){
     const age=time-burstAt;
-    if(!(age>=0 && age<850) || activeColor<0)return;
-    const t=age/850, c=rgbPalette[activeColor],a=[];
+    if(!(age>=0 && age<850) || burstColor<0)return;
+    const t=age/850, c=rgbPalette[burstColor],a=[];
     for(let i=0;i<STAR_COUNT;i++){
       const n=(i*31+7)%25;
       const x=(n%5-2),z=((n/5)|0)-2;
-      if(typeof tiles==='undefined' || tiles[n]!==activeColor)continue;
+      if(typeof tiles==='undefined' || tiles[n]!==burstColor)continue;
       const angle=i*2.39996;
       const speed=0.06+((i*13)%9)*0.019;
       const radius=t*speed*3.0;
@@ -303,9 +303,10 @@
       for(let k=0;k<names.length;k++)if(str.includes(names[k])){ci=k;break;}
     }
     activeColor=ci;
+    if(ci>=0)lastPlayingColor=ci;
     const b=burst && burst.style.display!=='none' ? burst.textContent : '';
-    if(ci>=0 && b && b!==lastBurst && /^\+\d+\s+PUNTOS/.test(b)){
-      burstAt=time;
+    if(lastPlayingColor>=0 && b && b!==lastBurst && /^\+\d+\s+PUNTOS/.test(b)){
+      burstAt=time;burstColor=lastPlayingColor;
     }
     lastBurst=b;
   }
@@ -326,7 +327,7 @@
     gfxError=error && error.message?error.message:String(error||'GPU error');
     overlay.classList.remove('crp3d-ready');
     if(++failureCount<3)console.warn('[Color Rush Pro3D] fallback:',gfxError);
-    window.ColorRushPro3D.status='fallback';
+    window.ColorRushPro3D.status='fallback';window.ColorRushPro3D.active=false;
     window.ColorRushPro3D.lastError=gfxError;
   }
   function frameTick(time,frame,W){
@@ -355,7 +356,7 @@
         drawLit(g,pv,W,pose.transform.position,time,size);
         drawSparks(g,pv,W,size,time);
       }
-      if(!ready){ready=true;overlay.classList.add('crp3d-ready');window.ColorRushPro3D.status='active';}
+      if(!ready){ready=true;overlay.classList.add('crp3d-ready');window.ColorRushPro3D.status='active';window.ColorRushPro3D.active=true;}
       samples++;
       if(time-lastFpsAt>1000){measuredFps=samples*1000/Math.max(1,time-lastFpsAt);samples=0;lastFpsAt=time;window.ColorRushPro3D.fps=+measuredFps.toFixed(1);}
       lastFrameAt=time;
