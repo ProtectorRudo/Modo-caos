@@ -21,8 +21,8 @@ El workflow `.github/workflows/rodeados-v17-assets.yml` descargó, comprobó glT
 ### Mecánica
 
 - Oleadas 1–2: humanoides; desde 12 segundos, araña ya existente.
-- A partir de 30 segundos (tercera oleada): acechador `creep`, que corre y zigzaguea; desbloqueo visual de arma táctica.
-- A partir de 60 segundos (quinta oleada): jefe de criatura `minotaur` del núcleo representado por Orc Champion cuando el GLB se puede usar; desbloqueo rifle de plasma con +1 daño por impacto. El nombre interno del tipo determina puntos y cajas de colisión; no describe fidelidad anatómica del modelo alternativo.
+- A partir de 30 segundos (tercera oleada): acechador `creep`, que corre y zigzaguea; desbloqueo de arma táctica (cadencia 125 ms frente a 175 ms inicial y +1 daño adicional a torso/piernas).
+- A partir de 60 segundos (quinta oleada): jefe de criatura `minotaur` del núcleo representado por Orc Champion cuando el GLB se puede usar; desbloqueo de rifle de plasma (cadencia 235 ms y +1 daño por impacto). El nombre interno del tipo determina puntos y cajas de colisión; no describe fidelidad anatómica del modelo alternativo.
 - Pistola inicial, arma táctica y plasma son geometrías Three.js livianas originales. Los brazos CC0 se colocan exclusivamente junto al arma FPS; no implican tracking de manos.
 - 4 máximo modelos externos simultáneos; se da prioridad a criaturas frente a humanoides genéricos.
 - Los objetivos y el suelo siguen el ancla WebXR, solo el arma sigue la cámara. Se mantienen headshots, Bomba Caos, EMP, munición infinita y todas las opciones de modo.
@@ -37,4 +37,4 @@ El workflow `.github/workflows/rodeados-v17-assets.yml` descargó, comprobó glT
 
 ### Limitaciones técnicas explícitas
 
-El arma táctica por ahora presenta cambio de aspecto, sin ráfaga MP7 física. Los modelos de Gobkit deben ser inspeccionados visualmente en WebXR real; `GLTFLoader` y `buildAdapter` son compatibles con glTF y animaciones pero la orientación exacta puede precisar ajustes. El movimiento del jugador es teléfono, **no** tracking corporal ni manos reales. El online de salas no se declara funcional.
+El arma táctica tiene mayor cadencia y daño al cuerpo, pero no reproduce una MP7 real ni integra su modelo de Sketchfab. Los modelos de Gobkit deben ser inspeccionados visualmente en WebXR real; `GLTFLoader` y `buildAdapter` son compatibles con glTF y animaciones pero la orientación exacta puede precisar ajustes. El movimiento del jugador es teléfono, **no** tracking corporal ni manos reales. El online de salas no se declara funcional.
