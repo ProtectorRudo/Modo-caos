@@ -30,8 +30,7 @@
   const spots=Array.isArray(plan?.spots)?plan.spots:ring(7);
   return {base,flag,kinds:(Array.isArray(plan?.kinds)?plan.kinds:[]).slice(0,7).map(v=>['basic','flanker','spider','creep','tank','random'].includes(v)?v:'random'),spots:spots.slice(0,7).map((p,i)=>{
     const fallback=ring(7)[i];
-    const v=point(p,fallback,4.8),radius=Math.hypot(v.x,v.z);
-    return radius<2.75?{x:+(v.x/(radius||1)*3.15).toFixed(3),z:+(v.z/(radius||1)*3.15).toFixed(3)}:v;
+    return point(p,fallback,5.1);
   }).concat(spots.length<6?ring(7).slice(spots.length,6):[])};
  }
  const boxCoords=[{x:-.83,z:-.88},{x:.0,z:-1.02},{x:.83,z:-.88},{x:-.73,z:.20},{x:.73,z:.20}];
