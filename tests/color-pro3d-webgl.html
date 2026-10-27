@@ -1,0 +1,37 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>PRO3D WEBGL TEST</title></head><body>
+<h1 id="result" data-status="PENDING">COLOR RUSH · TEST WEBGL</h1>
+<div id="overlay"></div><div id="headline">¡VERDE!</div>
+<div id="tiles"></div><div id="burst" style="display:none"></div>
+<canvas id="scene" width="640" height="400"></canvas>
+<script>
+'use strict';
+const gl=document.getElementById('scene').getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false});
+const shader=null,glBuffer=null,ref={};
+let boardSize=.38,stage='playing';
+const tiles=Array.from({length:25},(_,i)=>i%6);
+const ID=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
+const frame={getViewerPose(){return {transform:{position:{x:0,y:1.5,z:1.0}},views:[{projectionMatrix:ID,transform:{inverse:{matrix:ID}}}]}}};
+const sess={renderState:{baseLayer:{framebuffer:null,getViewport:()=>({x:0,y:0,width:640,height:400})}}};
+</script>
+<script src="../color-pro-3d.js"></script>
+<script>
+(function(){
+  const out=document.getElementById('result');
+  if(!gl){out.dataset.status='NO_WEBGL';out.textContent='NO WEBGL';return;}
+  try {
+    if(!window.ColorRushPro3D)throw Error('missing module');
+    window.modoCaosXRFrame(333,frame,ID);
+    if(window.ColorRushPro3D.status!=='active')throw Error('module '+window.ColorRushPro3D.status+' '+window.ColorRushPro3D.lastError);
+    const e=gl.getError();
+    if(e!==gl.NO_ERROR)throw Error('WebGL error '+e);
+    if(!document.getElementById('overlay').classList.contains('crp3d-ready'))throw Error('3D not activated');
+    out.dataset.status='PASS';
+    out.textContent='PASS · COLOR RUSH NATIVE WEBGL SHADERS';
+    document.title='PASS WEBGL';
+  }catch(e){
+    out.dataset.status='FAIL';
+    out.textContent='FAIL · '+e.message;
+    document.title='FAIL WEBGL';
+  }
+})();
+</script></body></html>
