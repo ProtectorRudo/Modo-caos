@@ -86,7 +86,7 @@
     '  col=vec3(0.0,0.035,0.048); a=mix(0.17,0.29,abs(vUV.y));',
     ' }else{',
     '  col=vTint*(0.19+0.12*wave+focus*0.10);',
-    '  a=0.30+focus*0.11;',
+    '  a=(0.30+focus*0.11)*uEnergy;',
     ' }',
     ' col=max(col,vec3(0.0));',
     ' gl_FragColor=vec4(min(col,vec3(1.0)),a);',
@@ -145,7 +145,7 @@
     program=link(g,srcVertex,srcFragment,['aPosition','aNormal','aUV','aTint','aColorId']);
     sparksProgram=link(g,starVS,starFS,['aPoint','aColor']);
     buffers={};
-    ['shadows','metal','glass','light','aura'].forEach(k=>buffers[k]={vbo:g.createBuffer(),count:0});
+    ['shadows','metal','glass','light','aura','wave'].forEach(k=>buffers[k]={vbo:g.createBuffer(),count:0});
     sparkBuffer=g.createBuffer();
     init.lit=uniforms(g,program,['uPV','uWorld','uScale','uEye','uTime','uKind','uTarget','uPreview','uEnergy']);
     init.spark=uniforms(g,sparksProgram,['uPV','uWorld','uScale','uDpr']);
@@ -193,8 +193,7 @@
       quad('glass',id(x-.390,.080,z-.390),id(x+.390,.080,z-.390),
         id(x+.390,.080,z+.390),id(x-.390,.080,z+.390),id(0,1,0),c,ci);
       const e=.400,h=.087,th=.012;
-      box('light',x,z,2*e,th,.080,h,c,ci);
-      box('light',x,z,th,2*e,.080,h,c,ci); // center engraved energy cross
+      // Clear, readable glass centers: no distracting neon crosses.
       // Glass edge luminescence
       box('light',x,z-.390,.780,.010,.084,.095,c,ci);
       box('light',x,z+.390,.780,.010,.084,.095,c,ci);
@@ -266,6 +265,38 @@
       bindVertices(g,batch.vbo);
       g.drawArrays(g.TRIANGLES,0,batch.count);
     }
+  }
+  function drawWave(g,time){
+    const age=time-burstAt;
+    if(age<0||age>=850||burstColor<0 || !buffers.wave)return;
+    const t=age/850, radius=.04+t*.42, thickness=.014+.025*t;
+    const c=rgbPalette[burstColor], verts=[];
+    const push=(x,y,z,u,v)=>{
+      verts.push(x,y,z,0,1,0,u,v,c[0],c[1],c[2],burstColor);
+    };
+    for(let cell=0;cell<25;cell++){
+      if(typeof tiles==='undefined'||tiles[cell]!==burstColor)continue;
+      const x=cell%5-2,z=(cell/5|0)-2,segments=32;
+      for(let j=0;j<segments;j++){
+        const a=j*Math.PI*2/segments,b=(j+1)*Math.PI*2/segments;
+        const p=(angle,r)=>[x+Math.cos(angle)*r,.105,z+Math.sin(angle)*r];
+        const v0=p(a,radius),v1=p(b,radius),v2=p(b,radius+thickness),v3=p(a,radius+thickness);
+        push(...v0,0,0);push(...v1,1,0);push(...v2,1,1);
+        push(...v0,0,0);push(...v2,1,1);push(...v3,0,1);
+      }
+    }
+    if(!verts.length)return;
+    const b=buffers.wave;
+    g.bindBuffer(g.ARRAY_BUFFER,b.vbo);
+    g.bufferData(g.ARRAY_BUFFER,new Float32Array(verts),g.DYNAMIC_DRAW);
+    g.useProgram(program);
+    g.uniform1f(init.lit.uKind,4);
+    g.uniform1f(init.lit.uEnergy,1-t);
+    g.depthMask(false);
+    g.enable(g.BLEND);
+    g.blendFunc(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA);
+    bindVertices(g,b.vbo);
+    g.drawArrays(g.TRIANGLES,0,verts.length/STRIDE);
   }
   function drawSparks(g,pv,W,scale,time){
     const age=time-burstAt;
@@ -354,6 +385,7 @@
         g.enable(g.BLEND);g.blendFunc(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA);
         g.disable(g.CULL_FACE);g.depthFunc(g.LEQUAL);
         drawLit(g,pv,W,pose.transform.position,time,size);
+        drawWave(g,time);
         drawSparks(g,pv,W,size,time);
       }
       if(!ready){ready=true;overlay.classList.add('crp3d-ready');window.ColorRushPro3D.status='active';window.ColorRushPro3D.active=true;}
