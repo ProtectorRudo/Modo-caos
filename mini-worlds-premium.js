@@ -42,9 +42,19 @@ root.MiniWorldsPremium=function(T,options={}){
   if(!Number.isFinite(box.min.y)||!Number.isFinite(box.max.y)||box.max.y<=box.min.y){
    parent.remove(o);return false;
   }
-  o.position.y=y-box.min.y;
-  o.userData.mwFoliage=!!template.userData.mwFoliage;
-  o.userData.mwCanopy=!!template.userData.mwCanopy;
+  // A normalized height isn't enough: Quaternius broadleaf crowns may be
+  // wider than twice their height, which can cover the whole AR camera.
+  if(template.userData?.mwCanopy){
+   const width=(box.max.x??0)-(box.min.x??0),depth=(box.max.z??0)-(box.min.z??0);
+   const diameter=Math.max(width,depth);
+   if(Number.isFinite(diameter)&&diameter>1.45){
+    o.scale.multiplyScalar(1.45/diameter);
+    o.updateMatrixWorld(true);
+    const resized=new T.Box3().setFromObject(o);
+    o.position.y=y-resized.min.y;
+   }else o.position.y=y-box.min.y;
+  }else o.position.y=y-box.min.y;
+  o.userData={...(o.userData||{}),mwFoliage:!!template.userData?.mwFoliage,mwCanopy:!!template.userData?.mwCanopy};
   return true;
  }
  async function decorate(stage,level){
@@ -73,8 +83,7 @@ root.MiniWorldsPremium=function(T,options={}){
     const size=new T.Vector3();box.getSize(size);
     if(!Number.isFinite(size.y)||size.y<.001)throw Error('empty tree bounds');
     const proto=new T.Group();
-    proto.userData.mwFoliage=/^(canopy|shrub)/.test(key);
-    proto.userData.mwCanopy=key.startsWith('canopy');
+    proto.userData={...(proto.userData||{}),mwFoliage:/^(canopy|shrub)/.test(key),mwCanopy:key.startsWith('canopy')};
     object.scale.multiplyScalar(1/size.y);
     proto.add(object);proto.updateMatrixWorld(true);
     return [key,proto];
