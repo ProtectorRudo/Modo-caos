@@ -106,6 +106,18 @@ h1 span{color:#7bffe1;display:block}
 #mini{position:absolute;bottom:12px;left:12px;right:140px;font-size:11px;color:#d2fff0;text-shadow:0 1px 7px black;display:none}
 #online{position:absolute;left:15%;right:15%;top:max(97px,env(safe-area-inset-top) + 82px);text-align:center;display:none;background:#071d31b9;border-radius:8px;padding:6px;font-size:11px;color:#cbffe4;pointer-events:none}
 @media(max-height:630px){#topHud{top:5px}.stat strong{font-size:16px}#healthTrack{top:62px}#close,#sound{top:76px}#hint{top:13%}#ammo{bottom:79px}#fire{height:72px}}
+#flagPlanner{margin:8px 0 17px;padding:13px;border:1px solid #3d8b96;border-radius:16px;background:#071e31e8}
+#flagMap{width:100%;max-height:284px;touch-action:manipulation;display:block;cursor:crosshair}
+.flagTools{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
+.flagTools button{flex:1;min-width:80px;padding:10px 5px;font-size:10px;border:1px solid #4e8193;background:#0f3043;color:#d4fcf9}
+.flagTools button.active{background:#55d9d3;color:#04232c;border-color:#98f9ed}
+#missionObjective{position:absolute;left:15%;right:15%;top:max(112px,env(safe-area-inset-top) + 100px);text-align:center;z-index:11;pointer-events:none;display:none}
+#missionObjective strong{display:block;color:#ffe6a4;text-shadow:0 3px 9px black,0 0 10px #ffcf4a;font-size:clamp(14px,3.5vw,21px)}
+#missionObjective span{display:block;color:#e3fff8;font-size:11px;font-weight:850;text-shadow:0 2px 6px black}
+#missionAction{position:absolute;bottom:max(197px,env(safe-area-inset-bottom) + 181px);right:12px;background:linear-gradient(125deg,#ffed9d,#eeb55a);color:#142128;display:none;z-index:19;padding:11px 10px;font-size:13px}
+#missionAction:disabled{opacity:.55}
+#demoMove{position:absolute;bottom:max(193px,env(safe-area-inset-bottom) + 172px);left:9px;display:none;z-index:20;gap:3px;grid-template-columns:repeat(3,35px);grid-template-rows:repeat(2,36px)}
+#demoMove button{padding:4px;font-size:16px;background:#0d3049e8;color:white;border:1px solid #6cbac9;border-radius:8px}
 </style></head>
 <body>
 <section id="home"><main>
@@ -116,7 +128,17 @@ h1 span{color:#7bffe1;display:block}
 <div class="hero"><div class="botArt"></div><strong>ESCUCHALOS · GIRÁ · REACCIONÁ</strong></div>
 <div class="tags"><b>🎯 APUNTADO REAL</b><b>👹 CRIATURAS 3D</b><b>📍 25 CELDAS</b><b>💣 BOMBA CAOS</b></div>
 <label for="mode" class="eyebrow">ELEGÍ TU MISIÓN</label>
-<select id="mode"><option value="survival">SUPERVIVENCIA 360 · 90 s</option><option value="infinite">CAOS INFINITO · sin límite</option><option value="reflex">REFLEJOS EXTREMOS · 60 s</option><option value="joker">EL BURLÓN · 75 s</option><option value="boss">JEFE FINAL · 90 s</option></select>
+<select id="mode"><optgroup label="7 MISIONES NUEVAS"><option value="invasion">⚔️ INVASIÓN EN CASA · 75 s</option><option value="loot">💰 BOTÍN MALDITO · 90 s</option><option value="timewarp">⏳ TIEMPO ROTO · 60 s</option><option value="refuge">🛡️ EL ÚLTIMO REFUGIO · 75 s</option><option value="mutant">⚡ CAOS MUTANTE · 90 s</option><option value="colossus">👹 COLOSOS 360 · 3 jefes</option><option value="ctf">🚩 CAPTURA LA BANDERA · 150 s</option></optgroup><optgroup label="MISIONES CLÁSICAS"><option value="survival">SUPERVIVENCIA 360 · 90 s</option><option value="infinite">CAOS INFINITO · sin límite</option><option value="reflex">REFLEJOS EXTREMOS · 60 s</option><option value="joker">EL BURLÓN · 75 s</option><option value="boss">JEFE FINAL · 90 s</option></optgroup></select>
+<div id="flagPlanner" aria-label="Editor táctico para Captura la Bandera" style="display:none">
+ <strong class="eyebrow">🚩 PERSONALIZÁ TU BATALLA</strong>
+ <p class="note">Seleccioná dónde está tu base, la bandera enemiga y los 6 o 7 puntos donde aparecen rivales. Las distancias se miden en metros desde el piso calibrado.</p>
+ <div class="flagTools"><button type="button" data-flag-tool="base">🛡️ MI BASE</button><button type="button" data-flag-tool="flag">🚩 BANDERA</button><button type="button" data-flag-tool="spawn">🔴 ENEMIGOS</button></div>
+ <svg id="flagMap" viewBox="0 0 300 300" aria-label="Plano editable de las bases y puntos de aparición"></svg>
+ <p id="flagPlannerHint" class="note" role="status"></p>
+ <div class="flagTools"><button id="flagSix" type="button">6 PUNTOS</button><button id="flagSeven" type="button">7 PUNTOS</button><button id="flagReset" type="button">↻ REINICIAR</button></div>
+ <span class="eyebrow" id="flagCount">7 ENTRADAS ENEMIGAS</span>
+ <p class="note">La disposición se conserva para esta configuración, pero en una nueva sesión AR hay que volver a fijar el origen espacial. No cruces muebles ni corras mirando la pantalla.</p>
+ </div>
 <div class="buttons"><button id="startAR" class="gold">📷 ENTRAR EN REALIDAD AUMENTADA</button><button id="startDemo" class="secondary">🎮 ENTRENAMIENTO 3D SIN CÁMARA</button>
 <a href="/salas.html?game=rodeados-360" class="secondary">👥 SALAS DE 2 A 4 · BETA ESPACIAL</a></div>
 <p class="note" style="font-size:10px">Enemigos 3D: BAMEN y DanlyVostok (CC BY 4.0), criaturas CC0 de Gobkit y brazos FPS CC0 de WRAD ARMS cuando están disponibles. Araña lobo de diseño propio. Modelo táctico basado en <a href="https://sketchfab.com/3d-models/free-military-soldier-rigged-e9c56308a67d4a3db62e914fafa4d198" target="_blank" rel="noopener noreferrer" style="color:#b6ecdb">BAMEN</a>, con alternativa original si falla un modelo. Créditos: <a href="https://gobkit.com/freebies" target="_blank" rel="noopener noreferrer" style="color:#b6ecdb">Gobkit</a> y <a href="https://github.com/wwwriks/wrad-arms" target="_blank" rel="noopener noreferrer" style="color:#b6ecdb">WRAD ARMS</a> · <a href="https://sketchfab.com/3d-models/military-tactical-suit-lowpolygameready-ef698ce36b1545a78ce592dd3db4c7ed" target="_blank" rel="noopener noreferrer" style="color:#b6ecdb">DanlyVostok</a>.</p>
@@ -127,7 +149,7 @@ h1 span{color:#7bffe1;display:block}
 <div id="overlay" aria-label="Juego RODEADOS 360">
 <div id="arWorldOverlay" aria-hidden="true"></div>
 <div id="topHud"><div class="stat">VIDA<strong id="life">100</strong></div><div class="stat">PUNTOS<strong id="points">0</strong></div><div class="stat">OLEADA<strong id="wave">1</strong></div><div class="stat">TIEMPO<strong id="clock">90</strong></div></div>
-<div id="healthTrack"><div id="healthFill"></div></div>
+<div id="missionObjective" role="status"><strong id="missionTitle"></strong><span id="missionDetail"></span></div><div id="healthTrack"><div id="healthFill"></div></div>
 <button id="close" class="secondary">← SALIR</button><button id="sound" class="secondary">🔊</button>
 <div id="hint">BUSCÁ EL PISO CON LA CÁMARA</div><div id="notice" role="status" aria-live="polite"></div>
 <div id="touch" aria-label="Mover, agrandar, achicar y girar pista"></div><div id="placementHelp" role="status"></div><button id="manualPlace">📍 COLOCAR PISTA MANUALMENTE</button>
@@ -136,13 +158,13 @@ h1 span{color:#7bffe1;display:block}
 <div id="calControls"><button id="smaller" class="secondary">−</button><button id="size" class="secondary" disabled>2,60 m</button><button id="larger" class="secondary">+</button><button id="turn" class="secondary">↻ 15°</button><button id="refreshFloor">🎯 CENTRAR EN EL PISO</button><button id="lock" class="gold">📍 FIJAR PISTA</button></div>
 <div id="cellControls"><div id="calprogress"><i id="calfill"></i></div><button id="center" class="secondary">👣 ESTOY EN LA CELDA CENTRAL</button><button id="begin" class="gold" disabled>▶ ¡DEFENDERME!</button><button id="changeCell" class="secondary">📍 ELEGIR OTRA CELDA</button></div>
 <div id="actions"><button id="recal" class="secondary">🎯 RECALIBRAR</button><button id="resume" class="gold">▶ CONTINUAR</button></div>
-<div id="ammo">∞  BALAS</div><div id="weaponLabel" aria-live="polite">✦ PISTOLA DE ENERGÍA</div><div id="combat"><button id="bomb" aria-label="Lanzar Bomba Caos, explosión de área">💣 BOMBA CAOS</button><button id="special">⚡ EMP</button><button id="fire">◎ DISPARAR</button></div>
+<button id="missionAction" type="button" aria-label="Interactuar con el objetivo">🚩 RECOGER</button><div id="demoMove"><div></div><button type="button" data-demo-move="forward">▲</button><div></div><button type="button" data-demo-move="left">◀</button><button type="button" data-demo-move="back">▼</button><button type="button" data-demo-move="right">▶</button></div><div id="ammo">∞  BALAS</div><div id="weaponLabel" aria-live="polite">✦ PISTOLA DE ENERGÍA</div><div id="combat"><button id="bomb" aria-label="Lanzar Bomba Caos, explosión de área">💣 BOMBA CAOS</button><button id="special">⚡ EMP</button><button id="fire">◎ DISPARAR</button></div>
 <button id="pause">Ⅱ PAUSA</button><div id="mini"></div>
 <div id="result"><div class="resultCard"><div class="eyebrow">MODO CAOS · RESULTADO</div><h2 id="outcome">MISIÓN TERMINADA</h2><p id="summary"></p><div id="resultStats"></div><p id="achievements"></p><p id="localRank"></p>
 <button id="rematch" class="gold">↻ REVANCHA RÁPIDA</button><button id="share" class="secondary">↗ COMPARTIR MARCA</button>
 <button id="reposition" class="secondary">📍 AJUSTAR PISTA</button><button id="menu" class="secondary">← SALIR AL MENÚ</button></div></div>
 </div>
-<script src="/rodeados-core.js?v=17"></script><script src="/rodeados-ux.js?v=2"></script><script src="/rodeados-progression.js?v=1"></script>
+<script src="/rodeados-core.js?v=17"></script><script src="/rodeados-missions.js?v=18"></script><script src="/rodeados-flag-planner.js?v=18"></script><script src="/rodeados-ux.js?v=2"></script><script src="/rodeados-progression.js?v=1"></script>
 <script src="/mc-config.js?v=2"></script><script src="/mc-rooms-client.js?v=2"></script>
-<script type="module" src="/rodeados-runtime.js?v=17"></script>
+<script type="module" src="/rodeados-runtime.js?v=18"></script>
 </body></html>
