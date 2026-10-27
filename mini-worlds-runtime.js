@@ -635,7 +635,13 @@ function frame(t,xrFrame){
   }
  }catch(e){frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.error('[MINI WORLDS] XR WebGL:',e)}}
  if(mode==='ar'&&xrFrame&&arGuide&&animFrames%3===0){
-  guideState=arGuide.draw(xrFrame,renderer.xr.getReferenceSpace(),stage,placing||phase==='ready'||arDebugVisible,webglCalls===0);
+  // NEVER project SVG floor polygons over active gameplay. On some AR phones
+  // renderer.info reports 0 draw calls despite a visible overlay: the old
+  // emergency mode splashed huge opaque cyan quadrilaterals across the world.
+  const floorOnly=placing||phase==='ready';
+  guideState=floorOnly
+    ?arGuide.draw(xrFrame,renderer.xr.getReferenceSpace(),stage,true,false)
+    :arGuide.hide();
  }
  if(mode==='ar'&&(phase==='playing'||phase==='paused')&&animFrames%30===0){
   const presenting=renderer.xr.isPresenting;
