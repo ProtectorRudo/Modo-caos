@@ -21,7 +21,13 @@ body.mw-immersive-ar #viewport canvas{display:none!important}
 .isle{position:relative;z-index:2;width:77%;aspect-ratio:1.2;transform:rotate(-10deg);filter:drop-shadow(0 33px 14px #08242dbb)}
 .isle:before{content:"";position:absolute;inset:21% 5% 4%;background:linear-gradient(160deg,#e1bd73 0 52%,#a46e42 53% 72%,#5f543f 73%);border-radius:44% 55% 46% 48%;transform:perspective(280px) rotateX(53deg);box-shadow:0 8px 0 #8f5d36,0 19px 0 #456957}
 .isle:after{content:"";position:absolute;inset:9% 12% 30%;background:radial-gradient(ellipse at 44% 57%,#eecb80 0 39%,#45bd7a 40% 77%,#218d69 80%);border-radius:43% 54% 47% 42%;transform:perspective(420px) rotateX(47deg);box-shadow:inset 0 8px 30px #b9f6c955}
-.palm{position:absolute;z-index:3;top:7%;left:17%;font-size:clamp(68px,11vw,122px);text-shadow:0 12px 8px #163e4033}.palm.two{left:65%;top:19%;font-size:80px;transform:rotate(-18deg)}.heroFace{position:absolute;z-index:4;top:29%;left:35%;width:33%;aspect-ratio:.88;background:#ff9073;border:9px solid #fbdab1;border-radius:47% 47% 48% 49%;transform:rotate(9deg);box-shadow:0 16px 0 #258d94,0 22px 0 #f6db9a,0 28px 19px #103f4d88}.heroFace:before{content:"";position:absolute;top:28%;left:18%;width:20%;height:23%;background:#152e3b;border-radius:50%;box-shadow:56px 0 0 #152e3b,3px -6px 0 3px #fff8e5,59px -6px 0 3px #fff8e5}.heroFace:after{content:"";position:absolute;width:25%;height:11%;left:38%;bottom:19%;border-bottom:4px solid #522e30;border-radius:50%}.shine{position:absolute;z-index:3;color:#ffe992;font-size:40px;text-shadow:0 0 24px #ffd771}.shine.a{top:10%;right:13%}.shine.b{bottom:14%;left:12%;font-size:26px}.captionGraphic{position:absolute;z-index:5;left:8%;bottom:5%;right:8%;text-align:center;letter-spacing:3px;font-weight:1000;font-size:11px;color:#eefff4;text-shadow:0 3px 12px #06374b}
+.palm{position:absolute;z-index:3;top:7%;left:17%;font-size:clamp(68px,11vw,122px);text-shadow:0 12px 8px #163e4033}.palm.two{left:65%;top:19%;font-size:80px;transform:rotate(-18deg)}.heroFace{position:absolute;z-index:4;top:29%;left:35%;width:33%;aspect-ratio:.88;background:#ff9073;border:9px solid #fbdab1;border-radius:47% 47% 48% 49%;transform:rotate(9deg);box-shadow:0 16px 0 #258d94,0 22px 0 #f6db9a,0 28px 19px #103f4d88}.heroFace:before{content:"";position:absolute;top:28%;left:18%;width:20%;height:23%;background:#152e3b;border-radius:50%;box-shadow:56px 0 0 #152e3b,3px -6px 0 3px #fff8e5,59px -6px 0 3px #fff8e5}.heroFace:after{content:"";position:absolute;width:25%;height:11%;left:38%;bottom:19%;border-bottom:4px solid #522e30;border-radius:50%}/* Fox portrait follows the playable orange and turquoise palette. */
+.heroFace{background:linear-gradient(150deg,#ffb258,#dc6c2b);border-color:#fff3da;box-shadow:0 16px 0 #198a94,0 22px 0 #ffd16c,0 28px 19px #103f4d88}
+.heroFace .foxEar{position:absolute;top:-42%;width:43%;height:65%;background:#d95b30;border:5px solid #ffca7e;border-radius:9% 90% 10% 20%;z-index:-1}
+.heroFace .foxEar.left{left:1%;transform:rotate(-22deg)}.heroFace .foxEar.right{right:1%;transform:scaleX(-1) rotate(-22deg)}
+.heroFace .foxNose{position:absolute;top:53%;left:35%;width:30%;height:25%;border-radius:50% 50% 65% 65%;background:#fff2dd;box-shadow:0 4px 0 #ffe5bb}
+.heroFace .foxNose:after{content:'';position:absolute;left:31%;top:13%;width:38%;height:30%;border-radius:50%;background:#212638}
+.shine{position:absolute;z-index:3;color:#ffe992;font-size:40px;text-shadow:0 0 24px #ffd771}.shine.a{top:10%;right:13%}.shine.b{bottom:14%;left:12%;font-size:26px}.captionGraphic{position:absolute;z-index:5;left:8%;bottom:5%;right:8%;text-align:center;letter-spacing:3px;font-weight:1000;font-size:11px;color:#eefff4;text-shadow:0 3px 12px #06374b}
 #gameUI{position:fixed;inset:0;z-index:5;pointer-events:none}
 #hud{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);min-height:46px;max-width:calc(100vw - 105px);border-radius:13px;display:flex;align-items:center;justify-content:center;gap:13px;background:linear-gradient(120deg,#0c2d41e8,#103f4ce8);border:1px solid #85edc27b;padding:7px 12px;white-space:nowrap;box-shadow:0 8px 23px #00182566;backdrop-filter:blur(8px);font-variant-numeric:tabular-nums;font-size:13px;font-weight:1000}
 #health{color:#ff8c83;letter-spacing:1px;font-size:20px}
@@ -71,17 +77,17 @@ body.fury-mode #hud{border-color:#ffcb7f}
 <div id="portalFlash" aria-hidden="true"></div>
 <div id="landing"><div class="wrapper">
 <section>
-<div class="label">MODO CAOS PRESENTA · AVENTURA MÁGICA EN TU CASA</div><h1 class="brand">MINI<span>WORLDS.</span></h1>
-<div class="headline">Una brujita, cuatro mundos mágicos y un solo rincón de tu casa.</div>
-<p class="copy">Controlá a una pequeña maga, dispará hechizos con tu varita, restaurá flores encantadas, abrí portales y viajá entre dos plantas mágicas. Cada sector aparece en el mismo espacio de tu living: no necesitás seguir físicamente al personaje.</p>
+<div class="label">MODO CAOS PRESENTA · AVENTURA ÉPICA DE BOLSILLO</div><h1 class="brand">MINI<span>WORLDS.</span></h1>
+<div class="headline">Un zorro aventurero. Un blaster de energía. Cuatro mundos sorprendentes.</div>
+<p class="copy">Guiá al zorro explorador, dispará energía para romper cajas y derrotar enemigos, recuperá flores encantadas y cruzá portales entre islas. Cada sector aparece en el mismo espacio de tu living: no necesitás seguir físicamente al personaje.</p>
 <div class="features"><span>✦ CABE EN UN LIVING</span><span>◈ 3D + REALIDAD AUMENTADA</span><span>⚡ COMBOS Y FURIA</span><span>✺ JEFES ANIMADOS</span></div>
 <div class="label" id="unlocked">AVENTURA 1 DISPONIBLE</div><div id="levelChoice"></div>
 <div class="buttonStack"><button class="cta" id="arPlay" disabled>COMPROBANDO AR...</button><button class="cta outline" id="demoPlay">▶ JUGAR AHORA · AVENTURA 3D</button></div>
 <div class="features"><span id="saveLabel">0 MONEDAS GANADAS</span><button class="levelChoice" id="sounds">SONIDO: SÍ</button></div>
-<p class="fine">AR: escenario anclado al piso, unos 12 m de largo y 6,7 m de ancho inicialmente, con escala ajustable; manejás al héroe con joystick, no hace falta caminar por el escenario. Necesitás Android con ARCore, Chrome y un lugar despejado. Sin AR podés jugar en 3D. <a href="./index.html">‹ VOLVER A MODO CAOS</a></p>
+<p class="fine">AR: cuatro escenarios de bolsillo en una zona de aproximadamente 2,5 × 1,9 m, con escala ajustable; manejás al héroe con joystick, no hace falta caminar por el escenario. Necesitás Android con ARCore, Chrome y un lugar despejado. Sin AR podés jugar en 3D. <a href="./index.html">‹ VOLVER A MODO CAOS</a></p>
 </section>
-<section class="visual" aria-label="Ilustración estilizada: isla fantástica y protagonista caballero">
-<div class="planet"></div><div class="isle"><div class="palm">🌴</div><div class="palm two">🌴</div><div class="heroFace"></div></div>
+<section class="visual" aria-label="Ilustración estilizada: isla fantástica y protagonista zorro">
+<div class="planet"></div><div class="isle"><div class="palm">🌴</div><div class="palm two">🌴</div><div class="heroFace"><i class="foxEar left"></i><i class="foxEar right"></i><i class="foxNose"></i></div></div>
 <span class="shine a">✦</span><span class="shine b">✧</span><div class="captionGraphic">ISLA SALVAJE · TU PRIMER GRAN VIAJE</div>
 </section></div></div>
 <div id="viewport" hidden></div>
@@ -93,9 +99,9 @@ body.fury-mode #hud{border-color:#ffcb7f}
 <div id="zoneTitle">MUNDO 1 · LA ISLA DESPIERTA</div><button id="arStatus" hidden title="Tocá para mostrar u ocultar la guía espacial">3D · comprobando AR</button><button id="pause" hidden aria-label="Pausar">Ⅱ</button><button id="recenter" hidden>⌖ RECENTRAR</button><button id="mapToggle" hidden aria-label="Mostrar minimapa">🗺</button><canvas id="miniMap" width="116" height="156" hidden aria-label="Minimapa del mundo"></canvas>
 <div id="bossHud" hidden><span id="bossLabel">DRAGÓN DORADO · FASE 1</span><div id="bossTrack"><i id="bossFill"></i></div></div>
 <div id="toast" aria-live="polite"></div>
-<div id="controls" hidden><div id="joystick" aria-label="Joystick de movimiento"><div id="stick"></div></div><div class="actionButtons"><button id="punchBtn" class="actionButton"><span>✦</span><small>HECHIZO</small></button><button id="jumpBtn" class="actionButton"><span>↥</span><small>SALTAR</small></button></div></div>
+<div id="controls" hidden><div id="joystick" aria-label="Joystick de movimiento"><div id="stick"></div></div><div class="actionButtons"><button id="punchBtn" class="actionButton"><span>➤</span><small>DISPARAR</small></button><button id="jumpBtn" class="actionButton"><span>↥</span><small>SALTAR</small></button></div></div>
 <div id="placement" hidden><div id="positionPad"></div><div id="placementHint">BUSCÁ UNA ZONA DESPEJADA DE 2–3 METROS · AJUSTÁ EL MUNDO</div><div id="placementButtons"><button id="scaleLess">−</button><button id="turnLeft">↶</button><button id="fixWorld" disabled>FIJAR MUNDO</button><button id="turnRight">↷</button><button id="scaleMore">＋</button></div></div>
-<div id="ready" hidden><div class="readyCard"><div class="label">MINI WORLDS · MISIÓN 01</div><h2 id="readyTitle">¡BIENVENIDO A ISLA SALVAJE!</h2><p>Joystick: guiá a ORIN, el robot explorador, por mundos de bolsillo · ↑ doble salto · ✨ lanzá hechizos con la varita · entrá en portales para avanzar o volver sin caminar por toda tu casa.</p><button class="cta" id="begin">▶ ¡EMPEZAR AVENTURA!</button></div></div>
+<div id="ready" hidden><div class="readyCard"><div class="label">MINI WORLDS · EL ZORRO EXPLORADOR</div><h2 id="readyTitle">¡BIENVENIDO A ISLA SALVAJE!</h2><p>Joystick: manejá al zorro aventurero · ↑ doble salto · ➤ dispará con el blaster · entrá en portales para avanzar o volver sin caminar por toda tu casa.</p><button class="cta" id="begin">▶ ¡EMPEZAR AVENTURA!</button></div></div>
 <div id="modal" hidden><div class="modalCard"><div class="label" id="modalTag">AVENTURA</div><h2 id="modalTitle"></h2><p id="modalDesc"></p><div id="actions"></div></div></div>
 <button id="menuBtn" hidden>VOLVER</button><div id="load" hidden>PREPARANDO TU UNIVERSO 3D…</div>
 </div>
