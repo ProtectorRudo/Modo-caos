@@ -21,7 +21,7 @@ const server=http.createServer((req,res)=>{
   assert(!await page.locator('#flagIntro').isVisible(),'hostage rescue automatically configures enemies, no CTF field editor');
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>window.__RodeadosDebug?.stage==='playing',null,{timeout:12000});
-  await page.waitForFunction(()=>window.__RodeadosDebug?.hostageRender?.visible&&window.__RodeadosDebug?.hostageRender?.guardMarkers===7,null,{timeout:9000});
+  await page.waitForFunction(()=>window.__RodeadosDebug?.hostageRender?.visible&&window.__RodeadosDebug?.hostageRender?.guardMarkers===7&&Math.abs(window.__RodeadosDebug.hostageRender.x-window.__RodeadosDebug.game.mission.object.x)<.001,null,{timeout:9000});
   const m=await page.evaluate(()=>({mission:__RodeadosDebug.game.mission,render:__RodeadosDebug.hostageRender}));
   assert.equal(m.mission.level,1);assert.equal(m.mission.spawnPoints.length,7);
   assert(Math.abs(m.render.x-m.mission.object.x)<.001&&Math.abs(m.render.z-m.mission.object.z)<.001,'hostage is anchored to chosen world coords, not phone');
