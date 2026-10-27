@@ -49,7 +49,7 @@ root.MiniWorldsKayKit=function(T,options={}){
    const specs=[
     // Quaternius already provides canopy silhouettes. This second pack is
     // a complementary ROCK/BUSH kit, not a second forest stacked on top.
-    ['bush',2,1],['bush',5,-1],['bush',10,1],
+    // Bush spheres are omitted: they look like plastic toys in AR.
     ['rock',1,-1],['rock',3,1],['rock',4,-1],['rock',7,1],['rock',8,-1],['rock',11,1]
    ];
    for(let i=0;i<specs.length;i++){
