@@ -168,7 +168,10 @@ test('invasion portals are stable in fixed AR world even if camera/player moves'
 });
 
 test('loot cannot be won by surviving without extracting',()=>{
- const g=G.create({mode:'loot',seed:44});G.begin(g);g.spawnClock=10000;
+ const g=G.create({mode:'loot',seed:44});
+ const plan={base:{x:0,z:0},crates:[{x:0,z:-3},{x:2,z:-3},{x:-2,z:-3},{x:3.5,z:-1},{x:-3.5,z:-1}]};
+ assert.equal(G.configureLootPlan(g,plan).ok,true);
+ G.begin(g);g.spawnClock=10000;
  g.elapsed=119.99;G.advance(g,.03);
  assert.equal(g.phase,'finished');assert.equal(g.mission.completed,false);
 });
