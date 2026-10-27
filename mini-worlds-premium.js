@@ -55,7 +55,7 @@ root.MiniWorldsPremium=function(T,options={}){
    }else o.position.y=y-box.min.y;
   }else o.position.y=y-box.min.y;
   o.userData={...(o.userData||{}),mwFoliage:!!template.userData?.mwFoliage,mwCanopy:!!template.userData?.mwCanopy};
-  return true;
+  return o;
  }
  async function decorate(stage,level){
   if(!stage?.root||!stage?.map?.platforms)return {loaded:0,placed:0,failed:level?7:4};
@@ -106,8 +106,17 @@ root.MiniWorldsPremium=function(T,options={}){
   let treeCount=0;
   const place=(name,x,y,z,height,angle)=>{
    const target=templateMap.get(name);if(!target)return false;
-   if(locate(layer,target,x,y,z,height,angle)){results.placed++;if(name.startsWith('canopy'))treeCount++;return true}
-   return false;
+   const obj=locate(layer,target,x,y,z,height,angle);
+   if(!obj)return false;
+   const tree=name.startsWith('canopy'),rock=name.toLowerCase().includes('rock');
+   const wall=name==='medievalWall'||name==='medievalTower';
+   const h=tree?height:rock?height:wall?height:name==='shrub'?height:.7;
+   const radius=tree?.20+height*.035:rock?.18+height*.19:wall?.25+height*.06:.17;
+   // An imported model is only displayed if it can have a real physical
+   // base without blocking critical routes or trapping the hero.
+   const registered=stage.registerSolid?.(obj,{x,y,z,height:h,radius,kind:tree?'tree':wall?'column':rock?'rock':'bush'});
+   if(stage.registerSolid&&!registered){obj.parent?.remove(obj);return false}
+   results.placed++;if(tree)treeCount++;return true;
   };
   // Gameplay/physics traverse the centers. Canopy is placed exclusively
   // against the OUTER CORNERS of real islands; it cannot resemble a new,

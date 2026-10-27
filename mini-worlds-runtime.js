@@ -100,11 +100,39 @@ function newStage(){
  if(residents>=5)game.player.invuln=2.4;          // observatory: brief spawn shield
  stage=window.MiniWorldsArt(T).makeStage(game.map);
  stage.mission=game.mission;
+ stage.solidObjects=[];
+ // Asset/visual layers MAY load asynchronously. Register physical solids
+ // only for visible, grounded meshes outside mandatory quest corridors.
+ stage.registerSolid=(obj,def)=>{
+  if(stage!==stageRefForPhysics||!obj||!def)return null;
+  const minDistance=(Number(def.radius)||.22)+.53;
+  if(Math.hypot(game.player.x-def.x,game.player.z-def.z)<minDistance)return null;
+  const hit=C.addScenery(game,def);
+  if(hit)stage.solidObjects.push({obj,hit});
+  return hit;
+ };
+ stage.syncSolids=()=>{
+  for(const {obj,hit} of stage.solidObjects){
+   let node=obj,visible=true;
+   while(node&&node!==stage.worldRoot){
+    if(node.visible===false){visible=false;break}
+    node=node.parent;
+   }
+   hit.enabled=visible&&node===stage.worldRoot;
+  }
+ };
+ const stageRefForPhysics=stage;
  document.body.classList.toggle('mw-defense',missionId===1);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
  stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
  stage.pocket=window.MiniWorldsPocket?.create(T,stage)||null;
+ for(const data of stage.nativeSolids||[]){
+  const collider=stage.registerSolid(data.obj,data);
+  // If this decorative physical obstacle would block a required path,
+  // remove THAT prop instead of leaving a ghost/pass-through object.
+  if(!collider&&data.obj)data.obj.visible=false;
+ }
  const stageRef=stage;
  // Native, bundled CC0 assets never block controls. Keep the original art if any GLB cannot load.
  if(window.MiniWorldsAssets){
@@ -535,6 +563,7 @@ function frame(t,xrFrame){
      ?{x:input.x*Math.cos(orbitYaw)+input.z*Math.sin(orbitYaw),
        z:input.z*Math.cos(orbitYaw)-input.x*Math.sin(orbitYaw)}
      :S.cameraRelative(input.x,input.z,heldSteeringYaw??steeringYaw??worldYaw,spatialLock?.yaw??worldYaw);
+   stage.syncSolids?.();
    C.tick(game,{x:move.x,z:move.z,jump:jumpQueued,punch:punchQueued},1/60);
    M.tick(game,1/60);
    jumpQueued=false;punchQueued=false;acc-=1/60;

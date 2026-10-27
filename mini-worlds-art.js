@@ -109,8 +109,8 @@ function makeShoreFoam(parent,map){
  return line;
 }
 const rng=s=>()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296};
-function addPalm(p,x,z,size=1){
- const g=group(p,x,.05,z),trunk=mesh(cyl(.105,.17,1.36,9),M.wood,.04,.63,0,g);trunk.rotation.z=-.11;
+function addPalm(p,x,z,size=1,groundY=.05){
+ const g=group(p,x,groundY,z),trunk=mesh(cyl(.105,.17,1.36,9),M.wood,.04,.63,0,g);trunk.rotation.z=-.11;
  for(let i=0;i<6;i++){const a=i*P/3;let stem=group(g,.16,1.3,0);stem.rotation.y=a;stem.rotation.z=-.16;let leaf=mesh(geoCone(.20,1.35,5),i%2?M.leaf:M.leaf2,0,.10,.57,stem);leaf.rotation.x=P/2+.23;leaf.scale.set(1.25,.85,.7)}
  for(let i=0;i<3;i++)mesh(sphere(.12),M.woodDark,.14+Math.cos(i*2)*.12,1.22,.04+Math.sin(i*2)*.12,g);
  g.scale.setScalar(size);return g;
@@ -148,7 +148,7 @@ function platform(root,p,rand){
  }
  if(isBridge){for(let i=0;i<6;i++){let z=-p.d*.42+i*p.d/5;mesh(cube(p.w*.9,.065,.18),i%2?M.wood:M.woodDark,0,.02,z,g)}
   for(const x of [-p.w*.47,p.w*.47]){for(let j=0;j<3;j++){let z=-p.d*.44+j*p.d*.44;mesh(cyl(.043,.052,.8,7),M.woodDark,x,.31,z,g)}mesh(cube(.05,.055,p.d),M.wood,x,.66,0,g)}}
- if(p.kind==='ruins')addRuins(g,p.w*.28,.02,-p.d*.20);
+ if(p.kind==='ruins')g.userData.ruins=addRuins(g,p.w*.28,.02,-p.d*.20);
  if(p.kind==='waterfall'){
   mesh(cube(.26,1.12,.24),M.stone,p.w*.43,.54,-.55,g);
   let water=mesh(cube(.06,.9,.92),M.water,p.w*.40,.5,-.45,g);water.material=M.water;
@@ -324,16 +324,28 @@ function makeStage(map){
  // Two transforms: the XR anchor NEVER moves; the world content changes
  // only at explicit magic portals between small AR rooms.
  const anchorRoot=group(scene),root=group(anchorRoot);
- const rand=rng(7403+map.n*719),platforms=[],windTargets=[];
+ const rand=rng(7403+map.n*719),platforms=[],windTargets=[],nativeSolids=[];
  const ocean=sprawlingEnvironment(root,rand,Boolean(map.n));
  const shoreFoam=makeShoreFoam(root,map);
  for(const p of map.platforms)platforms.push(platform(root,p,rand));
  for(let i=0;i<(map.walkways||[]).length;i++)causeway(root,map.walkways[i],i);
  for(let i=0;i<map.platforms.length;i++){
   const p=map.platforms[i],prev=map.platforms[i-1];
-  if(p.kind==='beach'||p.kind==='jungle')for(let n=0;n<1;n++){let x=p.x+(rand()>.5?1:-1)*(p.w*.45+.22);
-    let z=p.z+(rand()-.5)*p.d*.8;windTargets.push(addPalm(root,x,z,.72+rand()*.30))}
-  if(p.kind==='jungle'||p.kind==='ruins'){addRock(root,p.x+p.w*.5,p.y+.05,p.z,.22)}
+  if(p.kind==='beach'||p.kind==='jungle'){
+   const x=p.x+(rand()>.5?1:-1)*(p.w*.45+.22),z=p.z+(rand()-.5)*p.d*.8;
+   const size=.72+rand()*.30,obj=addPalm(root,x,z,size,p.y+.05);
+   windTargets.push(obj);
+   nativeSolids.push({obj,x,z,y:p.y,height:1.42*size,radius:.15*size,kind:'tree'});
+  }
+  if(p.kind==='jungle'||p.kind==='ruins'){
+   const x=p.x+p.w*.5,obj=addRock(root,x,p.y+.05,p.z,.22);
+   nativeSolids.push({obj,x,z:p.z,y:p.y,height:.32,radius:.20,kind:'rock'});
+  }
+  if(p.kind==='ruins'){
+   for(const side of [-1,1]){
+    nativeSolids.push({obj:platforms[i].userData.ruins,x:p.x+p.w*.28+side*.42,z:p.z-p.d*.20,y:p.y,height:1.45,radius:.18,kind:'column'});
+   }
+  }
   if(prev&&i!==2&&p.z-prev.z> -4.1){ /* bridging gaps intentionally remain jumpable */ }
  }
  // World-sized sea and shore banks are already assembled above.
@@ -713,7 +725,7 @@ function makeStage(map){
   // premium detail, while a few Kenney/procedural palms retain island identity.
   windTargets.forEach((plant,i)=>{plant.visible=!enabled||i%4===0});
  };
- return {scene,root:anchorRoot,worldRoot:root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,heroShadow,furyRing,furySparks,ocean,shoreFoam,magicOrbs,runes,projectilePool,hazardPool,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
+ return {scene,root:anchorRoot,worldRoot:root,map,nativeSolids,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,heroShadow,furyRing,furySparks,ocean,shoreFoam,magicOrbs,runes,projectilePool,hazardPool,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
 }
 return {makeStage};
 }})(typeof window!=='undefined'?window:globalThis);
