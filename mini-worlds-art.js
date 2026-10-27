@@ -324,16 +324,28 @@ function makeStage(map){
  // Two transforms: the XR anchor NEVER moves; the world content changes
  // only at explicit magic portals between small AR rooms.
  const anchorRoot=group(scene),root=group(anchorRoot);
- const rand=rng(7403+map.n*719),platforms=[],windTargets=[];
+ const rand=rng(7403+map.n*719),platforms=[],windTargets=[],nativeSolids=[];
  const ocean=sprawlingEnvironment(root,rand,Boolean(map.n));
  const shoreFoam=makeShoreFoam(root,map);
  for(const p of map.platforms)platforms.push(platform(root,p,rand));
  for(let i=0;i<(map.walkways||[]).length;i++)causeway(root,map.walkways[i],i);
  for(let i=0;i<map.platforms.length;i++){
   const p=map.platforms[i],prev=map.platforms[i-1];
-  if(p.kind==='beach'||p.kind==='jungle')for(let n=0;n<1;n++){let x=p.x+(rand()>.5?1:-1)*(p.w*.45+.22);
-    let z=p.z+(rand()-.5)*p.d*.8;windTargets.push(addPalm(root,x,z,.72+rand()*.30))}
-  if(p.kind==='jungle'||p.kind==='ruins'){addRock(root,p.x+p.w*.5,p.y+.05,p.z,.22)}
+  if(p.kind==='beach'||p.kind==='jungle'){
+   const x=p.x+(rand()>.5?1:-1)*(p.w*.45+.22),z=p.z+(rand()-.5)*p.d*.8;
+   const size=.72+rand()*.30,obj=addPalm(root,x,z,size);
+   windTargets.push(obj);
+   nativeSolids.push({obj,x,z,y:p.y,height:1.42*size,radius:.15*size,kind:'tree'});
+  }
+  if(p.kind==='jungle'||p.kind==='ruins'){
+   const x=p.x+p.w*.5,obj=addRock(root,x,p.y+.05,p.z,.22);
+   nativeSolids.push({obj,x,z:p.z,y:p.y,height:.32,radius:.20,kind:'rock'});
+  }
+  if(p.kind==='ruins'){
+   for(const side of [-1,1]){
+    nativeSolids.push({obj:platforms[i],x:p.x+p.w*.28+side*.42,z:p.z-p.d*.20,y:p.y,height:1.45,radius:.18,kind:'column'});
+   }
+  }
   if(prev&&i!==2&&p.z-prev.z> -4.1){ /* bridging gaps intentionally remain jumpable */ }
  }
  // World-sized sea and shore banks are already assembled above.
@@ -713,7 +725,7 @@ function makeStage(map){
   // premium detail, while a few Kenney/procedural palms retain island identity.
   windTargets.forEach((plant,i)=>{plant.visible=!enabled||i%4===0});
  };
- return {scene,root:anchorRoot,worldRoot:root,map,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,heroShadow,furyRing,furySparks,ocean,shoreFoam,magicOrbs,runes,projectilePool,hazardPool,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
+ return {scene,root:anchorRoot,worldRoot:root,map,nativeSolids,hero,boss,coins,stars,boxes,enemies,flags,portal,previewBeacon,heroShadow,furyRing,furySparks,ocean,shoreFoam,magicOrbs,runes,projectilePool,hazardPool,update,impact,combatFx,dispose,bindCharacters,setPremiumFoliage};
 }
 return {makeStage};
 }})(typeof window!=='undefined'?window:globalThis);
