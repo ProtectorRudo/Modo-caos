@@ -13,7 +13,7 @@ assert.match(skin,/#overlay\.crp3d-ready #tiles > polygon/);
 assert.match(skin,/#overlay\.crp3d-ready #crp-visual-layer/);
 assert.doesNotMatch(script,/\.createAnchor\s*\(|\.requestSession\s*\(|\.requestHitTestSource\s*\(/);
 assert.doesNotMatch(script,/\.addEventListener\s*\(\s*['"]pointer|setInterval\s*\(/);
-let draws=0,reads=0,failed=false,buffers=0,wire=false;
+let draws=0,points=0,reads=0,failed=false,buffers=0,wire=false;
 const G={
   VERTEX_SHADER:35633,FRAGMENT_SHADER:35632,COMPILE_STATUS:35713,LINK_STATUS:35714,
   ARRAY_BUFFER:34962,DYNAMIC_DRAW:35048,STATIC_DRAW:35044,FRAMEBUFFER:36160,
@@ -29,7 +29,7 @@ const g=Object.assign({},G,{
   createBuffer:()=>({id:++buffers}),bindBuffer(){},bufferData(target,arr){assert.ok(arr.length>0);},
   enableVertexAttribArray(){},vertexAttribPointer(){},disableVertexAttribArray(){},
   useProgram(){},viewport(){},enable(){},disable(){},depthFunc(){},depthMask(){},
-  blendFunc(){},bindFramebuffer(){},drawArrays(mode,first,count){assert.ok(count>0);draws++;},
+  blendFunc(){},bindFramebuffer(){},drawArrays(mode,first,count){assert.ok(count>0);draws++;if(mode===G.POINTS)points++;},
   getAttribLocation:()=>0
 });
 const poly={};const classNames=new Set();
@@ -54,6 +54,7 @@ assert.equal(window.ColorRushPro3D.status,'waiting-xr');
 assert.equal(typeof window.modoCaosXRFrame,'function');
 window.modoCaosXRFrame(130,frame,I);
 assert.equal(window.ColorRushPro3D.status,'active');
+assert.equal(window.ColorRushPro3D.active,true);
 assert.ok(classNames.has('crp3d-ready'));
 assert.ok(draws>=5,'multiple geometries rendered');
 const draws1=draws;
@@ -62,12 +63,14 @@ tiles[2]=3;window.modoCaosXRFrame(450,frame,I);
 assert.ok(draws>draws1);
 burst.textContent='+20 PUNTOS';burst.style.display='block';
 window.modoCaosXRFrame(680,frame,I);
+assert.ok(points>0,'success feedback generates anchored GPU particles');
 assert.ok(reads>=3);
 // Inject GPU failure; the fallback must never modify gameplay or throw.
 const oldDraw=g.drawArrays;
 g.drawArrays=()=>{throw Error('GPU lost');};
 window.modoCaosXRFrame(900,frame,I);
 assert.equal(window.ColorRushPro3D.status,'fallback');
+assert.equal(window.ColorRushPro3D.active,false);
 assert.equal(classNames.has('crp3d-ready'),false);
 assert.equal(tiles.length,25);
 assert.equal(tiles[2],3);
