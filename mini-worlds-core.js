@@ -205,7 +205,7 @@ function spellDamage(s,target,kind,shot){
 function attack(s){
  const p=s.player;if(s.phase!=='playing'||p.attack>.05)return false;
  const fury=s.chaos.fury>0,face=p.face,dir={x:Math.sin(face),z:Math.cos(face)};
- p.attack=fury?.23:.32;p.attackId++;
+ p.attack=(fury?.23:.32)-Math.min(.075,Math.max(0,p.blasterBoost||0));p.attackId++;
  const shot={id:p.attackId,x:p.x+dir.x*.40,z:p.z+dir.z*.40,y:p.y+.76,
   dx:dir.x,dz:dir.z,ttl:1.10,speed:fury?10.1:8.3,ignore:[]};
  s.magicShots.push(shot);
