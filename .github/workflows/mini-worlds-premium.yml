@@ -1,7 +1,7 @@
-name: Mini Worlds rescue campaign QA
+name: Mini Worlds premium islands QA
 on:
   push:
-    branches: [feat/mini-worlds-rescue-missions-20261027]
+    branches: [feat/mini-worlds-grand-islands-20261027]
   workflow_dispatch:
 jobs:
   test:
@@ -19,6 +19,7 @@ jobs:
             tests/mini-worlds-traversal.test.cjs \
             tests/mini-worlds-physics-polish.test.cjs \
             tests/mini-worlds-pocket.test.cjs \
+            tests/mini-worlds-diorama.test.cjs \
             tests/mini-worlds-magic.test.cjs \
             tests/mini-worlds-missions.test.cjs \
             tests/mini-worlds-characters.test.cjs \
@@ -33,6 +34,6 @@ jobs:
           done
       - name: Static syntax checks
         run: |
-          for script in mini-worlds-core.js mini-worlds-missions.js mini-worlds-mission-art.js mini-worlds-art.js mini-worlds-assets.js mini-worlds-premium.js mini-worlds-characters.js mini-worlds-finish.js mini-worlds-runtime.js; do
+          for script in mini-worlds-core.js mini-worlds-missions.js mini-worlds-mission-art.js mini-worlds-art.js mini-worlds-diorama.js mini-worlds-assets.js mini-worlds-premium.js mini-worlds-characters.js mini-worlds-finish.js mini-worlds-runtime.js; do
             node --check "$script"
           done
