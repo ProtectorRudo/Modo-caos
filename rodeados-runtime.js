@@ -57,7 +57,7 @@ function openArWorld(){
 function closeArWorld(){arCompositor?.dispose();arCompositor=null;visible('arWorldOverlay',false)}
 function notice(text,sec=2){$('notice').textContent=text;toastDeadline=performance.now()+sec*1000}
 function hint(text){$('hint').textContent=text}
-function visible(id,show,style='flex'){$(id).style.display=show?style:'none'}
+function visible(id,show,style='flex'){const element=$(id);if(element)element.style.display=show?style:'none'}
 function vib(ms=20){if(vibration)try{navigator.vibrate?.(ms)}catch(_){}}
 function audio(type='shot',position=null){
  if(!sounds)return;
@@ -1006,7 +1006,7 @@ document.querySelectorAll('[data-demo-move]').forEach(b=>{
  });
  for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>demoDirections.delete(dir));
 });
-$('missionAction').addEventListener('click',()=>{
+$('missionAction')?.addEventListener('click',()=>{
  if(stage!=='playing')return;
  const r=G.missionAction?.(game);
  if(!r?.ok)notice(r?.reason==='acercate_a_tu_base'?'ACERCATE A TU BASE':r?.reason==='primero_abri_un_cofre'?'DISPARÁ PRIMERO A UNA CAJA':'ACERCATE AL OBJETIVO',2);
