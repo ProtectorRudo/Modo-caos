@@ -155,6 +155,11 @@ function updateBattleFeedback(t){
 function showBotDirection(){
  if(stage!=='playing'&&stage!=='paused')return;
  const cue=$('botGuide'),targets=game.enemies.filter(e=>e.hp>0&&e.portal<.3);
+ if(game.mode==='ctf'&&game.mission?.configured){
+  const m=game.mission,objective=m.carry?m.base:(m.dropAt||m.object);
+  const angle=relativeAngle(objective),distance=Math.hypot(objective.x-game.player.x,objective.z-game.player.z);
+  cue.textContent=(Math.abs(angle)>.55?(angle>0?'→ ':'← '):'↑ ')+(m.carry?'VOLVÉ A TU BASE':'BUSCÁ LA BANDERA')+' · '+distance.toFixed(1)+' m';return;
+ }
  if(!targets.length){cue.textContent='🤖 ROBOTS ENTRANDO A LA PISTA';return}
  const target=targets.slice().sort((a,b)=>
   Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z))[0];
@@ -194,7 +199,8 @@ function updateHud(force=false){
  if(stage!=='playing'&&stage!=='ready'&&stage!=='countdown'&&stage!=='paused'&&!force)return;
  $('life').textContent=Math.round(game.lives);
  $('points').textContent=Math.round(game.score).toLocaleString('es-AR');
- $('wave').textContent=game.wave||1;
+ $('wave').textContent=game.mode==='ctf'?(game.mission?.captures||0):game.mode==='refuge'?Math.ceil(game.mission?.reactor||0):game.wave||1;
+ if($('waveLabel'))$('waveLabel').textContent=game.mode==='ctf'?'CAPTURAS':game.mode==='refuge'?'REACTOR':'OLEADA';
  $('clock').textContent=Number.isFinite(game.duration)?Math.max(0,Math.ceil(game.duration-game.elapsed)):'∞';
  $('healthFill').style.width=Math.max(0,game.lives)+'%';
  $('ammo').textContent='∞  BALAS';
