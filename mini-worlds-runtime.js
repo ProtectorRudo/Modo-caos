@@ -172,6 +172,16 @@ function newStage(){
   }).catch(e=>console.warn('[MINI WORLDS] Procedural hero/enemies preserved:',e.message));
  }
  view=stage.scene;view.background=mode==='ar'?null:new T.Color(level?0x727f91:0x9aaea9);
+ // AR-SAFE SCENERY: the 18.5×33m alpha-blended shader ocean is much
+ // larger than the fixed world. On mobile overlay compositors it can clip
+ // against the XR near plane as opaque mint quadrilaterals. Rather than
+ // risking gameplay visibility, hide only this NON-COLLIDABLE distant water
+ // and its decorative foam in AR. The animated water remains in 3D demo.
+ if(mode==='ar'){
+  if(stage.ocean?.o)stage.ocean.o.visible=false;
+  if(stage.shoreFoam)stage.shoreFoam.visible=false;
+  console.info('[MINI WORLDS] AR-safe render: giant translucent ocean disabled; real walkable islands retained');
+ }
  stage.root.rotation.y=mode==='ar'?worldYaw:0;
  stage.root.scale.setScalar(mode==='ar'?scale:1);
  if(mode==='ar'&&spatialLock)S.restoreWorld(stage,spatialLock);
