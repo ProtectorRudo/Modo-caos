@@ -8,7 +8,7 @@
 root.MiniWorldsARGuide=function(T,svg){
  let last=0,visible=0;
  const ns='http://www.w3.org/2000/svg';
- const shapes=Array.from({length:8},(_,i)=>{
+ const shapes=Array.from({length:4},(_,i)=>{
   const p=document.createElementNS(ns,'polygon');
   p.setAttribute('fill',i===0?'#62ffe1':'#4de3bd');
   p.setAttribute('fill-opacity',i===0?'.19':'.065');
@@ -32,7 +32,7 @@ root.MiniWorldsARGuide=function(T,svg){
   if(!frame||!stage||!refSpace)return hide();
   // Screen-space SVG is deliberately restricted to placement/ready. In actual
   // gameplay an emergency guide can be enabled only if rendering drops out.
-  if(!placing&&!force)return hide();
+  if(!placing)return hide(); // never fill screen with debug floors while playing
   const pose=frame.getViewerPose(refSpace);
   if(!pose?.views?.length)return hide();
   const view=pose.views[0],ww=Math.max(1,innerWidth),hh=Math.max(1,innerHeight);
