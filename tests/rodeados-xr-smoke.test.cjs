@@ -111,7 +111,9 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:15000});
  // FPS weapon must actually project into the same 1st XR eye used by
  // Blackzone's Android/ARCore DOM-compositor, not merely exist in the scene.
- await page.waitForFunction(()=>__RodeadosDebug.viewWeapon?.framing?.inView===true,null,{timeout:6000});
+ try{await page.waitForFunction(()=>__RodeadosDebug.viewWeapon?.framing?.inView===true,null,{timeout:6000});}
+ catch(err){const info=await page.evaluate(()=>({weapon:__RodeadosDebug.viewWeapon,stage:__RodeadosDebug.stage}));
+  throw Error('Rifle real 3D fuera del viewport: '+JSON.stringify(info)+' · '+err.message);}
  const weapon=await page.evaluate(()=>__RodeadosDebug.viewWeapon);
  assert(weapon.framing.visible,'XR first-person gun is not hidden');
  assert(weapon.framing.meshCount>=1,'visible FPS weapon includes actual 3D mesh geometry');
