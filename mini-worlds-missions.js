@@ -155,6 +155,44 @@ function status(s){
  if(m.id===1)return m.exit.active?'¡REACTOR SALVADO! · VOLVÉ AL NÚCLEO':'REACTOR '+m.reactor.health+'/12 · OLEADA '+m.wave+'/3';
  return m.exit.active?'¡JEFE VULNERABLE! · DERROTALO':'CRISTALES '+m.fragments.filter(f=>f.claimed).length+'/3 · VENCÉ A LOS LADRONES';
 }
+// Next actionable target lives in the same logical world as collisions.
+// Guidance is only a hint; missions never auto-complete when an arrow points.
+function guidance(s){
+ const m=s?.mission,p=s?.player;if(!m||!p)return null;
+ function closest(items){return items.reduce((a,b)=>{
+  const d=Math.hypot(b.x-p.x,b.z-p.z);
+  return d<(a?.dist??Infinity)?{...b,dist:d}:a;
+ },null)}
+ let target=null;
+ if(m.id===0){
+  if(m.exit.active)target={...m.exit,label:'ENTRÁ AL PORTAL'};
+  else{
+   const missing=m.rescues.filter(r=>!r.rescued&&!r.optional);
+   if(missing.length)target=closest(missing.map(r=>({...r,label:'RESCATÁ A '+r.name})));
+   else{
+    const unlit=m.relays.filter(id=>!s.map.runes[id].restored).map(id=>({...s.map.runes[id],label:'ACTIVÁ LA BALIZA'}));
+    target=closest(unlit);
+   }
+  }
+ }else if(m.id===1){
+  const nearby=s.map.enemies.slice(0,m.wave*3).filter(e=>e.alive);
+  const danger=closest(nearby.map(e=>({...e,label:'DETENÉ AL INVASOR'})));
+  target=m.exit.active?{...m.exit,label:'VOLVÉ AL REACTOR'}:danger||{...m.reactor,label:'PROTEGÉ EL REACTOR'};
+ }else{
+  const dropped=m.fragments.filter(f=>f.dropped&&!f.claimed).map(f=>({...f,label:'RECOGÉ EL CRISTAL'}));
+  const guards=m.fragments.filter(f=>!f.dropped).map(f=>{
+   const e=s.map.enemies[f.id];return {...e,label:'DERROTÁ AL GUARDIÁN'};
+  });
+  target=closest(dropped)||closest(guards)||{...s.map.boss,label:'ENFRENTÁ AL JEFE'};
+ }
+ if(!target)return null;
+ const dx=target.x-p.x,dz=target.z-p.z,dist=Math.hypot(dx,dz);
+ const heading=Math.atan2(dx,dz)-p.face;
+ const theta=Math.atan2(Math.sin(heading),Math.cos(heading));
+ const arrows=['↑','↗','→','↘','↓','↙','←','↖'];
+ const arrow=arrows[(Math.round(theta/(Math.PI/4))+8)%8];
+ return {label:target.label,arrow,near:dist<2.1,distance:dist};
+}
 function drain(s){return s?.mission?.events.splice(0)||[]}
-return Object.freeze({MISSIONS,init,tick,drain,medal,status,win,defeat});
+return Object.freeze({MISSIONS,init,tick,drain,medal,status,guidance,win,defeat});
 });
