@@ -1,7 +1,7 @@
-name: Mini Worlds solid scenery and combat regression QA
+name: Mini Worlds cinematic premium fantasy visual QA
 on:
   push:
-    branches: [fix/mini-worlds-solid-scenery-20261027]
+    branches: [feat/mini-worlds-cinematic-adventure-20261027]
   workflow_dispatch:
 jobs:
   test:
@@ -21,6 +21,7 @@ jobs:
             tests/mini-worlds-pocket.test.cjs \
             tests/mini-worlds-diorama.test.cjs \
             tests/mini-worlds-solid-scenery.test.cjs \
+            tests/mini-worlds-cinematic.test.cjs \
             tests/mini-worlds-gamefeel.test.cjs \
             tests/mini-worlds-magic.test.cjs \
             tests/mini-worlds-missions.test.cjs \
@@ -36,6 +37,6 @@ jobs:
           done
       - name: Static syntax checks
         run: |
-          for script in mini-worlds-core.js mini-worlds-missions.js mini-worlds-mission-art.js mini-worlds-art.js mini-worlds-diorama.js mini-worlds-kaykit.js mini-worlds-assets.js mini-worlds-premium.js mini-worlds-characters.js mini-worlds-finish.js mini-worlds-runtime.js; do
+          for script in mini-worlds-core.js mini-worlds-missions.js mini-worlds-mission-art.js mini-worlds-art.js mini-worlds-diorama.js mini-worlds-cinematic.js mini-worlds-kaykit.js mini-worlds-assets.js mini-worlds-premium.js mini-worlds-characters.js mini-worlds-finish.js mini-worlds-runtime.js; do
             node --check "$script"
           done
