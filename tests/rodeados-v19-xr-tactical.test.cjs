@@ -88,7 +88,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#tacticalMark').tap();
  let plan=await page.evaluate(()=>__RodeadosDebug.tacticalPlan);
  assert(plan.flag,'flag placed by different actual AR reticle ray');
- assert(Math.hypot(plan.base.x-plan.flag.x,plan.base.z-plan.flag.z)>=1,'base and flag safely separated');
+ assert(Math.hypot(plan.base.x-plan.flag.x,plan.base.z-plan.flag.z)>=2.35,'base and flag safely separated');
  await page.locator('#tacticalUndo').tap();
  assert.equal(await page.evaluate(()=>__RodeadosDebug.tacticalPlan.flag),null,'undo previous AR marker');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.mission.configured),false);
