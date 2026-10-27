@@ -124,6 +124,7 @@ function newStage(){
  const stageRefForPhysics=stage;
  document.body.classList.toggle('mw-defense',missionId===1);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
+ stage.cinematicArt=window.MiniWorldsCinematic?.(T).setup(stage,level)||null;
  stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
  stage.pocket=window.MiniWorldsPocket?.create(T,stage)||null;
@@ -160,7 +161,7 @@ function newStage(){
   }).catch(e=>console.warn('[MINI WORLDS] KayKit fallback:',e.message));
  }
  // Animated characters are optional and NEVER delay or replace physics.
- if(window.MiniWorldsCharacters){
+ if(window.MiniWorldsCharacters&&!stage.cinematic){
   Promise.resolve().then(()=>window.MiniWorldsCharacters(T).setup(stageRef,level)).then(stats=>{
    if(stage!==stageRef)return;
    if(stageRef.updateCharacterAnimations)stageRef.bindCharacters(stageRef.updateCharacterAnimations);
@@ -591,6 +592,9 @@ function frame(t,xrFrame){
   frameFaults++;
  }
  // Optional finishing effects must never interrupt core, XR pose or renderer.
+ try{stage.cinematicArt?.update(game,dt,elapsed)}catch(e){
+  frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Cinematic art fallback:',e)}
+ }
  try{stage.missionVisual?.update(game,dt,elapsed)}catch(e){
   frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Mission art error:',e)}
  }
