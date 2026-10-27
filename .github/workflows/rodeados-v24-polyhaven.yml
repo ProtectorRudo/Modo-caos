@@ -1,0 +1,84 @@
+name: RODEADOS V24 - bundle Poly Haven PBR pistol
+on:
+  push:
+    branches: [feat/rodeados-v24-polyhaven-premium-fps]
+    paths: ['.github/workflows/rodeados-v24-polyhaven.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: true}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - name: Fetch official Poly Haven 1K glTF and dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,requests,hashlib,urllib.parse,json
+          base=pathlib.Path('/tmp/premium-pistol');base.mkdir(parents=True,exist_ok=True)
+          client=requests.Session()
+          client.headers.update({'User-Agent':'ModoCaosAR/1.0 (+https://github.com/ProtectorRudo/Modo-caos)'})
+          response=client.get('https://api.polyhaven.com/files/service_pistol',timeout=40)
+          response.raise_for_status()
+          manifest=response.json()
+          print('Poly Haven top-level file types:',list(manifest))
+          tree=manifest.get('gltf')
+          if not isinstance(tree,dict):raise RuntimeError('No gltf file provided by Poly Haven')
+          entry=tree.get('1k')
+          if not isinstance(entry,dict):raise RuntimeError('No 1K gltf in manifest')
+          record=entry.get('gltf',entry)
+          print('GLTF entry fields:',list(record))
+          if not isinstance(record,dict) or 'url' not in record:raise RuntimeError('Unknown gltf record')
+          files=[('service_pistol.gltf',record)]
+          for key,include in record.get('include',{}).items():
+            if isinstance(include,dict) and 'url' in include:files.append((key,include))
+          print('Expected companions:',[(n,int(x.get('size',0))) for n,x in files])
+          for name,entry in files:
+            path=base/name
+            if path.resolve().is_relative_to(base.resolve()) is False:raise RuntimeError('Unsafe path')
+            path.parent.mkdir(parents=True,exist_ok=True)
+            data=client.get(entry['url'],timeout=80)
+            data.raise_for_status();blob=data.content
+            if entry.get('size') and len(blob)!=entry['size']:raise RuntimeError('Size mismatch '+name)
+            if entry.get('md5') and hashlib.md5(blob).hexdigest()!=entry['md5']:raise RuntimeError('Checksum mismatch '+name)
+            path.write_bytes(blob)
+          data=json.loads((base/'service_pistol.gltf').read_text())
+          print('model nodes',[(x.get('name'),x.get('mesh')) for x in data.get('nodes',[])][:65])
+          print('meshes',len(data.get('meshes',[])),'textures',len(data.get('textures',[])))
+          PY
+      - name: Convert to one GLB and compress textures for mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts @gltf-transform/cli@4.5.1
+          mkdir -p assets/rodeados
+          ./node_modules/.bin/gltf-transform copy /tmp/premium-pistol/service_pistol.gltf /tmp/service-pistol-full.glb
+          ./node_modules/.bin/gltf-transform resize /tmp/service-pistol-full.glb assets/rodeados/player-pbr-service-pistol.glb --width 768 --height 768
+      - name: Validate hero GLB and mobile size
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,struct,pathlib
+          p=pathlib.Path('assets/rodeados/player-pbr-service-pistol.glb');b=p.read_bytes()
+          assert b[:4]==b'glTF' and struct.unpack_from('<II',b,4)==(2,len(b))
+          assert len(b)<8_000_000, f'PBR asset too large for mobile: {len(b)}'
+          n,kind=struct.unpack_from('<I4s',b,12);assert kind==b'JSON'
+          j=json.loads(b[20:20+n]);assert len(j.get('meshes',[]))>=1
+          print('PBR gun bundled',len(b),'bytes',len(j['meshes']),'meshes,',len(j.get('materials',[])),'materials')
+          PY
+      - name: Commit CC0 weapon into isolated branch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/rodeados/player-pbr-service-pistol.glb
+          if ! git diff --cached --quiet; then
+            git commit -m 'assets(rodeados): vendor Poly Haven CC0 PBR 1K service pistol'
+            git push origin HEAD:feat/rodeados-v24-polyhaven-premium-fps
+          fi
