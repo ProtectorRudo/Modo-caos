@@ -109,6 +109,16 @@ const server=http.createServer((req,res)=>{
  assert(!await page.locator('#radarWrap').isVisible(),'radar does not obstruct calibration');
  await page.locator('#begin').click();
  await page.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:15000});
+ // FPS weapon must actually project into the same 1st XR eye used by
+ // Blackzone's Android/ARCore DOM-compositor, not merely exist in the scene.
+ await page.waitForFunction(()=>__RodeadosDebug.viewWeapon?.framing?.inView===true,null,{timeout:6000});
+ const weapon=await page.evaluate(()=>__RodeadosDebug.viewWeapon);
+ assert(weapon.framing.visible,'XR first-person gun is not hidden');
+ assert(weapon.framing.meshCount>=1,'visible FPS weapon includes actual 3D mesh geometry');
+ assert(Math.abs(weapon.framing.center.x)<.9&&Math.abs(weapon.framing.center.y)<.9,
+  'weapon center stays on screen in portrait WebXR rather than off the right edge: '+JSON.stringify(weapon));
+ assert.equal(weapon.framing.inView,true,'some of the gun actually overlaps the physical XR viewport');
+
  await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:3500});
  const start=await page.evaluate(()=>({game:__RodeadosDebug.game,meshes:__RodeadosDebug.renderedRobots}));
  assert(start.game.enemies.length>=2,'two robots exist at start');
