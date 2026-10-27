@@ -191,10 +191,14 @@ export async function installAutoRobots({THREE,art,signal,debug}){
     // its headset and static animation are not suitable for mobile AR yet.
     const kind=enemy.type;
     const creature=!!creatures[kind];
+    // Even the FIRST two basic robots must be visibly distinct, not twins.
+    // Stable ID-based distribution; no per-frame material or random changes.
+    const stableId=Array.from(String(enemy.id)).reduce((v,c)=>v+c.charCodeAt(0),0);
+    const commonLook=['standard','raider','scout'][stableId%3];
     const chosen=creature?kind:
      ['boss','tank'].includes(kind)?'commander':
      ['fast','flanker'].includes(kind)?'scout':
-     ['joker'].includes(kind)?'raider':'standard';
+     ['joker'].includes(kind)?'raider':commonLook;
     const variant=creatures[kind]||roles[chosen]||standard;
     const anim=variant.adapter.create({actor,enemy,THREE:engine});
     anim.variant=creature?kind:roles[chosen]?chosen:'standard';
