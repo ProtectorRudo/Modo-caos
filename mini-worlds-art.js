@@ -467,6 +467,10 @@ function makeStage(map){
   rewardTextures.set(text,texture);return texture;
  }
  function rewardPop(text,x,y,z){
+  // AR phones render additive billboard sprites as gray/white pixel
+  // rectangles over the camera on some compositors. Real impact particles,
+  // audio, haptics and the score HUD provide the feedback instead.
+  if(document.body.classList.contains('mw-immersive-ar'))return;
   const o=new T.Sprite(new T.SpriteMaterial({map:rewardTexture(text),transparent:true,depthTest:false,depthWrite:false}));
   o.position.set(x,y,z);o.scale.set(1.1,.44,1);o.renderOrder=1805;root.add(o);
   combatBursts.push({o,t:0,life:.72,kind:'pop',baseY:y});
