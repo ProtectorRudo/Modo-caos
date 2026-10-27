@@ -9,6 +9,7 @@ on:
       - 'color-premium.css'
       - 'tests/color*visual*.cjs'
       - 'tests/color-pro3d-smoke.test.cjs'
+      - 'tests/color-pro-finish.test.cjs'
       - 'tests/color-pro3d-webgl.html'
       - '.github/workflows/color-rush-visual.yml'
   push:
@@ -21,6 +22,7 @@ on:
       - 'color-premium.css'
       - 'tests/color*visual*.cjs'
       - 'tests/color-pro3d-smoke.test.cjs'
+      - 'tests/color-pro-finish.test.cjs'
       - 'tests/color-pro3d-webgl.html'
       - '.github/workflows/color-rush-visual.yml'
 permissions:
@@ -44,6 +46,7 @@ jobs:
           node --check color-premium-art.js
           node tests/color-premium-visual.test.cjs
           node tests/color-pro3d-smoke.test.cjs
+          node tests/color-pro-finish.test.cjs
       - name: Compile GLSL shaders in real Chromium WebGL
         shell: bash
         run: |
