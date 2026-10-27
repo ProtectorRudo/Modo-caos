@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=26';
+import {createRodeadosArt} from './rodeados-art.js?v=28';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=28';
 import {createTacticalPlanner} from './rodeados-tactical-ui.js?v=19';
@@ -220,7 +220,13 @@ function updateHud(force=false){
   $('timeWarpText').textContent=phase==='FRACTURA'?'⏳ TIEMPO CONGELADO':phase==='ACELERADO'?'⚡ REBOTE TEMPORAL':'';
  }
  if(ms){$('missionTitle').textContent=game.mode==='ctf'?(ms.detail||'BUSCÁ LA BANDERA'):ms.text;
-  $('missionDetail').textContent=game.mode==='ctf'?'':ms.detail||'';
+  let directionHint='';
+   if(game.mode==='rescue'&&stage==='playing'&&game.mission?.hostageActive){
+    const pos=game.mission.carry?game.mission.base:game.mission.object;
+    const angle=relativeAngle(pos);
+    directionHint=Math.abs(angle)<.3?'↑ ':angle>0?'→ ':'← ';
+   }
+   $('missionDetail').textContent=game.mode==='ctf'?'':directionHint+(ms.detail||'');
   if(ms.button){$('missionAction').textContent=ms.button;$('missionAction').disabled=!ms.canAct}
  }
 }
@@ -237,11 +243,11 @@ function result(){
   $('localRank').textContent='🏆 TOP PERSONAL: '+report.ranking.map((x,i)=>(i+1)+'º '+x.score+' pts').join(' · ')+(report.dailyWon?' · ✨ DESAFÍO DIARIO COMPLETADO':'');
  }
  const ms=game.mission;
- const title=ms?(ms.completed?'¡MISIÓN CUMPLIDA!':game.lives<=0?'¡CAÍSTE EN COMBATE!':'¡MISIÓN TERMINADA!'):(game.lives<=0?'¡CAÍSTE EN COMBATE!':'¡INVASIÓN CONTENIDA!');
+ const title=ms?.kind==='rescue'?(ms.completed?'🏆 ¡SALVASTE A LOS 10 REHENES!':'🆘 RESCATE TERMINADO · NIVEL '+ms.level+'/10'):ms?(ms.completed?'¡MISIÓN CUMPLIDA!':game.lives<=0?'¡CAÍSTE EN COMBATE!':'¡MISIÓN TERMINADA!'):(game.lives<=0?'¡CAÍSTE EN COMBATE!':'¡INVASIÓN CONTENIDA!');
  $('outcome').textContent=title;
  $('summary').textContent=(improved?'🏆 ¡NUEVO RÉCORD! · ':'')+G.MODES[game.mode].label+' · '+Math.round(game.elapsed)+' s'+(online?' · SALA BETA':'');
  $('resultStats').replaceChildren();
- for(const [name,value] of [['PUNTUACIÓN',game.score],['ROBOTS',game.kills],['PRECISIÓN',accuracy+'%'],['MEJOR RACHA',game.bestCombo],['OLEADA',game.wave],['RÉCORD ANTERIOR',record],...(ms?.kind==='ctf'?[['BANDERAS',ms.captures]]:[]),...(ms?.kind==='loot'?[['BOTÍN EXTRAÍDO',ms.extracted]]:[]),...(ms?.kind==='refuge'?[['REACTOR FINAL',Math.ceil(ms.reactor)+'%']]:[]) ]){
+ for(const [name,value] of [['PUNTUACIÓN',game.score],['ROBOTS',game.kills],['PRECISIÓN',accuracy+'%'],['MEJOR RACHA',game.bestCombo],['OLEADA',game.wave],['RÉCORD ANTERIOR',record],...(ms?.kind==='ctf'?[['BANDERAS',ms.captures]]:[]),...(ms?.kind==='rescue'?[['REHENES SALVADOS',ms.rescued+'/10'],['NIVEL FINAL',ms.level+'/10']]:[]),...(ms?.kind==='loot'?[['BOTÍN EXTRAÍDO',ms.extracted]]:[]),...(ms?.kind==='refuge'?[['REACTOR FINAL',Math.ceil(ms.reactor)+'%']]:[]) ]){
   const div=document.createElement('div');const label=document.createTextNode(name);const b=document.createElement('strong');b.textContent=value;div.append(label,b);$('resultStats').append(div);
  }
  visible('result',true);audio('finish');
@@ -1039,7 +1045,7 @@ document.querySelectorAll('[data-demo-move]').forEach(b=>{
 $('missionAction')?.addEventListener('click',()=>{
  if(stage!=='playing')return;
  const r=G.missionAction?.(game);
- if(!r?.ok)notice(r?.reason==='acercate_a_tu_base'?'ACERCATE A TU BASE':r?.reason==='primero_abri_un_cofre'?'DISPARÁ PRIMERO A UNA CAJA':'ACERCATE A LA BANDERA O TU BASE',2);
+ if(!r?.ok)notice(game.mode==='rescue'?(r?.reason==='acercate_al_rehen'?'ACERCATE AL REHÉN PARA LIBERARLO':r?.reason==='volvé_a_tu_base'?'ESCOLTÁ AL REHÉN HASTA TU BASE':'ESPERÁ AL PRÓXIMO NIVEL'):(r?.reason==='acercate_a_tu_base'?'ACERCATE A TU BASE':r?.reason==='primero_abri_un_cofre'?'DISPARÁ PRIMERO A UNA CAJA':'ACERCATE A LA BANDERA O TU BASE'),2);
  else {notice(game.mission?.signal||'¡OBJETIVO!',2);updateHud(true)}
 });
 const tactical=createTacticalPlanner({
