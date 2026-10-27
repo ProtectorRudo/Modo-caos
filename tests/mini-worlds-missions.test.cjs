@@ -101,7 +101,7 @@ assert.equal(M.MISSIONS.length,3,'three meaningfully different missions must be 
  assert(runtime.includes("refreshMissionBriefing();layout('ready')"),'3D demo and AR must show briefing before gameplay');
  assert(runtime.includes("refreshMissionBriefing();layout('ready');"),'ready UI must be synchronized');
  assert(runtime.includes("$('fixWorld').disabled=true;refreshMissionBriefing();layout('ready');"),'AR placement must display mission briefing, not a generic success title');
- assert(runtime.includes("C.start(game);mapOpen=true;"),'time starts only on button press');
+ assert(runtime.includes("C.start(game);mapOpen=false;"),'time starts only on button press and player has clear AR view');
  const start=runtime.slice(runtime.indexOf('function startGame(){'),runtime.indexOf('function pause(){'));
  assert(start.includes("layout('playing')")&&!start.includes('notice('),'start must dismiss briefing without popups');
  assert(runtime.includes("$('ready').hidden=state!=='ready'"),'intro must vanish while game is active');
