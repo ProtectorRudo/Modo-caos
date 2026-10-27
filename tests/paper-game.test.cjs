@@ -115,3 +115,16 @@ test('eliminating all rival identities ends the match with victory',()=>{
  assert.equal(g.win.territoryQA.mode,'result');
  assert.match(g.get('finaltitle').textContent,/DERROTASTE A TODOS/);
 });
+
+test('premium render uses world-size sharp canvas without magnified low resolution terrain',()=>{
+ assert.match(source,/mapCanvas\.width=WORLD;mapCanvas\.height=WORLD;/);
+ assert.match(source,/const rad=CELL\*\.74/);
+ assert.doesNotMatch(source,/mapCanvas\.width=N\*3/);
+});
+test('small-screen HUD ranks four players, with own rank always visible',()=>{
+ const g=boot(419);g.get('start').onclick();g.tick(20);
+ const markup=g.get('rank').innerHTML;
+ assert.equal((markup.match(/class="rankrow"/g)||[]).length,4);
+ assert.match(markup,/VOS/);
+ assert.match(g.get('kills').textContent,/^KO /);
+});
