@@ -72,6 +72,9 @@ const server=http.createServer((req,res)=>{
   if(real)assert(ready.models[1].triangles>400,
    'second actual licensed humanoid GLB must load (not silently reuse first): '+JSON.stringify(ready.models));
   if(real){
+   await page.waitForFunction(()=>__RodeadosAutoRobots.status.fpsArmsLoaded===true,null,{timeout:17000});
+   assert.equal((await page.evaluate(()=>__RodeadosAutoRobots.status.fpsArmsLoaded)),true,
+     'bundled rigged FPS arms must actually load without user interaction');
    assert(ready.models[2].triangles>0,'CC0 stalker GLB must load locally: '+JSON.stringify(ready.models));
    assert(ready.models[3].triangles>0,'CC0 champion GLB must load locally: '+JSON.stringify(ready.models));
   }
