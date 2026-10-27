@@ -7,7 +7,7 @@ const root=path.resolve(__dirname,'..');
 const script=fs.readFileSync(path.join(root,'color-pro-3d.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'color-solo.html'),'utf8');
 const skin=fs.readFileSync(path.join(root,'color-premium.css'),'utf8');
-assert.match(html,/color-pro-3d\.js\?v=pro20/);
+assert.match(html,/color-pro-3d\.js\?v=pro30/);
 assert.ok(html.indexOf('survivor.js')<html.indexOf('color-pro-3d.js'));
 assert.match(skin,/#overlay\.crp3d-ready #tiles > polygon/);
 assert.match(skin,/#overlay\.crp3d-ready #crp-visual-layer/);
