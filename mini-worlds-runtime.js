@@ -4,7 +4,7 @@
 const C=window.MiniWorldsCore,M=window.MiniWorldsMissions,S=window.MiniWorldsSpatial,$=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const debugAR=new URLSearchParams(location.search).get('debug')==='1';
 let T,renderer,camera,view,game,stage,session,hitSource,lastHit=null,anchor=null,mode='demo',phase='home',placing=false,hasHit=false;
-let yaw=0,scale=.215,offset={x:0,z:0},lockedPose=null,worldYaw=0,headingSet=false;
+let yaw=0,scale=.235,offset={x:0,z:0},lockedPose=null,worldYaw=0,headingSet=false;
 let spatialLock=null,placementSerial=0,steeringYaw=null,heldSteeringYaw=null;
 let anchorPoseAtLock=null,anchorDriftWarned=false,trackingResetWarned=false;
 let old=0,acc=0,elapsed=0,animFrames=0,toastUntil=0,source=null,ctx=null,lastNote=0,musicAt=0,musicStep=0;
@@ -73,7 +73,7 @@ function clear(){
  spatialLock=null;lockedPose=null;steeringYaw=null;heldSteeringYaw=null;
  arCompositor?.dispose();arCompositor=null;arCompositorError='';
  $('arWorldOverlay').style.display='none';xrEmptyScene=null;
- renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
+ renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.diorama?.dispose?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
  camera=null;view=null;game=null;placing=false;lockedPose=null;source=null;hasHit=false;
 }
 function renderSetup(){
@@ -90,7 +90,7 @@ function renderSetup(){
  renderer.setAnimationLoop(frame);
 }
 function newStage(){
- if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose()}
+ if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.diorama?.dispose?.();stage.dispose()}
  level=M.MISSIONS[missionId].level;
  game=C.create(level);M.init(game,missionId);
  const residents=progress.missions.residents.length;
@@ -100,6 +100,7 @@ function newStage(){
  if(residents>=5)game.player.invuln=2.4;          // observatory: brief spawn shield
  stage=window.MiniWorldsArt(T).makeStage(game.map);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
+ stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
  stage.pocket=window.MiniWorldsPocket?.create(T,stage)||null;
  const stageRef=stage;
@@ -300,7 +301,7 @@ function applyHit(frame){
  stage.root.rotation.y=worldYaw;stage.root.scale.setScalar(scale);
  $('fixWorld').disabled=false;
  const footprint=window.MiniWorldsPocket?.displayLength(scale)||{length:8.8*scale,width:11.5*scale};
- $('placementHint').textContent='PISO DETECTADO · MUNDO COMPACTO '+footprint.length.toFixed(1)+' m × '+footprint.width.toFixed(1)+' m · 4 ZONAS CON PORTALES';
+ $('placementHint').textContent='PISO DETECTADO · 2 REGIONES AMPLIAS '+footprint.length.toFixed(1)+' × '+footprint.width.toFixed(1)+' m · JOYSTICK PARA EXPLORAR';
 }
 function maintainWorldLock(frame){
  if(placing||mode!=='ar'||!spatialLock||!stage)return;
@@ -519,7 +520,7 @@ function frame(t,xrFrame){
    $('portalFlash')?.classList.add('active');
    notice('✨ PORTAL · '+portal.info.title+(portal.info.floor?' · PISO SUPERIOR':''),1800);
    haptic([12,40,20]);beep('star');
-   $('zoneTitle').textContent='ZONA '+(portal.room+1)+'/4 · '+portal.info.title;
+   $('zoneTitle').textContent='REGIÓN '+(portal.room+1)+'/2 · '+portal.info.title;
   }
   if(portalHoldUntil&&performance.now()>portalHoldUntil){
    portalHoldUntil=0;$('portalFlash')?.classList.remove('active');
@@ -534,6 +535,9 @@ function frame(t,xrFrame){
  // Optional finishing effects must never interrupt core, XR pose or renderer.
  try{stage.missionVisual?.update(game,dt,elapsed)}catch(e){
   frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Mission art error:',e)}
+ }
+ try{stage.diorama?.update(game,dt,elapsed,mode==='ar'?renderer.xr.getCamera(camera):camera)}catch(e){
+  frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Optional diorama error:',e)}
  }
  try{stage.finish?.update(game,dt,elapsed)}catch(e){
   frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Optional finish error:',e)}
@@ -583,7 +587,7 @@ function frame(t,xrFrame){
   const n=guideState.visible;
   if(webglCalls===0)$('placementHint').textContent='⚠ EL MOTOR 3D NO DIBUJA · GUÍA AR '+n+' ZONAS · REINICIÁ SI SIGUE VACÍO';
   else if(n===0)$('placementHint').textContent='PISO DETECTADO · APUNTÁ LENTAMENTE AL CONTORNO VERDE';
-  else $('placementHint').textContent='ISLA EN PISO ✓ · '+(33*scale).toFixed(1)+' × '+(18.5*scale).toFixed(1)+' m · '+(webglCalls<0?'CARGANDO':webglCalls+' OBJETOS 3D');
+  else $('placementHint').textContent='ISLA EN PISO ✓ · '+(17.6*scale).toFixed(1)+' × '+(16.5*scale).toFixed(1)+' m · '+(webglCalls<0?'CARGANDO':webglCalls+' OBJETOS 3D');
  }
 }
 function fillLanding(){
@@ -632,8 +636,8 @@ $('arStatus').onclick=()=>{
  arDebugVisible=!arDebugVisible;
  notice(arDebugVisible?'GUÍA VERDE ACTIVADA SOBRE EL PISO':'GUÍA VERDE OCULTA',1500);
 };
-$('scaleLess').onclick=()=>{scale=clamp(scale*.84,.155,.345);notice('ZONA AR '+(scale*8.8).toFixed(1)+' m DE LARGO',1400)};
-$('scaleMore').onclick=()=>{scale=clamp(scale*1.16,.155,.345);notice('ZONA AR '+(scale*8.8).toFixed(1)+' m DE LARGO',1400)};
+$('scaleLess').onclick=()=>{scale=clamp(scale*.84,.155,.345);notice('REGIÓN AR '+(scale*17.6).toFixed(1)+' m DE LARGO',1400)};
+$('scaleMore').onclick=()=>{scale=clamp(scale*1.16,.155,.345);notice('REGIÓN AR '+(scale*17.6).toFixed(1)+' m DE LARGO',1400)};
 $('turnLeft').onclick=()=>{yaw-=P()/12;worldYaw-=P()/12};
 $('turnRight').onclick=()=>{yaw+=P()/12;worldYaw+=P()/12};
 function P(){return Math.PI}
