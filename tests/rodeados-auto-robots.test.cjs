@@ -67,10 +67,17 @@ const server=http.createServer((req,res)=>{
      'never play non-upright animations while attacking player: '+JSON.stringify(ready.selectedClips));
   }
   assert.equal(ready.maxExternal,4,'protect mobile WebXR by limiting simultaneous animated GLBs');
-  assert(Array.isArray(ready.models)&&ready.models.length===2,
-   'both humanoid models should be attempted and tracked: '+JSON.stringify(ready.models));
+  assert(Array.isArray(ready.models)&&ready.models.length===4,
+   'two humanoids and two licensed CC0 creatures must be tracked: '+JSON.stringify(ready.models));
   if(real)assert(ready.models[1].triangles>400,
    'second actual licensed humanoid GLB must load (not silently reuse first): '+JSON.stringify(ready.models));
+  if(real){
+   await page.waitForFunction(()=>__RodeadosAutoRobots.status.fpsArmsLoaded===true,null,{timeout:17000});
+   assert.equal((await page.evaluate(()=>__RodeadosAutoRobots.status.fpsArmsLoaded)),true,
+     'bundled rigged FPS arms must actually load without user interaction');
+   assert(ready.models[2].triangles>0,'CC0 stalker GLB must load locally: '+JSON.stringify(ready.models));
+   assert(ready.models[3].triangles>0,'CC0 champion GLB must load locally: '+JSON.stringify(ready.models));
+  }
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:11000});
   const shown=await page.evaluate(()=>__RodeadosAutoRobots.status);

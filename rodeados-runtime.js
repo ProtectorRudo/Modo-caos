@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=16';
+import {createRodeadosArt} from './rodeados-art.js?v=17';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
@@ -30,13 +30,13 @@ const art=createRodeadosArt(THREE,scene,camera);
    .then(({installManulPreview})=>installManulPreview({THREE,art,notice:msg=>console.info(msg)}))
    .catch(err=>console.warn('Developer preview unavailable',err));
  }else{
-  import('./rodeados-robots-auto.js?v=16')
+  import('./rodeados-robots-auto.js?v=17')
    .then(({installAutoRobots})=>installAutoRobots({THREE,art,debug:true}))
    .catch(err=>console.warn('Rodeados tactical skin unavailable; safe original bot fallback',err));
  }
 
 let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null,hitSource=null,hit=null,anchor=null,anchorOffset=null,arCompositor=null;
-let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
+let weaponNoticeTier='',lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
 let trackingLostSince=0,pausedByTracking=false,limitedTrackingSince=0,initialBotsSpawned=false,openingEyePosition=null;let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
 let sounds=true,vibration=true,ctx=null,lastLaugh=0,lastMenaceAt=0,lastBlastSignal='',fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
@@ -521,7 +521,10 @@ function pause(){
 }
 let lastXRFrame=null,lastShot=0,shotSeq=0;
 async function shoot(){
- if(stage!=='playing'||game.paused||performance.now()-lastShot<175)return;
+ if(stage!=='playing'||game.paused)return;
+ const tier=G.weaponTier?.(game)||'pistol';
+ const cadence=tier==='tactical'?125:tier==='plasma'?235:175;
+ if(performance.now()-lastShot<cadence)return;
 const ray=activeRay();
  if(!ray){
   lastShotStatus='SIN MIRA XR';
@@ -726,6 +729,17 @@ function tickGame(dt,t){
  if(demo||!online||online.isHost){
   G.advance(game,dt);
  } // guests render only host snapshots (no locally simulated hits, score or spawns)
+ const weapon=G.weaponTier?G.weaponTier(game):'pistol';
+ art.setWeaponTier?.(weapon);
+ const label=weapon==='plasma'?'⚡ RIFLE DE PLASMA':weapon==='tactical'?'🔫 ARMA TÁCTICA':'✦ PISTOLA DE ENERGÍA';
+ if($('weaponLabel'))$('weaponLabel').textContent=label;
+ if(weaponNoticeTier!==weapon){
+  if(weaponNoticeTier&&weapon!=='pistol'){
+   notice(weapon==='plasma'?'⚡ ¡PLASMA DESBLOQUEADO!':'🔫 ¡ARMA TÁCTICA DESBLOQUEADA!',2.5);
+   audio('finish');vib([35,25,35]);
+  }
+  weaponNoticeTier=weapon;
+ }
  fireFlash=Math.max(0,fireFlash-dt);
  if(game.phase==='finished'){result();return}
  updateBattleFeedback(t);

@@ -1,0 +1,53 @@
+name: RODEADOS V17 — bundle CC0 creatures and FPS arms
+on:
+  push:
+    branches: [feat/rodeados-creature-combat-v17]
+    paths:
+      - '.github/workflows/rodeados-v17-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/rodeados-creature-combat-v17
+          persist-credentials: true
+      - name: Download CC0 source assets (not Sketchfab or CGTrader)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/rodeados
+          curl --fail --location --silent --show-error --retry 3 --max-time 75 'https://gobkit.com/freebies/minion/minion-d01.glb' -o assets/rodeados/creep-stalker.glb
+          curl --fail --location --silent --show-error --retry 3 --max-time 75 'https://gobkit.com/freebies/human006/OrcWarbandChampion.glb' -o assets/rodeados/brute-champion.glb
+          curl --fail --location --silent --show-error --retry 3 --max-time 75 'https://raw.githubusercontent.com/wwwriks/wrad-arms/f3987244176c33d2c20d4f9e139980af12684d87/arms.glb' -o assets/rodeados/arms-cc0.glb
+          python3 - <<'PY'
+          import json, os, struct
+          for p in ['assets/rodeados/creep-stalker.glb','assets/rodeados/brute-champion.glb','assets/rodeados/arms-cc0.glb']:
+              with open(p,'rb') as f:
+                  header=f.read(12)
+                  assert len(header)==12, p
+                  magic,version,size=struct.unpack('<III',header)
+                  assert magic==0x46546c67 and version==2 and size==os.path.getsize(p), p
+                  assert 10000<size<=8_000_000, (p,size)
+                  n,kind=struct.unpack('<I4s',f.read(8))
+                  assert kind==b'JSON' and 0<n<2_000_000,p
+                  doc=json.loads(f.read(n))
+                  assert doc.get('asset',{}).get('version','').startswith('2.'), p
+                  assert doc.get('meshes'),p
+                  print(p,size,'bytes',len(doc['meshes']),'meshes',len(doc.get('animations',[])),'clips')
+          PY
+      - name: Commit validated GLBs in branch (never production)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/rodeados/creep-stalker.glb assets/rodeados/brute-champion.glb assets/rodeados/arms-cc0.glb
+          if ! git diff --cached --quiet; then
+            git commit -m 'assets(rodeados): vendor CC0 rigged creatures and FPS arm model'
+            git push origin HEAD:feat/rodeados-creature-combat-v17
+          fi

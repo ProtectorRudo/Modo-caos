@@ -296,8 +296,8 @@ export function createRodeadosArt(THREE,scene,camera){
  }
  function createRobot(e){
   if(e.type==='spider')return createWolfSpider(THREE,root,e);
-  const kind=e.type,elite=kind==='boss'||kind==='tank',scale=e.height/1.75;
-  const shell=kind==='boss'?M.red:kind==='tank'?M.edge:kind==='fast'?M.violet:kind==='flanker'?M.gold:kind==='joker'?M.orange:M.steel;
+  const kind=e.type,elite=['boss','tank','minotaur'].includes(kind),scale=e.height/1.75;
+  const shell=kind==='boss'||kind==='minotaur'?M.red:kind==='creep'?M.dark:kind==='tank'?M.edge:kind==='fast'?M.violet:kind==='flanker'?M.gold:kind==='joker'?M.orange:M.steel;
   const glow=kind==='boss'?M.orange:M.red;
   const visorMat=M.red.clone();visorMat.emissiveIntensity=1.85;
   const group=new THREE.Group();root.add(group);group.scale.setScalar(scale);
@@ -373,6 +373,21 @@ export function createRodeadosArt(THREE,scene,camera){
    sphere(body,shell,[side*.35,1.38,-.08],[.12,.17,.18]);
    part(body,M.gold,[side*.346,1.43,.085],[.070,.038,.034]);
   }
+  if(kind==='creep'||kind==='minotaur'){
+   const hornMat=kind==='minotaur'?M.gold:M.edge;
+   for(let h=0;h<(kind==='minotaur'?2:4);h++){
+    const side=h%2?-1:1,depth=h>=2?-.06:0;
+    const horn=new THREE.Mesh(geo.cone,hornMat);
+    const radius=kind==='minotaur'?.085:.055;
+    horn.scale.set(radius*2,kind==='minotaur'?.43:.25,radius*2);
+    horn.position.set(side*(kind==='minotaur'?.18:.13),1.81+depth,depth);
+    horn.rotation.z=side*.43;body.add(horn);
+   }
+   for(const side of [-1,1]){
+    const talon=part(body,M.gold,[side*.43,.64,.19],[.07,.30,.09]);talon.rotation.z=side*.33;
+    const spine=part(body,M.black,[side*.17,1.20,-.23],[.075,.38,.13]);spine.rotation.z=side*.16;
+   }
+  }
   if(kind==='joker'){
    const crest=part(body,M.gold,[0,1.79,-.035],[.07,.12,.13]);crest.rotation.z=.19;
   }
@@ -384,8 +399,12 @@ export function createRodeadosArt(THREE,scene,camera){
   const hpBar=part(group,M.green,[0,1.96,.031],[.35,.025,.035]);
   const weakSpot=new THREE.Mesh(geo.sphere,glow);
   weakSpot.position.set(0,1.34,.285);weakSpot.scale.set(.05,.045,.022);group.add(weakSpot);
-  const actor={group,body,head,arms,legs,portal,shadow,hpBack,hpBar,weakSpot,shell,visorMat,phaseOffset:e.id*2.17,external:null};
+  const actor={group,body,head,arms,legs,portal,shadow,hpBack,hpBar,weakSpot,shell,visorMat,phaseOffset:e.id*2.17,enemyKind:kind,external:null};
   // The imported model is purely visual; head/body/leg hitboxes stay in core.
+  if(robotAdapter&&['creep','minotaur'].includes(kind)&&[...actors.values()].filter(a=>a.external).length>=MAX_EXTERNAL_ROBOTS){
+    const victim=[...actors.values()].find(a=>a.external&&!['creep','minotaur'].includes(a.enemyKind));
+    if(victim){victim.external.dispose();victim.external=null;victim.weakSpot.visible=true;victim.body.visible=true}
+  }
   if(robotAdapter&&[...actors.values()].filter(a=>a.external).length<MAX_EXTERNAL_ROBOTS){
    try{actor.external=robotAdapter.create({actor,enemy:e,THREE});
     actor.weakSpot.visible=false;
@@ -550,8 +569,61 @@ export function createRodeadosArt(THREE,scene,camera){
    if(s.life<=0){root.remove(s.mesh);s.mesh.material.dispose();sparks.splice(i,1)}
   }
  }
- // 3D rifle follows camera only. Enemies and floor NEVER follow the camera.
+ // FPS viewmodel is the ONLY camera-following object; all enemies remain world-locked.
  const rifle=new THREE.Group();scene.add(rifle);
+ const tactical=new THREE.Group(),plasma=new THREE.Group(),gloves=new THREE.Group();
+ rifle.add(tactical,plasma,gloves);
+ const gunHeavy=material(0x465663,.8,.34),gunPlasma=material(0x314350,.75,.3);
+ for(const side of [-1,1]){
+  const arm=new THREE.Group();arm.position.set(side*.23,-.22,.07);gloves.add(arm);
+  const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.082,.12,.39,10),M.steel);
+  sleeve.rotation.x=-.4;arm.add(sleeve);
+  sphere(arm,M.edge,[0,.17,-.10],[.087,.07,.10]);
+  sphere(arm,M.dark,[0,.215,-.18],[.079,.09,.105]);
+  for(let i=0;i<3;i++)sphere(arm,M.edge,[(i-1)*.043,.232,-.265],[.024,.028,.09]);
+ }
+ part(tactical,gunHeavy,[0,-.025,-.64],[.16,.12,.52]);
+ part(tactical,M.edge,[0,.078,-.48],[.125,.04,.17]);
+ for(const side of [-1,1]){
+  part(tactical,M.edge,[side*.096,-.012,-.84],[.035,.035,.37]);
+  part(tactical,M.dark,[side*.16,.05,-.48],[.04,.055,.30]);
+ }
+ part(plasma,gunPlasma,[0,-.02,-.58],[.19,.14,.54]);
+ for(const side of [-1,1]){
+  const coil=new THREE.Mesh(new THREE.TorusGeometry(.09,.024,8,20),M.cyan);
+  coil.position.set(side*.12,.008,-.83);coil.rotation.y=Math.PI/2;plasma.add(coil);
+  part(plasma,M.edge,[side*.13,-.03,-.57],[.07,.08,.36]);
+ }
+ for(let i=0;i<3;i++){
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.115,.017,6,22),M.cyan);
+  ring.position.z=-.62-i*.15;plasma.add(ring);
+ }
+ let currentWeapon='pistol';
+ function setWeaponTier(tier){
+  currentWeapon=['pistol','tactical','plasma'].includes(tier)?tier:'pistol';
+  tactical.visible=currentWeapon==='tactical';plasma.visible=currentWeapon==='plasma';
+ }
+ setWeaponTier('pistol');
+ let fpsArms=null;
+ function setFPSArms(source){
+  try{
+   if(!source||!source.isObject3D)return false;
+   const box=new THREE.Box3().setFromObject(source);
+   const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+   if(!Number.isFinite(size.x)||size.x<.02||size.y<.02||size.z<.01)return false;
+   const ratio=Math.min(.69/size.x,.65/size.y,.95/size.z,1.5);
+   if(!Number.isFinite(ratio)||ratio<=0)return false;
+   const holder=new THREE.Group();
+   source.scale.setScalar(ratio);
+   source.position.set(-center.x*ratio,-center.y*ratio,-center.z*ratio);
+   holder.position.set(0,-.27,.03);
+   holder.rotation.x=-.22;
+   holder.add(source);rifle.add(holder);
+   if(fpsArms)rifle.remove(fpsArms);
+   fpsArms=holder;gloves.visible=false;
+   return true;
+  }catch(e){console.warn('FPS model unavailable, retaining original hands',e);return false}
+ }
  const gunM=material(0x202d3a,.8,.27),gunEdge=material(0x677c8f,.75,.24);
  part(rifle,gunM,[0,-.055,-.36],[.17,.16,.58]);
  part(rifle,gunEdge,[0,.022,-.42],[.18,.055,.29]);
@@ -567,6 +639,9 @@ export function createRodeadosArt(THREE,scene,camera){
   rifle.position.copy(camTemp).add(offset.clone().add(new THREE.Vector3(0,0,recoil*.075)).applyQuaternion(quatTemp));
   rifle.quaternion.copy(quatTemp);rifle.rotateY(-.045);
   rifle.rotateX(-recoil*.15-(flash?.035:0));muzzle.visible=!!flash;
+  gloves.rotation.x=-.06-recoil*.10;
+  tactical.position.z=flash?recoil*.055:0;
+  plasma.rotation.z=Math.sin(performance.now()*.003)*.014;
   muzzle.scale.set(.13+recoil*.07,.13+recoil*.07,.30+recoil*.18);
  }
  function clear(){
@@ -591,10 +666,10 @@ export function createRodeadosArt(THREE,scene,camera){
    if(a.external){external++;const v=a.external.variant||'standard';variants[v]=(variants[v]||0)+1}
    else fallback++;
   }
-  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,spiders,variants,
+  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,spiders,variants,fpsArmsLoaded:!!fpsArms,
    robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
- return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,getRobotAdapterStatus,
+ return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setFPSArms,getRobotAdapterStatus,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
    darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
    scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity),

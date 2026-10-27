@@ -1,0 +1,42 @@
+name: RODEADOS V17 — release gate
+on:
+  push:
+    branches: [feat/rodeados-creature-combat-v17]
+    paths:
+      - 'rodeados-*.js'
+      - 'rodeados.html'
+      - 'tests/rodeados*'
+      - 'assets/rodeados/**'
+      - '.github/workflows/rodeados-v17-qa.yml'
+  pull_request:
+    paths:
+      - 'rodeados-*.js'
+      - 'rodeados.html'
+      - 'tests/rodeados*'
+      - 'assets/rodeados/**'
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: node --check rodeados-core.js && node --check rodeados-art.js && node --check rodeados-robots-auto.js && node --check rodeados-runtime.js
+      - run: node --test tests/rodeados-v17.test.cjs
+      - run: node --test tests/rodeados.test.cjs tests/rodeados-bomb.test.cjs tests/rodeados-spider-v16.test.cjs tests/rodeados-approach-v15.test.cjs
+      - run: node .github/scripts/rodeados-asset-metadata.cjs
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - run: npm install --ignore-scripts --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: RODEADOS_REAL_ASSET=1 node tests/rodeados-auto-robots.test.cjs
+      - run: node tests/rodeados-browser.test.cjs
+      - run: node tests/rodeados-xr-smoke.test.cjs
