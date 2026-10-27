@@ -126,17 +126,16 @@ export async function installAutoRobots({THREE,art,signal,debug}){
   }
   if(!loaded)gunStatus.unavailable.push(tier);
  }));
- // Prefer the real worn-metal CC0 handgun rather than the stylized low-poly
- // Quaternius gun. Keep Quaternius as a safe local fallback if the PBR fails.
- gunStatus.pbrLoaded=false;
+ // 1K PBR rifle: packaged locally. Never show the rejected tiny pistol.
+ gunStatus.pbrLoaded=false;gunStatus.rifleLoaded=false;
  try{
-  const url=new URL('./assets/rodeados/player-pbr-service-pistol.glb',import.meta.url).href;
+  const url=new URL('./assets/rodeados/player-pbr-rifle.glb',import.meta.url).href;
   const bytes=await fetchValidatedGLB(url);
   const loaded=await failAfter(new Promise((resolve,reject)=>
-   new GLTFLoader().parse(bytes,'',resolve,reject)),6500);
-  if(!loaded.scene||!art.setPremiumPistol?.(loaded.scene))throw Error('PBR hero pistol rejected');
-  gunStatus.pbrLoaded=true;
- }catch(e){console.warn('Premium Poly Haven pistol unavailable, retaining CC0 Quaternius fallback',e.message)}
+   new GLTFLoader().parse(bytes,'',resolve,reject)),9500);
+  if(!loaded.scene||!art.setPremiumRifle?.(loaded.scene))throw Error('PBR rifle rejected');
+  gunStatus.pbrLoaded=true;gunStatus.rifleLoaded=true;
+ }catch(e){console.warn('PBR rifle unavailable, retaining tactical CC0 rifle',e.message)}
  const creatures=Object.create(null);
  await Promise.all(CREATURES.map(async spec=>{
    try{
