@@ -114,12 +114,44 @@ export async function installAutoRobots({THREE,art,signal,debug}){
  if(signal?.aborted)return stats;
  try{
   const adapter={
-   name:'ANDROIDES DE COMBATE · 2 TIPOS',
+   name:'ANDROIDES ARMADOS · MODELO ESTABLE',
    create({actor,enemy,THREE:engine}){
-    const wantsHeavy=enemy.type==='tank'||enemy.type==='boss'||enemy.id%2===0;
-    const variant=creatures[enemy.type]||(wantsHeavy&&heavy?heavy:standard);
+    // The heavy tactical GLB has a broken headset/accessory and passive pose on
+    // Android. Retain the licensed file as a QA asset, never show the defect.
+    const creature=!!creatures[enemy.type],variant=creatures[enemy.type]||standard;
     const anim=variant.adapter.create({actor,enemy,THREE:engine});
-    anim.variant=creatures[enemy.type]?enemy.type:(wantsHeavy?'heavy':'standard');
+    anim.variant=creature?enemy.type:'standard';
+    if(creature)return anim;
+    // World-anchored lightweight, visibly aimed rifle; no floating headset.
+    const weapon=new engine.Group();weapon.name='enemy-visible-assault-rifle';
+    const steel=new engine.MeshStandardMaterial({color:0x242c35,metalness:.73,roughness:.34});
+    const band=new engine.MeshStandardMaterial({color:0x5e8491,metalness:.7,roughness:.3});
+    const muzzle=new engine.MeshBasicMaterial({color:0xffb06d,transparent:true,opacity:0,depthWrite:false});
+    const box=(w,h,d,mat,x,y,z)=>{
+      const obj=new engine.Mesh(new engine.BoxGeometry(w,h,d),mat);
+      obj.position.set(x,y,z);weapon.add(obj);return obj
+    };
+    box(.15,.16,.49,steel,0,0,.16);box(.24,.18,.27,steel,0,-.06,-.20);
+    box(.065,.08,.24,band,0,.15,.20);box(.09,.10,.42,steel,0,-.09,.46);
+    box(.17,.23,.10,steel,0,-.22,-.01);
+    box(.23,.04,.06,band,0,-.06,.65);
+    const flash=new engine.Mesh(new engine.OctahedronGeometry(.095),muzzle);
+    flash.position.set(0,-.05,.75);weapon.add(flash);
+    weapon.position.set(.19,1.22,.40);weapon.rotation.x=-.16;
+    actor.group.add(weapon);
+    const originalUpdate=anim.update.bind(anim),originalDispose=anim.dispose.bind(anim);
+    anim.update=e=>{
+      originalUpdate(e);
+      weapon.visible=e.portal<.62;
+      const attacking=e.state==='attack'&&e.stun<=0;
+      weapon.position.z=.40+(attacking?Math.sin(e.age*34)*.025:0);
+      muzzle.opacity=attacking&&Math.sin(e.age*22)>0.45?.85:0;
+    };
+    anim.dispose=()=>{
+      originalDispose();actor.group.remove(weapon);
+      weapon.traverse(o=>{if(o.isMesh)o.geometry.dispose()});
+      steel.dispose();band.dispose();muzzle.dispose();
+    };
     return anim;
    },
    setFacing(deg){standard.adapter.setFacing(deg);heavy?.adapter.setFacing(deg);
@@ -150,7 +182,7 @@ export async function installAutoRobots({THREE,art,signal,debug}){
   stats.triangles=standard.adapter.summary.tris;
   stats.facingDegrees=standard.adapter.summary.facingDegrees;
   stats.selectedClips=standard.adapter.summary.selectedClips;
-  stats.reason=heavy?'':'Second 3D variant unavailable: same original robot with different states';
+  stats.reason='Defective heavy model quarantined: stable tactical actor with visible procedural rifle; stored second GLB remains for future repair';
   return stats;
  }catch(e){
   stats.phase='fallback';stats.reason=e.message;
