@@ -201,3 +201,20 @@ button:active {filter:brightness(1.08)}
   #overlay #diagbtn {top:35%}
 }
 @media(prefers-reduced-motion:reduce){button{transition:none}}
+
+/* Native 3D pass hides ONLY the decorative SVG paint: the original polygon
+   nodes keep their fill and hit area so Survivor's calibration still works. */
+#overlay.crp3d-ready #tiles > polygon {
+  fill-opacity:.006 !important;
+  stroke-opacity:0 !important;
+}
+#overlay.crp3d-ready #crp-visual-layer {
+  display:none !important;
+}
+#overlay.crp3d-ready #tiles circle,
+#overlay.crp3d-ready #tiles text {
+  filter:drop-shadow(0 0 6px #32ffcc88);
+}
+#overlay.crp3d-ready #head #headline {
+  text-shadow:0 4px 16px #001320,0 0 25px currentColor;
+}
