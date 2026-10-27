@@ -697,33 +697,32 @@ export function createRodeadosArt(THREE,scene,camera){
   const aspect=weaponCamera.aspect;
   const goalDX=FPS_MUZZLE.x-FPS_STOCK.x,goalDY=FPS_MUZZLE.y-FPS_STOCK.y;
   const pixelGoalLen=Math.hypot(goalDX*aspect,goalDY);
-  let bestRoll=-.65,bestError=Infinity;
-  activeWeapon.scale.setScalar(.7);
-  rifle.position.set(0,0,-1.3);
-  // Search around the camera sight axis for a natural right-hand shoulder
-  // silhouette. Discard reversed barrels; compare ASPECT-CORRECTED angles.
-  for(let roll=-1.60;roll<=.72;roll+=.018){
-   rifle.rotation.set(-.115,-.19,roll);
-   const p=projectedBarrel(),ux=p.dx*aspect,uy=p.dy;
-   const u=Math.hypot(ux,uy);
-   if(u<.025||!Number.isFinite(u))continue;
-   const dot=(ux*(goalDX*aspect)+uy*goalDY)/(u*pixelGoalLen);
-   const error=1-dot;
-   if(error<bestError){bestError=error;bestRoll=roll}
-  }
-  let x=0,y=0,scale=.7;
+  let bestRoll=-.72,x=0,y=0,scale=.50;
   const proj=weaponCamera.projectionMatrix.elements;
-  rifle.rotation.set(-.115,-.19,bestRoll);
-  // Iterative length+translation solution: model perspective is nonlinear
-  // because the barrel and stock have different eye depths.
-  for(let i=0;i<16;i++){
+  // The precise root cause from live Chromium metrics: solving roll only
+  // ONCE at scale 0.7, then fitting at another scale, changes perspective
+  // and rotates the projected barrel back to 62 degrees on the phone.
+  // Optimize all four variables together under the FINAL perspective.
+  for(let pass=0;pass<12;pass++){
    activeWeapon.scale.setScalar(scale);
    rifle.position.set(x,y,-1.3);
-   const p=projectedBarrel(),current=Math.hypot(p.dx*aspect,p.dy);
-   if(!Number.isFinite(current)||current<.02)break;
-   scale=THREE.MathUtils.clamp(scale*Math.pow(pixelGoalLen/current,.72),.13,1.8);
-   x+=THREE.MathUtils.clamp((FPS_MUZZLE.x-p.muzzle.x)*1.3/Math.abs(proj[0])*.85,-.28,.28);
-   y+=THREE.MathUtils.clamp((FPS_MUZZLE.y-p.muzzle.y)*1.3/Math.abs(proj[5])*.85,-.28,.28);
+   let bestError=Infinity;
+   for(let roll=-1.60;roll<=.76;roll+=.022){
+    rifle.rotation.set(-.115,-.19,roll);
+    const p=projectedBarrel(),ux=p.dx*aspect,uy=p.dy;
+    const L=Math.hypot(ux,uy);
+    if(L<.025||!Number.isFinite(L))continue;
+    const similarity=(ux*(goalDX*aspect)+uy*goalDY)/(L*pixelGoalLen);
+    if(1-similarity<bestError){bestError=1-similarity;bestRoll=roll}
+   }
+   rifle.rotation.set(-.115,-.19,bestRoll);
+   let p=projectedBarrel(),curLen=Math.hypot(p.dx*aspect,p.dy);
+   if(!Number.isFinite(curLen)||curLen<.02)break;
+   scale=THREE.MathUtils.clamp(scale*Math.pow(pixelGoalLen/curLen,.73),.12,1.8);
+   activeWeapon.scale.setScalar(scale);
+   p=projectedBarrel();
+   x+=THREE.MathUtils.clamp((FPS_MUZZLE.x-p.muzzle.x)*1.3/Math.abs(proj[0])*.93,-.25,.25);
+   y+=THREE.MathUtils.clamp((FPS_MUZZLE.y-p.muzzle.y)*1.3/Math.abs(proj[5])*.93,-.25,.25);
   }
   // Check the projected REAL mesh, including the wooden stock, not just the
   // synthetic barrel endpoints. Fit in screen without raising the muzzle.
@@ -740,9 +739,20 @@ export function createRodeadosArt(THREE,scene,camera){
    x+=(FPS_MUZZLE.x-p.muzzle.x)*1.3/Math.abs(proj[0]);
    y+=(FPS_MUZZLE.y-p.muzzle.y)*1.3/Math.abs(proj[5]);
   }
-  // Recenter the muzzle once with the final scale (avoids drifting).
+  // Last roll check happens AFTER all shrink-to-fit operations. Never let
+  // bounds-fitting distort the barrel angle back toward vertical.
   activeWeapon.scale.setScalar(scale);
   rifle.position.set(x,y,-1.3);
+  let bestFinalRoll=bestRoll,bestFinalError=Infinity;
+  for(let roll=-1.60;roll<=.76;roll+=.012){
+   rifle.rotation.set(-.115,-.19,roll);
+   const p=projectedBarrel(),ux=p.dx*aspect,uy=p.dy,L=Math.hypot(ux,uy);
+   if(L<.015||!Number.isFinite(L))continue;
+   const sim=(ux*(goalDX*aspect)+uy*goalDY)/(L*pixelGoalLen);
+   if(1-sim<bestFinalError){bestFinalError=1-sim;bestFinalRoll=roll}
+  }
+  bestRoll=bestFinalRoll;
+  rifle.rotation.set(-.115,-.19,bestRoll);
   const p=projectedBarrel();
   x+=(FPS_MUZZLE.x-p.muzzle.x)*1.3/Math.abs(proj[0]);
   y+=(FPS_MUZZLE.y-p.muzzle.y)*1.3/Math.abs(proj[5]);
@@ -768,7 +778,7 @@ export function createRodeadosArt(THREE,scene,camera){
    source:premiumRifle?'polyhaven-pbr-762-rifle':activeWeapon===fallback?'safe-tactical-rifle':'quaternius-tactical-rifle',
    visible,meshCount:b.meshes,inView,dominantVisible:inView&&b.width>.65&&b.height>.30,
    coverage:+b.coverage.toFixed(3),center:{x:+b.centerX.toFixed(3),y:+b.centerY.toFixed(3),z:0},
-   bounds:{left:b.left,right:b.right,bottom:b.bottom,top:b.top},viewport:'independent-fps-pass',fitRoll:layout?.roll??null,aim:getRifleAimMetrics()};
+   bounds:{left:b.left,right:b.right,bottom:b.bottom,top:b.top},viewport:'independent-fps-pass',fitRoll:layout?.roll??null,fitScale:layout?.scale??null,aim:getRifleAimMetrics()};
  }
  function clear(){
   if(bombProjectile){root.remove(bombProjectile);bombProjectile=null}
