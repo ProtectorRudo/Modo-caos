@@ -48,7 +48,7 @@ body.fury-mode #hud{border-color:#ffcb7f}
 #zoneTitle{position:absolute;top:calc(max(10px,env(safe-area-inset-top)) + 71px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:#f9e9ad;font-weight:900;letter-spacing:1px;text-shadow:0 2px 5px #0009}
 #toast{position:absolute;top:19%;left:5%;right:5%;text-align:center;font-weight:1000;letter-spacing:.5px;font-size:clamp(18px,4.7vw,30px);text-shadow:0 4px 5px #092530,0 0 20px #031b27;opacity:0;transition:opacity .2s}#toast.show{opacity:1}
 #mapToggle{position:absolute;right:11px;top:142px;min-width:43px;height:40px;z-index:6;border:1px solid #96e9c5;border-radius:11px;color:#e8ffe5;background:#153c48de;pointer-events:auto}
-#miniMap{position:absolute;right:11px;top:190px;width:116px;height:156px;z-index:6;border:1px solid #9bffdc88;border-radius:12px;background:#0c2f3edb;box-shadow:0 6px 19px #041b2288;pointer-events:none}
+#miniMap{position:absolute;right:11px;top:190px;width:104px;height:140px;z-index:6;border:1px solid #9bffdc88;border-radius:12px;background:#0c2f3edb;box-shadow:0 6px 19px #041b2288;pointer-events:none}
 #controls{position:absolute;bottom:max(21px,env(safe-area-inset-bottom));left:0;right:0;display:flex;justify-content:space-between;align-items:end;padding:0 22px;pointer-events:none}
 #joystick{position:relative;width:136px;height:136px;border-radius:50%;border:2px solid #b0fff296;background:radial-gradient(circle,#146b806b,#081e3580);box-shadow:inset 0 0 30px #7bffdc3a,0 9px 20px #001f2878;pointer-events:auto;touch-action:none}
 #joystick:before,#joystick:after{content:"";position:absolute;background:#a8ffdc3a}#joystick:before{left:50%;top:12%;bottom:12%;width:1px}#joystick:after{top:50%;left:12%;right:12%;height:1px}
@@ -101,12 +101,12 @@ body.fury-mode #hud{border-color:#ffcb7f}
 <div class="label">MODO CAOS PRESENTA · AVENTURA ÉPICA DE BOLSILLO</div><h1 class="brand">MINI<span>WORLDS.</span></h1>
 <div class="headline">Un héroe pequeño. Mundos en peligro. ¡Un universo entero por salvar!</div>
 <p class="copy">KAI debe rescatar habitantes, defender el corazón del mundo y recuperar los cristales robados. Cada rescate devuelve vida a tu propia aldea. Cada sector aparece en el mismo espacio de tu living: no necesitás seguir físicamente al personaje.</p>
-<div class="features"><span>🐾 RESCATÁ HABITANTES</span><span>◈ 3D + REALIDAD AUMENTADA</span><span>🏡 RECONSTRUÍ TU ALDEA</span><span>★ TRES ESTRELLAS POR MISIÓN</span></div>
+<div class="features"><span>🐾 RESCATÁ HABITANTES</span><span>◈ ISLAS MÁS GRANDES EN AR</span><span>🏡 RECONSTRUÍ TU ALDEA</span><span>★ TRES ESTRELLAS POR MISIÓN</span></div>
 <div class="label" id="unlocked">MISIÓN 1 DISPONIBLE</div><div id="levelChoice"></div>
 <div id="village" aria-label="Aldea que se reconstruye con habitantes rescatados"><div class="villageTop"><span>🏡 TU REFUGIO</span><strong id="villageCount">0 HABITANTES RESCATADOS</strong></div><div id="villageGrid" class="villageGrid"></div><p id="villageHint" class="villageHint">RESCATÁ HABITANTES PARA RECONSTRUIR TU ALDEA.</p></div>
 <div class="buttonStack"><button class="cta" id="arPlay" disabled>COMPROBANDO AR...</button><button class="cta outline" id="demoPlay">▶ JUGAR AHORA · AVENTURA 3D</button></div>
 <div class="features"><span id="saveLabel">0 MONEDAS GANADAS</span><button class="levelChoice" id="sounds">SONIDO: SÍ</button></div>
-<p class="fine">AR: cuatro escenarios de bolsillo en una zona de aproximadamente 2,5 × 1,9 m, con escala ajustable; manejás al héroe con joystick, no hace falta caminar por el escenario. Necesitás Android con ARCore, Chrome y un lugar despejado. Sin AR podés jugar en 3D. <a href="./index.html">‹ VOLVER A MODO CAOS</a></p>
+<p class="fine">AR: dos regiones amplias de aproximadamente 4,1 × 3,9 m cada una, con escala ajustable; podés recorrerlas por joystick sin caminar físicamente; manejás al héroe con joystick, no hace falta caminar por el escenario. Necesitás Android con ARCore, Chrome y un lugar despejado. Sin AR podés jugar en 3D. <a href="./index.html">‹ VOLVER A MODO CAOS</a></p>
 </section>
 <section class="visual" aria-label="Ilustración estilizada: isla fantástica y protagonista zorro">
 <div class="planet"></div><div class="isle"><div class="palm">🌴</div><div class="palm two">🌴</div><div class="heroFace"><i class="foxEar left"></i><i class="foxEar right"></i><i class="foxNose"></i></div></div>
@@ -128,5 +128,5 @@ body.fury-mode #hud{border-color:#ffcb7f}
 <button id="menuBtn" hidden>VOLVER</button><div id="load" hidden>PREPARANDO TU UNIVERSO 3D…</div>
 </div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
-<script src="./mini-worlds-core.js"></script><script src="./mini-worlds-missions.js"></script><script src="./mini-worlds-art.js"></script><script src="./mini-worlds-mission-art.js"></script><script src="./mini-worlds-assets.js"></script><script src="./mini-worlds-premium.js"></script><script src="./mini-worlds-characters.js"></script><script src="./mini-worlds-ar-guide.js"></script><script src="./mini-worlds-ar-compositor.js"></script><script src="./mini-worlds-spatial.js"></script><script src="./mini-worlds-pocket.js"></script><script src="./mini-worlds-finish.js"></script><script src="./mini-worlds-runtime.js"></script>
+<script src="./mini-worlds-core.js"></script><script src="./mini-worlds-missions.js"></script><script src="./mini-worlds-art.js"></script><script src="./mini-worlds-diorama.js"></script><script src="./mini-worlds-mission-art.js"></script><script src="./mini-worlds-assets.js"></script><script src="./mini-worlds-premium.js"></script><script src="./mini-worlds-characters.js"></script><script src="./mini-worlds-ar-guide.js"></script><script src="./mini-worlds-ar-compositor.js"></script><script src="./mini-worlds-spatial.js"></script><script src="./mini-worlds-pocket.js"></script><script src="./mini-worlds-finish.js"></script><script src="./mini-worlds-runtime.js"></script>
 </body></html>
