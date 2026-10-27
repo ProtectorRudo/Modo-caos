@@ -73,7 +73,7 @@ function clear(){
  spatialLock=null;lockedPose=null;steeringYaw=null;heldSteeringYaw=null;
  arCompositor?.dispose();arCompositor=null;arCompositorError='';
  $('arWorldOverlay').style.display='none';xrEmptyScene=null;
- renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.diorama?.dispose?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
+ renderer?.setAnimationLoop(null);document.body.classList.remove('mw-immersive-ar');if(renderer?.domElement)renderer.domElement.style.display='';arGuide?.hide();arGuide=null;if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.disposeKayKit?.();stage.diorama?.dispose?.();stage.dispose();stage=null}if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null}
  camera=null;view=null;game=null;placing=false;lockedPose=null;source=null;hasHit=false;
 }
 function renderSetup(){
@@ -90,7 +90,7 @@ function renderSetup(){
  renderer.setAnimationLoop(frame);
 }
 function newStage(){
- if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.diorama?.dispose?.();stage.dispose()}
+ if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.disposeKayKit?.();stage.diorama?.dispose?.();stage.dispose()}
  level=M.MISSIONS[missionId].level;
  game=C.create(level);M.init(game,missionId);
  const residents=progress.missions.residents.length;
@@ -121,6 +121,13 @@ function newStage(){
    if(stats?.placed)console.info('[MINI WORLDS] Real Quaternius nature scene:',stats);
    else console.info('[MINI WORLDS] Kenney/procedural fallback retained:',stats);
   }).catch(e=>console.warn('[MINI WORLDS] Optional Quaternius scenery not available:',e.message));
+ }
+ // One compact CC0 KayKit pack adds real high-resolution atlas-backed
+ // shrubs and rock silhouettes. No optional asset blocks gameplay.
+ if(window.MiniWorldsKayKit){
+  Promise.resolve().then(()=>window.MiniWorldsKayKit(T).decorate(stageRef,level)).then(stats=>{
+   if(stage===stageRef&&stats?.placed)console.info('[MINI WORLDS] Curated KayKit forest details',stats.placed);
+  }).catch(e=>console.warn('[MINI WORLDS] KayKit fallback:',e.message));
  }
  // Animated characters are optional and NEVER delay or replace physics.
  if(window.MiniWorldsCharacters){
