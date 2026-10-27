@@ -1,8 +1,8 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=28';
+import {createRodeadosArt} from './rodeados-art.js?v=29';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
-import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=28';
-import {createTacticalPlanner} from './rodeados-tactical-ui.js?v=19';
+import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=29';
+import {createTacticalPlanner} from './rodeados-tactical-ui.js?v=29';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
    The selected 5x5 cell is a manual baseline; WebXR follows the phone, never feet.
