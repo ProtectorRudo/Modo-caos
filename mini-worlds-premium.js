@@ -100,9 +100,7 @@ root.MiniWorldsPremium=function(T,options={}){
   if(!templateMap.size){layer.parent?.remove(layer);return results}
   const random=rand(level?20117:12809);
   const stageTiles=stage.map.platforms;
-  const palettes=level
-   ? ['canopyC','canopyB','canopyA','canopyC']
-   : ['canopyA','canopyB','canopyC','canopyA'];
+  // Tree palette retired: zero oversized round canopies in either biome.
   let treeCount=0;
   const place=(name,x,y,z,height,angle)=>{
    const target=templateMap.get(name);if(!target)return false;
