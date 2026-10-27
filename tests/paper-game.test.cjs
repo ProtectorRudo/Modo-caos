@@ -261,3 +261,16 @@ test('shop has four cosmetic categories with a close action',()=>{
  assert.match(source,/celebration_confetti/);
  assert.match(source,/trail_rainbow/);
 });
+
+test('equipped gesture can be activated manually from the mobile HUD',()=>{
+ const g=boot(419),h=g.win.__paperTest;
+ h.awardCoins(140);
+ assert.equal(h.buyOrEquip('emote_heart'),true);
+ g.get('start').onclick();
+ g.tick(8);
+ assert.equal(g.get('emoteButton').textContent,'💖');
+ assert.equal(typeof g.get('emoteButton').onclick,'function');
+ g.get('emoteButton').onclick();
+ assert.equal(g.win.territoryQA.mode,'play');
+ assert.equal(h.wardrobe.equipped.emote,'emote_heart');
+});
