@@ -47,7 +47,17 @@ class Instances extends Mesh{
  setMatrixAt(i,m){this.matrices[i]=m}
  setColorAt(i,c){this.colors[i]=c;this.instanceColor={needsUpdate:false}}
 }
-const T={Color,Vector3:V,Group,Object3D:Group,Mesh,Points:Mesh,InstancedMesh:Instances,
+class Bounds {
+ setFromObject(o){
+  const c=o.getWorldPosition(new V()),size=o.userData?.testRadius??.5;
+  this.min=new V(c.x-size,c.y-size,c.z-size);
+  this.max=new V(c.x+size,c.y+size,c.z+size);
+  return this;
+ }
+ getCenter(v){return v.set((this.min.x+this.max.x)/2,(this.min.y+this.max.y)/2,(this.min.z+this.max.z)/2)}
+ getSize(v){return v.set(this.max.x-this.min.x,this.max.y-this.min.y,this.max.z-this.min.z)}
+}
+const T={Color,Vector3:V,Box3:Bounds,Group,Object3D:Group,Mesh,Points:Mesh,InstancedMesh:Instances,
  BufferGeometry:Geometry,Float32BufferAttribute:class{constructor(v,n){this.array=v;this.itemSize=n}},
  ConeGeometry:Geometry,CylinderGeometry:Geometry,IcosahedronGeometry:Geometry,DodecahedronGeometry:Geometry,
  MeshStandardMaterial:Material,PointsMaterial:Material,DoubleSide:2};
@@ -73,12 +83,23 @@ for(let level=0;level<2;level++){
  diorama.update({},1/60,5,new Group());
  assert.deepEqual({...anchor.position},origin,'FX must not move AR world anchor');
  assert.equal(hero.parent,world,'FX must not hide or replace fox');
+ // Large canopy occludes despite tree trunk center being far from the path.
+ const tree=new Group();tree.userData={mwFoliage:true,testRadius:1.55};
+ tree.position.set(0,.65,.15);stage.premiumLayer.add(tree);
+ const nearCamera=new Group();nearCamera.position.set(0,1.3,2.8);
+ const farCamera=new Group();farCamera.position.set(9,1.3,2.8);
+ for(let t=0;t<5;t++)diorama.update({},1/60,t/60,nearCamera);
+ assert(!tree.visible,'broad leafy crown between camera and KAI must be hidden even if its trunk does not cross avatar');
+ for(let t=5;t<10;t++)diorama.update({},1/60,t/60,farCamera);
+ assert(tree.visible,'occluding tree must return when camera moves, without destroying art');
+ stage.premiumLayer.remove(tree);
+
  diorama.dispose();
  assert.deepEqual([...world.children],[hero],'old island scenery is completely removable on retry');
 }
 assert(!source.includes('navigator.xr')&&!source.includes('stage.root.position.set'),'new module must not manipulate XR');
 assert(source.includes('flatShading:true')&&source.includes('new T.InstancedMesh'),'true mobile optimized sculpting');
-assert(source.includes('visibility(camera)'),'visual cutaway must keep the fox visible');
+assert(source.includes('visibility(camera)')&&source.includes('bbox.setFromObject(obj)'),'cutaway must use full canopy bounding volume');
 assert(art.includes('cube(p.w*.80,.31,p.d*.80)'),'structural block must not conceal new sculpted edges');
 assert(art.includes('uniform float uTime')&&art.includes('shoreline'),'enhanced ocean must remain animated');
 assert(runtime.includes('stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)'));
