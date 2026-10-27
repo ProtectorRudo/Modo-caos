@@ -7,9 +7,9 @@
 })(typeof window!=='undefined'?window:globalThis,function(){
 'use strict';
 const MISSIONS=Object.freeze([
- Object.freeze({id:0,title:'RESCATE EN EL VACÍO',short:'RESCATÁ Y ESCAPÁ',subtitle:'Salvá 2 habitantes, activá 2 balizas y escapá. ¿Te animás al tercero?',level:0,seconds:260,icon:'🦊'}),
- Object.freeze({id:1,title:'DEFENDÉ EL CORAZÓN',short:'SOBREVIVÍ A 3 OLEADAS',subtitle:'Defendé el reactor durante 65 segundos. Rescatá al técnico para el taller.',level:1,seconds:90,icon:'💠'}),
- Object.freeze({id:2,title:'EL LADRÓN DE CRISTALES',short:'RECUPERÁ LOS 3 FRAGMENTOS',subtitle:'Vencé a los tres ladrones y recuperá sus fragmentos para desbloquear al jefe.',level:1,seconds:300,icon:'⚡'})
+ Object.freeze({id:0,title:'RESCATE EN EL VACÍO',short:'RESCATÁ Y ESCAPÁ',subtitle:'Rescatá a dos habitantes y encendé el portal antes de que el Vacío avance.',steps:Object.freeze(['Encontrá y rescatá a LUMI y FLOR en las islas.','Apuntá y dispará a las dos balizas para activarlas.','Volvé al portal de extracción y escapá a tiempo.']),bonus:'EXTRA: rescatá también a NIX y ganá más estrellas.',level:0,seconds:260,icon:'🦊'}),
+ Object.freeze({id:1,title:'DEFENDÉ EL CORAZÓN',short:'SOBREVIVÍ A 3 OLEADAS',subtitle:'El reactor está bajo ataque. Protegelo: si pierde toda su energía, perdés.',steps:Object.freeze(['Derrotá a los enemigos antes de que lleguen al reactor.','Resistí las tres oleadas durante 65 segundos.','Regresá al corazón del mundo para asegurar la victoria.']),bonus:'EXTRA: rescatá al técnico y conservá la energía del reactor.',level:1,seconds:90,icon:'💠'}),
+ Object.freeze({id:2,title:'EL LADRÓN DE CRISTALES',short:'RECUPERÁ LOS 3 FRAGMENTOS',subtitle:'Robaron tres cristales. Sin ellos el jefe no puede ser derrotado.',steps:Object.freeze(['Encontrá y derrotá a los tres guardianes de cristales.','Recogé cada cristal que hayan soltado.','Con los tres reunidos, enfrentá y derrotá al jefe.']),bonus:'EXTRA: rescatá al explorador PIPA y terminá con tres corazones.',level:1,seconds:300,icon:'⚡'})
 ]);
 const near=(a,b,r)=>Math.hypot(a.x-b.x,a.z-b.z)<=r;
 function emit(s,type,fields){s.mission.events.push({type,...fields})}
