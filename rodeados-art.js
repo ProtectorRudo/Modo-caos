@@ -1,4 +1,5 @@
 import {createWolfSpider} from './rodeados-spider.js?v=16';
+import {buildCaosWeapon} from './rodeados-weapons-v20.js?v=20';
 /* RODEADOS 360 — original stylized, articulated robot art.
    Techniques adapted from our Blackzone Three.js pipeline: real meter scale,
    MeshStandardMaterial, limb pivots, stable ground shadows and true 3-D objects. */
@@ -569,80 +570,60 @@ export function createRodeadosArt(THREE,scene,camera){
    if(s.life<=0){root.remove(s.mesh);s.mesh.material.dispose();sparks.splice(i,1)}
   }
  }
- // FPS viewmodel is the ONLY camera-following object; all enemies remain world-locked.
+ // The player weapon is the ONLY camera-following object; the world stays anchored.
+ // V20 removes old oversized slab pistol, tactical and plasma shapes entirely.
  const rifle=new THREE.Group();scene.add(rifle);
- const tactical=new THREE.Group(),plasma=new THREE.Group(),gloves=new THREE.Group();
- rifle.add(tactical,plasma,gloves);
- const gunHeavy=material(0x465663,.8,.34),gunPlasma=material(0x314350,.75,.3);
- for(const side of [-1,1]){
-  const arm=new THREE.Group();arm.position.set(side*.23,-.22,.07);gloves.add(arm);
-  const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.082,.12,.39,10),M.steel);
-  sleeve.rotation.x=-.4;arm.add(sleeve);
-  sphere(arm,M.edge,[0,.17,-.10],[.087,.07,.10]);
-  sphere(arm,M.dark,[0,.215,-.18],[.079,.09,.105]);
-  for(let i=0;i<3;i++)sphere(arm,M.edge,[(i-1)*.043,.232,-.265],[.024,.028,.09]);
- }
- part(tactical,gunHeavy,[0,-.025,-.64],[.16,.12,.52]);
- part(tactical,M.edge,[0,.078,-.48],[.125,.04,.17]);
- for(const side of [-1,1]){
-  part(tactical,M.edge,[side*.096,-.012,-.84],[.035,.035,.37]);
-  part(tactical,M.dark,[side*.16,.05,-.48],[.04,.055,.30]);
- }
- part(plasma,gunPlasma,[0,-.02,-.58],[.19,.14,.54]);
- for(const side of [-1,1]){
-  const coil=new THREE.Mesh(new THREE.TorusGeometry(.09,.024,8,20),M.cyan);
-  coil.position.set(side*.12,.008,-.83);coil.rotation.y=Math.PI/2;plasma.add(coil);
-  part(plasma,M.edge,[side*.13,-.03,-.57],[.07,.08,.36]);
- }
- for(let i=0;i<3;i++){
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(.115,.017,6,22),M.cyan);
-  ring.position.z=-.62-i*.15;plasma.add(ring);
- }
- let currentWeapon='pistol';
+ const pistol=buildCaosWeapon(THREE,{tier:'pistol'});
+ const tactical=buildCaosWeapon(THREE,{tier:'tactical'});
+ const plasma=buildCaosWeapon(THREE,{tier:'plasma'});
+ const weaponModels={pistol,tactical,plasma};
+ for(const w of Object.values(weaponModels)){w.rotation.y=Math.PI;rifle.add(w)}
+ let currentWeapon='pistol',activeWeapon=pistol;
  function setWeaponTier(tier){
-  currentWeapon=['pistol','tactical','plasma'].includes(tier)?tier:'pistol';
-  tactical.visible=currentWeapon==='tactical';plasma.visible=currentWeapon==='plasma';
+  currentWeapon=Object.prototype.hasOwnProperty.call(weaponModels,tier)?tier:'pistol';
+  activeWeapon=weaponModels[currentWeapon];
+  for(const [key,obj] of Object.entries(weaponModels))obj.visible=key===currentWeapon;
  }
  setWeaponTier('pistol');
+ const gloves=new THREE.Group();rifle.add(gloves);
+ for(const side of [-1,1]){
+  const arm=new THREE.Group();arm.position.set(side*.20,-.21,.19);gloves.add(arm);
+  const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.065,.115,.37,9),M.steel);
+  sleeve.rotation.x=-.55;arm.add(sleeve);
+  sphere(arm,M.edge,[0,.17,-.10],[.07,.065,.09]);
+  sphere(arm,M.dark,[0,.21,-.18],[.065,.07,.085]);
+ }
  let fpsArms=null;
  function setFPSArms(source){
   try{
    if(!source||!source.isObject3D)return false;
-   const box=new THREE.Box3().setFromObject(source);
-   const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+   const bbox=new THREE.Box3().setFromObject(source);
+   const size=bbox.getSize(new THREE.Vector3()),center=bbox.getCenter(new THREE.Vector3());
    if(!Number.isFinite(size.x)||size.x<.02||size.y<.02||size.z<.01)return false;
-   const ratio=Math.min(.69/size.x,.65/size.y,.95/size.z,1.5);
+   const ratio=Math.min(.53/size.x,.49/size.y,.65/size.z,1.25);
    if(!Number.isFinite(ratio)||ratio<=0)return false;
    const holder=new THREE.Group();
    source.scale.setScalar(ratio);
    source.position.set(-center.x*ratio,-center.y*ratio,-center.z*ratio);
-   holder.position.set(0,-.27,.03);
-   holder.rotation.x=-.22;
+   holder.position.set(0,-.25,.20);holder.rotation.x=-.20;
    holder.add(source);rifle.add(holder);
    if(fpsArms)rifle.remove(fpsArms);
-   fpsArms=holder;gloves.visible=false;
-   return true;
-  }catch(e){console.warn('FPS model unavailable, retaining original hands',e);return false}
+   fpsArms=holder;gloves.visible=false;return true;
+  }catch(e){console.warn('FPS hands unavailable; using original sleeves',e);return false}
  }
- const gunM=material(0x202d3a,.8,.27),gunEdge=material(0x677c8f,.75,.24);
- part(rifle,gunM,[0,-.055,-.36],[.17,.16,.58]);
- part(rifle,gunEdge,[0,.022,-.42],[.18,.055,.29]);
- part(rifle,M.dark,[0,-.15,-.24],[.11,.25,.14]);
- part(rifle,gunM,[0,-.10,-.72],[.10,.10,.50]);
- part(rifle,gunEdge,[0,.02,-.85],[.075,.10,.19]);
- part(rifle,M.cyan,[0,.089,-.37],[.08,.045,.14]);
- const muzzle=new THREE.Mesh(geo.sphere,new THREE.MeshBasicMaterial({color:0xffedab,transparent:true,opacity:.95}));
- muzzle.position.set(0,-.02,-1.12);muzzle.scale.set(.13,.13,.30);rifle.add(muzzle);muzzle.visible=false;
- const camTemp=new THREE.Vector3(),quatTemp=new THREE.Quaternion(),offset=new THREE.Vector3(.23,-.28,-.40);
+ const camTemp=new THREE.Vector3(),quatTemp=new THREE.Quaternion();
+ const baseWeaponOffset=new THREE.Vector3(.23,-.245,-.40);
  function positionWeapon(viewCamera,flash){
   viewCamera.getWorldPosition(camTemp);viewCamera.getWorldQuaternion(quatTemp);
-  rifle.position.copy(camTemp).add(offset.clone().add(new THREE.Vector3(0,0,recoil*.075)).applyQuaternion(quatTemp));
-  rifle.quaternion.copy(quatTemp);rifle.rotateY(-.045);
-  rifle.rotateX(-recoil*.15-(flash?.035:0));muzzle.visible=!!flash;
-  gloves.rotation.x=-.06-recoil*.10;
-  tactical.position.z=flash?recoil*.055:0;
-  plasma.rotation.z=Math.sin(performance.now()*.003)*.014;
-  muzzle.scale.set(.13+recoil*.07,.13+recoil*.07,.30+recoil*.18);
+  rifle.position.copy(camTemp).add(baseWeaponOffset.clone()
+   .add(new THREE.Vector3(0,-recoil*.016,recoil*.08)).applyQuaternion(quatTemp));
+  rifle.quaternion.copy(quatTemp);
+  rifle.rotateY(-.065);rifle.rotateX(-recoil*.12-(flash?.018:0));
+  for(const [name,model] of Object.entries(weaponModels)){
+   model.userData.setFiring(name===currentWeapon&&!!flash,performance.now()*.001);
+   model.rotation.z=name===currentWeapon&&name==='plasma'?Math.sin(performance.now()*.003)*.012:0;
+  }
+  gloves.rotation.x=-.09-recoil*.06;
  }
  function clear(){
   if(bombProjectile){root.remove(bombProjectile);bombProjectile=null}
