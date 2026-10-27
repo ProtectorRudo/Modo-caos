@@ -38,13 +38,14 @@ export function createRodeadosArCompositor(THREE,host,maxPixelRatio=1.2){
   trackedCamera.matrixWorldNeedsUpdate=false;
   try{
    renderer.render(world,trackedCamera);
+   const worldDrawCalls=renderer.info.render.calls;
    if(weaponScene&&weaponCamera){
     const saved=renderer.autoClear;renderer.autoClear=false;
     renderer.clearDepth();renderer.render(weaponScene,weaponCamera);
     renderer.autoClear=saved;
    }
    frames++;
-   drawn=renderer.info.render.calls;
+   drawn=worldDrawCalls;
    lastError=null;
    return true;
   }catch(err){
