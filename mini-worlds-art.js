@@ -151,9 +151,10 @@ function platform(root,p,rand){
  if(!isBridge){
   // Worn oval footpath is inset into the real walkable ground, not a fake
   // platform. Shared high-res PBR grain adds a legible safe route.
-  const cap=mesh(new T.CircleGeometry(1,32),
+  const cap=mesh(new T.CircleGeometry(1,40),
    p.kind==='ruins'||p.kind==='arena'?M.oldRoad:M.trail,0,.035,0,g);
-  cap.rotation.x=-P/2;cap.scale.set(Math.max(.4,p.w*.22),Math.max(.65,p.d*.37),1);
+  cap.rotation.x=-P/2;cap.scale.set(Math.max(.50,p.w*.19),Math.max(.57,p.d*.31),1);
+  // Narrow worn paths: no oversized brown circular stains.
   cap.castShadow=false;cap.receiveShadow=false;
  }
  // Rock rim and meadow already supplied by the batched coastline material.
@@ -162,12 +163,8 @@ function platform(root,p,rand){
  if(isBridge){for(let i=0;i<6;i++){let z=-p.d*.42+i*p.d/5;mesh(cube(p.w*.9,.065,.18),i%2?M.wood:M.woodDark,0,.02,z,g)}
   for(const x of [-p.w*.47,p.w*.47]){for(let j=0;j<3;j++){let z=-p.d*.44+j*p.d*.44;mesh(cyl(.043,.052,.8,7),M.woodDark,x,.31,z,g)}mesh(cube(.05,.055,p.d),M.wood,x,.66,0,g)}}
  if(p.kind==='ruins')g.userData.ruins=addRuins(g,p.w*.28,.02,-p.d*.20);
- if(p.kind==='waterfall'){
-  // The old cyan transparent BOX rendered as giant geometric artifacts on
-  // AR cameras. A compact mineral obelisk marks the landmark instead.
-  const stoneMarker=mesh(cyl(.15,.20,.46,7),M.stone,p.w*.42,.19,-.55,g);
-  stoneMarker.castShadow=false;
- }
+ // Waterfall region is now a natural stone clearing, without any
+ // unregistered cyan polygon or freestanding toy obelisk.
  if(p.kind==='arena'){let ring=mesh(new T.TorusGeometry(1.95,.07,8,64),M.gold,0,.04,0,g);ring.rotation.x=-P/2;
  for(let i=0;i<8;i++){const a=i*P/4;const ob=mesh(cyl(.08,.14,.45,7),M.stone,Math.cos(a)*2.28,.16,Math.sin(a)*2.05,g);ob.rotation.z=(rand()-.5)*.2}}
  return g;
@@ -356,10 +353,8 @@ function makeStage(map){
   // Old off-route cliff sculptures had no matching physics and read as
   // toy decorations. The ancient-sentinel art module supplies real, solid
   // ruins instead. Keep only lightweight intangible floating relics below.
-  for(let i=0;i<7;i++){
-   let obj=mesh(new T.IcosahedronGeometry(.14+rand()*.08,0),M.gold,Math.sin(i*2.8)*3,2.1+rand()*1.3,-4-i*2.6,root);
-   obj.userData.hover=true;
-  }
+  // Removed disconnected hovering shards: they read as floating artifacts
+  // rather than usable landmarks when rendered over a real AR camera.
  }
  const coins=map.coins.map(c=>makeCoin(root,c.x,c.y,c.z));
  const stars=map.stars.map(c=>makeStar(root,c.x,c.y,c.z));
