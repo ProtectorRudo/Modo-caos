@@ -76,17 +76,18 @@ function makeOcean(parent,map){
     swells+=.48*cos(p.y*2.34-p.x*.39-uTime*.94);
     float ribbons=abs(sin((p.x+p.y*.34)*3.9-uTime*1.47));
     float softness=smoothstep(.87,1.,ribbons);
-    float caustic=pow(max(0.,sin(p.x*4.7+uTime*1.17)*cos(p.y*3.8-uTime*.92)),4.);
+    float caustic=pow(max(0.,sin(p.x*4.7+uTime*1.17)*cos(p.y*3.8-uTime*.92)),3.);
+    float shoreline=.5+.5*sin(p.y*2.85+p.x*.9+uTime*.53);
     float tint=clamp(.50+.22*swells+.10*vWave,0.,1.);
     vec3 color=mix(uDeep,uShallow,tint);
-    color+=vec3(caustic*.12);
-    color=mix(color,uFoam,softness*.14);
+    color+=vec3(caustic*.18);
+    color=mix(color,uFoam,softness*.19+shoreline*.025);
     float glint=pow(max(0.,sin(p.x*8.1+p.y*4.5+uTime*2.4)),14.);
-    color=mix(color,uFoam,glint*.21);
-    gl_FragColor=vec4(color,.83);
+    color=mix(color,uFoam,glint*.27);
+    gl_FragColor=vec4(color,.87);
    }`
  });
- const o=mesh(new T.PlaneGeometry(18.5,33,24,42),material,0,-.69,-11.35,parent);
+ const o=mesh(new T.PlaneGeometry(18.5,33,32,48),material,0,-.69,-11.35,parent);
  o.rotation.x=-P/2;o.receiveShadow=false;o.castShadow=false;o.renderOrder=-4;
  return {o,material};
 }
@@ -127,8 +128,17 @@ function addRuins(p,x,y,z){const g=group(p,x,y,z);
 function platform(root,p,rand){
  const g=group(root,p.x,p.y,p.z);
  const isBridge=p.kind==='bridge';let top=p.kind==='beach'?M.sand:p.kind==='arena'?M.stone:p.kind==='ruins'?M.sand:M.grass;
- const crust=mesh(cube(p.w,.44,p.d),p.kind==='beach'?M.edge:M.soil,0,-.24,0,g);crust.receiveShadow=true;
+ // Inset structural rock allows the sculpted exterior to appear instead of
+ // hiding it behind an opaque cardboard-like vertical wall.
+ const crust=mesh(cube(p.w*.80,.31,p.d*.80),p.kind==='beach'?M.edge:M.soil,0,-.26,0,g);crust.receiveShadow=true;
  const upper=mesh(cube(p.w,.14,p.d),top,0,-.045,0,g);upper.receiveShadow=true;
+ // Color-varied soft ground patch, perfectly coplanar with the REAL physics
+ // platform surface: decorative only and never increases standable space.
+ if(!isBridge){const capMat=p.kind==='beach'?M.sand:p.kind==='arena'?M.stone:M.grass;
+  const cap=mesh(new T.CircleGeometry(.48,16),capMat,0,.029,0,g);
+  cap.rotation.x=-P/2;cap.scale.set(Math.max(.5,p.w*.77),Math.max(.5,p.d*.77),1);
+  cap.castShadow=false;cap.receiveShadow=false;
+ }
  // Jagged earth breaks the silhouette; narrow decorative stones never obstruct the play corridor.
  for(let i=0;i<Math.floor(p.w*2.4);i++){let x=(rand()-.5)*p.w*.94,z=(rand()>.5?1:-1)*(p.d*.47);
  let a=mesh(new T.DodecahedronGeometry(.12+rand()*.14,0),p.kind==='arena'?M.stone:M.edge,x,-.27,z,g);a.scale.y=.8}

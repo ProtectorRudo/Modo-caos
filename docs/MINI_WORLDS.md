@@ -282,3 +282,28 @@ No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones
 - Única acción: **«¡ENTENDIDO, A JUGAR!»**. El contador se pone en marcha solo en `C.start(game)` y el panel se oculta en `layout('playing')` sin emitir un nuevo anuncio que tape la escena.
 - Después del botón solo queda el HUD de progreso y minimapa que el jugador puede cerrar. La tarjeta vuelve a aparecer al reiniciar o al pasar a otra misión, sin duplicar los pasos. `fixWorld` ya no sobrescribe el título de misión con «MUNDO FIJADO».
 - Pruebas agregadas al test de misiones, cubriendo las tres guías, botón, punto de activación del reloj y visibilidad del panel. **Pendiente** QA visual en teléfono.
+
+
+## MINI WORLDS — región ampliada + acabado de islas (27/10/2026)
+**Rama preview:** `feat/mini-worlds-grand-islands-20261027` (encadenada sobre `feat/mini-worlds-rescue-missions-20261027`; sin modificar `main`, Color Rush original, ni tablas Supabase).
+
+### Problema reportado por el usuario
+- En Android/AR, podía recorrer solo unos pasos y cambiaba de escenario con demasiada frecuencia. Las 4 salas anteriores cubrían solo ~6 unidades lógicas cada una; el espacio AR visible se percibía demasiado pequeño.
+- Su captura muestra bloques rectangulares grandes, roca y vegetación parcialmente superpuestas a KAI, agua simplificada y objetivos poco legibles.
+
+### Solución de recorrido
+- **4 microzonas -> 2 regiones largas:** `mini-worlds-pocket.js` agrupa la ruta en `[-12.10,3.3]` y `[-28.5,-12.10]` unidades lógicas, con **un solo cambio principal de región** en lugar de tres automáticos. El primer cambio anterior a z=-5 no ocurre más. En retroceso, el recorrido permanece reversible.
+- Tamaño inicial `scale=.235` vs .215, área por región ~**4.1 m × 3.9 m**. Ajustable por pinza/escala; **NO requiere desplazamiento físico**: recorrer con joystick y mirar con el teléfono en un lugar seguro. La física y el avatar mantienen las mismas coordenadas lógicas; las islas laterales conservan sus caminos y colisiones.
+- El `anchorRoot` inmóvil sigue siendo el objeto anclado a WebXR; el hijo `worldRoot` cambia solo en el único umbral entre regiones. No vinculamos el mapa a la posición de la cámara.
+- Laguna y costa adaptadas a la región larga, `ocean.scale.set(.92,.56,1)`; los indicadores de calibración y dimensiones se actualizaron.
+
+### Solución visual
+- **Nuevo módulo `mini-worlds-diorama.js`** (puro arte): faldas costeras de roca triangulada con facetas y colores, material rugoso, cascajo de costa, vegetación, brotes, flores y piedras instanciadas por biome para limitar draw calls, luciérnagas flotantes y protección visual de KAI ante objetos premium Quaternius que obstaculizan la línea de visión. No crea nueva física, no cambia hitboxes.
+- Terreno base menos rectangular: se estrecha la base opaca antigua para dejar expuesta la costa esculpida; parches orgánicos en la superficie jugable mantienen altura física. Agua shader refinada con tintes, cintas de espuma, caústicas y brillo.
+- Los habitantes tienen flechas luminosas flotantes, haloes y aspecto más legible; las balizas obtienen pedestales y marcadores verticales en el mundo real, sin tapar la HUD.
+- Los activos Quaternius/Kenney CC0 actuales se conservan, así como KAI zorro 3D original y el blaster. **No se integró el KAI exacto de Sketchfab** (descarga autenticada pendiente, documentada).
+- `mini-worlds.html` importa el módulo nuevo y reduce algo el tamaño del minimapa.
+
+### QA y limitaciones
+- CI con `tests/mini-worlds-pocket.test.cjs` verifica que no haya salto a los 5/8/11 pasos de profundidad, área más grande, único umbral y world anchor inmutable; `tests/mini-worlds-diorama.test.cjs` valida mallas reales, instancing y liberación de recursos; el resto de 14 suites continúa.
+- **No son pruebas físicas.** Se necesita probar captura real en Chrome Android/ARCore: anclaje, visualización de las dos regiones completas, FPS móvil, oclusión dinámica, geometrías, portales y juego de misiones 1-3. No afirmar que ya iguala a la imagen conceptual de Astro Bot.

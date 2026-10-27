@@ -27,7 +27,7 @@ const art=fs.readFileSync(path.join(root,'mini-worlds-art.js'),'utf8');
 const core=fs.readFileSync(path.join(root,'mini-worlds-core.js'),'utf8');
 const chars=fs.readFileSync(path.join(root,'mini-worlds-characters.js'),'utf8');
 assert(html.includes('mini-worlds-characters.js'));
-assert(runtime.includes("scale=.215"),"compact-living default missing");
+assert(runtime.includes("scale=.235"),"expanded island default missing");
 assert(runtime.includes('MiniWorldsCharacters(T).setup'));
 assert(art.includes('sprawlingEnvironment(root,rand'));
 assert(art.includes('hero.wand=wand'),'witch wand must be in world scene');
