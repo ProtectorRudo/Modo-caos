@@ -71,7 +71,8 @@ const server=http.createServer((req,res)=>{
  assert(await p.locator('#missionAction').isVisible());
  assert(await p.locator('#demoMove').isVisible());
  assert(await p.locator('#missionAction').isDisabled(),'retrieve disabled when not near the flag');
- assert((await p.locator('#missionTitle').textContent()).includes('CAPTURAS'));
+ assert((await p.locator('#missionTitle').textContent()).includes('BANDERA'),'HUD focuses on destination without duplicate captures');
+ assert((await p.locator('#waveLabel').textContent()).includes('CAPTURAS'),'top HUD shows captured count');
  await p.reload({waitUntil:'domcontentloaded'});
  await p.waitForFunction(()=>!!window.__RodeadosDebug,null,{timeout:30000});
  await p.selectOption('#mode','loot');
