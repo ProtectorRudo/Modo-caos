@@ -82,6 +82,9 @@
     requestAnimationFrame(update);
     if(document.hidden || ts-last<34) return;
     last=ts;
+    // Avoid 25 SVG geometry updates when native 3D is handling the pixels.
+    // The SVG polygons themselves remain managed by engine.js for calibration.
+    if(document.getElementById('overlay')?.classList?.contains('crp3d-ready'))return;
     let visible=0;
     const heading=(document.getElementById('headline')?.textContent||'').toUpperCase();
     const targetNames=titles.filter(x=>new RegExp('(^|[^A-Z])'+x+'([^A-Z]|$)').test(heading));
