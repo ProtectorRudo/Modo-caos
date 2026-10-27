@@ -1,0 +1,53 @@
+name: RODEADOS V22 — vendor verified CC0 weapon models
+on:
+  push:
+    branches: [feat/rodeados-v22-cc0-premium-weapons]
+    paths: ['.github/workflows/rodeados-v22-assets.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: true}
+      - name: Download 4 selected Quaternius CC0 GLBs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/rodeados
+          base='https://raw.githubusercontent.com/Papyszoo/CC0-Public-Domain-Models/main/packs'
+          curl --fail --location --silent --show-error --retry 4 --max-time 75 "$base/quaternius-scifigun/models/pistol/pistol.glb" -o assets/rodeados/player-scifi-pistol.glb
+          curl --fail --location --silent --show-error --retry 4 --max-time 75 "$base/quaternius-scifimodularguns/models/ar_1/ar_1.glb" -o assets/rodeados/player-tactical-carbine.glb
+          curl --fail --location --silent --show-error --retry 4 --max-time 75 "$base/quaternius-scifigun/models/rifle/rifle.glb" -o assets/rodeados/player-plasma-rifle.glb
+          curl --fail --location --silent --show-error --retry 4 --max-time 75 "$base/quaternius-ultimate-gun/models/assault_rifle_1/assault_rifle_1.glb" -o assets/rodeados/enemy-assault-rifle.glb
+      - name: Validate GLB header, mesh and bounded mobile size
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,struct,pathlib
+          names=['player-scifi-pistol','player-tactical-carbine','player-plasma-rifle','enemy-assault-rifle']
+          for name in names:
+              path=pathlib.Path('assets/rodeados')/(name+'.glb')
+              buf=path.read_bytes()
+              assert 10000<len(buf)<1000000,(path,len(buf))
+              assert buf[:4]==b'glTF' and struct.unpack_from('<II',buf,4)==(2,len(buf))
+              n,kind=struct.unpack_from('<I4s',buf,12)
+              assert kind==b'JSON'
+              j=json.loads(buf[20:20+n])
+              assert j.get('asset',{}).get('version','').startswith('2.')
+              assert len(j.get('meshes',[]))>0, name
+              print(name,len(buf),'bytes',len(j['meshes']),'meshes')
+          PY
+      - name: Commit verified assets ONLY to experimental branch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/rodeados/player-scifi-pistol.glb assets/rodeados/player-tactical-carbine.glb assets/rodeados/player-plasma-rifle.glb assets/rodeados/enemy-assault-rifle.glb
+          if ! git diff --cached --quiet; then
+            git commit -m 'assets(rodeados): bundle verified Quaternius CC0 pistol, rifle, plasma and enemy rifle'
+            git push origin HEAD:feat/rodeados-v22-cc0-premium-weapons
+          fi
