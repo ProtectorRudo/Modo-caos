@@ -12,6 +12,16 @@ test('weapon progression is automatic and does not consume bullets',()=>{
  assert.equal(g.infiniteAmmo,true);
 });
 
+test('tactical rounds are faster and upgrade body hits without headshot inflation',()=>{
+ const g=G.create({mode:'survival',seed:290});G.begin(g);g.elapsed=35;
+ const enemy=G.spawn(g,'basic');assert.ok(enemy);
+ enemy.portal=0;enemy.x=0;enemy.z=-3;enemy.angle=0;
+ const ray={origin:{x:0,y:1.15,z:0},direction:{x:0,y:0,z:-1}};
+ const result=G.fire(g,ray);
+ assert.equal(result.weapon,'tactical');
+ assert.equal(result.hit,true);
+ assert.equal(result.damage,2);
+});
 test('creep arrives on wave three and boss on wave five, away from player',()=>{
  const g=G.create({mode:'survival',seed:903});
  G.begin(g);
