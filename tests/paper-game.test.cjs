@@ -25,7 +25,9 @@ function boot(seed=419){
  const win={addEventListener(){}};
  const loc={search:'?qa=1',href:'https://example.test/paper.html'};
  const storage=new Map();
- const browser=Function('document','window','location','performance','requestAnimationFrame','innerWidth','innerHeight','devicePixelRatio','localStorage','navigator','setTimeout','URLSearchParams','Math',script);
+ // Instrument test sandbox only; production game source remains unchanged.
+ const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R};\\n// Read-only diagnostics:'.replace('\\n','\n'));
+ const browser=Function('document','window','location','performance','requestAnimationFrame','innerWidth','innerHeight','devicePixelRatio','localStorage','navigator','setTimeout','URLSearchParams','Math',instrumented);
  browser(doc,win,loc,{now:()=>now},fn=>frame=fn,430,850,1,
   {getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))},{vibrate(){}},()=>{},URLSearchParams,fakeMath);
  function tick(n=1){for(let i=0;i<n;i++){now+=1000/60;const f=frame;assert.equal(typeof f,'function');frame=null;f(now);}}
@@ -74,4 +76,42 @@ test('restarting a match resets the territory and score',()=>{
  assert.ok(g.win.territoryQA.clock<.05);
  assert.equal(g.win.territoryQA.kills,0);
  assert.equal(g.win.territoryQA.players,12);
+});
+
+test('crossing your own exposed trail no longer eliminates your character',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const h=g.win.__paperTest,p=h.getGame().people[0],k=h.idx(1430,1118);
+ p.outside=true;
+ h.markTrail(p,k);h.markTrail(p,k+1);h.markTrail(p,k);
+ assert.equal(p.alive,true);
+ assert.equal(p.trailCells.length,2);
+ assert.equal(g.win.territoryQA.mode,'play');
+});
+test('cutting an enemy trail eliminates the enemy and awards a kill',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const h=g.win.__paperTest,game=h.getGame(),enemy=game.people[1],player=game.people[0],k=h.idx(1400,1118);
+ enemy.protectedUntil=-1;
+ h.markTrail(enemy,k);
+ h.markTrail(player,k);
+ assert.equal(enemy.alive,false);
+ assert.equal(player.alive,true);
+ assert.equal(game.kills,1);
+ assert.equal(game.defeated.has(enemy.id),true);
+});
+test('moving along the circular border builds and activates speed boost',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const h=g.win.__paperTest,p=h.getGame().people[0];
+ p.x=h.CX+h.R-50;p.y=h.CY;p.angle=Math.PI/2;
+ for(let i=0;i<35;i++)h.move(p,1/60);
+ assert.equal(p.alive,true);
+ assert.ok(p.boostUntil>0,'edge sprint should activate');
+ assert.ok(p.edgeCharge>.7);
+});
+test('eliminating all rival identities ends the match with victory',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const h=g.win.__paperTest,game=h.getGame();
+ for(const rival of game.people.slice(1)){rival.protectedUntil=-1;h.death(rival,0);}
+ assert.equal(game.defeated.size,11);
+ assert.equal(g.win.territoryQA.mode,'result');
+ assert.match(g.get('finaltitle').textContent,/DERROTASTE A TODOS/);
 });
