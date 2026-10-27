@@ -143,45 +143,57 @@ root.MiniWorldsDiorama=function(T){
   sparkGeo.setAttribute('position',new T.Float32BufferAttribute(coords,3));
   const sparks=new T.Points(sparkGeo,sparkMat);sparks.name='MAGICAL FIREFLIES';world.add(sparks);
   geometry.push(sparkGeo);materials.push(sparkMat);objects.push(sparks);
-  // Lightweight cutaway: premium foliage never blocks the avatar's face.
-  // Pure visual change; no changes to player position, floor or XR camera.
+  // Bounds-aware visual cutaway, not the old center-distance heuristic.
+  // A wide canopy may obstruct KAI even when its trunk is metres away.
+  // Camera-to-hero line is measured in real WORLD space, so changing XR
+  // anchor scale does not invalidate this test. Pure visuals; no occlusion
+  // geometry, hitbox or spatial pose gets changed.
   let lastOcclusions=[],counter=0;
-  function visibility(camera){
-   const premium=stage.premiumLayer;
-   const candidates=[...(premium?.children||[]),...(stage.kaykitDecor||[])];
-   if(!camera||!candidates.length)return;
-   for(const obj of lastOcclusions)obj.visible=obj.userData.beforeCutaway!==false;
+  const bbox=new T.Box3(),vCenter=new T.Vector3(),vSize=new T.Vector3();
+  function restore(){
+   for(const obj of lastOcclusions){
+    // Sector swaps can occur between frames: never resurrect a tree
+    // belonging to the previous (hidden) map section.
+    const visible=stage.pocket?root.MiniWorldsPocket?.canSee?.(obj.position.z,stage.pocket.room,.5)!==false:true;
+    obj.visible=visible;
+   }
    lastOcclusions=[];
+  }
+  function visibility(camera){
+   restore();
+   const premium=stage.premiumLayer;
+   const candidates=[...(premium?.children||[]),...(stage.kaykitDecor||[]),...(stage.kenneyFoliage?.children||[])];
+   if(!camera||!candidates.length)return;
    const heroPos=new T.Vector3(),camPos=new T.Vector3();
    stage.hero.root.getWorldPosition(heroPos);
    camera.getWorldPosition(camPos);
    heroPos.y+=.72*(stage.root?.scale?.x||1);
    const ray=heroPos.clone().sub(camPos),length=ray.length();
-   if(length<.4)return;
+   if(length<.30)return;
    ray.divideScalar(length);
    for(const obj of candidates){
-    // The pocket reindex manages visibility for out-of-room trees.
-    if(!obj.visible||obj.userData?.beforeCutaway===false)continue;
-    const center=new T.Vector3();obj.getWorldPosition(center);
-    center.y+=.29*(stage.root?.scale?.x||1);
-    const proj=center.clone().sub(camPos).dot(ray);
-    if(proj<=.1||proj>=length-.1)continue;
-    const away=center.sub(camPos.addScaledVector(ray,proj)).length();
-    camPos.addScaledVector(ray,-proj);
-    if(away<.64){
-     obj.userData.beforeCutaway=obj.visible;obj.visible=false;
-     lastOcclusions.push(obj);
+    if(!obj.visible||!obj.userData?.mwFoliage&&obj.parent!==stage.kenneyFoliage)continue;
+    // Import bounding boxes encompass broad leaves, not just trunk origin.
+    // Evaluate the nearest point on the camera/hero segment to the tree.
+    bbox.setFromObject(obj);bbox.getCenter(vCenter);bbox.getSize(vSize);
+    const vec=vCenter.clone().sub(camPos),proj=vec.dot(ray);
+    if(proj<-.1||proj>length+.1)continue;
+    const closest=camPos.clone().addScaledVector(ray,Math.max(0,Math.min(length,proj)));
+    const dist=vCenter.distanceTo(closest);
+    const canopyRadius=Math.max(vSize.x,vSize.z)*.44;
+    const heightRange=Math.abs(vCenter.y-closest.y)<=Math.max(.22,vSize.y*.60);
+    if(heightRange&&dist<canopyRadius+.18){
+     obj.visible=false;lastOcclusions.push(obj);
     }
    }
   }
-  let elapsedPrev=0;
   function update(game,dt,elapsed,camera){
    // World-only vertical sparkle drift. No screen overlay or fake terrain.
    sparks.position.y=Math.sin(elapsed*.74)*.07;
    if(++counter%5===0)visibility(camera);
   }
   function dispose(){
-   for(const o of lastOcclusions)o.visible=o.userData.beforeCutaway!==false;
+   restore();
    for(const o of objects)o.parent?.remove(o);
    for(const g of geometry)g.dispose();
    for(const m of materials)m.dispose();
