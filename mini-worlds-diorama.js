@@ -10,7 +10,7 @@ root.MiniWorldsDiorama=function(T){
  function jaggedRim(p,rand){
   const verts=[],cols=[];
   const base=p.kind==='arena'?0x8c97a3:p.kind==='ruins'?0x987659:
-   p.kind==='beach'?0xc69b72:p.kind==='bridge'?0x75645f:0x776f5d;
+   p.kind==='beach'?0x887966:p.kind==='bridge'?0x665e58:0x5d665e;
   const color=new T.Color(base);
   const ring=[],halfW=p.w/2,halfD=p.d/2,steps=7;
   // The rim never extends beyond physics rectangle, no invisible floor.
@@ -54,8 +54,8 @@ root.MiniWorldsDiorama=function(T){
  function create(stage,level){
   const world=stage?.worldRoot,map=stage?.map;if(!world||!map)return null;
   const geometry=[],materials=[],objects=[],patchGroups=[];
-  const palette=level?{grass:0x66b1a8,leaf:0x357e87,flower:0xc6a3f8,stone:0x9199aa}:
-                       {grass:0x90b777,leaf:0x317f61,flower:0xffb7c1,stone:0x8fa0a0};
+  const palette=level?{grass:0x587d7b,leaf:0x344b4c,flower:0x8696a2,stone:0x75818b}:
+                       {grass:0x66785c,leaf:0x2d5145,flower:0x95856e,stone:0x7a837d};
   let seed=level?19473:29141;
   const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
   const grassMat=new T.MeshStandardMaterial({color:palette.leaf,roughness:.86,side:T.DoubleSide});
@@ -100,7 +100,8 @@ root.MiniWorldsDiorama=function(T){
    host.position.z=region===0?-5:-20;world.add(host);objects.push(host);
    const positions=[],rocks=[],fl=[],stems=[];
    for(const p of regions[region]){
-    const density=p.kind==='arena'?8:p.kind==='beach'?13:p.kind==='jungle'?18:12;
+    // Approximately 60% less non-interactive scatter; navigation first.
+    const density=p.kind==='arena'?3:p.kind==='beach'?6:p.kind==='jungle'?8:5;
     for(let n=0;n<density;n++){
      const side=(n%4),along=rand()*.91-.455;
      const x=p.x+(side<2?(side===0?-1:1)*p.w*(.35+rand()*.10):along*p.w);
@@ -134,9 +135,9 @@ root.MiniWorldsDiorama=function(T){
    patchGroups.push(host);
   }
   // A few authentic-looking, non-opaque magical ambient fireflies. One draw.
-  const sparkMat=new T.PointsMaterial({color:0x9cebd8,size:.10,transparent:true,opacity:.55,depthWrite:false,sizeAttenuation:true});
+  const sparkMat=new T.PointsMaterial({color:0x9abfb1,size:.045,transparent:true,opacity:.32,depthWrite:false,sizeAttenuation:true});
   const sparkGeo=new T.BufferGeometry(),coords=[];
-  for(let j=0;j<24;j++){
+  for(let j=0;j<10;j++){
    const p=map.platforms[(j*7)%map.platforms.length];
    coords.push(p.x+(rand()-.5)*p.w*.7,p.y+.65+rand()*1.25,p.z+(rand()-.5)*p.d*.75);
   }
