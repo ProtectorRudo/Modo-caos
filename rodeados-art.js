@@ -613,7 +613,6 @@ export function createRodeadosArt(THREE,scene,camera){
   if(fpsArms)fpsArms.visible=!(heroPistol&&currentWeapon==='pistol');
   gloves.visible=!fpsArms&&!(heroPistol&&currentWeapon==='pistol');
  }
- setWeaponTier('pistol');
  const gloves=new THREE.Group();rifle.add(gloves);
  for(const side of [-1,1]){
   const arm=new THREE.Group();arm.position.set(side*.085,-.19,.13);gloves.add(arm);
@@ -642,6 +641,7 @@ export function createRodeadosArt(THREE,scene,camera){
    return true;
   }catch(e){console.warn('FPS hands unavailable; using original sleeves',e);return false}
  }
+ setWeaponTier('pistol');
  const camTemp=new THREE.Vector3(),quatTemp=new THREE.Quaternion();
  const weaponOffset=new THREE.Vector3(),weaponCenter=new THREE.Vector3();
  const oneTime=new THREE.Vector3();
