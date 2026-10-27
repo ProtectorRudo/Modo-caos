@@ -409,3 +409,11 @@ No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones
 - Nuevas pruebas `tests/mini-worlds-clean-art.test.cjs` junto a ~19 suites anteriores y validación `node --check`. Verifica prohibición de guía de piso durante juego, artefactos transparentes, ausencia de planos de cascada, colisiones sólidas y cantidad real de pickups.
 - GitHub Actions valida código y física simulada, **NO prueba física AR Android ni imagen real de un usuario**. Antes de producción comprobar capturas, respuesta joystick, cuerpos sólidos, objetivos, FPS, recentrado y versiones realmente desplegadas.
 - Como Vercel ha limitado API deploys, **verificar commit SHA exacto y archivos HTTPS**; no presentar una preview vieja como versión nueva.
+
+
+## Preview de acabado visual 27/10/2026
+- El único wayfinder decorativo se conserva y ya no se generan fragmentos dorados flotantes en nivel 2.
+- Se mejoró la textura erosionada de piedra/arena, proporciones de rescatables y se redujo el HUD de combate.
+- Compilación base validada por GitHub Actions: `74264df32736cb3f7897eca5e7af5b13cb4e39c0`.
+- La URL de preview no se considera verificada hasta consultar READY y archivos.
+- Pruebas AR físicas pendientes; sin cambios a main, Supabase ni otros minijuegos.
