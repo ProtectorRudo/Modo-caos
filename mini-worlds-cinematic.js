@@ -60,7 +60,7 @@ root.MiniWorldsCinematic=function(T){
  function makeGuardian(host,type,seed){
   const flyer=type==='flying',heavy=type==='defender',caster=type==='thrower';
   const rig=group(host,0,0,0);
-  const scale=heavy?.92:flyer?.79:caster?.84:.76;
+  const scale=heavy?1.08:flyer?.92:caster?.96:.90;
   rig.scale.setScalar(scale);
   const armor=group(rig,0,-.025,0);
   const chest=mesh(armor,'tapered',heavy?basalt:shadow,0,0,0,.35,.53,.30);
