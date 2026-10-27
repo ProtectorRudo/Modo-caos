@@ -100,7 +100,7 @@ function level(n=0){
  return {n,definition:LEVELS[n],platforms,walkways,boxes,coins,enemies,stars,checkpoints,boss,runes};
 }
 function create(n=0){
- const map=level(n);
+ const map=level(n);map.scenery=[];
  const player={x:0,z:1.2,y:0,vy:0,vx:0,vz:0,face:Math.PI,hearts:3,invuln:0,grounded:true,jumps:0,attack:0,attackId:0,coyote:0,buffer:0,onBox:null};
  return {map,player,phase:'ready',clock:0,coins:0,stars:0,kills:0,combo:0,chaos:{charge:0,fury:0,chain:0,window:0,best:0,bonusCoins:0},checkpoint:{x:0,z:1.2,y:0},events:[],hazards:[],projectiles:[],magicShots:[],lastInput:{x:0,z:0},won:false,deadCount:0,travel:0};
 }
@@ -272,6 +272,14 @@ function updateMagicShots(s,dt){
     }
    }
    if(collided)break;
+   // A solid tree or rock stops physical projectiles, too.
+   for(const o of s.map.scenery||[]){
+    if(o.enabled===false)continue;
+    if(Math.hypot(q.x-o.x,q.z-o.z)<o.radius+.04&&q.y>o.y+.04&&q.y<o.y+o.height){
+     collided=true;emit(s,'spellHit',{x:q.x,z:q.z,y:q.y,kind:'scenery'});break;
+    }
+   }
+   if(collided)break;
    for(const enemy of s.map.enemies){
     if(!enemy.alive||q.ignore.includes('enemy'+enemy.id))continue;
     if(Math.hypot(q.x-enemy.x,q.z-enemy.z)<.54&&Math.abs(q.y-(enemy.y+.5))<1.5){
@@ -313,6 +321,43 @@ function platformY(s,x,z,margin=0){
   if(Math.hypot(x-px,z-pz)<=w.width/2-.06+margin)yy=Math.max(yy??-100,w.y1+(w.y2-w.y1)*t);
  }
  return yy;
+}
+// Pure logical colliders: artists provide the visible footprint; WebXR does
+// not affect physics. Small decorative flowers/grass stay walk-through.
+function addScenery(s,def){
+ const list=s?.map?.scenery;if(!list||!def)return null;
+ const x=Number(def.x),z=Number(def.z),y=Number(def.y);
+ if(![x,z,y].every(Number.isFinite))return null;
+ const radius=clamp(Number(def.radius)||.22,.13,.52),height=clamp(Number(def.height)||.7,.20,3.2);
+ const avoid=[{x:0,z:1.2,r:.75},s.checkpoint&&{...s.checkpoint,r:.65},
+  ...(s.mission?.rescues||[]).map(r=>({...r,r:.68})),
+  ...s.map.runes.map(r=>({...r,r:.62})),
+  ...s.map.boxes.filter(b=>b.alive).map(b=>({...b,r:.52}))].filter(Boolean);
+ if(avoid.some(p=>Math.hypot(p.x-x,p.z-z)<radius+p.r))return null;
+ if(s.map.walkways.some(w=>{
+  const dx=w.x2-w.x1,dz=w.z2-w.z1,len2=dx*dx+dz*dz;
+  const t=clamp(((x-w.x1)*dx+(z-w.z1)*dz)/Math.max(.001,len2),0,1);
+  return Math.hypot(x-(w.x1+dx*t),z-(w.z1+dz*t))<Math.min(.39,w.width*.23)+radius;
+ }))return null;
+ if(list.some(o=>Math.hypot(o.x-x,o.z-z)<o.radius+radius+.05))return null;
+ if(y<-1.4||y>4.8)return null;
+ const o={id:list.length,x,z,y,radius,height,kind:String(def.kind||'rock'),enabled:true};
+ list.push(o);return o;
+}
+function solveScenery(s,oldX,oldZ){
+ const p=s.player;
+ for(const o of s.map.scenery||[]){
+  if(o.enabled===false||p.y>=o.y+o.height-.01||p.y+1.06<=o.y+.03)continue;
+  const r=o.radius+.25;
+  let dx=p.x-o.x,dz=p.z-o.z,d=Math.hypot(dx,dz);
+  if(d>=r)continue;
+  if(d<.00001){dx=oldX-o.x;dz=oldZ-o.z;d=Math.hypot(dx,dz);
+   if(d<.00001){dx=1;dz=0;d=1}}
+  const nx=dx/d,nz=dz/d;
+  p.x=o.x+nx*r;p.z=o.z+nz*r;
+  const inward=p.vx*nx+p.vz*nz;
+  if(inward<0){p.vx-=nx*inward;p.vz-=nz*inward}
+ }
 }
 function moveEnemies(s,dt){
  const p=s.player;
@@ -370,6 +415,7 @@ function tick(s,input={},dt=1/60){
  if(input.punch)attack(s);
  updateMagicShots(s,dt);
  let oldY=p.y,oldX=p.x,oldZ=p.z;p.x+=p.vx*dt;p.z+=p.vz*dt;p.vy-=16.5*dt;p.y+=p.vy*dt;
+ solveScenery(s,oldX,oldZ);
  // Axis-resolved crate collision, with a generous player radius and the option to leap over boxes.
  for(const box of s.map.boxes){
    if(!box.alive)continue;
@@ -450,5 +496,5 @@ function tick(s,input={},dt=1/60){
 function start(s){if(s.phase==='ready'||s.phase==='paused'){s.phase='playing';emit(s,'start')}return s}
 function pause(s){if(s.phase==='playing')s.phase='paused';else if(s.phase==='paused')s.phase='playing'}
 function drain(s){return s.events.splice(0)}
-return {LEVELS,level,create,tick,start,pause,attack,drain,damage,platformY,BOX_TOP};
+return {LEVELS,level,create,tick,start,pause,attack,drain,damage,platformY,addScenery,solveScenery,BOX_TOP};
 });
