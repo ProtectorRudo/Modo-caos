@@ -394,7 +394,7 @@ function recenter(){
 }
 function startGame(){
  if(phase!=='ready')return;
- C.start(game);mapOpen=true;$('mapToggle').textContent='✕';layout('playing');hideModal();haptic(15);
+ C.start(game);mapOpen=false;$('mapToggle').textContent='🗺';layout('playing');hideModal();haptic(15);
 }
 function pause(){
  if(!game||phase==='home')return;
