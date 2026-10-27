@@ -14,6 +14,15 @@ const PRIMARY=new URL('./assets/rodeados/tactical-android.glb',import.meta.url).
 const BACKUP='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@130ac2a5c856401ec36e7d35afcfefe40c5801f4/public/assets/models/characters/soldier.glb';
 const SECONDARY=new URL('./assets/rodeados/tactical-heavy.glb',import.meta.url).href;
 const BACKUP_HEAVY='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@130ac2a5c856401ec36e7d35afcfefe40c5801f4/public/assets/models/characters/soldier_tac.glb';
+// Exact Creep Creature, Minotaur Berserker and Sketchfab FPS hands cannot
+// be redistributed without obtaining their authenticated downloads.
+ // Legal CC0 stand-ins are vendor-bundled by CI and labelled accurately.
+const CREATURES=[
+ {type:'creep',label:'STALKER CC0',local:'creep-stalker.glb',url:'https://gobkit.com/freebies/minion/minion-d01.glb'},
+ {type:'minotaur',label:'ORC CHAMPION CC0',local:'brute-champion.glb',url:'https://gobkit.com/freebies/human006/OrcWarbandChampion.glb'}
+];
+const ARMS_LOCAL=new URL('./assets/rodeados/arms-cc0.glb',import.meta.url).href;
+const ARMS_SOURCE='https://cdn.jsdelivr.net/gh/wwwriks/wrad-arms@f3987244176c33d2c20d4f9e139980af12684d87/arms.glb';
 const TIMEOUT_MS=11500;
 const failAfter=(promise,timeout)=>Promise.race([promise,new Promise((_,reject)=>{
  const id=setTimeout(()=>reject(Error('timeout')),timeout);
@@ -36,7 +45,7 @@ async function fetchValidatedGLB(url){
  }finally{clearTimeout(timer)}
 }
 
-function upgradeAndroidMaterials(THREE,scene){
+function upgradeAndroidMaterials(THREE,scene,label){
  let meshes=0,materials=0;
  const seen=new Set();
  scene.traverse(node=>{
@@ -50,8 +59,10 @@ function upgradeAndroidMaterials(THREE,scene){
     materials++;seen.add(replacement);
     // Dark tactical plating, not garish toy colors. Preserve original
     // realistic PBR texture maps and normal microdetail.
-    replacement.roughness=.63;replacement.metalness=.28;
-    replacement.color.multiply(new THREE.Color(0xa1bdc8));
+    if(!/STALKER|CHAMPION/.test(label)){
+      replacement.roughness=.63;replacement.metalness=.28;
+      replacement.color.multiply(new THREE.Color(0xa1bdc8));
+    }
     replacement.needsUpdate=true;
    }
    return replacement;
@@ -70,7 +81,7 @@ async function prepareOne({THREE,art,primary,backup,label,facing=0}){
  }
  if(!buffer)throw Error('No se pudo cargar '+label);
  const gltf=await failAfter(new Promise((res,rej)=>new GLTFLoader().parse(buffer,'',res,rej)),8500);
- const render=upgradeAndroidMaterials(THREE,gltf.scene);
+ const render=upgradeAndroidMaterials(THREE,gltf.scene,label);
  const adapter=buildAdapter(THREE,gltf,{label,source});
  adapter.setFacing(facing);
  return {adapter,render,source,gltf};
@@ -91,25 +102,51 @@ export async function installAutoRobots({THREE,art,signal,debug}){
   heavy=await prepareOne({THREE,art,primary:SECONDARY,backup:BACKUP_HEAVY,label:'ARMORED GUARD'});
  }catch(e){console.warn('Second humanoid unavailable, using standard armored material fallback',e)}
  if(signal?.aborted)return stats;
+ const creatures=Object.create(null);
+ await Promise.all(CREATURES.map(async spec=>{
+   try{
+     const model=await prepareOne({THREE,art,
+       primary:new URL('./assets/rodeados/'+spec.local,import.meta.url).href,
+       backup:spec.url,label:spec.label});
+     creatures[spec.type]=model;
+   }catch(e){console.warn('Creature visual fallback',spec.type,e.message)}
+ }));
+ if(signal?.aborted)return stats;
  try{
   const adapter={
    name:'ANDROIDES DE COMBATE · 2 TIPOS',
    create({actor,enemy,THREE:engine}){
     const wantsHeavy=enemy.type==='tank'||enemy.type==='boss'||enemy.id%2===0;
-    const variant=wantsHeavy&&heavy?heavy:standard;
+    const variant=creatures[enemy.type]||(wantsHeavy&&heavy?heavy:standard);
     const anim=variant.adapter.create({actor,enemy,THREE:engine});
-    anim.variant=wantsHeavy?'heavy':'standard';
+    anim.variant=creatures[enemy.type]?enemy.type:(wantsHeavy?'heavy':'standard');
     return anim;
    },
-   setFacing(deg){standard.adapter.setFacing(deg);heavy?.adapter.setFacing(deg)}
+   setFacing(deg){standard.adapter.setFacing(deg);heavy?.adapter.setFacing(deg);
+     for(const m of Object.values(creatures))m.adapter.setFacing(deg)}
   };
   art.setRobotAdapter(adapter);
+  // Independent optional CC0 rigged FPS arms. Procedural gloves remain
+  // if this model or its WebXR bounding-box calibration fails.
+  void (async()=>{
+    for(const url of [ARMS_LOCAL,ARMS_SOURCE]){
+      try{
+        const bytes=await fetchValidatedGLB(url);
+        const gltf=await failAfter(new Promise((res,rej)=>
+          new GLTFLoader().parse(bytes,'',res,rej)),8500);
+        if(!signal?.aborted&&art.setFPSArms)art.setFPSArms(gltf.scene);
+        break;
+      }catch(e){console.warn('FPS arm source fallback',e.message)}
+    }
+  })();
   stats.phase='active';
   stats.source=standard.source;
   stats.models=[{name:'TACTICAL',source:standard.source,triangles:standard.adapter.summary.tris},
-   {name:'HEAVY',source:heavy?.source||'fallback',triangles:heavy?.adapter.summary.tris||0}];
+   {name:'HEAVY',source:heavy?.source||'fallback',triangles:heavy?.adapter.summary.tris||0},
+   ...CREATURES.map(spec=>({name:spec.label,source:creatures[spec.type]?.source||'procedural-fallback',
+      triangles:creatures[spec.type]?.adapter.summary.tris||0}))];
   stats.meshes=standard.render.meshes+(heavy?.render.meshes||0);
-  stats.clips=standard.gltf.animations.length+(heavy?.gltf.animations.length||0);
+  stats.clips=standard.gltf.animations.length+(heavy?.gltf.animations.length||0)+Object.values(creatures).reduce((n,m)=>n+(m.gltf.animations?.length||0),0);
   stats.triangles=standard.adapter.summary.tris;
   stats.facingDegrees=standard.adapter.summary.facingDegrees;
   stats.selectedClips=standard.adapter.summary.selectedClips;
