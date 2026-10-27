@@ -8,7 +8,7 @@
 root.MiniWorldsCinematic=function(T){
  const TAU=Math.PI*2;
  const C={
-  iron:0x283b45, steel:0x637780, basalt:0x46515a, stone:0x899089,
+  iron:0x293b43, steel:0x86969b, basalt:0x4c5a5d, stone:0x8c9290,
   bronze:0xae8352, copper:0xd9a56d, jade:0x46c3b0, ghost:0x80d9da,
   ember:0xd96b4f, shadow:0x192b36, gold:0xeac58d, moss:0x65775a
  };
@@ -60,26 +60,31 @@ root.MiniWorldsCinematic=function(T){
  function makeGuardian(host,type,seed){
   const flyer=type==='flying',heavy=type==='defender',caster=type==='thrower';
   const rig=group(host,0,0,0);
-  const scale=heavy?1.08:flyer?.92:caster?.96:.90;
+  const scale=heavy?1.12:flyer?.98:caster?1.01:.97;
   rig.scale.setScalar(scale);
   const armor=group(rig,0,-.025,0);
   const chest=mesh(armor,'tapered',heavy?basalt:shadow,0,0,0,.35,.53,.30);
   chest.rotation.y=(seed%5-2)*.03;
   mesh(armor,'box',iron,0,-.29,.08,.39,.13,.31);
+  // Copper shoulder/collar accents preserve the threatening silhouette
+  // while making it readable against dark real-world camera backgrounds.
+  mesh(armor,'box',bronze,0,.065,.308,.27,.27,.035);
+  mesh(armor,'octa',scarlet,0,.12,.357,.09,.145,.07);
   const collar=mesh(armor,'tapered',steel,0,.34,0,.28,.20,.26);
   collar.rotation.z=.07;
   const head=mesh(armor,'octa',heavy?steel:iron,0,.53,.04,.245,.31,.23);
-  mesh(armor,'box',scarlet,0,.51,.24,.23,.057,.027); // ominous single visor
+  mesh(armor,'box',scarlet,0,.51,.24,.26,.068,.038);
+  mesh(armor,'box',copper,0,.57,.28,.095,.024,.018); // ominous single visor
   mesh(armor,'box',bronze,0,.48,.278,.12,.022,.018);
   for(const k of [-1,1]){
    const pauldron=mesh(armor,'plate',heavy?steel:basalt,k*.37,.22,-.035,.22,.16,.24);
    pauldron.rotation.z=k*.17;
-   const arm=mesh(armor,'tapered',iron,k*.35,-.105,.015,.10,.36,.11);
+   const arm=mesh(armor,'tapered',steel,k*.35,-.105,.015,.10,.36,.11);
    arm.rotation.z=k*.13;
    mesh(armor,'box',bronze,k*.38,-.34,.08,.145,.10,.17);
    const leg=mesh(armor,'tapered',iron,k*.14,-.50,-.03,.12,.28,.12);
    leg.rotation.x=k*.08;
-   mesh(armor,'box',shadow,k*.14,-.71,.09,.17,.10,.23);
+   mesh(armor,'box',bronze,k*.14,-.71,.09,.17,.10,.23);
    if(heavy)mesh(armor,'spire',basalt,k*.42,.48,-.09,.11,.34,.13).rotation.z=-k*.42;
   }
   if(caster){
