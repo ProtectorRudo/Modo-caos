@@ -298,7 +298,7 @@ export function createRodeadosArt(THREE,scene,camera){
  function createRobot(e){
   if(e.type==='spider')return createWolfSpider(THREE,root,e);
   const kind=e.type,elite=['boss','tank','minotaur'].includes(kind),scale=e.height/1.75;
-  const shell=kind==='boss'||kind==='minotaur'?M.red:kind==='creep'?M.dark:kind==='tank'?M.edge:kind==='fast'?M.violet:kind==='flanker'?M.gold:kind==='joker'?M.orange:M.steel;
+  const shell=kind==='boss'||kind==='minotaur'?M.red:kind==='creep'?M.dark:kind==='tank'?M.edge:kind==='fast'?M.steel:kind==='flanker'?M.gold:kind==='joker'?M.orange:M.steel;
   const glow=kind==='boss'?M.orange:M.red;
   const visorMat=M.red.clone();visorMat.emissiveIntensity=1.85;
   const group=new THREE.Group();root.add(group);group.scale.setScalar(scale);
