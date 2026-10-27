@@ -329,3 +329,12 @@ No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones
 ### Pruebas y limitaciones
 - `tests/mini-worlds-gamefeel.test.cjs`: prueba acierto con asistencia de frente, rechazo de blancos laterales, impacto físico en cajas antes de enemigos, progreso del indicador de misión y presencia de recursos y limpieza de GLB. Más 15 suites previas en GitHub Actions.
 - **No afirmar que el arte ya tiene calidad cinematográfica 10/10 o FPS estables sin capturas y prueba física Chrome Android/ARCore.** Las capas de recursos remotos pueden fallar por red/cambios del host; la publicación principal permanece sin modificar.
+
+
+## Corrección tras capturas AR: visibilidad del protagonista (27/10/2026)
+- Problema verificado visualmente en tres capturas del usuario: copas verdes gigantes cruzaban el primer plano, solapaban a KAI y a los habitantes; demasiadas rocas y enemigos dominaban la pantalla. Aunque las islas se veían más pobladas, costaba jugar y entender qué rescatar.
+- **Raíz técnica:** tres capas independientes de vegetación (original Kenney + Quaternius premium + KayKit), 12 árboles Quaternius de ~2,4–3,3 unidades de altura, tres árboles KayKit más, y detección de oclusión basada en distancia al **centro** del árbol. Varias copas se interponían sin que el sistema reconociera su gran volumen.
+- Rama aislada `fix/mini-worlds-clear-view-20261027`: árboles Quaternius **máximo cinco**, con altura cercana a 1,3, tamaño máximo de copa 1,45 y ubicación exterior condicionada por distancia a spawn, habitantes, balizas y corredores principales; KayKit se usa para **arbustos y rocas bajos**, no como segundo bosque. La flora Kenney se mantiene como fallback cuando fallan los modelos premium.
+- `mini-worlds-diorama.js` ahora usa `Box3` de cada modelo para comprobar el volumen completo de copa entre cámara y KAI, incluso cuando el tronco está por detrás del zorro. Solo afecta a visuales, no a colisiones, posición del jugador, input, WebXR ni world anchor.
+- Monstruos secundarios ~0,64–0,85 de alto en su visual (hitboxes lógicas sin cambios); rocas y acantilados decorativos reducidos. Minimapa de 92×122 y título duplicado oculto durante la partida, manteniendo misión y rumbo legibles.
+- Tests CI cubren límite de copas, no superposición de áreas clave, ausencia de teletransporte adicional y la desaparición/restauración de una copa que obstruye a KAI. En Android real todavía faltan **capturas de esta versión específica**, FPS y validación táctil para confirmar la mejora.
