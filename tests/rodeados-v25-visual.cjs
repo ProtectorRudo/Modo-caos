@@ -16,14 +16,14 @@ const server=http.createServer((req,res)=>{
   const page=await browser.newPage({viewport:{width:393,height:852},deviceScaleFactor:1,isMobile:true,hasTouch:true});
   const problems=[];page.on('pageerror',e=>problems.push(e.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/rodeados.html?v=25',{waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>window.__RodeadosAutoRobots?.status?.weapons?.pbrLoaded===true,null,{timeout:30000});
+  await page.waitForFunction(()=>window.__RodeadosAutoRobots?.status?.weapons?.rifleLoaded===true,null,{timeout:30000});
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>window.__RodeadosDebug?.stage==='playing',null,{timeout:14000});
   await page.waitForFunction(()=>window.__RodeadosDebug?.viewWeapon?.framing?.dominantVisible===true,null,{timeout:10000});
   const framing=await page.evaluate(()=>__RodeadosDebug.viewWeapon.framing);
-  assert.equal(framing.source,'polyhaven-cc0-pbr');
-  assert(framing.coverage>.90&&framing.bounds.right<.85);
-  const outfile=path.resolve(root,'docs/QA/rodeados-v25-fps-mobile.png');
+  assert.equal(framing.source,'polyhaven-pbr-762-rifle');
+  assert(framing.coverage>.90&&framing.bounds.right<.67&&framing.width!==0);
+  const outfile=path.resolve(root,'docs/QA/rodeados-v26-rifle-mobile.png');
   fs.mkdirSync(path.dirname(outfile),{recursive:true});
   await page.screenshot({path:outfile,animations:'disabled'});
   console.log('FPS_SCREENSHOT',outfile,'bounds',JSON.stringify(framing),'pngBytes',fs.statSync(outfile).size,'errors',JSON.stringify(problems));
