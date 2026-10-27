@@ -579,6 +579,11 @@ function makeStage(map){
   hero.muzzleFlash.scale.setScalar(1.2+Math.sin(elapsed*92)*.23);
   hero.blaster.position.z=.22-Math.max(0,p.attack)*.13;
   hero.blaster.rotation.x=-Math.max(0,p.attack)*.38;
+  const assist=p.lastShotAim&&s.clock-p.lastShotAim.time<.28;
+  const diff=assist?Math.atan2(Math.sin(Math.atan2(p.lastShotAim.dx,p.lastShotAim.dz)-p.face),
+                              Math.cos(Math.atan2(p.lastShotAim.dx,p.lastShotAim.dz)-p.face)):0;
+  hero.blaster.rotation.y+=(diff-hero.blaster.rotation.y)*Math.min(1,dt*14);
+  wandTip.material.emissiveIntensity=assist?3.3:2.6;
   for(let i=0;i<magicOrbs.length;i++){
    const b=s.magicShots?.[i],o=magicOrbs[i];
    o.visible=!!b;
