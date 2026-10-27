@@ -229,7 +229,7 @@ button:active {filter:brightness(1.08)}
 }
 #overlay.crp-live #hud b {font-size:clamp(17px,4.7vw,23px)!important;}
 #overlay.crp-live #head {
-  top:max(69px,calc(env(safe-area-inset-top) + 62px)) !important;
+  top:max(78px,calc(env(safe-area-inset-top) + 71px)) !important;
   left:8px;
   right:8px;
 }
@@ -364,7 +364,7 @@ button:active {filter:brightness(1.08)}
   white-space:nowrap;
 }
 @media(max-height:760px) {
-  #overlay.crp-live #head {top:max(66px,calc(env(safe-area-inset-top) + 59px)) !important;}
+  #overlay.crp-live #head {top:max(77px,calc(env(safe-area-inset-top) + 70px)) !important;}
   #overlay.crp-live #headline {font-size:clamp(27px,7vw,35px) !important;}
   #overlay.crp-live #top-chip {top:max(155px,calc(env(safe-area-inset-top) + 148px));}
   #overlay.crp-live #timetrack {top:max(192px,calc(env(safe-area-inset-top) + 185px));}
