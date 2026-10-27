@@ -26,7 +26,7 @@ function boot(seed=419){
  const loc={search:'?qa=1',href:'https://example.test/paper.html'};
  const storage=new Map();
  // Instrument test sandbox only; production game source remains unchanged.
- const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R};\\n// Read-only diagnostics:'.replace('\\n','\n'));
+ const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R,territoryLoops,updateMap};\\n// Read-only diagnostics:'.replace('\\n','\n'));
  const browser=Function('document','window','location','performance','requestAnimationFrame','innerWidth','innerHeight','devicePixelRatio','localStorage','navigator','setTimeout','URLSearchParams','Math',instrumented);
  browser(doc,win,loc,{now:()=>now},fn=>frame=fn,430,850,1,
   {getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))},{vibrate(){}},()=>{},URLSearchParams,fakeMath);
@@ -118,13 +118,23 @@ test('eliminating all rival identities ends the match with victory',()=>{
 
 test('premium render uses world-size sharp canvas without magnified low resolution terrain',()=>{
  assert.match(source,/mapCanvas\.width=WORLD;mapCanvas\.height=WORLD;/);
- assert.match(source,/const rad=CELL\*\.74/);
+ assert.match(source,/function territoryLoops\(v\)/);
+ assert.match(source,/quadraticCurveTo/);
+ assert.doesNotMatch(source,/const rad=CELL\*\.74/);
  assert.doesNotMatch(source,/mapCanvas\.width=N\*3/);
 });
-test('small-screen HUD ranks four players, with own rank always visible',()=>{
+test('small-screen HUD ranks three players, with own rank always visible',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(20);
  const markup=g.get('rank').innerHTML;
- assert.equal((markup.match(/class="rankrow"/g)||[]).length,4);
+ assert.equal((markup.match(/class="rankrow"/g)||[]).length,3);
  assert.match(markup,/VOS/);
  assert.match(g.get('kills').textContent,/^KO /);
+});
+
+test('connected territory is converted to coherent vector boundary loops',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const loops=g.win.__paperTest.territoryLoops(1);
+ assert.ok(loops.length>=1);
+ assert.ok(loops[0].length>8);
+ for(const q of loops[0]){assert.ok(Number.isFinite(q.x));assert.ok(Number.isFinite(q.y));}
 });
