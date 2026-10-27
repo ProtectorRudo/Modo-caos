@@ -8,7 +8,7 @@ import {WEAPON_FILES,attachEnemyWeapon} from './rodeados-weapons-v22.js?v=22';
  * This is an armored tactical enemy, NOT Sketchfab M.A.N.U.L.
  */
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/loaders/GLTFLoader.js';
-import {buildAdapter} from './rodeados-manul.js?v=16';
+import {buildAdapter} from './rodeados-manul.js?v=31';
 import {clone as cloneSkinned} from 'https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/utils/SkeletonUtils.js';
 
 const PRIMARY=new URL('./assets/rodeados/tactical-android.glb',import.meta.url).href;
