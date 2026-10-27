@@ -205,6 +205,7 @@ export function createRodeadosMissionArt(THREE,world){
   if(mode==='mutant')mutators.forEach((b,i)=>{b.scale.setScalar(.85+.2*Math.sin(tick*3+i))});
  }
  return {update,root,
+  getHostageRender(){return {visible:hostage.visible,x:hostage.position.x,z:hostage.position.z,guardMarkers:rescueSpawns.filter(x=>x.visible).length}},
   getFlagRender(){return {x:ctfFlag.position.x,y:ctfFlag.position.y,z:ctfFlag.position.z,visible:ctfFlag.visible,beaconVisible:flagBeacon.visible}},
   getFlagWorldRender(){const v=new THREE.Vector3();ctfFlag.updateWorldMatrix(true,false);ctfFlag.getWorldPosition(v);return {x:v.x,y:v.y,z:v.z}},
   dispose(){world.remove(root);root.traverse(o=>{
