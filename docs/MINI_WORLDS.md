@@ -223,3 +223,16 @@ Con autorización expresa del usuario se conectó una nueva capa de naturaleza y
 - `tests/mini-worlds-magic.test.cjs`: lanzamiento real, colisión de proyectiles lejanos con cajas y monstruos, restauración de flora sin repetir premio, expiración de proyectiles, Mage en navegador, varita y botones.
 - Mantener tests del core, recorridos, 12 saltos laterales, cajas, combo/Furia, anclaje espacial y compositor.
 - **Pendiente:** prueba física en Chrome/ARCore para confirmar escala, visibilidad de portales, oclusión, tracking y dirección del joystick. Sin pruebas de FPS real no llamar esto versión final. Las cargas GLB externas siguen sujetas a disponibilidad CORS y eventual empaquetado local. No publicar en `main` ni alterar otros juegos o Supabase.
+
+
+## Rediseño visual ORIN — robot expresivo y acabado de mundos (27/10/2026)
+
+**Rama de experimentación:** `feat/mini-worlds-robot-premium-20261027`. No se cambió `main` ni la producción antigua.
+
+- Se distribuyó **RobotExpressive.glb** de Tomás Laulhé / Quaternius y Don McCurdy bajo CC0, copiado por SHA exacto desde el repositorio oficial de Three.js y guardado localmente en `assets/mini-worlds/characters/`. El personaje tiene expresiones y animaciones reales y se carga automáticamente, sin subir archivos ni introducir dependencias nuevas al usuario.
+- `mini-worlds-characters.js` conserva los 8 monstruos originales de Quaternius, asigna las animaciones correctas de robot (idle, walking, running, jump, punch), hace ajustes PBR sutiles a la carcasa y mantiene la misma cápsula de colisión física del núcleo. El usuario conserva el **HECHIZO** de energía, que sigue siendo un proyectil con alcance y física de `core`.
+- `mini-worlds-art.js` incorpora un **robot procedural original** como fallback sin red: carcasa blanca con clearcoat, visor oscuro, ojos luminosos, brazos articulados y mochilita; mantiene sombras de contacto, las animaciones legadas y las físicas.
+- `mini-worlds-finish.js` agrega 13 balizas de navegación cromáticas junto a superficies EXISTENTES, iluminación de recorte cian/violeta y efectos energéticos asociados al personaje (jets, aro y chispas). Sus balizas son hijos del mundo lógico y son reindexadas por `MiniWorldsPocket`, no se fijan a la cámara ni se habilitan como suelo.
+- Los packs Kenney 19 GLB, Quaternius 8 criaturas glTF embebidas y los siete modelos de naturaleza/ruinas con fallback siguen disponibles. Física, cuatro bolsillos AR, joystick relativo a cámara, enemigos, cajas, monedas, portales, jefe y guardado se conservaron.
+- **Validación:** `tests/mini-worlds-robot-premium.test.cjs` verifica archivo GLB y metadata, importación automática, seguridad de ancla y presencia de la capa 3D. Las suites anteriores del core y AR deben ejecutarse en CI.
+- **Pendiente de prueba física:** FPS de Android, calidad estética con capturas, CORS de las decoraciones externas, WebXR ARCore con ancla real y alternancia de niveles. Las pruebas estáticas o de Node no sustituyen estas verificaciones.

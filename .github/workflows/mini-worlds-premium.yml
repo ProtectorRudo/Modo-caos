@@ -1,0 +1,37 @@
+name: Mini Worlds robot premium QA
+on:
+  push:
+    branches: [feat/mini-worlds-robot-premium-20261027]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Core, art, character and AR regressions
+        run: |
+          set -e
+          for test in \
+            tests/mini-worlds.test.cjs \
+            tests/mini-worlds-traversal.test.cjs \
+            tests/mini-worlds-physics-polish.test.cjs \
+            tests/mini-worlds-pocket.test.cjs \
+            tests/mini-worlds-magic.test.cjs \
+            tests/mini-worlds-characters.test.cjs \
+            tests/mini-worlds-assets.test.cjs \
+            tests/mini-worlds-premium.test.cjs \
+            tests/mini-worlds-juice.test.cjs \
+            tests/mini-worlds-robot-premium.test.cjs \
+            tests/mini-worlds-spatial.test.cjs \
+            tests/mini-worlds-ar-compositor.test.cjs \
+            tests/mini-worlds-ar-visibility.test.cjs; do
+            node "$test"
+          done
+      - name: Static syntax checks
+        run: |
+          for script in mini-worlds-core.js mini-worlds-art.js mini-worlds-assets.js mini-worlds-premium.js mini-worlds-characters.js mini-worlds-finish.js mini-worlds-runtime.js; do
+            node --check "$script"
+          done
