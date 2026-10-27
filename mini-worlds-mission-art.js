@@ -7,10 +7,10 @@ root.MiniWorldsMissionArt=function(T){
  function setup(stage,s){
   if(!stage?.worldRoot||!s?.mission)return null;
   const world=stage.worldRoot,m=s.mission,npcs=[],props=[],lights=[];
-  const tints=[0x8df9db,0xffd382,0xc1adff,0x9ae7ff];
+  const tints=[0x5b9f99,0xc39a69,0x7187a5,0x788c86];
   const mat=(c,glow=.0)=>new T.MeshStandardMaterial({color:c,metalness:.14,roughness:.38,emissive:c,emissiveIntensity:glow});
   const fx=c=>new T.MeshBasicMaterial({color:c,transparent:true,opacity:.82,depthWrite:false,blending:T.AdditiveBlending});
-  const light=mat(0xfff6e4),eyes=mat(0x173347),cap=mat(0x2e7d98),gold=mat(0xf2d087,.18),cage=fx(0x86ffec);
+  const light=mat(0xdacbb2),eyes=mat(0x162632),cap=mat(0x3a4d50),gold=mat(0xc39d68,.12),cage=fx(0x65b8b2);
   function at(x,y,z,label){const g=new T.Group();g.name=label;g.position.set(x,y,z);world.add(g);return g}
   function add(g,geometry,material,x,y,z){
    const mesh=new T.Mesh(geometry,material);mesh.position.set(x,y,z);g.add(mesh);
@@ -21,13 +21,21 @@ root.MiniWorldsMissionArt=function(T){
    const wool=mat(tints[i%4],.11);
    const body=add(g,new T.SphereGeometry(.22,13,10),wool,0,.32,0);
    body.scale.set(.8,1.05,.76);
-   const head=add(g,new T.SphereGeometry(.25,14,10),light,0,.71,.025);
+   const head=add(g,new T.SphereGeometry(.21,14,10),light,0,.73,.025);
+   // Utility gear makes survivors look like explorers, not infant plushies.
+   const vest=add(g,new T.CylinderGeometry(.19,.23,.33,7),cap,0,.32,.01);
+   const buckle=add(g,new T.BoxGeometry(.18,.065,.05),gold,0,.22,.22);
+   const hood=add(g,new T.ConeGeometry(.23,.21,7),wool,0,.96,-.026);
    for(const side of [-1,1]){
-    add(g,new T.SphereGeometry(.05,8,6),eyes,side*.095,.73,.225);
-    const ear=add(g,new T.ConeGeometry(.09,.20,8),wool,side*.17,.95,0);
+    add(g,new T.BoxGeometry(.11,.17,.19),cap,side*.13,.07,.06);
+    add(g,new T.BoxGeometry(.07,.20,.08),gold,side*.21,.36,.01);
+   }
+   for(const side of [-1,1]){
+    add(g,new T.SphereGeometry(.027,8,6),eyes,side*.087,.74,.215);
+    const ear=add(g,new T.ConeGeometry(.055,.13,8),wool,side*.16,.98,-.04);
     ear.rotation.z=-side*.18;
    }
-   add(g,new T.SphereGeometry(.055,10,7),gold,0,.59,.255);
+   add(g,new T.BoxGeometry(.055,.04,.03),gold,0,.61,.232);
    const halo=add(g,new T.TorusGeometry(.40,.04,7,28),cage,0,.59,0);
    halo.rotation.x=Math.PI/2;
    // Rescue targets must be noticeable from a phone-sized screen.
@@ -36,13 +44,13 @@ root.MiniWorldsMissionArt=function(T){
    marker.rotation.x=Math.PI;
    const markerHalo=add(g,new T.TorusGeometry(.18,.033,8,22),cage,0,1.72,0);
    markerHalo.rotation.x=Math.PI/2;
-   const glow=add(g,new T.SphereGeometry(.26,16,10),fx(tints[i%4]),0,.36,0);
+   const glow=add(g,new T.SphereGeometry(.19,16,10),fx(tints[i%4]),0,.37,0);
    glow.scale.set(1,.94,1);
    npcs.push({r,g,halo,body,head,marker,markerHalo,offset:i*2.2,celebrateAt:null});
   }
   function beacon(x,y,z,title,color){
    const g=at(x,y,z,title);
-   const base=add(g,new T.CylinderGeometry(.42,.51,.14,12),mat(0x325767),0,.09,0);
+   const base=add(g,new T.CylinderGeometry(.42,.51,.14,12),mat(0x394b51),0,.09,0);
    const ring=add(g,new T.TorusGeometry(.48,.07,9,32),fx(color),0,.35,0);
    ring.rotation.x=Math.PI/2;
    // Compact bronze/stone pedestals make each activatable mechanic legible.
