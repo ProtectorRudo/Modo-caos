@@ -159,8 +159,15 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.ammo),28,'AR shooter never runs out of bullets');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.shots),1,
   'Android XR touch dispatched pointerdown and fired once');
- assert.equal(await page.evaluate(()=>__RodeadosDebug.shotStatus),'IMPACTO',
-  'shot must use the cached live XR ray, never silently abort due to stale XRFrame');
+ const shotDebug=await page.evaluate(()=>{
+  const g=__RodeadosDebug.game;
+  return {status:__RodeadosDebug.shotStatus,shotCount:g.shots,hits:g.hits,
+    aim:__RodeadosDebug.aim,tracking:__RodeadosDebug.tracking,
+    enemies:g.enemies.map(e=>({x:e.x,z:e.z,hp:e.hp,portal:e.portal,radius:e.radius,height:e.height}))};
+ });
+ console.log('RODEADOS_XR_SHOT_AUDIT='+JSON.stringify(shotDebug));
+ assert.equal(shotDebug.status,'IMPACTO',
+  'shot must use the cached live XR ray and hit the centered bot: '+JSON.stringify(shotDebug));
  assert.equal(await page.evaluate(()=>__RodeadosDebug.aimFailures),0,
   'no exception when sampling the active WebXR frame');
  assert((await page.evaluate(()=>__RodeadosDebug.game.hits))>=1,
