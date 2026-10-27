@@ -377,7 +377,9 @@ export function createRodeadosArt(THREE,scene,camera){
    const hornMat=kind==='minotaur'?M.gold:M.edge;
    for(let h=0;h<(kind==='minotaur'?2:4);h++){
     const side=h%2?-1:1,depth=h>=2?-.06:0;
-    const horn=new THREE.Mesh(new THREE.ConeGeometry(kind==='minotaur'?.085:.055,kind==='minotaur'?.43:.25,8),hornMat);
+    const horn=new THREE.Mesh(geo.cone,hornMat);
+    const radius=kind==='minotaur'?.085:.055;
+    horn.scale.set(radius*2,kind==='minotaur'?.43:.25,radius*2);
     horn.position.set(side*(kind==='minotaur'?.18:.13),1.81+depth,depth);
     horn.rotation.z=side*.43;body.add(horn);
    }
