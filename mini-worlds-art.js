@@ -151,19 +151,17 @@ function platform(root,p,rand){
   cap.rotation.x=-P/2;cap.scale.set(Math.max(.5,p.w*.77),Math.max(.5,p.d*.77),1);
   cap.castShadow=false;cap.receiveShadow=false;
  }
- // Jagged earth breaks the silhouette; narrow decorative stones never obstruct the play corridor.
- for(let i=0;i<Math.floor(p.w*2.4);i++){let x=(rand()-.5)*p.w*.94,z=(rand()>.5?1:-1)*(p.d*.47);
- let a=mesh(new T.DodecahedronGeometry(.12+rand()*.14,0),p.kind==='arena'?M.stone:M.edge,x,-.27,z,g);a.scale.y=.8}
- if(p.kind==='beach' || p.kind==='jungle'){
-  for(let i=0;i<Math.floor(p.w*1.4);i++){let x=(rand()-.5)*p.w*.76,z=(rand()>.5?1:-1)*p.d*.43;
-   if(rand()>.46)addFlower(g,x,z,i);else mesh(sphere(.16,7,6),M.grass2,x,.02,z,g)}
- }
+ // Rock rim and meadow already supplied by the batched coastline material.
+ // No extra fake rocks or bright pastel flower beads clutter the playable
+ // path; visible stones are registered as obstacles by makeStage.
  if(isBridge){for(let i=0;i<6;i++){let z=-p.d*.42+i*p.d/5;mesh(cube(p.w*.9,.065,.18),i%2?M.wood:M.woodDark,0,.02,z,g)}
   for(const x of [-p.w*.47,p.w*.47]){for(let j=0;j<3;j++){let z=-p.d*.44+j*p.d*.44;mesh(cyl(.043,.052,.8,7),M.woodDark,x,.31,z,g)}mesh(cube(.05,.055,p.d),M.wood,x,.66,0,g)}}
  if(p.kind==='ruins')g.userData.ruins=addRuins(g,p.w*.28,.02,-p.d*.20);
  if(p.kind==='waterfall'){
-  mesh(cube(.26,1.12,.24),M.stone,p.w*.43,.54,-.55,g);
-  let water=mesh(cube(.06,.9,.92),M.water,p.w*.40,.5,-.45,g);water.material=M.water;
+  // The old cyan transparent BOX rendered as giant geometric artifacts on
+  // AR cameras. A compact mineral obelisk marks the landmark instead.
+  const stoneMarker=mesh(cyl(.15,.20,.46,7),M.stone,p.w*.42,.19,-.55,g);
+  stoneMarker.castShadow=false;
  }
  if(p.kind==='arena'){let ring=mesh(new T.TorusGeometry(1.95,.07,8,64),M.gold,0,.04,0,g);ring.rotation.x=-P/2;
  for(let i=0;i<8;i++){const a=i*P/4;const ob=mesh(cyl(.08,.14,.45,7),M.stone,Math.cos(a)*2.28,.16,Math.sin(a)*2.05,g);ob.rotation.z=(rand()-.5)*.2}}
@@ -308,25 +306,9 @@ function makeBoss(parent,b,variant=false){
 // defaults to ~6.7m wide × 11.9m long, anchored to a real floor hit.
 function sprawlingEnvironment(root,rand,cliff){
  const sea=makeOcean(root,{n:cliff?1:0});
- // These far-shore shapes used to be large sandy "islands" without hitboxes:
- // players jumped there and fell through. They are now unmistakably
- // submerged rock outcrops rather than false walkable platforms.
- for(const side of [-1,1]){
-  for(let j=0;j<5;j++){
-   const z=1.0-j*5.0,x=side*(7.2+rand()*.42);
-   const stone=addRock(root,x,-.78,z,.34+rand()*.27);
-   stone.scale.y=.37;
-   if(cliff&&j%3===0){const spear=mesh(geoCone(.24,.62,6),M.stone,x,-.57,z,root);spear.rotation.z=side*.1}
-  }
- }
- // Ancient landmarks at the far ends make the 3D level readable from a distance.
- const arch=group(root,0,0,-25.1);
- for(const x of [-2.45,2.45]){
-  mesh(cyl(.19,.30,2.4,8),M.stone,x,1.3,0,arch);
-  const cap=mesh(new T.DodecahedronGeometry(.35,0),M.gold,x,2.58,0,arch);cap.rotation.y=x;
- }
- const cross=mesh(cube(5.2,.30,.48),M.stone,0,2.44,0,arch);
- cross.rotation.z=.07;
+ // No floating fake rocks or opaque horizon arch: their apparent
+ // solidity encouraged unsafe jumps onto scenery outside logical ground.
+ // Legitimate ancient portals and arches use registered solid obstacles.
  return sea;
 }
 function makeStage(map){
@@ -416,7 +398,7 @@ function makeStage(map){
   return {root:g,crystal,petals,ring};
  });
  // Cheap readable contact shadows: no expensive real-time shadow map in AR.
- const shadowMat=new T.MeshBasicMaterial({color:0x0d2634,transparent:true,opacity:.27,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
+ const shadowMat=new T.MeshBasicMaterial({color:0x0d2634,transparent:true,opacity:.25,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
  const shadow=(x,z,size=1)=>{const o=mesh(new T.CircleGeometry(.35,24),shadowMat.clone(),x,.046,z,root);o.rotation.x=-P/2;o.scale.set(size,1,.67);o.castShadow=false;return o};
  const heroShadow=shadow(0,0,1.1);
  const enemyShadows=map.enemies.map(e=>shadow(e.x,e.z,.75));
