@@ -47,12 +47,12 @@ test('flag: actual player position takes a flag, returns to base and scores each
 test('loot: shooting a chest opens it, but extract requires recovered loot and returning to base',()=>{
  const g=G.create({mode:'loot',seed:1});G.begin(g);g.spawnClock=1000;
  assert.equal(G.missionAction(g).reason,'primero_abri_un_cofre');
- const p=g.mission.crates[0];
+ const p=g.mission.crates[1];
  const shot={origin:{x:p.x,y:.65,z:p.z+2},direction:{x:0,y:0,z:-1}};
  const fired=G.fire(g,shot);
  assert.equal(fired.crate,true);
  assert.equal(g.mission.loot,1);
- assert.equal(g.mission.crates[0].opened,true);
+ assert.equal(g.mission.crates[1].opened,true);
  assert.equal(G.fire(g,shot).crate,undefined,'can not farm the same crate');
  assert.equal(G.missionAction(g).reason,'acercate_a_tu_base');
  G.movePlayer(g,g.mission.base);
@@ -80,6 +80,17 @@ test('refuge: enemy attack damages the reactor, not the player shield',()=>{
  G.advance(g,.06);
  assert.ok(g.mission.reactor<100);
  assert.equal(g.lives,life);
+});
+
+test('refuge: three stations require real player proximity and can be activated once',()=>{
+ const g=G.create({mode:'refuge',seed:10});G.begin(g);g.spawnClock=1000;
+ assert.equal(G.missionAction(g).reason,'acercate_a_una_estacion');
+ for(const station of g.mission.stations){
+  G.movePlayer(g,station);assert.equal(G.missionAction(g).ok,true);
+ }
+ assert.equal(g.mission.stations.filter(s=>s.active).length,3);
+ assert.ok(g.score>=1050);
+ assert.equal(G.missionAction(g).ok,false);
 });
 
 test('mutant: mutation rotates at 15-second intervals; waves use same combat engine',()=>{
