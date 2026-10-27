@@ -246,3 +246,33 @@ Con autorización expresa del usuario se conectó una nueva capa de naturaleza y
 - **Integridad:** todos los enemigos y jefes animados Quaternius mantienen sus modelos locales; no se reescribe `mini-worlds-core.js`, ni `mini-worlds-spatial.js`, ni `mini-worlds-pocket.js`, ni anclas XR. 4 habitaciones y segundo nivel permanecen idénticos.
 - **Siguiente incorporación exacta de KAI:** obtener el archivo legítimamente mediante acceso Sketchfab autorizado, versionarlo con atribución, revisar rig y sus 8 clips (KAI no trae salto explícito), optimizar texturas/glTF para WebXR, crear adaptador visual a la cápsula física y verificar rendimiento. El público nunca debe descargar/subir assets manualmente.
 - **QA:** el workflow `.github/workflows/mini-worlds-premium.yml` ejecuta suites de juego, combate, AR simulado, protagonista y sintaxis; nunca declarar FPS, anclaje AR real ni calidad 10/10 sin Android/ARCore.
+
+
+## MINI WORLDS — KAI Y LOS MUNDOS PERDIDOS, campaña de rescate (27/10/2026)
+
+**Rama propuesta para preview:** `feat/mini-worlds-rescue-missions-20261027` basada en la rama zorro+blaster. No integrar `main` ni publicar en producción sin prueba en Android.
+
+### Cambio de premisa
+No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones con propósito** y progreso persistente. Los dos mapas y los cuatro sectores físicos de bolsillo se reutilizan; todavía no hay tres biomas nuevos independientes.
+
+**Tres misiones jugables:**
+1. **Rescate en el Vacío:** localizar y rescatar 2 de 3 habitantes reales (el tercero es opcional), disparar a 2 balizas/cristales mediante el core existente y alcanzar el portal espacial en 260 s. El jefe de arena se deshabilita en esta misión para no conceder victoria prematura; un resultado perfecto exige los 3 rescates y tiempo menor a 185 s.
+2. **Defendé el Corazón:** rescatar opcionalmente a un técnico, impedir que 3 oleadas de 3 enemigos dañen un reactor (12 HP), mantenerlo vivo 65 s y regresar físicamente a su posición para estabilizarlo antes de 90 s. Los enemigos tienen hitboxes y daño real del motor existente. Si el reactor llega a cero: derrota y opción de revancha.
+3. **El Ladrón de Cristales:** derrotar 3 enemigos guardianes de lugares separados, recoger personalmente los 3 cristales que sueltan, desbloquear la vulnerabilidad real del jefe Yeti y vencerlo antes de 300 s. Un explorador opcional ofrece otra recompensa persistente. El jefe no puede recibir daño hasta reunir las piezas.
+
+**Aldea con persistencia local:**
+- `progress.missions` se guarda en la clave existente `mc-mini-worlds-save-v1`. Tiene índice de desbloqueo, récords por misión, lista única de habitantes rescatados y número de partidas completadas. **No hay sincronización entre dispositivos ni economía backend**.
+- 1 habitante: taller, blaster dispara con menor cooldown real; 3: jardín, 15 s extra en próximas misiones; 5: observatorio, 2,4 s de invulnerabilidad inicial.
+- Tres estrellas por misión basadas en objetivo completado, rescates opcionales, eficiencia, integridad del reactor o supervivencia. Las medallas y mejores tiempos se conservan.
+- El minimapa se muestra por defecto y marca rescates, balizas, enemigos objetivos, fragmentos, reactor y salida; puede cerrarse.
+
+**Arquitectura:**
+- `/mini-worlds-missions.js` — máquina de misiones pura, sin Three, DOM ni cámara, con `init/tick/drain/status/medal`.
+- `/mini-worlds-mission-art.js` — pequeños personajes 3D con caras, balizas, reactor, fragmentos y puerta; objetos ubicados en coordenadas del **mundo lógico** ANTES de `MiniWorldsPocket.create`.
+- `mini-worlds-runtime.js` — inyección en tick fijo 60Hz, scoreboard, progreso `localStorage`, selector, modal de derrota/victoria y HUD.
+- `mini-worlds-core.js` — único cambio físico: respeta `player.blasterBoost` al calcular la cadencia del disparo; el core original conserva física, colisiones, gravedad y daño.
+- `mini-worlds.html` — tres tarjetas de misión + aldea reconstruible + objetivos durante la partida. Entrada AR/demo y anclaje espacial sin cambios.
+
+**Pruebas:** `node tests/mini-worlds-missions.test.cjs`; la CI de rama `.github/workflows/mini-worlds-premium.yml` ejecuta además las 13 suites originales y sintaxis de módulos. Testea progresión/rescate, acceso al portal, reactor con daño físico y derrota, jefe protegido y cristales, límites de tiempo y ausencia de manipulación de worldAnchor; no equivale a una prueba física Android.
+
+**Pendiente para producción:** rendimiento real de los nuevos objetivos en WebXR/ARCore, visualización real de cada isla, lectura del minimapa en Android, experiencia de una misión completa con usuario, balance y sonido contextual. El modelo 3D exacto KAI de Sketchfab sigue sin poder descargarse de forma autenticada (documentado arriba): la rama utiliza un zorro 3D original, no el asset exacto.
