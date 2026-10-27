@@ -85,13 +85,13 @@ root.MiniWorldsCharacters=function(T){
    const e=stage.map.enemies[i],types=ENEMY[level||0];
    const name=e.type==='patrol'?types[0]:e.type==='flying'?types[1]:e.type==='defender'?types[2]:types[3];
    const def=ready.get(name);if(!def)continue;
-   const rig=physicalRig(def,e.type==='defender'?1.04:.78,-.40);
+   const rig=physicalRig(def,e.type==='defender'?.85:.64,-.32);
    replaceVisual(stage.enemies[i],rig.stand);
    rig.stand.name='CUTE MONSTERS · '+name;visual.push({type:'enemy',id:i,rig});enemiesDone++;
   }
   const b=ready.get(BOSS[level||0]);
   if(b){
-   const rig=physicalRig(b,3.10,.02),boss=stage.boss;
+   const rig=physicalRig(b,2.60,.02),boss=stage.boss;
    replaceVisual(boss.root,rig.stand);
    rig.stand.name='CUTE MONSTERS · GIANT BOSS · '+BOSS[level||0];
    // The attackable weak core is a separate floating visual that preserves
