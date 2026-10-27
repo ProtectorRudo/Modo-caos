@@ -45,6 +45,38 @@ export function fitQuaterniusWeapon(THREE,source,tier,{forEnemy=false}={}){
  outer.userData.dispose=()=>{flash.geometry.dispose();flashMaterial.dispose()};
  return outer;
 }
+// Poly Haven's CC0 asset contains TWO complete pistol variants and a spare
+// magazine/bullet as separate sibling objects. Rendering all eleven pieces at
+// once creates intersecting geometry and bad scale. Keep only the metal/grip A
+// variant, its slide/trigger/hammer and one loaded magazine.
+export function fitPolyHavenServicePistol(THREE,source){
+ if(!source?.isObject3D)return null;
+ const selected=source.clone(true);
+ const removed=[];
+ selected.traverse(o=>{
+  const n=(o.name||'').toLowerCase();
+  if(/(?:pistol_b|slide_b|hammer_b|trigger_b|magazine_empty|_bullet)/.test(n))
+   removed.push(o);
+ });
+ for(const o of removed)if(o.parent)o.parent.remove(o);
+ const gun=fitQuaterniusWeapon(THREE,selected,'pistol');
+ if(!gun)return null;
+ gun.name='polyhaven-pbr-service-pistol';
+ gun.userData.realPBR=true;
+ gun.userData.source='Poly Haven · Service Pistol · Mateusz Sadek · CC0';
+ gun.userData.sourceParts=11-removed.length;
+ gun.userData.modelLength=.35;
+ // A physically sized textured weapon (0.35m along its long axis).
+ // Preserve actual worn metal, wood and textured normals from the source.
+ gun.traverse(o=>{if(o.isMesh&&o.material){
+  const ms=Array.isArray(o.material)?o.material:[o.material];
+  for(const mat of ms){if(mat.isMeshStandardMaterial||mat.isMeshPhysicalMaterial){
+   mat.envMapIntensity=Math.min(mat.envMapIntensity||1,1.1);
+   mat.needsUpdate=true;
+  }}
+ }});
+ return gun;
+}
 export function locateRightHand(root){
  if(!root?.traverse)return null;
  let best=null,score=0;
