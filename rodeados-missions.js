@@ -11,11 +11,12 @@
  const definitions={
   invasion:{duration:75,label:'INVASIÓN EN CASA',tip:'Resistí 75 segundos y detené la invasión'},
   loot:{duration:90,label:'BOTÍN MALDITO',tip:'Abrí cofres, volvé a la base y extraé tu botín'},
-  timewarp:{duration:60,label:'TIEMPO ROTO',tip:'EMP ralentiza a los enemigos durante 3 segundos'},
+  timewarp:{duration:75,label:'TIEMPO ROTO',tip:'Congelación y rebote temporal cada 12 segundos, más un poder manual.'},
   refuge:{duration:75,label:'EL ÚLTIMO REFUGIO',tip:'Defendé el reactor 75 segundos'},
   mutant:{duration:90,label:'CAOS MUTANTE',tip:'Una mutación distinta cada 15 segundos'},
   colossus:{duration:90,label:'COLOSOS 360',tip:'Derrotá a los 3 gigantes antes de que termine el tiempo'},
-  ctf:{duration:150,label:'CAPTURA LA BANDERA',tip:'Robá la bandera y entregala en tu base tantas veces como puedas'}
+  ctf:{duration:150,label:'CAPTURA LA BANDERA',tip:'Robá la bandera y entregala en tu base tantas veces como puedas'},
+  rescue:{duration:420,label:'RESCATE DEL REHÉN',tip:'LIBERÁ al rehén y escoltalo a tu base. ¡10 niveles!'}
  };
  Object.assign(G.MODES,definitions);
  const orig={create:G.create,reset:G.reset,advance:G.advance,fire:G.fire,pulse:G.pulse,movePlayer:G.movePlayer,spawn:G.spawn,copy:G.copy};
@@ -38,13 +39,20 @@
   if(!definitions[g.mode])return g;
   const m={kind:g.mode,signal:'',event:0,completed:false,object:{x:0,z:-.65},base:{x:0,z:.75},
    captures:0,carry:false,flagDropped:0,dropAt:null,loot:0,extracted:0,crates:[],
-   reactor:100,slowUntil:0,mutation:'NORMAL',mutationIndex:-1,
+   reactor:100,slowUntil:0,timePhase:'NORMAL',phaseRemaining:6,timeCycles:0,mutation:'NORMAL',mutationIndex:-1,
    bossIndex:0,bossPhase:1,spawnPoints:[],enemyCursor:0,bonus:0,locked:false,stations:[],pickupBlockedUntil:0,stormTick:-1};
   if(g.mode==='ctf'){
    m.plan=normalizeFlagPlan(config.flagPlan,g.arena);m.base={...m.plan.base};m.object={...m.plan.flag};
    m.spawnPoints=m.plan.spots.map(p=>({...p}));m.spawnTypes=m.plan.kinds.slice();m.configured=!!config.flagPlan?.confirmed;m.signal='ANDÁ A LA BANDERA ENEMIGA';
   }
-  if(g.mode==='loot'){
+  if(g.mode==='rescue'){
+    m.level=1;m.rescued=0;m.carry=false;m.hostageHealth=100;m.levelDeadline=0;
+    m.hostageActive=false;m.hostageLost=false;m.nextLevelAt=0;m.phase='RESCATÁ';
+    m.spawnPoints=[];m.spawnTypes=[];m.enemyCursor=0;
+    m.base={x:0,z:0};m.object={x:0,z:-3};
+    m.signal='NIVEL 1/10 · LOCALIZÁ AL REHÉN';
+   }
+   if(g.mode==='loot'){
    m.crates=boxCoords.map((p,i)=>({...p,id:i,opened:false}));
    m.base={x:0,z:.83};m.signal='DISPARÁ A LOS 5 COFRES';
   }
@@ -54,7 +62,7 @@
   if(g.mode==='mutant')m.signal='MUTACIÓN EN 15 SEGUNDOS';
   if(g.mode==='invasion')m.signal='¡INVASIÓN INMINENTE!';
   // Other missions do not unexpectedly spawn scripted legacy boss waves.
-  if(['loot','timewarp','refuge','mutant','ctf'].includes(g.mode)){
+  if(['loot','timewarp','refuge','mutant','ctf','rescue'].includes(g.mode)){
    g.creepIntroduced=true;g.minotaurIntroduced=true;
   }
   g.mission=m;return g;
@@ -77,6 +85,32 @@
   e.missionBoss=true;m.bossPhase=1;
   event(m,'GIGANTE '+m.bossIndex+' DE 3 · APUNTÁ A SU CABEZA');
  }
+ function beginRescueStage(g,{first=false}={}){
+   const m=g.mission;if(m?.kind!=='rescue')return;
+   m.base={...g.player};m.carry=false;m.hostageActive=true;m.hostageLost=false;
+   m.hostageHealth=Math.min(100,76+m.level*2);
+   m.phase='RESCATÁ';m.nextLevelAt=0;m.levelDeadline=g.elapsed+Math.max(28,42-m.level*1.3);
+   const angle=-Math.PI*.5+(g.rand()-.5)*1.3,radius=2.5+Math.min(1,m.level*.1);
+   m.object={x:+(m.base.x+Math.sin(angle)*radius).toFixed(3),
+     z:+(m.base.z+Math.cos(angle)*radius).toFixed(3)};
+   const angle0=g.rand()*Math.PI*2;
+   m.spawnPoints=Array.from({length:7},(_,i)=>{
+    const a=angle0+i*Math.PI*2/7+(g.rand()-.5)*.2,dist=1.25+g.rand()*.65;
+    return {x:+(m.object.x+Math.sin(a)*dist).toFixed(3),
+     z:+(m.object.z+Math.cos(a)*dist).toFixed(3)};
+   });
+   m.enemyCursor=0;g.enemies.length=0;g.spawnClock=.6;
+   if(!first)g.lives=Math.min(100,g.lives+14);
+   for(let i=0;i<Math.min(6,1+Math.ceil(m.level/2));i++){
+    const kind=m.level>=8&&i===0?'tank':m.level>=5&&i===1?'flanker':'basic';
+    G.spawn(g,kind);
+   }
+   event(m,'🚨 NIVEL '+m.level+'/10 · '+(m.level>=8?'GUARDIAS DE ÉLITE':'LIBERÁ AL REHÉN'));
+  }
+  G.prepareRescue=function(g){
+   if(g.mode!=='rescue'||g.mission.hostageActive)return false;
+   beginRescueStage(g,{first:true});return true;
+  };
  function assignSpawn(g,e){
   const m=g.mission;
   if(!m||e.missionAssigned)return;
@@ -88,7 +122,13 @@
    e.x=p.x;e.z=p.z;
    e.role=m.enemyCursor%3===0?'guardián':m.enemyCursor%3===1?'interceptor':'cazador';
   }
-  if(m.kind==='invasion'){
+  if(m.kind==='rescue'&&m.spawnPoints.length){
+    const p=m.spawnPoints[m.enemyCursor++%m.spawnPoints.length];
+    e.x=p.x;e.z=p.z;e.role='guardia';
+    const bonus=Math.floor((m.level-1)/3);e.hp+=bonus;e.maxHp+=bonus;
+    e.attackCD=Math.max(.55,e.attackCD-(m.level-1)*.05);
+   }
+   if(m.kind==='invasion'){
    const a=(m.enemyCursor++%6)*Math.PI/3,gap=3.15;
    e.x=Math.sin(a)*gap;e.z=Math.cos(a)*gap;
   }
@@ -107,7 +147,7 @@
   const e=orig.spawn(g,type);if(e&&m){assignSpawn(g,e);orientAwayFromPhone(g,e)}return e
  };
  G.movePlayer=function(g,p){
-  if(g.mode!=='ctf')return orig.movePlayer(g,p);
+  if(g.mode!=='ctf'&&g.mode!=='rescue')return orig.movePlayer(g,p);
   if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
   // CTF needs roaming beyond the 2.6 m cosmetic tile board to retrieve the flag.
   // A 2.6 m base and an enemy flag up to 8 m away must not impose
