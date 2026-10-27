@@ -124,7 +124,10 @@ function newStage(){
  const stageRefForPhysics=stage;
  document.body.classList.toggle('mw-defense',missionId===1);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
- stage.cinematicArt=window.MiniWorldsCinematic?.(T).setup(stage,level)||null;
+ stage.cinematicArt=null;
+ try{stage.cinematicArt=window.MiniWorldsCinematic?.(T).setup(stage,level)||null}
+ catch(err){console.warn('[MINI WORLDS] Cinematic scenery unavailable; playable base retained:',err?.message||err)}
+
  stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
  stage.pocket=window.MiniWorldsPocket?.create(T,stage)||null;
