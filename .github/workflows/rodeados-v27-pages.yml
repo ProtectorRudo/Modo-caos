@@ -1,0 +1,52 @@
+name: MODO CAOS V27 – independent GitHub Pages game preview
+on:
+  push:
+    branches: [fix/rodeados-v27-rifle-aim-to-reticle]
+    paths: ['.github/workflows/rodeados-v27-pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: modo-caos-pages-preview
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Enable and configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Stage isolated game assets with project-path-safe links
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          rsync -a --exclude='.git' --exclude='.github' --exclude='_site' --exclude='node_modules' ./ _site/
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('_site')
+          for p in root.glob('*.html'):
+              data=p.read_text()
+              data=re.sub(r'((?:src|href)=["\'])/((?!/))',r'\1./',data)
+              p.write_text(data)
+          PY
+          touch _site/.nojekyll
+          test -s _site/rodeados.html
+          test -s _site/rodeados-art.js
+          test -s _site/assets/rodeados/player-pbr-rifle.glb
+          if grep -q 'src="/rodeados-runtime' _site/rodeados.html; then echo 'Absolute script path still present'; exit 2; fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
