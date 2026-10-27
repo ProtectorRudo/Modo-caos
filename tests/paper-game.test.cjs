@@ -128,7 +128,7 @@ test('arcade HUD ranks four players, with own rank always visible',()=>{
  const markup=g.get('rank').innerHTML;
  assert.equal((markup.match(/class="rankrow /g)||[]).length,4);
  assert.match(markup,/VOS/);
- assert.equal(g.get('killCount').textContent,'0');
+ assert.equal(String(g.get('killCount').textContent),'0');
  assert.match(g.get('bestCurrent').textContent,/%/);
 });
 
