@@ -199,17 +199,26 @@ function updateHud(force=false){
  if(stage!=='playing'&&stage!=='ready'&&stage!=='countdown'&&stage!=='paused'&&!force)return;
  $('life').textContent=Math.round(game.lives);
  $('points').textContent=Math.round(game.score).toLocaleString('es-AR');
- $('wave').textContent=game.mode==='ctf'?(game.mission?.captures||0):game.mode==='refuge'?Math.ceil(game.mission?.reactor||0):game.wave||1;
- if($('waveLabel'))$('waveLabel').textContent=game.mode==='ctf'?'CAPTURAS':game.mode==='refuge'?'REACTOR':'OLEADA';
+ $('wave').textContent=game.mode==='ctf'?(game.mission?.captures||0):game.mode==='rescue'?(game.mission?.level||1):game.mode==='refuge'?Math.ceil(game.mission?.reactor||0):game.wave||1;
+ if($('waveLabel'))$('waveLabel').textContent=game.mode==='ctf'?'CAPTURAS':game.mode==='rescue'?'NIVEL':game.mode==='refuge'?'REACTOR':'OLEADA';
  $('clock').textContent=Number.isFinite(game.duration)?Math.max(0,Math.ceil(game.duration-game.elapsed)):'∞';
  $('healthFill').style.width=Math.max(0,game.lives)+'%';
  $('ammo').textContent='∞  BALAS';
  $('special').disabled=game.skillCooldown>0;
- $('special').textContent=game.skillCooldown>0?'EMP '+Math.ceil(game.skillCooldown)+'s':'⚡ EMP';
+ $('special').textContent=game.mode==='timewarp'?(game.skillCooldown>0?'⏳ '+Math.ceil(game.skillCooldown)+'s':'⏳ ROMPER TIEMPO'):(game.skillCooldown>0?'EMP '+Math.ceil(game.skillCooldown)+'s':'⚡ EMP');
  $('bomb').disabled=game.bombCharges<=0;
  $('bomb').textContent=game.bombCharges>0?'💣 BOMBA CAOS':'💣 '+Math.ceil(game.bombCooldown)+'s';
  if(online)$('online').textContent=online.status+' · '+(online.isHost?'ANFITRIÓN':'INVITADO')+' · '+online.mode;
  const ms=G.missionStatus?.(game);
+ const warpFX=$('timeWarpFX');
+ if(warpFX){
+  const active=game.mode==='timewarp'&&['playing','paused'].includes(stage);
+  const phase=active?game.mission?.timePhase:'NORMAL';
+  warpFX.dataset.phase=active?phase:'NORMAL';
+  warpFX.classList.toggle('fracture',phase==='FRACTURA');
+  warpFX.classList.toggle('surge',phase==='ACELERADO');
+  $('timeWarpText').textContent=phase==='FRACTURA'?'⏳ TIEMPO CONGELADO':phase==='ACELERADO'?'⚡ REBOTE TEMPORAL':'';
+ }
  if(ms){$('missionTitle').textContent=game.mode==='ctf'?(ms.detail||'BUSCÁ LA BANDERA'):ms.text;
   $('missionDetail').textContent=game.mode==='ctf'?'':ms.detail||'';
   if(ms.button){$('missionAction').textContent=ms.button;$('missionAction').disabled=!ms.canAct}
@@ -246,10 +255,10 @@ function setPhase(next){
  visible('placementHelp',false);visible('healthTrack',['ready','countdown','playing','paused'].includes(next),'block');
  visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown'||next==='tactical','block');
  visible('missionObjective',!!game.mission&&['ready','countdown','playing','paused'].includes(next),'block');
- visible('missionAction',next==='playing'&&['loot','ctf','refuge'].includes(game.mode),'block');
+ visible('missionAction',next==='playing'&&['loot','ctf','refuge','rescue'].includes(game.mode),'block');
  visible('tacticalPanel',next==='tactical','block');
- visible('demoMove',demo&&next==='playing'&&['ctf','loot','refuge'].includes(game.mode),'grid');
- visible('radarWrap',next==='playing'||next==='paused','block');visible('botGuide',game.mode!=='ctf'&&(next==='playing'||next==='paused'),'block');
+ visible('demoMove',demo&&next==='playing'&&['ctf','loot','refuge','rescue'].includes(game.mode),'grid');
+ visible('radarWrap',next==='playing'||next==='paused','block');visible('botGuide',!['ctf','rescue'].includes(game.mode)&&(next==='playing'||next==='paused'),'block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
  visible('actions',next==='paused');$('pause').textContent=next==='paused'?'▶ CONTINUAR':'Ⅱ PAUSA';
  $('topHud').style.display=['ready','countdown','playing','paused','finished'].includes(next)?'flex':'none';
@@ -435,25 +444,25 @@ function updateMotion(t,pose){
  const next=THREEVec(local.x+calOffset.x,0,local.z+calOffset.z);
  if(!Number.isFinite(next.x)||!Number.isFinite(next.z))return;
  const travel=Math.hypot(next.x-game.player.x,next.z-game.player.z);
- if(game.mode!=='ctf'&&travel>1.45&&stage==='playing'){
+ if(!['ctf','rescue'].includes(game.mode)&&travel>1.45&&stage==='playing'){
   game.paused=true;setPhase('paused');notice('CAMBIO BRUSCO DE POSICIÓN · RECALIBRÁ',3);return;
  }
  // The original 2.6 m platform is only the CTF HOME BASE, not a movement
  // boundary. Requiring RECALIBRAR when approaching a flag outside it made
  // the mode impossible to finish. Preserve the XR world anchor unchanged.
- if(game.mode!=='ctf'&&stage==='playing'&&
+ if(!['ctf','rescue'].includes(game.mode)&&stage==='playing'&&
     (Math.abs(next.x)>floorSize*.5+.35||Math.abs(next.z)>floorSize*.5+.35)){
   game.paused=true;setPhase('paused');hint('VOLVÉ A LA ZONA DESPEJADA · SIN CORRER');
   notice('⚠ FUERA DE LA ARENA SEGURA · RECALIBRÁ',3);return;
  }
- if(game.mode==='ctf'&&travel>2.2){
+ if(['ctf','rescue'].includes(game.mode)&&travel>2.2){
   // Smooth a sudden AR relocalization without teleporting the player or
   // resetting / moving the anchored flag; walking keeps working.
   const factor=Math.min(1,1.3/travel);
   next.x=game.player.x+(next.x-game.player.x)*factor;
   next.z=game.player.z+(next.z-game.player.z)*factor;
  }
- playerPos.lerp(next,game.mode==='ctf'?.52:.32);
+ playerPos.lerp(next,['ctf','rescue'].includes(game.mode)?.52:.32);
  G.movePlayer(game,{x:playerPos.x,z:playerPos.z});lastTracked=t;
 }
 function countdownBegin(){
@@ -504,6 +513,7 @@ function spawnOpeningEnemies(){
 function startRound(){
  G.begin(game);game.paused=false;
  if(game.mode==='ctf'){G.spawn(game,'flanker');G.spawn(game,'basic')}
+ else if(game.mode==='rescue')G.prepareRescue(game);
  else if(game.mode!=='colossus')spawnOpeningEnemies();
  trackingLostSince=0;lastTracked=performance.now();
  setPhase('playing');hint('');
@@ -989,7 +999,7 @@ $('rematch').onclick=()=>{
  if(!calibrated&&!demo){resetEditor(false);return}
  setupGame(true);G.movePlayer(game,{x:playerPos.x,z:playerPos.z});
  game.phase='ready';
- if(demo){G.begin(game);if(game.mode==='ctf'){G.spawn(game,'flanker');G.spawn(game,'basic')}else if(game.mode!=='colossus')spawnOpeningEnemies();setPhase('playing')}else{setPhase('ready');hint('✅ PISTA CONSERVADA · ¡REVANCHA!')}
+ if(demo){G.begin(game);if(game.mode==='ctf'){G.spawn(game,'flanker');G.spawn(game,'basic')}else if(game.mode==='rescue')G.prepareRescue(game);else if(game.mode!=='colossus')spawnOpeningEnemies();setPhase('playing')}else{setPhase('ready');hint('✅ PISTA CONSERVADA · ¡REVANCHA!')}
 };
 $('share').onclick=async()=>{
  const title='¡RODEADOS 360! '+game.score+' puntos y '+game.kills+' robots derrotados. ¿Superás mi récord? '+location.origin+'/rodeados.html';
@@ -1003,7 +1013,7 @@ function beginDemo(){
  calibrated=true;calOffset.set(0,0,0);G.movePlayer(game,{x:0,z:0});
  camera.position.set(0,1.59,0);aimYaw=0;aimPitch=0;camera.updateMatrixWorld(true);
  if(game.mode==='ctf'){tactical.start(globalThis.RodeadosFlagPlanner?.getCount());notice('CONFIGURÁ EL CAMPO EN EL MUNDO 3D',3)}
- else {G.begin(game);if(game.mode!=='colossus')spawnOpeningEnemies();setPhase('playing')}
+ else {G.begin(game);if(game.mode==='rescue')G.prepareRescue(game);else if(game.mode!=='colossus')spawnOpeningEnemies();setPhase('playing')}
  notice('ARRASTRÁ PARA GIRAR LA CÁMARA Y APUNTAR · DISPARÁ',4);
 }
 $('startDemo').onclick=beginDemo;
