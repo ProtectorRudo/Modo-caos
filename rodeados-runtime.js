@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=25';
+import {createRodeadosArt} from './rodeados-art.js?v=26';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=19';
 import {createTacticalPlanner} from './rodeados-tactical-ui.js?v=19';
@@ -35,7 +35,7 @@ let lastConfirmedPlan=null;
    .then(({installManulPreview})=>installManulPreview({THREE,art,notice:msg=>console.info(msg)}))
    .catch(err=>console.warn('Developer preview unavailable',err));
  }else{
-  import('./rodeados-robots-auto.js?v=24')
+  import('./rodeados-robots-auto.js?v=26')
    .then(({installAutoRobots})=>installAutoRobots({THREE,art,debug:true}))
    .catch(err=>console.warn('Rodeados tactical skin unavailable; safe original bot fallback',err));
  }
@@ -773,7 +773,7 @@ function tickGame(dt,t){
  } // guests render only host snapshots (no locally simulated hits, score or spawns)
  const weapon=G.weaponTier?G.weaponTier(game):'pistol';
  art.setWeaponTier?.(weapon);
- const label=weapon==='plasma'?'⚡ RIFLE DE PLASMA':weapon==='tactical'?'🔫 ARMA TÁCTICA':'✦ PISTOLA DE ENERGÍA';
+ const label=weapon==='plasma'?'⚡ RIFLE DE PLASMA':weapon==='tactical'?'🔫 RIFLE TÁCTICO':'🔫 RIFLE DE ASALTO';
  if($('weaponLabel'))$('weaponLabel').textContent=label;
  if(weaponNoticeTier!==weapon){
   if(weaponNoticeTier&&weapon!=='pistol'){
@@ -912,10 +912,17 @@ function animate(t,frame){
  if(xrSession){
   renderer.render(nativeXRScene,camera);
   if(arCompositor){
-   const ok=arCompositor.render(scene,renderer.xr.getCamera(camera));
+   const ok=arCompositor.render(scene,renderer.xr.getCamera(camera),art.weaponScene,art.weaponCamera);
    if(!ok&&stage==='playing'){game.paused=true;pausedByTracking=true;setPhase('paused');notice('ERROR DE RENDER 3D · RECALIBRÁ',3)}
   }
- }else renderer.render(scene,camera);
+ }else{
+ renderer.render(scene,camera);
+ if(stage==='playing'){
+  const save=renderer.autoClear;renderer.autoClear=false;
+  renderer.clearDepth();renderer.render(art.weaponScene,art.weaponCamera);
+  renderer.autoClear=save;
+ }
+}
  if(stage==='search'&&t-lastHud>600){lastHud=t;hint('🔎 APUNTÁ AL PISO Y MOVÉ LENTAMENTE LA CÁMARA')}
  performanceFrames++;performanceTotal+=dt;
  if(performanceFrames>=150&&performanceTotal>0){
@@ -1079,7 +1086,7 @@ const old=Number(localStorage.getItem('mc-rodeados-record'))||0;
 $('record').textContent='🏆 TU RÉCORD: '+old.toLocaleString('es-AR')+' PUNTOS';
 const daily=globalThis.RodeadosProgress?.daily();
 if(daily)$('daily').textContent='🎯 DESAFÍO DEL DÍA: '+daily.text;
-window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);arCompositor?.resize(innerWidth,innerHeight)});
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);arCompositor?.resize(innerWidth,innerHeight);art.resizeWeaponViewport?.(innerWidth,innerHeight)});
 globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(game)},get floorSize(){return floorSize},
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
