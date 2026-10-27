@@ -233,14 +233,14 @@
   if(g.phase!=='playing'||g.paused)return {ok:false,reason:'bloqueado'};
   // Keep host-enforced 160ms cadence against network burst cheats. Never run
   // out of bullets, even if reconnecting from an old room with 0 ammo.
-  if(w&&g.elapsed-w.lastFire<.16)return {ok:false,reason:'cadencia'};
+  if(w&&g.elapsed-w.lastFire<(weaponTier(g)==='tactical'?.12:weaponTier(g)==='plasma'?.23:.16))return {ok:false,reason:'cadencia'};
   if(w)w.lastFire=g.elapsed;
   g.shots++;
   let h=rayHit(g,ray.origin,ray.direction);
   if(!h){g.combo=0;g.headshotStreak=0;g.fx.push({type:'miss',t:g.elapsed});return {ok:true,hit:false};}
   const e=g.enemies.find(x=>x.id===h.id);if(!e)return {ok:true,hit:false};
   const weak=['tank','boss','minotaur'].includes(e.type);
-  const damage=(h.part==='head'?2:1)+(weak&&h.part==='head'?1:0)+(weaponTier(g)==='plasma'?1:0);
+  const damage=(h.part==='head'?2:1)+(weak&&h.part==='head'?1:0)+(weaponTier(g)==='plasma'||weaponTier(g)==='tactical'&&h.part!=='head'?1:0);
   e.hp=Math.max(0,e.hp-damage);e.stun=Math.max(e.stun,.20);
   e.lastHit=.30;g.hits++;g.combo++;g.bestCombo=Math.max(g.bestCombo,g.combo);
   const head=h.part==='head',lethal=e.hp===0;
