@@ -118,7 +118,7 @@ const server=http.createServer((req,res)=>{
  assert(Math.abs(weapon.framing.center.x)<.9&&Math.abs(weapon.framing.center.y)<.9,
   'weapon center stays on screen in portrait WebXR rather than off the right edge: '+JSON.stringify(weapon));
  assert.equal(weapon.framing.inView,true,'some of the gun actually overlaps the physical XR viewport');
- assert(Math.abs(weapon.framing.center.x)<.22&&weapon.framing.center.y<-.22,
+ assert(weapon.framing.center.x>.16&&weapon.framing.center.x<.55&&weapon.framing.center.y<-.45&&weapon.framing.bounds.top<-.30,
    'large rifle should be lower screen and leave reticle unobstructed: '+JSON.stringify(weapon));
  assert(weapon.framing.dominantVisible,
   'at least 90% of a substantial gun silhouette must fit inside safe play area, not just a tiny sliver: '+JSON.stringify(weapon));
@@ -128,7 +128,7 @@ const server=http.createServer((req,res)=>{
    'rifle barrel must point toward real aim reticle, not an unrelated floor point: '+JSON.stringify(weapon));
  assert(weapon.framing.coverage>=.9,
   'at least 90% of actual weapon mesh must be inside portrait play area: '+JSON.stringify(weapon));
- assert(weapon.framing.bounds.right<.65&&weapon.framing.bounds.left>-.63,
+ assert(weapon.framing.bounds.right<.94&&weapon.framing.bounds.left>-.34,
   'rifle must fit screen-space safe rectangle and not clip at the right edge: '+JSON.stringify(weapon));
 
  await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:3500});
