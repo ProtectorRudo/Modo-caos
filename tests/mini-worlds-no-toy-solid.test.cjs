@@ -17,7 +17,7 @@ assert(!assets.includes("flora('tree-detailed'"),'giant Kenney round broadleaf m
 assert(!assets.includes("flora('tree-palm"),'Kenney palm silhouettes should not stack on native trees');
 assert(!premium.includes("['canopyA','canopyB'"),'Quaternius round canopies must not render');
 assert(premium.includes('Deliberately no Quaternius broadleaf spheres'));
-assert(premium.includes("place('shrub'"),'use restrained low premium foliage');
+assert(premium.includes('const patches=[]'),'do not spawn Quaternius plastic shrub spheres');
 assert(assets.includes('getSize(size)')&&assets.includes('Math.max(size.x,size.z)'),
  'stone GLBs should have hitboxes based on physical mesh footprint');
 assert(!assets.includes("pick('cliff-waterfall-rock'"),'large ghost-waterfall boulder is banned');
