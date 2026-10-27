@@ -38,7 +38,7 @@
     'varying vec2 vUV;',
     'varying float vColorId;',
     'void main(){',
-    ' vec4 p = vec4(aPosition.x*uScale, 0.043 + aPosition.y*uScale, aPosition.z*uScale, 1.0);',
+    ' vec4 p = vec4(aPosition.x*uScale, 0.008 + aPosition.y*uScale, aPosition.z*uScale, 1.0);',
     ' vec4 wp=uWorld*p;',
     ' vWorld=wp.xyz; vNormal=normalize(mat3(uWorld)*aNormal);',
     ' vUV=aUV; vTint=aTint; vColorId=aColorId;',
@@ -101,7 +101,7 @@
     'varying vec3 vC;',
     'varying float vA;',
     'void main(){',
-    ' vec4 p=uWorld*vec4(aPoint.x*uScale,0.043+aPoint.y*uScale,aPoint.z*uScale,1.0);',
+    ' vec4 p=uWorld*vec4(aPoint.x*uScale,0.008+aPoint.y*uScale,aPoint.z*uScale,1.0);',
     ' gl_Position=uPV*p;',
     ' gl_PointSize=clamp(70.0/max(0.65,gl_Position.w),2.0,22.0)*uDpr;',
     ' vC=aColor;vA=aPoint.w;',
@@ -208,14 +208,14 @@
     }
     // Compact sci-fi arena frame; less than 8cm virtual height above surface.
     for(const s of [-1,1]){
-      box('metal',0,s*2.535,5.16,.072,-.025,.054,rgbPalette[0],0);
-      box('metal',s*2.535,0,.072,5.16,-.025,.054,rgbPalette[0],0);
+      box('metal',0,s*2.535,5.16,.072,0,.054,rgbPalette[0],0);
+      box('metal',s*2.535,0,.072,5.16,0,.054,rgbPalette[0],0);
       box('light',0,s*2.535,5.14,.015,.062,.077,rgbPalette[0],0);
       box('light',s*2.535,0,.015,5.14,.062,.077,rgbPalette[0],0);
       box('aura',0,s*2.535,5.20,.055,.062,.068,rgbPalette[0],0);
       box('aura',s*2.535,0,.055,5.20,.062,.068,rgbPalette[0],0);
       for(const t of [-2.52,2.52]){
-        box('metal',s*2.53,t,.14,.14,-.03,.078,rgbPalette[0],0);
+        box('metal',s*2.53,t,.14,.14,0,.078,rgbPalette[0],0);
         box('light',s*2.53,t,.07,.07,.08,.087,rgbPalette[0],0);
       }
     }
