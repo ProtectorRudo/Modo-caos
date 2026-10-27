@@ -168,7 +168,7 @@ function newStage(){
    console.info('[MINI WORLDS] Character rigs ready:',stats);
   }).catch(e=>console.warn('[MINI WORLDS] Procedural hero/enemies preserved:',e.message));
  }
- view=stage.scene;view.background=mode==='ar'?null:new T.Color(level?0x9ea6cf:0xa5dadd);
+ view=stage.scene;view.background=mode==='ar'?null:new T.Color(level?0x727f91:0x9aaea9);
  stage.root.rotation.y=mode==='ar'?worldYaw:0;
  stage.root.scale.setScalar(mode==='ar'?scale:1);
  if(mode==='ar'&&spatialLock)S.restoreWorld(stage,spatialLock);
