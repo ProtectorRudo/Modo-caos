@@ -1,5 +1,6 @@
 import {createWolfSpider} from './rodeados-spider.js?v=16';
 import {buildCaosWeapon} from './rodeados-weapons-v20.js?v=20';
+import {fitQuaterniusWeapon} from './rodeados-weapons-v22.js?v=22';
 /* RODEADOS 360 — original stylized, articulated robot art.
    Techniques adapted from our Blackzone Three.js pipeline: real meter scale,
    MeshStandardMaterial, limb pivots, stable ground shadows and true 3-D objects. */
@@ -576,13 +577,25 @@ export function createRodeadosArt(THREE,scene,camera){
  const pistol=buildCaosWeapon(THREE,{tier:'pistol'});
  const tactical=buildCaosWeapon(THREE,{tier:'tactical'});
  const plasma=buildCaosWeapon(THREE,{tier:'plasma'});
- const weaponModels={pistol,tactical,plasma};
+ const weaponModels={pistol,tactical,plasma},importedWeapons=new Map();
  for(const w of Object.values(weaponModels)){w.rotation.y=Math.PI;rifle.add(w)}
  let currentWeapon='pistol',activeWeapon=pistol;
+ function setWeaponAsset(tier,source){
+  if(!weaponModels[tier]||!source)return false;
+  const next=fitQuaterniusWeapon(THREE,source,tier);
+  if(!next)return false;
+  next.rotation.y=Math.PI;
+  const old=importedWeapons.get(tier);
+  if(old){rifle.remove(old);old.userData.dispose?.()}
+  importedWeapons.set(tier,next);rifle.add(next);
+  setWeaponTier(currentWeapon);
+  return true;
+ }
  function setWeaponTier(tier){
   currentWeapon=Object.prototype.hasOwnProperty.call(weaponModels,tier)?tier:'pistol';
-  activeWeapon=weaponModels[currentWeapon];
-  for(const [key,obj] of Object.entries(weaponModels))obj.visible=key===currentWeapon;
+  activeWeapon=importedWeapons.get(currentWeapon)||weaponModels[currentWeapon];
+  for(const [key,obj] of Object.entries(weaponModels))obj.visible=key===currentWeapon&&!importedWeapons.has(key);
+  for(const [key,obj] of importedWeapons)obj.visible=key===currentWeapon;
  }
  setWeaponTier('pistol');
  const gloves=new THREE.Group();rifle.add(gloves);
@@ -620,9 +633,13 @@ export function createRodeadosArt(THREE,scene,camera){
   rifle.quaternion.copy(quatTemp);
   rifle.rotateY(-.065);rifle.rotateX(-recoil*.12-(flash?.018:0));
   for(const [name,model] of Object.entries(weaponModels)){
-   model.userData.setFiring(name===currentWeapon&&!!flash,performance.now()*.001);
-   model.rotation.z=name===currentWeapon&&name==='plasma'?Math.sin(performance.now()*.003)*.012:0;
+   model.userData.setFiring(name===currentWeapon&&!importedWeapons.has(name)&&!!flash,performance.now()*.001);
   }
+  for(const [name,model] of importedWeapons){
+   model.userData.setFiring(name===currentWeapon&&!!flash,performance.now()*.001);
+  }
+  // A real imported gun occupies the bottom-right; tiny restrained sway.
+  activeWeapon.rotation.z=(currentWeapon==='plasma'?.008:.003)*Math.sin(performance.now()*.0024);
   gloves.rotation.x=-.09-recoil*.06;
  }
  function clear(){
@@ -648,9 +665,10 @@ export function createRodeadosArt(THREE,scene,camera){
    else fallback++;
   }
   return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,spiders,variants,fpsArmsLoaded:!!fpsArms,
+    weaponSources:[...importedWeapons.keys()],
    robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
- return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setFPSArms,getRobotAdapterStatus,
+ return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setWeaponAsset,setFPSArms,getRobotAdapterStatus,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
    darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
    scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity),
