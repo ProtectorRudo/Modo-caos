@@ -13,7 +13,9 @@
   fast:{hp:1,speed:.82,range:2.53,damage:5,value:190,radius:.26,height:1.60},
   joker:{hp:3,speed:.61,range:2.55,damage:4,value:320,radius:.30,height:1.75},
   boss:{hp:22,speed:.39,range:2.64,damage:12,value:1600,radius:.56,height:2.20},
-   spider:{hp:3,speed:.83,range:2.52,damage:7,value:260,radius:.44,height:.90}
+   spider:{hp:3,speed:.83,range:2.52,damage:7,value:260,radius:.44,height:.90},
+   creep:{hp:4,speed:.73,range:2.53,damage:7,value:310,radius:.32,height:1.82},
+   minotaur:{hp:20,speed:.42,range:2.70,damage:13,value:1700,radius:.56,height:2.25}
  };
  const MODES={
   survival:{duration:90,label:'SUPERVIVENCIA 360'},
@@ -34,7 +36,7 @@
   const seed=(config.seed??Date.now())>>>0;
   const g={seed,mode,phase:'ready',elapsed:0,wave:0,lives:100,score:0,shots:0,hits:0,kills:0,combo:0,bestCombo:0,headshots:0,headshotStreak:0,bestHeadshotStreak:0,floorDamage:Array(25).fill(0),floorHeat:Array(25).fill(-100),ammo:28,mag:28,reload:0,infiniteAmmo:true,skill:1,skillCooldown:0,bombCharges:1,bombCooldown:0,bombKillsAt:0,bombsUsed:0,bombHits:0,bombs:[],spawnClock:0,enemyId:0,
    enemies:[],fx:[],scores:{},peerWeapons:Object.create(null),ownerId:config.ownerId||null,player:{x:0,z:0},arena:clamp(config.arena||2.6,1.8,4),
-   duration:MODES[mode].duration,paused:false,finishedReason:'',announcedBoss:false,spiderIntroduced:false,lastDamage:0};
+   duration:MODES[mode].duration,paused:false,finishedReason:'',announcedBoss:false,spiderIntroduced:false,creepIntroduced:false,minotaurIntroduced:false,lastDamage:0};
   Object.defineProperty(g,'rand',{value:prng(seed),enumerable:false});
   return g;
  }
@@ -43,15 +45,16 @@
  }
  function begin(g){if(g.phase==='ready'){g.phase='playing';g.spawnClock=.5;}return g}
  function copy(g){
-  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,headshots:g.headshots,headshotStreak:g.headshotStreak,bestHeadshotStreak:g.bestHeadshotStreak,floorDamage:g.floorDamage.slice(),floorHeat:g.floorHeat.slice(),ammo:g.ammo,mag:g.mag,reload:g.reload,infiniteAmmo:true,skill:g.skill,skillCooldown:g.skillCooldown,bombCharges:g.bombCharges,bombCooldown:g.bombCooldown,bombKillsAt:g.bombKillsAt,bombsUsed:g.bombsUsed,bombHits:g.bombHits,bombs:g.bombs.map(b=>({...b})),player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},peerWeapons:{...g.peerWeapons},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason,spiderIntroduced:g.spiderIntroduced};
+  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,headshots:g.headshots,headshotStreak:g.headshotStreak,bestHeadshotStreak:g.bestHeadshotStreak,floorDamage:g.floorDamage.slice(),floorHeat:g.floorHeat.slice(),ammo:g.ammo,mag:g.mag,reload:g.reload,infiniteAmmo:true,skill:g.skill,skillCooldown:g.skillCooldown,bombCharges:g.bombCharges,bombCooldown:g.bombCooldown,bombKillsAt:g.bombKillsAt,bombsUsed:g.bombsUsed,bombHits:g.bombHits,bombs:g.bombs.map(b=>({...b})),player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},peerWeapons:{...g.peerWeapons},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason,spiderIntroduced:g.spiderIntroduced,creepIntroduced:g.creepIntroduced,minotaurIntroduced:g.minotaurIntroduced};
  }
  function pickKind(g){
   if(g.mode==='joker')return g.rand()<.68?'joker':g.rand()<.55?'fast':'flanker';
   if(g.mode==='boss'&&g.elapsed>3&&!g.announcedBoss)return 'boss';
   if(g.mode==='reflex')return g.rand()<.68?'fast':'flanker';
   if(g.wave<2)return 'basic';
+  if(g.wave>=3&&g.enemies.filter(e=>e.type==='creep').length<2&&g.rand()<.29)return 'creep';
    if(g.enemies.filter(e=>e.type==='spider').length<2&&g.rand()<.23)return 'spider';
-  const choices=['basic','basic','flanker','fast','tank','joker'];return choices[Math.floor(g.rand()*Math.min(choices.length,2+Math.floor(g.wave/2)))];
+  const choices=['basic','basic','flanker','fast','tank','joker','creep'];return choices[Math.floor(g.rand()*Math.min(choices.length,2+Math.floor(g.wave/2)))];
  }
  // The calibrated 5×5 board marks the human SAFE ZONE; full-scale robots
  // roam a separate virtual ring. Do not crowd the phone on a 2.6m floor.
@@ -75,7 +78,7 @@
   const e={id:++g.enemyId,type,x:p.x,z:p.z,y:0,angle:Math.atan2(g.player.x-p.x,g.player.z-p.z),sector:p.sector,
    hp:def.hp,maxHp:def.hp,radius:def.radius,height:def.height,state:'enter',age:0,stun:0,attackCD:1+g.rand(),strafe:g.rand()<.5?-1:1,
    phase:g.rand()*TAU,taunt:0,lastHit:0,portal:.72};
-  g.enemies.push(e);if(type==='boss')g.announcedBoss=true;return e;
+  g.enemies.push(e);if(type==='boss')g.announcedBoss=true;if(type==='creep')g.creepIntroduced=true;if(type==='minotaur')g.minotaurIntroduced=true;return e;
  }
  function movePlayer(g,p){
   if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
@@ -103,6 +106,8 @@
   if(g.mode==='boss'&&g.elapsed>=2&&!g.announcedBoss)spawn(g,'boss');
    // One unmistakable wolf-spider encounter after the opening humanoids.
    // Never spawn it next to the phone or force the player to walk.
+   if(g.elapsed>=60&&!g.minotaurIntroduced&&['survival','infinite','boss'].includes(g.mode)&&g.enemies.length<6)spawn(g,'minotaur');
+   if(g.elapsed>=30&&!g.creepIntroduced&&g.enemies.length<6)spawn(g,'creep');
    if(g.elapsed>=12&&!g.spiderIntroduced&&g.enemies.length<6){
     const spider=spawn(g,'spider');if(spider)g.spiderIntroduced=true;
    }
@@ -139,8 +144,8 @@
       g.fx.push({type:'damage',id:e.id,x:P.x,z:P.z,t:g.elapsed});
     }
    }else{
-    e.state=e.type==='flanker'?'flank':e.type==='fast'||e.type==='spider'?'dash':e.type==='joker'?'dodge':'advance';
-    const sign=e.strafe,zig=(e.type==='flanker'||e.type==='joker'||e.type==='fast'||e.type==='spider')?Math.sin(e.age*(e.type==='fast'?7:3.5)+e.phase)*.68:0;
+    e.state=e.type==='flanker'?'flank':e.type==='fast'||e.type==='spider'||e.type==='creep'?'dash':e.type==='joker'?'dodge':'advance';
+    const sign=e.strafe,zig=(e.type==='flanker'||e.type==='joker'||e.type==='fast'||e.type==='spider'||e.type==='creep')?Math.sin(e.age*(e.type==='fast'?7:3.5)+e.phase)*.68:0;
     const speed=def.speed*(1+Math.min(.42,g.elapsed/200));
     let vx=nx+zig*nz, vz=nz-zig*nx;
     if(e.type==='flanker'){vx=nx*.48+sign*nz*.9;vz=nz*.48-sign*nx*.9}
@@ -204,7 +209,7 @@
    const rx=origin.x-e.x,rz=origin.z-e.z;
    const ox=cs*rx-sn*rz,oy=origin.y,oz=sn*rx+cs*rz;
    const lx=cs*dx-sn*dz,lz=sn*dx+cs*dz;
-   const scale=e.height/1.75,pad=e.type==='tank'||e.type==='boss'?.09:.06;
+   const scale=e.height/1.75,pad=['tank','boss','minotaur'].includes(e.type)?.09:.06;
    const boxes=e.type==='spider'?[
     ['head',[-.28,.28,.40,.88,.08,.64]],
     ['body',[-.47,.47,.18,.77,-.68,.15]],
@@ -234,8 +239,8 @@
   let h=rayHit(g,ray.origin,ray.direction);
   if(!h){g.combo=0;g.headshotStreak=0;g.fx.push({type:'miss',t:g.elapsed});return {ok:true,hit:false};}
   const e=g.enemies.find(x=>x.id===h.id);if(!e)return {ok:true,hit:false};
-  const weak=e.type==='tank'||e.type==='boss';
-  const damage=(h.part==='head'?2:1)+(weak&&h.part==='head'?1:0);
+  const weak=['tank','boss','minotaur'].includes(e.type);
+  const damage=(h.part==='head'?2:1)+(weak&&h.part==='head'?1:0)+(weaponTier(g)==='plasma'?1:0);
   e.hp=Math.max(0,e.hp-damage);e.stun=Math.max(e.stun,.20);
   e.lastHit=.30;g.hits++;g.combo++;g.bestCombo=Math.max(g.bestCombo,g.combo);
   const head=h.part==='head',lethal=e.hp===0;
@@ -248,7 +253,7 @@
   g.score+=pts;g.scores[String(shooter||'vos')]=(g.scores[String(shooter||'vos')]||0)+pts;
   g.fx.push({type:'hit',id:e.id,x:e.x,y:e.height*.75,z:e.z,t:g.elapsed,head:h.part==='head',points:pts,streak:g.headshotStreak});
   if(!e.hp){g.kills++;g.fx.push({type:'destroy',id:e.id,x:e.x,y:1,z:e.z,t:g.elapsed});g.enemies=g.enemies.filter(x=>x.id!==e.id)}
-  return {ok:true,hit:true,enemy:h.id,part:h.part,damage,points:pts,killed:e.hp===0,headshotStreak:g.headshotStreak};
+  return {ok:true,hit:true,enemy:h.id,part:h.part,damage,points:pts,killed:e.hp===0,headshotStreak:g.headshotStreak,weapon:weaponTier(g)};
  }
  // Bomb Caos is a short-fuse AREA ability, not a firearm.
  // Shared 1 charge, refreshed every 32s OR after 10 fresh robot kills.
@@ -272,7 +277,7 @@
    if(e.hp<=0||e.portal>.6)continue;
    const dist=Math.hypot(e.x-bomb.x,e.z-bomb.z);
    if(dist>r+e.radius)continue;
-   const tough=e.type==='tank'||e.type==='boss';
+   const tough=['tank','boss','minotaur'].includes(e.type);
    const damage=tough?2:3;
    const oldHp=e.hp;
    e.hp=Math.max(0,e.hp-damage);
@@ -298,7 +303,8 @@
   for(const e of g.enemies){e.stun=Math.max(e.stun,2.4);e.hp=Math.max(1,e.hp-1);}
   g.fx.push({type:'pulse',t:g.elapsed});return true;
  }
- const api={TYPES,MODES,create,reset,begin,advance,spawn,movePlayer,copy,rayHit,fire,reload,pulse,throwBomb,finish,markFloorDamage,BOMB_RADIUS};
+ const weaponTier=g=>g.elapsed>=60?'plasma':g.elapsed>=30?'tactical':'pistol';
+ const api={TYPES,MODES,create,reset,begin,advance,spawn,movePlayer,copy,rayHit,fire,reload,pulse,throwBomb,finish,markFloorDamage,BOMB_RADIUS,weaponTier};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  root.RodeadosCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
