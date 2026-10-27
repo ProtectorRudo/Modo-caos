@@ -99,6 +99,7 @@ function newStage(){
  if(residents>=3)game.mission.seconds+=15;       // garden: extra oxygen/time
  if(residents>=5)game.player.invuln=2.4;          // observatory: brief spawn shield
  stage=window.MiniWorldsArt(T).makeStage(game.map);
+ stage.mission=game.mission;
  document.body.classList.toggle('mw-defense',missionId===1);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
  stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
@@ -199,7 +200,8 @@ function drawMiniMap(){
 function layout(state){
  phase=state;const active=state==='playing'||state==='paused'||state==='ready'||state==='placing'||state==='won';
  $('landing').hidden=state!=='home';$('viewport').hidden=!active&&state!=='failed';$('hud').hidden=state==='home'||state==='placing';
- $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';$('missionGoal').hidden=state!=='playing'&&state!=='paused';$('missionHint').hidden=state!=='playing'&&state!=='paused';
+ $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';
+ $('zoneTitle').hidden=state==='playing'||state==='paused';$('missionGoal').hidden=state!=='playing'&&state!=='paused';$('missionHint').hidden=state!=='playing'&&state!=='paused';
  $('chaosMeter').hidden=state==='home'||state==='placing';
  if(state==='home')document.body.classList.remove('fury-mode','boss-encounter');
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';

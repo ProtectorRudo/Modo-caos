@@ -47,9 +47,10 @@ root.MiniWorldsKayKit=function(T,options={}){
    const random=rand(7805+(level||0)*971);
    const platforms=stage.map.platforms,placedBy={tree:0,bush:0,rock:0};
    const specs=[
-    ['tree',1,1],['tree',4,1],['tree',9,1],
-    ['bush',0,-1],['bush',2,1],['bush',5,-1],['bush',10,1],
-    ['rock',1,-1],['rock',3,1],['rock',4,-1],['rock',7,1],['rock',8,-1],['rock',11,1],['rock',13,-1]
+    // Quaternius already provides canopy silhouettes. This second pack is
+    // a complementary ROCK/BUSH kit, not a second forest stacked on top.
+    ['bush',2,1],['bush',5,-1],['bush',10,1],
+    ['rock',1,-1],['rock',3,1],['rock',4,-1],['rock',7,1],['rock',8,-1],['rock',11,1]
    ];
    for(let i=0;i<specs.length;i++){
     const [kind,id,side]=specs[i],p=platforms[id],family=protos[kind];if(!p||!family.length)continue;
@@ -62,12 +63,13 @@ root.MiniWorldsKayKit=function(T,options={}){
     const box=new T.Box3().setFromObject(o);
     const h=box.max.y-box.min.y;
     if(!Number.isFinite(h)||h<.001){stage.worldRoot.remove(o);continue}
-    const wanted=kind==='tree'?1.40+random()*.24:kind==='rock'?.28+random()*.19:.36+random()*.11;
+    const wanted=kind==='tree'?.94+random()*.10:kind==='rock'?.24+random()*.13:.24+random()*.08;
     o.scale.setScalar(wanted/h);
     o.updateMatrixWorld(true);
     const scaled=new T.Box3().setFromObject(o);
     o.position.y=p.y+.012-scaled.min.y;
     o.name='KAYKIT '+kind.toUpperCase()+' · '+proto.name;
+    o.userData.mwFoliage=kind!=='rock';
     o.traverse(n=>{if(n.isMesh){n.castShadow=false;n.receiveShadow=true;n.frustumCulled=true;
       if(n.material?.map)n.material.map.anisotropy=Math.max(n.material.map.anisotropy||1,4)}});
     added.push(o);placedBy[kind]++;
@@ -75,6 +77,8 @@ root.MiniWorldsKayKit=function(T,options={}){
    stage.pocket?.reindex();
    return {loaded:true,placed:added.length,placedBy,source:URL};
   }catch(error){
+   for(const obj of added)obj.parent?.remove(obj);
+   added.length=0;
    console.warn('[MINI WORLDS] KayKit optional landscape skipped, original scene preserved:',error?.message||error);
    return {loaded:false,placed:0,reason:String(error?.message||error)};
   }

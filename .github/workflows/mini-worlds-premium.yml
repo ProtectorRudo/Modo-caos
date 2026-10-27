@@ -1,7 +1,7 @@
-name: Mini Worlds premium art and game feel QA
+name: Mini Worlds clear-view AR regression QA
 on:
   push:
-    branches: [feat/mini-worlds-game-feel-premium-20261027]
+    branches: [fix/mini-worlds-clear-view-20261027]
   workflow_dispatch:
 jobs:
   test:

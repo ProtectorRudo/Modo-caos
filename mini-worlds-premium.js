@@ -42,7 +42,19 @@ root.MiniWorldsPremium=function(T,options={}){
   if(!Number.isFinite(box.min.y)||!Number.isFinite(box.max.y)||box.max.y<=box.min.y){
    parent.remove(o);return false;
   }
-  o.position.y=y-box.min.y;
+  // A normalized height isn't enough: Quaternius broadleaf crowns may be
+  // wider than twice their height, which can cover the whole AR camera.
+  if(template.userData?.mwCanopy){
+   const width=(box.max.x??0)-(box.min.x??0),depth=(box.max.z??0)-(box.min.z??0);
+   const diameter=Math.max(width,depth);
+   if(Number.isFinite(diameter)&&diameter>1.45){
+    o.scale.multiplyScalar(1.45/diameter);
+    o.updateMatrixWorld(true);
+    const resized=new T.Box3().setFromObject(o);
+    o.position.y=y-resized.min.y;
+   }else o.position.y=y-box.min.y;
+  }else o.position.y=y-box.min.y;
+  o.userData={...(o.userData||{}),mwFoliage:!!template.userData?.mwFoliage,mwCanopy:!!template.userData?.mwCanopy};
   return true;
  }
  async function decorate(stage,level){
@@ -52,7 +64,7 @@ root.MiniWorldsPremium=function(T,options={}){
   layer.name='MINI WORLDS · QUATERNIUS STYLIZED NATURE MEGAKIT · CC0';
   rootGroup.add(layer);
   let alive=true;
-  stage.disposePremium=()=>{alive=false};
+  stage.disposePremium=()=>{alive=false;layer.parent?.remove(layer)};
   const templateMap=new Map(),results={loaded:0,placed:0,failed:0,source:'Quaternius Stylized Nature MegaKit Standard / CC0'};
   let gltf;
   try{gltf=options.loadModel?{loadAsync:options.loadModel}:await loader()}catch(e){
@@ -71,6 +83,7 @@ root.MiniWorldsPremium=function(T,options={}){
     const size=new T.Vector3();box.getSize(size);
     if(!Number.isFinite(size.y)||size.y<.001)throw Error('empty tree bounds');
     const proto=new T.Group();
+    proto.userData={...(proto.userData||{}),mwFoliage:/^(canopy|shrub)/.test(key),mwCanopy:key.startsWith('canopy')};
     object.scale.multiplyScalar(1/size.y);
     proto.add(object);proto.updateMatrixWorld(true);
     return [key,proto];
@@ -99,16 +112,34 @@ root.MiniWorldsPremium=function(T,options={}){
   // Gameplay/physics traverse the centers. Canopy is placed exclusively
   // against the OUTER CORNERS of real islands; it cannot resemble a new,
   // non-collidable walkway or cover the joystick player's clear route.
-  const treeTiles=level?[3,4,5,6,9,11,12,13]:[0,1,3,4,5,6,8,9,10,11,12,13];
+  // ART BUDGET: five small accents across an entire long level, not
+  // twelve giant canopies stacked over KAI. Trees frame exploration;
+  // no trees over the spawn, rescue characters or relay mechanisms.
+  const treeTiles=level?[3,5,7,10,13]:[3,5,7,10,13];
+  const restricted=[
+    {x:0,z:1.2},
+    ...(stage.mission?.rescues||[]),
+    ...(stage.map.runes||[]),
+    ...stage.map.walkways.filter((_,i)=>i<5).map(w=>({x:(w.x1+w.x2)/2,z:(w.z1+w.z2)/2, clearance:0.8}))
+  ];
+  const clear=(x,z,radius=1.55)=>restricted.every(point=>
+    Math.hypot(x-point.x,z-point.z)>radius+(point.clearance||0));
+  let remainingCanopies=5;
   for(let i=0;i<treeTiles.length;i++){
    const p=stageTiles[treeTiles[i]],side=i%2?-1:1;
+   if(!p)continue;
    const key=palettes[(i+(level?2:0))%palettes.length];
-   const x=p.x+side*(p.w*.5-.13);
-   const z=p.z+(i%3===0?-.37:.38)*p.d;
-   place(key,x,p.y+.02,z,(level?2.1:2.4)+random()*.88,random()*Math.PI*2);
-   // One understated bush per second island, keeping all paths visible.
-   if(i%2===0)place('shrub',p.x-side*(p.w*.5-.13),p.y+.025,p.z+(random()-.5)*p.d*.7,
-       .38+random()*.18,random()*Math.PI*2);
+   const x=p.x+side*(p.w*.5+.27);
+   const z=p.z+(i%3===0?-.30:.32)*p.d;
+   if(clear(x,z,1.5)&&remainingCanopies>0){
+    const height=(level?1.22:1.32)+random()*.19;
+    if(place(key,x,p.y+.02,z,height,random()*Math.PI*2))remainingCanopies--;
+   }
+   // Bushes accent outside corners; no center-path decorative collisions.
+   if(i%2===0){
+    const bx=p.x-side*(p.w*.5+.06),bz=p.z+(random()-.5)*p.d*.55;
+    if(clear(bx,bz,.78))place('shrub',bx,p.y+.025,bz,.28+random()*.11,random()*Math.PI*2);
+   }
   }
   // Detail on physically walkable historic ruins only; never create new
   // fake land/bridges. Premium plants are scenery with no new hitboxes.
@@ -116,15 +147,15 @@ root.MiniWorldsPremium=function(T,options={}){
    // Two landmark watchtowers frame the arena. Wall fragments and rocks
    // reinforce the ruins without pretending to be walkable surfaces.
    const arena=stageTiles[7],oldTemple=stageTiles[11],cliff=stageTiles[6];
-   place('medievalTower',arena.x-arena.w*.43,arena.y+.02,arena.z-arena.d*.40,2.95,.43);
-   place('medievalTower',arena.x+arena.w*.43,arena.y+.02,arena.z-arena.d*.40,2.95,-.49);
+   place('medievalTower',arena.x-arena.w*.43,arena.y+.02,arena.z-arena.d*.40,2.05,.43);
+   place('medievalTower',arena.x+arena.w*.43,arena.y+.02,arena.z-arena.d*.40,2.05,-.49);
    place('medievalWall',oldTemple.x-oldTemple.w*.39,oldTemple.y-.08,oldTemple.z+oldTemple.d*.40,1.14,.7);
    place('medievalWall',cliff.x+cliff.w*.44,cliff.y-.08,cliff.z-cliff.d*.39,.92,.12);
    place('medievalRock',oldTemple.x+oldTemple.w*.48,oldTemple.y-.18,oldTemple.z-oldTemple.d*.45,.94,.24);
    place('medievalRock',cliff.x-cliff.w*.50,cliff.y-.14,cliff.z+cliff.d*.42,1.10,1.2);
    place('shrub',oldTemple.x+oldTemple.w*.43,oldTemple.y+.02,oldTemple.z-oldTemple.d*.4,.53,.4);
   }
-  if(treeCount>=3){
+  if(treeCount>=2){
    stage.premiumNativeActive=true;
    // Suppress redundant Kenney tree/bush dressing ONLY after imported models
    // actually loaded. The waterfall, crates, bridges and pickups stay.

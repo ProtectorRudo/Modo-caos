@@ -79,7 +79,7 @@ root.MiniWorldsAssets=function(T){
    }
    if(p.kind==='ruins'||p.kind==='waterfall'||p.kind==='arena'){
     pick('stone-largeb',x-wx-.20,height,z-.30,.58+random()*.27,random()*6.28);
-    pick('rock-tallb',x+wx+.33,height-.22,z+.25,1.05+random()*.5,random()*6.28);
+    pick('rock-tallb',x+wx+.33,height-.22,z+.25,.68+random()*.22,random()*6.28);
     if(i%2===0)pick('rock-largea',x+wx+.18,height-.06,z+.16,.36+random()*.11,random()*6.28);
    }
    if(level&&i===3){flora('tree-detailed',x-wx-.65,height-.1,z,2.05,.3);flora('tree-detailed',x+wx+.5,height,z-.5,1.50,2)}
@@ -88,7 +88,7 @@ root.MiniWorldsAssets=function(T){
   pick('canoe',beach.x-3.1,-.56,beach.z+1.3,.75,.3);
   pick('campfire-stones',camp.x+camp.w/2+.42,camp.y,camp.z+.15,.55,.23);
   pick('bridge-woodround',bridge.x-bridge.w/2-1.3,bridge.y-.15,bridge.z+.15,.54,.8);
-  pick('cliff-waterfall-rock',waterfall.x+waterfall.w/2+.26,waterfall.y-.12,waterfall.z-.50,1.22,1.4);
+  pick('cliff-waterfall-rock',waterfall.x+waterfall.w/2+.26,waterfall.y-.12,waterfall.z-.50,.88,1.4);
   // Replace primitive pickups with actual textured 3D assets. Hitboxes and
   // collectible IDs belong to MiniWorldsCore and never depend on the model.
   const replace=(original,name,height)=>{
