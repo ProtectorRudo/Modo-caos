@@ -69,8 +69,8 @@ function fresh(){
  for(let k=0;k<95;k++){C.tick(s,{},1/60);C.drain(s);elapsed+=1/60}
  assert.equal(s.magicShots.length,0,'missed bolts expire; no memory leak');
 }
-assert(chars.includes('Mage.glb'),'genuine free KayKit Mage must replace knight');
-assert(!chars.includes('Knight.glb'),'old sword hero should not be loaded');
+assert(chars.includes('RobotExpressive.glb'),'genuine CC0 expressive robot must be bundled');
+assert(!chars.includes('Mage.glb'),'old remote Mage should not be loaded');
 assert(art.includes('hero.wand=wand'),'witch must always hold a visible wand');
 assert(art.includes('const magicOrbs'),'visible 3D spell projectile pool missing');
 assert(art.includes('runeRestored'),'rune bloom FX missing');
