@@ -118,7 +118,7 @@ function newStage(){
     if(node.visible===false){visible=false;break}
     node=node.parent;
    }
-   hit.enabled=visible;
+   hit.enabled=visible&&node===stage.worldRoot;
   }
  };
  const stageRefForPhysics=stage;
@@ -127,7 +127,12 @@ function newStage(){
  stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
  stage.pocket=window.MiniWorldsPocket?.create(T,stage)||null;
- for(const data of stage.nativeSolids||[])stage.registerSolid(data.obj,data);
+ for(const data of stage.nativeSolids||[]){
+  const collider=stage.registerSolid(data.obj,data);
+  // If this decorative physical obstacle would block a required path,
+  // remove THAT prop instead of leaving a ghost/pass-through object.
+  if(!collider&&data.kind!=='column'&&data.obj)data.obj.visible=false;
+ }
  const stageRef=stage;
  // Native, bundled CC0 assets never block controls. Keep the original art if any GLB cannot load.
  if(window.MiniWorldsAssets){
