@@ -1,7 +1,7 @@
-name: Mini Worlds clear-view AR regression QA
+name: Mini Worlds solid scenery and combat regression QA
 on:
   push:
-    branches: [fix/mini-worlds-clear-view-20261027]
+    branches: [fix/mini-worlds-solid-scenery-20261027]
   workflow_dispatch:
 jobs:
   test:
@@ -20,6 +20,7 @@ jobs:
             tests/mini-worlds-physics-polish.test.cjs \
             tests/mini-worlds-pocket.test.cjs \
             tests/mini-worlds-diorama.test.cjs \
+            tests/mini-worlds-solid-scenery.test.cjs \
             tests/mini-worlds-gamefeel.test.cjs \
             tests/mini-worlds-magic.test.cjs \
             tests/mini-worlds-missions.test.cjs \
