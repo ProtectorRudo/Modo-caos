@@ -1,6 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
 import {createRodeadosArt} from './rodeados-art.js?v=17';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
+import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=18';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
    The selected 5x5 cell is a manual baseline; WebXR follows the phone, never feet.
@@ -22,6 +23,8 @@ const coolBase=new THREE.Color(0x44fce0),coolAlert=new THREE.Color(0xff6538);
 const floorLightTarget=new THREE.Vector3();
 if(!UX)throw Error('RODEADOS: falta el radar 360');
 const art=createRodeadosArt(THREE,scene,camera);
+const missionArt=createRodeadosMissionArt(THREE,art.root);
+let lastMissionEvent=0;const demoDirections=new Set();
  // No file picker in the consumer experience. Internal asset QA remains
  // opt-in at ?dev=1, never surfaced to players or linked in the main menu.
  if(location.pathname.endsWith('/rodeados-manul.html')&&
@@ -178,7 +181,8 @@ function renderThreats(){
 }
 function setupGame(keepCalibration=false){
  const keepArena=floorSize;
- game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
+ game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32),flagPlan:globalThis.RodeadosFlagPlanner?.getPlan()});
+ lastMissionEvent=0;
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
  fxShown.clear();lastBlastSignal='';lastMenaceAt=0;initialBotsSpawned=false;openingEyePosition=null;latestAim=null;lastAimStamp=0;lastShotStatus='';pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
@@ -197,6 +201,10 @@ function updateHud(force=false){
  $('bomb').disabled=game.bombCharges<=0;
  $('bomb').textContent=game.bombCharges>0?'💣 BOMBA CAOS':'💣 '+Math.ceil(game.bombCooldown)+'s';
  if(online)$('online').textContent=online.status+' · '+(online.isHost?'ANFITRIÓN':'INVITADO')+' · '+online.mode;
+ const ms=G.missionStatus?.(game);
+ if(ms){$('missionTitle').textContent=ms.text;$('missionDetail').textContent=ms.detail||'';
+  if(ms.button){$('missionAction').textContent=ms.button;$('missionAction').disabled=!ms.canAct}
+ }
 }
 function result(){
  if(stage==='finished')return;
@@ -210,11 +218,12 @@ function result(){
   $('achievements').textContent=report.unlocked.length?'🏅 LOGROS DESBLOQUEADOS: '+report.unlocked.join(' · '):'🏅 LOGROS: '+report.progress.achievements.length+' / 6';
   $('localRank').textContent='🏆 TOP PERSONAL: '+report.ranking.map((x,i)=>(i+1)+'º '+x.score+' pts').join(' · ')+(report.dailyWon?' · ✨ DESAFÍO DIARIO COMPLETADO':'');
  }
- const title=game.lives<=0?'¡CAÍSTE EN COMBATE!':'¡INVASIÓN CONTENIDA!';
+ const ms=game.mission;
+ const title=ms?(ms.completed?'¡MISIÓN CUMPLIDA!':game.lives<=0?'¡CAÍSTE EN COMBATE!':'¡MISIÓN TERMINADA!'):(game.lives<=0?'¡CAÍSTE EN COMBATE!':'¡INVASIÓN CONTENIDA!');
  $('outcome').textContent=title;
  $('summary').textContent=(improved?'🏆 ¡NUEVO RÉCORD! · ':'')+G.MODES[game.mode].label+' · '+Math.round(game.elapsed)+' s'+(online?' · SALA BETA':'');
  $('resultStats').replaceChildren();
- for(const [name,value] of [['PUNTUACIÓN',game.score],['ROBOTS',game.kills],['PRECISIÓN',accuracy+'%'],['MEJOR RACHA',game.bestCombo],['OLEADA',game.wave],['RÉCORD ANTERIOR',record]]){
+ for(const [name,value] of [['PUNTUACIÓN',game.score],['ROBOTS',game.kills],['PRECISIÓN',accuracy+'%'],['MEJOR RACHA',game.bestCombo],['OLEADA',game.wave],['RÉCORD ANTERIOR',record],...(ms?.kind==='ctf'?[['BANDERAS',ms.captures]]:[]),...(ms?.kind==='loot'?[['BOTÍN EXTRAÍDO',ms.extracted]]:[]),...(ms?.kind==='refuge'?[['REACTOR FINAL',Math.ceil(ms.reactor)+'%']]:[]) ]){
   const div=document.createElement('div');const label=document.createTextNode(name);const b=document.createElement('strong');b.textContent=value;div.append(label,b);$('resultStats').append(div);
  }
  visible('result',true);audio('finish');
@@ -227,6 +236,9 @@ function setPhase(next){
  visible('manualPlace',next==='search'&&performance.now()-searchSince>1800,'block');
  visible('placementHelp',false);visible('healthTrack',['ready','countdown','playing','paused'].includes(next),'block');
  visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown','block');
+ visible('missionObjective',!!game.mission&&['ready','countdown','playing','paused'].includes(next),'block');
+ visible('missionAction',next==='playing'&&['loot','ctf'].includes(game.mode),'block');
+ visible('demoMove',demo&&next==='playing'&&['ctf','loot','refuge'].includes(game.mode),'grid');
  visible('radarWrap',next==='playing'||next==='paused','block');visible('botGuide',next==='playing'||next==='paused','block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
  visible('actions',next==='paused');$('pause').textContent=next==='paused'?'▶ CONTINUAR':'Ⅱ PAUSA';
@@ -467,10 +479,11 @@ function spawnOpeningEnemies(){
 }
 function startRound(){
  G.begin(game);game.paused=false;
- spawnOpeningEnemies();
+ if(game.mode==='ctf'){G.spawn(game,'flanker');G.spawn(game,'basic')}
+ else if(game.mode!=='colossus')spawnOpeningEnemies();
  trackingLostSince=0;lastTracked=performance.now();
  setPhase('playing');hint('');
- notice('🤖 ROBOTS A 3 METROS · ¡APUNTÁ A LA CABEZA O AL PECHO!',3);audio('danger');vib(70);
+ notice(G.MISSION_DEFINITIONS?.[game.mode]?.tip||'🤖 ROBOTS A 3 METROS · ¡APUNTÁ A LA CABEZA O AL PECHO!',3);audio('danger');vib(70);
 }
 function pause(){
  if(stage==='playing'){game.paused=true;setPhase('paused');hint('PAUSA · RECALIBRAR O CONTINUAR')}
@@ -548,7 +561,7 @@ const ray=activeRay();
   return;
  }
  lastShotStatus=r.hit?'IMPACTO':'DISPARO';
- art.drawShot(packet,preHit?.distance??7,r.hit);
+ art.drawShot(packet,r.crate?r.distance:preHit?.distance??7,r.hit);
  const shotPulse=$('shotPulse');
  shotPulse.classList.remove('boom');void shotPulse.offsetWidth;shotPulse.classList.add('boom');
  updateHud();
@@ -726,6 +739,11 @@ function tickGame(dt,t){
   if(countdown<=0)startRound();
  }
  if(stage!=='playing')return;
+ if(demo&&demoDirections.size){const p={...game.player},step=dt*.80;
+  if(demoDirections.has('forward'))p.z-=step;if(demoDirections.has('back'))p.z+=step;
+  if(demoDirections.has('left'))p.x-=step;if(demoDirections.has('right'))p.x+=step;
+  G.movePlayer(game,p);
+ }
  if(demo||!online||online.isHost){
   G.advance(game,dt);
  } // guests render only host snapshots (no locally simulated hits, score or spawns)
@@ -741,6 +759,11 @@ function tickGame(dt,t){
   weaponNoticeTier=weapon;
  }
  fireFlash=Math.max(0,fireFlash-dt);
+ if(game.mission?.event&&game.mission.event!==lastMissionEvent){
+  lastMissionEvent=game.mission.event;
+  notice(game.mission.signal,2.7);vib([35,30,55]);
+  $('waveBanner').textContent=game.mission.signal;waveUntil=performance.now()+1400;
+ }
  if(game.phase==='finished'){result();return}
  updateBattleFeedback(t);
  const blast=game.fx.findLast?.(f=>f.type==='bombBlast');
@@ -847,8 +870,9 @@ function animate(t,frame){
   }
  }else if(demo){
   camera.rotation.order='YXZ';camera.rotation.set(aimPitch,aimYaw,0,'YXZ');
-  camera.position.set(0,1.59,0);
+  camera.position.set(game.player.x,1.59,game.player.z);
  }
+ missionArt.update(game,stage,t);
  if(stage==='edit')art.setFloor(floorSize,true,selected);
  else art.setFloor(floorSize,stage==='cell'||stage==='sample',selected,calibrated?game.player:null);
  if(stage==='playing'||stage==='paused'||stage==='countdown'||stage==='ready')art.drawEnemies(game);
@@ -934,7 +958,7 @@ $('rematch').onclick=()=>{
  if(!calibrated&&!demo){resetEditor(false);return}
  setupGame(true);G.movePlayer(game,{x:playerPos.x,z:playerPos.z});
  game.phase='ready';
- if(demo){G.begin(game);setPhase('playing')}else{setPhase('ready');hint('✅ PISTA CONSERVADA · ¡REVANCHA!')}
+ if(demo){G.begin(game);if(game.mode==='ctf'){G.spawn(game,'flanker');G.spawn(game,'basic')}else if(game.mode!=='colossus')spawnOpeningEnemies();setPhase('playing')}else{setPhase('ready');hint('✅ PISTA CONSERVADA · ¡REVANCHA!')}
 };
 $('share').onclick=async()=>{
  const title='¡RODEADOS 360! '+game.score+' puntos y '+game.kills+' robots derrotados. ¿Superás mi récord? '+location.origin+'/rodeados.html';
@@ -946,7 +970,8 @@ function beginDemo(){
  $('home').style.display='none';$('overlay').style.display='block';$('world').style.pointerEvents='auto';
  art.root.position.set(0,0,0);art.root.quaternion.identity();selected=12;
  calibrated=true;calOffset.set(0,0,0);G.movePlayer(game,{x:0,z:0});
- camera.position.set(0,1.59,0);aimYaw=0;aimPitch=0;camera.updateMatrixWorld(true);G.begin(game);spawnOpeningEnemies();setPhase('playing');
+ camera.position.set(0,1.59,0);aimYaw=0;aimPitch=0;camera.updateMatrixWorld(true);G.begin(game);
+  if(game.mode==='ctf'){G.spawn(game,'flanker');G.spawn(game,'basic')}else if(game.mode!=='colossus')spawnOpeningEnemies();setPhase('playing');
  notice('ARRASTRÁ PARA GIRAR LA CÁMARA Y APUNTAR · DISPARÁ',4);
 }
 $('startDemo').onclick=beginDemo;
@@ -957,7 +982,24 @@ renderer.domElement.addEventListener('pointermove',e=>{if(!demo||!demoDown)retur
  demoDown={x:e.clientX,y:e.clientY};
 });
 for(const ev of ['pointerup','pointercancel'])renderer.domElement.addEventListener(ev,()=>{demoDown=null});
-document.addEventListener('keydown',e=>{if(!demo)return;if(e.code==='Space'){e.preventDefault();shoot()}else if(e.key==='r')reload();else if(e.key==='Escape')pause()});
+document.addEventListener('keydown',e=>{if(!demo)return;
+ const keys={KeyW:'forward',KeyS:'back',KeyA:'left',KeyD:'right',ArrowUp:'forward',ArrowDown:'back',ArrowLeft:'left',ArrowRight:'right'};
+ if(keys[e.code]){e.preventDefault();demoDirections.add(keys[e.code])}
+ else if(e.code==='Space'){e.preventDefault();shoot()}else if(e.key==='r')reload();else if(e.key==='Escape')pause()});
+document.addEventListener('keyup',e=>{const keys={KeyW:'forward',KeyS:'back',KeyA:'left',KeyD:'right',ArrowUp:'forward',ArrowDown:'back',ArrowLeft:'left',ArrowRight:'right'};if(keys[e.code])demoDirections.delete(keys[e.code])});
+document.querySelectorAll('[data-demo-move]').forEach(b=>{
+ const dir=b.dataset.demoMove;
+ b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);demoDirections.add(dir);
+  if(demo&&stage==='playing'){const p={...game.player};if(dir==='forward')p.z-=.11;if(dir==='back')p.z+=.11;if(dir==='left')p.x-=.11;if(dir==='right')p.x+=.11;G.movePlayer(game,p)}
+ });
+ for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>demoDirections.delete(dir));
+});
+$('missionAction').addEventListener('click',()=>{
+ if(stage!=='playing')return;
+ const r=G.missionAction?.(game);
+ if(!r?.ok)notice(r?.reason==='acercate_a_tu_base'?'ACERCATE A TU BASE':r?.reason==='primero_abri_un_cofre'?'DISPARÁ PRIMERO A UNA CAJA':'ACERCATE AL OBJETIVO',2);
+ else {notice(game.mission?.signal||'¡OBJETIVO!',2);updateHud(true)}
+});
 async function startXR(){
  if(!navigator.xr||!window.isSecureContext){$('support').textContent='Este navegador no ofrece WebXR. Usá Chrome Android con ARCore y HTTPS.';return}
  // requestSession must originate directly from the button event, before awaits.
@@ -998,4 +1040,4 @@ globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(g
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
  get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get floorRendering(){return art.getFloorStatus()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get openingEyePosition(){return openingEyePosition},get lastShotAt(){return lastShot},get shotStatus(){return lastShotStatus},get aimAge(){return latestAim?performance.now()-lastAimStamp:null},get aim(){return latestAim},get aimFailures(){return aimFailures},
- get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
+ get missionStatus(){return G.missionStatus?.(game)},get flagPlan(){return game.mission?.plan},get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
