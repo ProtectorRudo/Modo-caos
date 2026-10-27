@@ -82,8 +82,8 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:11000});
   const shown=await page.evaluate(()=>__RodeadosAutoRobots.status);
   assert(shown.external>=2,'new imported models must replace original visuals at round start: '+JSON.stringify(shown));
-  assert(shown.variants.standard>=1&&shown.variants.heavy>=1,
-    'initial two humanoids must use different visual models: '+JSON.stringify(shown.variants));
+  assert(shown.variants.standard>=2&&shown.variants.heavy===0,
+    'quarantined model must never render with broken headset; stable armed soldiers must remain: '+JSON.stringify(shown.variants));
   await page.locator('#fire').tap();
   assert((await page.evaluate(()=>__RodeadosDebug.game.shots))>0,'shot still works with automatic GLB');
   assert.equal(await page.evaluate(()=>__RodeadosDebug.game.ammo),28,'infinite bullets must stay unlimited');

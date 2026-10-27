@@ -1,4 +1,4 @@
-name: RODEADOS V18 — seven missions verification
+name: RODEADOS V19 — tactical AR placement and seven-mode QA
 on:
   push:
     branches: [feat/rodeados-seven-missions-v18]
@@ -39,3 +39,4 @@ jobs:
       - run: node tests/rodeados-browser.test.cjs
       - run: node tests/rodeados-xr-smoke.test.cjs
       - run: node tests/rodeados-v18-browser.test.cjs
+      - run: node tests/rodeados-v19-xr-tactical.test.cjs

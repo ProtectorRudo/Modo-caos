@@ -1,7 +1,8 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
 import {createRodeadosArt} from './rodeados-art.js?v=17';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
-import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=18';
+import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=19';
+import {createTacticalPlanner} from './rodeados-tactical-ui.js?v=19';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
    The selected 5x5 cell is a manual baseline; WebXR follows the phone, never feet.
@@ -25,6 +26,7 @@ if(!UX)throw Error('RODEADOS: falta el radar 360');
 const art=createRodeadosArt(THREE,scene,camera);
 const missionArt=createRodeadosMissionArt(THREE,art.root);
 let lastMissionEvent=0;const demoDirections=new Set();
+let lastConfirmedPlan=null;
  // No file picker in the consumer experience. Internal asset QA remains
  // opt-in at ?dev=1, never surfaced to players or linked in the main menu.
  if(location.pathname.endsWith('/rodeados-manul.html')&&
@@ -55,7 +57,7 @@ function openArWorld(){
 function closeArWorld(){arCompositor?.dispose();arCompositor=null;visible('arWorldOverlay',false)}
 function notice(text,sec=2){$('notice').textContent=text;toastDeadline=performance.now()+sec*1000}
 function hint(text){$('hint').textContent=text}
-function visible(id,show,style='flex'){$(id).style.display=show?style:'none'}
+function visible(id,show,style='flex'){const element=$(id);if(element)element.style.display=show?style:'none'}
 function vib(ms=20){if(vibration)try{navigator.vibrate?.(ms)}catch(_){}}
 function audio(type='shot',position=null){
  if(!sounds)return;
@@ -153,6 +155,11 @@ function updateBattleFeedback(t){
 function showBotDirection(){
  if(stage!=='playing'&&stage!=='paused')return;
  const cue=$('botGuide'),targets=game.enemies.filter(e=>e.hp>0&&e.portal<.3);
+ if(game.mode==='ctf'&&game.mission?.configured){
+  const m=game.mission,objective=m.carry?m.base:(m.dropAt||m.object);
+  const angle=relativeAngle(objective),distance=Math.hypot(objective.x-game.player.x,objective.z-game.player.z);
+  cue.textContent=(Math.abs(angle)>.55?(angle>0?'→ ':'← '):'↑ ')+(m.carry?'VOLVÉ A TU BASE':'BUSCÁ LA BANDERA')+' · '+distance.toFixed(1)+' m';return;
+ }
  if(!targets.length){cue.textContent='🤖 ROBOTS ENTRANDO A LA PISTA';return}
  const target=targets.slice().sort((a,b)=>
   Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z))[0];
@@ -181,9 +188,9 @@ function renderThreats(){
 }
 function setupGame(keepCalibration=false){
  const keepArena=floorSize;
- game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32),flagPlan:globalThis.RodeadosFlagPlanner?.getPlan()});
+ game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32),flagPlan:keepCalibration?lastConfirmedPlan:null});
  lastMissionEvent=0;
- if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
+ if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0);lastConfirmedPlan=null}
  fxShown.clear();lastBlastSignal='';lastMenaceAt=0;initialBotsSpawned=false;openingEyePosition=null;latestAim=null;lastAimStamp=0;lastShotStatus='';pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
  updateHud(true);
@@ -192,7 +199,8 @@ function updateHud(force=false){
  if(stage!=='playing'&&stage!=='ready'&&stage!=='countdown'&&stage!=='paused'&&!force)return;
  $('life').textContent=Math.round(game.lives);
  $('points').textContent=Math.round(game.score).toLocaleString('es-AR');
- $('wave').textContent=game.wave||1;
+ $('wave').textContent=game.mode==='ctf'?(game.mission?.captures||0):game.mode==='refuge'?Math.ceil(game.mission?.reactor||0):game.wave||1;
+ if($('waveLabel'))$('waveLabel').textContent=game.mode==='ctf'?'CAPTURAS':game.mode==='refuge'?'REACTOR':'OLEADA';
  $('clock').textContent=Number.isFinite(game.duration)?Math.max(0,Math.ceil(game.duration-game.elapsed)):'∞';
  $('healthFill').style.width=Math.max(0,game.lives)+'%';
  $('ammo').textContent='∞  BALAS';
@@ -235,9 +243,10 @@ function setPhase(next){
  visible('cellsvg',next==='edit'||next==='cell'||next==='sample','block');
  visible('manualPlace',next==='search'&&performance.now()-searchSince>1800,'block');
  visible('placementHelp',false);visible('healthTrack',['ready','countdown','playing','paused'].includes(next),'block');
- visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown','block');
+ visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown'||next==='tactical','block');
  visible('missionObjective',!!game.mission&&['ready','countdown','playing','paused'].includes(next),'block');
  visible('missionAction',next==='playing'&&['loot','ctf','refuge'].includes(game.mode),'block');
+ visible('tacticalPanel',next==='tactical','block');
  visible('demoMove',demo&&next==='playing'&&['ctf','loot','refuge'].includes(game.mode),'grid');
  visible('radarWrap',next==='playing'||next==='paused','block');visible('botGuide',next==='playing'||next==='paused','block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
@@ -305,6 +314,7 @@ function worldForEditor(){
 function freezeEditor(){
  if(stage!=='edit')return;
  fixedPos.copy(art.root.position);fixedQ.copy(art.root.quaternion);art.root.updateMatrixWorld(true);
+ if(game.mode==='ctf'){anchorPending=true;tactical.start(globalThis.RodeadosFlagPlanner?.getCount());return}
  setPhase('cell');selected=-1;calibrated=false;
  art.setFloor(floorSize,true,-1);
  hint('👣 TOCÁ EN EL PISO LA CELDA DONDE ESTÁS PARADO');
@@ -348,12 +358,13 @@ function samplePose(t,pose){
  const px=calSamples.reduce((s,p)=>s+p.x,0)/calSamples.length;
  const pz=calSamples.reduce((s,p)=>s+p.z,0)/calSamples.length;
  const pitch=floorSize/5;
- const chosen=THREEVec((selected%5-2)*pitch,0,(Math.floor(selected/5)-2)*pitch);
+ const home=game.mode==='ctf'&&game.mission?.configured?game.mission.base:null;
+ const chosen=home?THREEVec(home.x,0,home.z):THREEVec((selected%5-2)*pitch,0,(Math.floor(selected/5)-2)*pitch);
  calOffset.set(chosen.x-px,0,chosen.z-pz);playerPos.copy(chosen);
  G.movePlayer(game,{x:chosen.x,z:chosen.z});
  calibrated=true;
  setPhase('ready');$('begin').disabled=false;
- hint('✅ LISTO · EL PUNTO YO SIGUE LA POSICIÓN DEL CELULAR');
+ hint(game.mode==='ctf'?'✅ CAMPO CONFIRMADO · EMPEZÁS DESDE TU BASE':'✅ LISTO · EL PUNTO YO SIGUE LA POSICIÓN DEL CELULAR');
  notice('📍 CELDA CALIBRADA',1.5);vib(45);
  if(pausedForCalibration){game.paused=true;$('begin').textContent='▶ REANUDAR COMBATE'}else $('begin').textContent='▶ ¡DEFENDERME!';
 }
@@ -517,7 +528,7 @@ function pause(){
   }
  }
  function activeRay(){
- if(stage!=='playing')return null;
+ if(stage!=='playing'&&stage!=='tactical')return null;
  art.root.updateMatrixWorld(true);
  if(demo){
   camera.updateMatrixWorld(true);
@@ -843,7 +854,7 @@ function animate(t,frame){
     fixedPos.copy(art.root.position);fixedQ.copy(art.root.quaternion);
    }
   }
-  if(['edit','cell','sample','ready','playing','paused'].includes(stage)){
+  if(['edit','tactical','cell','sample','ready','playing','paused'].includes(stage)){
    if(stage==='sample')samplePose(t,pose);
    if(stage==='playing'||stage==='paused'||stage==='ready')updateMotion(t,pose);
    if(stage==='cell'||stage==='sample'||stage==='edit')drawCells(frame);
@@ -872,15 +883,15 @@ function animate(t,frame){
   camera.rotation.order='YXZ';camera.rotation.set(aimPitch,aimYaw,0,'YXZ');
   camera.position.set(game.player.x,1.59,game.player.z);
  }
- missionArt.update(game,stage,t);
- if(stage==='edit')art.setFloor(floorSize,true,selected);
+ missionArt.update(game,stage,t,stage==='tactical'?{...tactical.draft,aim:tactical.updateTarget()}:null);
+ if(stage==='edit'||stage==='tactical')art.setFloor(floorSize,true,selected);
  else art.setFloor(floorSize,stage==='cell'||stage==='sample',selected,calibrated?game.player:null);
  if(stage==='playing'||stage==='paused'||stage==='countdown'||stage==='ready')art.drawEnemies(game);
  if(stage==='paused'){drawRadar(t);if(t-lastPing>1200){lastPing=t;showBotDirection();}}
  // Sample the XR eye and reticle while XRFrame is active, after floor anchor updates.
  if(xrSession&&frame)cacheLiveAim(frame,t);
  tickGame(dt,t);
- art.setFloorDamage(game,stage==='edit'||stage==='cell'||stage==='sample'||stage==='search');
+ art.setFloorDamage(game,stage==='edit'||stage==='tactical'||stage==='cell'||stage==='sample'||stage==='search');
  if(stage==='playing')art.positionWeapon(xrSession?renderer.xr.getCamera(camera):camera,fireFlash>0);
  art.rifle.visible=stage==='playing';
  // Blackzone's Android fix: the native WebXR scene is intentionally EMPTY.
@@ -970,8 +981,9 @@ function beginDemo(){
  $('home').style.display='none';$('overlay').style.display='block';$('world').style.pointerEvents='auto';
  art.root.position.set(0,0,0);art.root.quaternion.identity();selected=12;
  calibrated=true;calOffset.set(0,0,0);G.movePlayer(game,{x:0,z:0});
- camera.position.set(0,1.59,0);aimYaw=0;aimPitch=0;camera.updateMatrixWorld(true);G.begin(game);
-  if(game.mode==='ctf'){G.spawn(game,'flanker');G.spawn(game,'basic')}else if(game.mode!=='colossus')spawnOpeningEnemies();setPhase('playing');
+ camera.position.set(0,1.59,0);aimYaw=0;aimPitch=0;camera.updateMatrixWorld(true);
+ if(game.mode==='ctf'){tactical.start(globalThis.RodeadosFlagPlanner?.getCount());notice('CONFIGURÁ EL CAMPO EN EL MUNDO 3D',3)}
+ else {G.begin(game);if(game.mode!=='colossus')spawnOpeningEnemies();setPhase('playing')}
  notice('ARRASTRÁ PARA GIRAR LA CÁMARA Y APUNTAR · DISPARÁ',4);
 }
 $('startDemo').onclick=beginDemo;
@@ -994,12 +1006,31 @@ document.querySelectorAll('[data-demo-move]').forEach(b=>{
  });
  for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>demoDirections.delete(dir));
 });
-$('missionAction').addEventListener('click',()=>{
+$('missionAction')?.addEventListener('click',()=>{
  if(stage!=='playing')return;
  const r=G.missionAction?.(game);
  if(!r?.ok)notice(r?.reason==='acercate_a_tu_base'?'ACERCATE A TU BASE':r?.reason==='primero_abri_un_cofre'?'DISPARÁ PRIMERO A UNA CAJA':'ACERCATE AL OBJETIVO',2);
  else {notice(game.mission?.signal||'¡OBJETIVO!',2);updateHud(true)}
 });
+const tactical=createTacticalPlanner({
+ G,$,getGame:()=>game,getRay:()=>activeRay(),getArena:()=>floorSize,isDemo:()=>demo,
+ onPhase:next=>{setPhase(next);hint('🎯 APUNTÁ AL PISO Y MARCÁ TU PROPIO CAMPO');},
+ onNotice:notice,onVibrate:vib,
+ onComplete(plan){
+  lastConfirmedPlan=plan;
+  if(demo){
+   G.movePlayer(game,plan.base);calibrated=true;selected=12;
+   camera.position.set(plan.base.x,1.59,plan.base.z);camera.updateMatrixWorld(true);
+   G.begin(game);G.spawn(game,'basic');G.spawn(game,'flanker');setPhase('playing');
+   notice('🚩 CAMPO CONFIRMADO · RECUPERÁ LA BANDERA Y VOLVÉ A TU BASE',4);
+  }else{
+   selected=12;calStart=0;calSamples=[];setPhase('sample');
+   $('begin').disabled=true;$('calfill').style.width='0%';
+   hint('✅ CAMPO CONFIRMADO · SOSTENÉ EL CELULAR QUIETO 1 SEGUNDO');
+  }
+ }
+});
+
 async function startXR(){
  if(!navigator.xr||!window.isSecureContext){$('support').textContent='Este navegador no ofrece WebXR. Usá Chrome Android con ARCore y HTTPS.';return}
  // requestSession must originate directly from the button event, before awaits.
@@ -1040,4 +1071,4 @@ globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(g
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
  get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get floorRendering(){return art.getFloorStatus()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get openingEyePosition(){return openingEyePosition},get lastShotAt(){return lastShot},get shotStatus(){return lastShotStatus},get aimAge(){return latestAim?performance.now()-lastAimStamp:null},get aim(){return latestAim},get aimFailures(){return aimFailures},
- get missionStatus(){return G.missionStatus?.(game)},get flagPlan(){return game.mission?.plan},get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
+ get missionStatus(){return G.missionStatus?.(game)},get flagPlan(){return game.mission?.plan},get tacticalPlan(){return tactical.draft},get tacticalAim(){return tactical.aim},get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};

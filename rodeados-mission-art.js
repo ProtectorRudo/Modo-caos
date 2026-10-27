@@ -65,7 +65,13 @@ export function createRodeadosMissionArt(THREE,world){
  });
  const ctfBase=beacon(ctfRoot,{x:0,z:.8},blue,1.6);
  const ctfFlag=flag(ctfRoot,{x:0,z:-.8},red);
- const spawnBeacons=Array.from({length:7},()=>beacon(ctfRoot,{x:7,z:7},red,.45));
+ const spawnBeacons=Array.from({length:7},()=>beacon(ctfRoot,{x:7,z:7},red,.64));
+ const spawnHeads=spawnBeacons.map(b=>b.children.find(n=>n.isMesh&&n.geometry.type==='OctahedronGeometry'));
+ const types=['basic','flanker','spider','creep','tank','random'];
+ const palette={basic:0xff7382,flanker:0xffba52,spider:0xd88aff,creep:0xf253d2,tank:0xe65c56,random:0xffe280};
+ const aimGhost=beacon(ctfRoot,{x:0,z:0},gold,.55);
+ aimGhost.visible=false;
+ const flagBeacon=beacon(ctfRoot,{x:0,z:-.8},red,.67);
  const colMark=beacon(colRoot,{x:0,z:-1.1},red,1.2);
  const warp=beacon(warpRoot,{x:0,z:-.6},blue,.8);
  const mutators=Array.from({length:4},(_,i)=>{
@@ -73,7 +79,7 @@ export function createRodeadosMissionArt(THREE,world){
   return beacon(mutantRoot,p,i%2?red:gold,.55);
  });
  let currentMode='';
- function update(game,stage,t){
+ function update(game,stage,t,draft=null){
   const m=game?.mission,mode=m?.kind||'';
   if(mode!==currentMode){
    currentMode=mode;
@@ -81,7 +87,7 @@ export function createRodeadosMissionArt(THREE,world){
    refugeRoot.visible=mode==='refuge';ctfRoot.visible=mode==='ctf';
    colRoot.visible=mode==='colossus';warpRoot.visible=mode==='timewarp';mutantRoot.visible=mode==='mutant';
   }
-  root.visible=!!m&&['playing','paused','countdown','ready'].includes(stage);
+  root.visible=!!m&&['tactical','playing','paused','countdown','ready'].includes(stage);
   if(!root.visible)return;
   const tick=(Number(t)||0)*.001;
   if(mode==='invasion')portals.forEach((p,i)=>{
@@ -103,10 +109,28 @@ export function createRodeadosMissionArt(THREE,world){
    shield.material.color.setHex(hp<.30?0xff2648:0x23b6ff);
   }
   if(mode==='ctf'){
-   ctfBase.position.set(m.base.x,0,m.base.z);
-   ctfFlag.position.set(m.carry?game.player.x:m.dropAt?.x??m.object.x,0,m.carry?game.player.z:m.dropAt?.z??m.object.z);
+   const placing=stage==='tactical';
+   const base=placing?draft?.base:m.base,flag=placing?draft?.flag:m.object;
+   const spots=placing?(draft?.spots||[]):m.spawnPoints;
+   ctfBase.visible=!!base;ctfFlag.visible=!!flag;flagBeacon.visible=!!flag;
+   if(base)ctfBase.position.set(base.x,0,base.z);
+   if(flag){
+    ctfFlag.position.set(!placing&&m.carry?game.player.x:m.dropAt?.x??flag.x,0,!placing&&m.carry?game.player.z:m.dropAt?.z??flag.z);
+    flagBeacon.position.set(flag.x,0,flag.z);
+   }
    ctfFlag.rotation.y=Math.sin(tick*2)*.10;
-   spawnBeacons.forEach((b,i)=>{const p=m.spawnPoints[i];b.visible=!!p;if(p)b.position.set(p.x,0,p.z)});
+   spawnBeacons.forEach((b,i)=>{
+    const p=spots[i];b.visible=!!p;
+    if(p){
+      b.position.set(p.x,0,p.z);
+      const kind=(placing?draft?.kinds?.[i]:m.spawnTypes?.[i])||'random';
+      if(spawnHeads[i])spawnHeads[i].material=kind==='random'?gold:kind==='spider'?blue:kind==='tank'?red:kind==='creep'?gold:cyan;
+      b.scale.setScalar(.86+.08*Math.sin(tick*3+i));
+    }
+   });
+   const target=draft?.aim;
+   aimGhost.visible=placing&&!!target;
+   if(target)aimGhost.position.set(target.x,0,target.z);
   }
   if(mode==='colossus'){
    colMark.position.z=-1.1;
