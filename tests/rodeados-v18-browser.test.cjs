@@ -77,11 +77,28 @@ const server=http.createServer((req,res)=>{
  await p.waitForFunction(()=>!!window.__RodeadosDebug,null,{timeout:30000});
  await p.selectOption('#mode','loot');
  assert(!await p.locator('#flagIntro').isVisible());
+ assert(await p.locator('#lootIntro').isVisible(),'explain manual loot placement before playing');
  await p.locator('#startDemo').click();
+ await p.waitForFunction(()=>__RodeadosDebug.stage==='tactical',null,{timeout:8000});
+ assert.equal(await p.evaluate(()=>__RodeadosDebug.game.mission.crates.length),0,'no auto-spawned loot beside player');
+ await p.locator('#tacticalMark').click(); // custom base on starting tile
+ assert(await p.evaluate(()=>!!__RodeadosDebug.tacticalPlan.base));
+ await p.locator('#tacticalMark').click(); // chest #1 in front
+ for(let i=1;i<5;i++){
+  await p.mouse.move(235,425);await p.mouse.down();
+  await p.mouse.move(167,425,{steps:4});await p.mouse.up();
+  await p.waitForTimeout(60);await p.locator('#tacticalMark').click();
+ }
+ const placed=await p.evaluate(()=>__RodeadosDebug.tacticalPlan);
+ assert.equal(placed.crates.length,5,'five custom loot coordinates chosen manually');
+ await p.locator('#tacticalConfirm').click();
  await p.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:8000});
- assert.equal(await p.evaluate(()=>__RodeadosDebug.game.mission.crates.length),5);
+ const looted=await p.evaluate(()=>__RodeadosDebug.game);
+ assert.equal(looted.mission.crates.length,5);
+ assert.deepEqual(looted.mission.crates.map(({x,z})=>({x,z})),placed.crates,'actual loot placed at planned positions');
+ assert(looted.mission.spawnPoints.every(x=>Math.hypot(x.x-placed.base.x,x.z-placed.base.z)>3.0),'guards kept away from the home base');
  assert((await p.locator('#missionTitle').textContent()).includes('BOTÍN'));
- assert(await p.locator('#missionAction').isDisabled(),'cannot extract an empty bag');
+ assert(await p.locator('#missionAction').isDisabled(),'cannot open crates remotely');
  assert.equal(errors.length,0,'no browser exceptions: '+errors.join(' | '));
  console.log('PASS: 6 individual CTF spawn points, user-selected start/flag, enemy type and nonautomatic placement. ARCore physical tracking NOT tested.');
  }catch(e){console.error(e.stack||e);process.exitCode=1}finally{await browser?.close();await new Promise(r=>server.close(r))}
