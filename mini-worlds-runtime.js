@@ -1,7 +1,7 @@
 /* MINI WORLDS — game orchestration: native WebXR / independent 3D camera, tactile controls, persistence. */
 (function(){
 'use strict';
-const C=window.MiniWorldsCore,S=window.MiniWorldsSpatial,$=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const C=window.MiniWorldsCore,M=window.MiniWorldsMissions,S=window.MiniWorldsSpatial,$=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const debugAR=new URLSearchParams(location.search).get('debug')==='1';
 let T,renderer,camera,view,game,stage,session,hitSource,lastHit=null,anchor=null,mode='demo',phase='home',placing=false,hasHit=false;
 let yaw=0,scale=.215,offset={x:0,z:0},lockedPose=null,worldYaw=0,headingSet=false;
@@ -14,9 +14,14 @@ let input={x:0,z:0},jumpQueued=false,punchQueued=false,joyPointer=null,placePoin
 let arGuide=null,guideState={visible:0,pose:false},webglCalls=-1,frameFaults=0,lastFault='',lastDiagnostics=0,arDebugVisible=false;
 let mapOpen=false,arQuality=1.12,comboVisibleUntil=0,coinPulseUntil=0,portalHoldUntil=0;
 let arCompositor=null,xrEmptyScene=null,arCompositorError='',arFpsTotal=0,arFpsFrames=0;
-let level=0,progress={unlocked:0,best:[null,null],coins:0},settings={sound:true,music:true};
+let level=0,missionId=0,progress={unlocked:0,best:[null,null],coins:0,missions:{unlocked:0,best:[null,null,null],residents:[],completed:0}},settings={sound:true,music:true};
 try{progress={...progress,...JSON.parse(localStorage.getItem('mc-mini-worlds-save-v1')||'{}')}}catch(_){}
 try{settings={...settings,...JSON.parse(localStorage.getItem('mc-mini-worlds-config-v1')||'{}')}}catch(_){}
+if(!progress.missions||typeof progress.missions!=='object')progress.missions={};
+progress.missions={unlocked:0,best:[null,null,null],residents:[],completed:0,...progress.missions};
+if(!Array.isArray(progress.missions.best))progress.missions.best=[null,null,null];
+if(!Array.isArray(progress.missions.residents))progress.missions.residents=[];
+progress.missions.unlocked=clamp(Number(progress.missions.unlocked)||0,0,2);
 const save=()=>{try{localStorage.setItem('mc-mini-worlds-save-v1',JSON.stringify(progress));localStorage.setItem('mc-mini-worlds-config-v1',JSON.stringify(settings))}catch(_){}};
 function notice(t,time=1700){$('toast').textContent=t;$('toast').classList.add('show');toastUntil=performance.now()+time}
 function haptic(ms){try{navigator.vibrate?.(ms)}catch(_){}}
@@ -86,7 +91,15 @@ function renderSetup(){
 }
 function newStage(){
  if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose()}
- game=C.create(level);stage=window.MiniWorldsArt(T).makeStage(game.map);
+ level=M.MISSIONS[missionId].level;
+ game=C.create(level);M.init(game,missionId);
+ const residents=progress.missions.residents.length;
+ // Buildings have genuine permanent, fair gameplay benefits, not just icons.
+ if(residents>=1)game.player.blasterBoost=.065; // workshop: 20% quicker firing
+ if(residents>=3)game.mission.seconds+=15;       // garden: extra oxygen/time
+ if(residents>=5)game.player.invuln=2.4;          // observatory: brief spawn shield
+ stage=window.MiniWorldsArt(T).makeStage(game.map);
+ stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
  stage.pocket=window.MiniWorldsPocket?.create(T,stage)||null;
  const stageRef=stage;
@@ -123,7 +136,7 @@ function newStage(){
  else if(mode==='ar'&&lockedPose)stage.root.position.copy(lockedPose);
  else stage.root.position.set(0,0,0);
  if(mode==='demo')setCamera(true);
- elapsed=0;acc=0;updateHUD();$('zoneTitle').textContent='MUNDO 1 · '+game.map.definition.name;
+ elapsed=0;acc=0;refreshMissionBriefing();updateHUD();$('zoneTitle').textContent='MISIÓN '+(missionId+1)+' · '+M.MISSIONS[missionId].title;
 }
 function setCamera(first=false){
  if(!camera||!game)return;
@@ -147,15 +160,37 @@ function drawMiniMap(){
  for(const p of game.map.platforms){g.fillStyle=p.kind==='bridge'?'#c5ab7c':p.kind==='beach'?'#e1ca91':'#73b79b';
   g.fillRect(X(p.x-p.w/2),Z(p.z+p.d/2),p.w*(W-16)/17,p.d*(H-16)/29)}
  for(const e of game.map.enemies)if(e.alive){g.fillStyle='#ff9874';g.beginPath();g.arc(X(e.x),Z(e.z),2.3,0,Math.PI*2);g.fill()}
+ // Mission targets share EXACT logical coordinates with player and collision.
+ const mission=game.mission;
+ const mark=(x,z,symbol,color)=>{
+  g.beginPath();g.arc(X(x),Z(z),4.25,0,Math.PI*2);g.fillStyle='#142c3d';g.fill();
+  g.strokeStyle=color;g.lineWidth=1.35;g.stroke();
+  g.fillStyle=color;g.font='bold 8px system-ui';g.textAlign='center';g.textBaseline='middle';
+  g.fillText(symbol,X(x),Z(z)+.3);
+ };
+ if(mission){
+  for(const r of mission.rescues)if(!r.rescued)mark(r.x,r.z,'+',r.optional?'#b4d7ff':'#8affcb');
+  if(mission.id===0)for(const i of mission.relays)if(!game.map.runes[i].restored){
+   const p=game.map.runes[i];mark(p.x,p.z,'⚡','#ffe38c');
+  }
+  if(mission.id===1)mark(mission.reactor.x,mission.reactor.z,'◆','#80eeff');
+  if(mission.id===2)for(const f of mission.fragments){
+   if(f.claimed)continue;
+   if(f.dropped)mark(f.x,f.z,'◆','#ffde87');
+   else {const e=game.map.enemies[f.id];if(e.alive)mark(e.x,e.z,'!','#ff9d81')}
+  }
+  if(mission.exit.active)mark(mission.exit.x,mission.exit.z,'P','#d5b4ff');
+ }
  const b=game.map.boss;if(b.alive){g.fillStyle='#f2bf65';g.beginPath();g.arc(X(b.x),Z(b.z),4,0,Math.PI*2);g.fill()}
+ g.textAlign='left';g.textBaseline='alphabetic';
  const p=game.player;g.save();g.translate(X(p.x),Z(p.z));g.rotate(-p.face+Math.PI);
  g.fillStyle='#faffff';g.beginPath();g.moveTo(0,-6);g.lineTo(4,5);g.lineTo(-4,5);g.closePath();g.fill();g.restore();
  g.font='bold 9px system-ui';g.fillStyle='#e9fff6';g.fillText('TU AVENTURA',8,12);
 }
 function layout(state){
  phase=state;const active=state==='playing'||state==='paused'||state==='ready'||state==='placing'||state==='won';
- $('landing').hidden=state!=='home';$('viewport').hidden=!active;$('hud').hidden=state==='home'||state==='placing';
- $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';
+ $('landing').hidden=state!=='home';$('viewport').hidden=!active&&state!=='failed';$('hud').hidden=state==='home'||state==='placing';
+ $('gameUI').hidden=state==='home';$('controls').hidden=state!=='playing';$('missionGoal').hidden=state!=='playing'&&state!=='paused';
  $('chaosMeter').hidden=state==='home'||state==='placing';
  if(state==='home')document.body.classList.remove('fury-mode','boss-encounter');
  $('placement').hidden=state!=='placing';$('ready').hidden=state!=='ready';$('pause').hidden=state!=='playing';
@@ -166,10 +201,24 @@ function layout(state){
  $('positionPad').style.pointerEvents=state==='placing'?'auto':'none';
  if(state==='home')hideModal();
 }
-function demoCameraPlacement(){lockedPose=null;worldYaw=0;layout('ready');notice('¡TU AVENTURA COMIENZA!',1400);$('readyTitle').textContent='¡BIENVENIDO A ISLA SALVAJE!'}
+function refreshMissionBriefing(){
+ const def=M.MISSIONS[missionId];if(!def)return;
+ const clock=Math.ceil(game?.mission?.seconds??def.seconds);
+ $('readyKicker').textContent='MINI WORLDS · MISIÓN '+(missionId+1)+'/3';
+ $('readyTitle').textContent=def.title;
+ $('readyCopy').textContent=def.subtitle;
+ $('readyClock').textContent='⏱ '+Math.floor(clock/60)+':'+String(clock%60).padStart(2,'0')+' PARA CUMPLIRLA';
+ $('readyBonus').textContent=def.bonus||'★ EXTRA: completá los desafíos opcionales para sumar estrellas.';
+ const steps=$('readySteps');steps.replaceChildren();
+ for(const instruction of def.steps||[def.subtitle]){
+  const li=document.createElement('li');li.textContent=instruction;steps.appendChild(li);
+ }
+ $('begin').textContent='▶ ¡ENTENDIDO, A JUGAR!';
+}
+function demoCameraPlacement(){lockedPose=null;worldYaw=0;refreshMissionBriefing();layout('ready');}
 async function play(modeRequested){
  if(phase!=='home')return;
- audioInit();mode=modeRequested;level=clamp(level,0,progress.unlocked);
+ audioInit();mode=modeRequested;missionId=clamp(missionId,0,progress.missions.unlocked);level=M.MISSIONS[missionId].level;
  let xrPending=null;
  if(mode==='ar'&&navigator.xr){
    try{xrPending=navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test','dom-overlay'],optionalFeatures:['anchors'],domOverlay:{root:document.body}});xrPending.catch(()=>{})}
@@ -281,8 +330,9 @@ async function fixWorld(){
  anchorPoseAtLock=null;anchorDriftWarned=false;trackingResetWarned=false;
  const placeNonce=++placementSerial;
  const hitAtLock=lastHit;
- $('fixWorld').disabled=true;layout('ready');$('readyTitle').textContent='¡MUNDO FIJADO!';
+ $('fixWorld').disabled=true;refreshMissionBriefing();layout('ready');
  notice('¡LISTO! · PISTA FIJA EN EL PISO',1800);haptic(18);
+ // Mission briefing is already shown, and the XR anchor remains unchanged.
  if(hitAtLock?.createAnchor)try{
   const created=await hitAtLock.createAnchor();
   if(placementSerial===placeNonce&&!placing&&mode==='ar')anchor=created;
@@ -301,7 +351,7 @@ function recenter(){
 }
 function startGame(){
  if(phase!=='ready')return;
- C.start(game);layout('playing');hideModal();notice('✨ BRUJITA · MOVETE, SALTÁ Y LANZÁ MAGIA',2400);haptic(15);
+ C.start(game);mapOpen=true;$('mapToggle').textContent='✕';layout('playing');hideModal();haptic(15);
 }
 function pause(){
  if(!game||phase==='home')return;
@@ -313,25 +363,51 @@ function pause(){
  ])}
 }
 function next(){
- level=Math.min(1,level+1);hideModal();newStage();layout('ready');
- $('readyTitle').textContent='NUEVA AVENTURA DESBLOQUEADA';notice(game.map.definition.name,2400);
+ missionId=Math.min(2,missionId+1);hideModal();newStage();layout('ready');
+ refreshMissionBriefing();
+ notice('¡NUEVA MISIÓN DESBLOQUEADA!',2400);
 }
 function victory(){
  if(phase==='won')return;
- layout('won');beep('win');haptic([30,70,30,70,90]);const stars='★'.repeat(game.stars)+'☆'.repeat(3-game.stars);
- progress.coins+=game.coins;progress.unlocked=Math.max(progress.unlocked,Math.min(1,level+1));
- const previous=progress.best[level];if(!previous||game.stars>previous.stars||(game.stars===previous.stars&&game.clock<previous.time))progress.best[level]={stars:game.stars,time:Math.round(game.clock),coins:game.coins};
- save();
- const options=level===0?[{label:'✨ CONTINUAR · ACANTILADO PERDIDO',action:next},{label:'↻ REPETIR',secondary:true,action:()=>{hideModal();newStage();layout('ready')}}]:
- [{label:'↻ VOLVER A JUGAR',action:()=>{hideModal();newStage();layout('ready')}},{label:'⛺ VOLVER A ISLA SALVAJE',secondary:true,action:()=>{level=0;hideModal();newStage();layout('ready')}}];
- options.push({label:'SALIR AL MENÚ',secondary:true,action:()=>home()});
- showModal('NIVEL SUPERADO','¡ISLA CONQUISTADA!',stars+' · '+game.coins+' MONEDAS · '+Math.round(game.clock)+' SEGUNDOS. '+(level===0?'Se abrió una nueva aventura.':'¡Completaste las dos aventuras de esta primera entrega!'),options);
+ const m=game.mission;
+ const stars=M.medal(game),rating='★'.repeat(stars)+'☆'.repeat(3-stars);
+ const found=m.rescues.filter(r=>r.rescued).map(r=>r.id);
+ progress.coins+=game.coins;
+ progress.missions.completed++;
+ for(const id of found)if(!progress.missions.residents.includes(id))progress.missions.residents.push(id);
+ const previous=progress.missions.best[missionId];
+ if(!previous||stars>previous.stars||(stars===previous.stars&&game.clock<previous.time))
+  progress.missions.best[missionId]={stars,time:Math.round(game.clock),coins:game.coins};
+ progress.missions.unlocked=Math.max(progress.missions.unlocked,Math.min(2,missionId+1));
+ progress.unlocked=Math.max(progress.unlocked,Math.min(1,level));
+ save();layout('won');beep('win');haptic([30,70,30,70,90]);
+ const options=[];
+ if(missionId<2)options.push({label:'▶ SIGUIENTE MISIÓN',action:next});
+ options.push({label:'↻ INTENTAR LAS 3 ESTRELLAS',secondary:true,action:()=>{hideModal();newStage();layout('ready')}});
+ options.push({label:'🏡 VOLVER A LA ALDEA',secondary:true,action:()=>home()});
+ const district=progress.missions.residents.length>=5?'¡OBSERVATORIO RECONSTRUIDO!':progress.missions.residents.length>=3?'¡JARDÍN RECONSTRUIDO!':progress.missions.residents.length>=1?'¡TALLER DESBLOQUEADO!':'';
+ showModal('MISIÓN CUMPLIDA · '+rating,'¡SALVASTE UN PEDACITO DEL MUNDO!',
+  found.length+' HABITANTES A SALVO · '+Math.floor(game.clock)+' SEGUNDOS · '+game.coins+' MONEDAS. '+district+
+  (stars<3?' Volvé para descubrir el reto que te falta y mejorar tu resultado.':' ¡LOGRASTE LA CLASIFICACIÓN PERFECTA!'),options);
+}
+function defeat(reason){
+ if(phase==='failed'||phase==='won')return;
+ layout('failed');beep('fail');haptic([40,50,80]);
+ showModal('MISIÓN FALLIDA','EL VACÍO AVANZA',
+  reason+' · Podés intentarlo de nuevo: tus habitantes rescatados en misiones anteriores siguen a salvo.',[
+  {label:'↻ REINTENTAR LA MISIÓN',action:()=>{hideModal();newStage();layout('ready')}},
+  {label:'🏡 VOLVER A LA ALDEA',secondary:true,action:()=>home()}
+ ]);
 }
 function updateHUD(){
  if(!game)return;
  $('health').textContent='♥'.repeat(game.player.hearts)+'♡'.repeat(3-game.player.hearts);
  $('coinCount').textContent=String(game.coins).padStart(2,'0');$('starCount').textContent=game.stars+'/3';
- $('clock').textContent=Math.floor(game.clock/60)+':'+String(Math.floor(game.clock%60)).padStart(2,'0');
+ const remaining=Math.max(0,Math.ceil(game.mission.seconds-game.clock));
+ $('clock').textContent='⏱ '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');
+ $('missionGoal').textContent=M.status(game);
+ if(game.mission.reactor){$('missionReactor').hidden=phase!=='playing'&&phase!=='paused';$('missionReactorFill').style.width=(game.mission.reactor.health/game.mission.reactor.maxHealth*100)+'%'}
+ else $('missionReactor').hidden=true;
  const b=game.map.boss;$('bossHud').hidden=!b.active||!b.alive;
  document.body.classList.toggle('boss-encounter',b.active&&b.alive&&phase==='playing');
  $('bossLabel').textContent=game.map.definition.boss+' · FASE '+b.phase;
@@ -351,7 +427,7 @@ function updateHUD(){
  const counter=$('coinCount');counter.classList.toggle('pop',performance.now()<coinPulseUntil);
 }
 function events(){
- for(const e of C.drain(game)){
+ for(const e of [...C.drain(game),...M.drain(game)]){
   const x=game.player.x,y=game.player.y+.7,z=game.player.z;
   // Spatially accurate FX at the impact target instead of the avatar.
   stage.combatFx?.(e,game.player);
@@ -361,7 +437,7 @@ function events(){
   else if(e.type==='jump')beep(e.double?'double':'jump');
   else if(e.type==='spellCast'){beep('blaster');haptic(9)}
   else if(e.type==='spellHit'){beep('coin');haptic(13)}
-  else if(e.type==='runeRestored'){beep('star');haptic([18,30,34]);notice('✨ ¡FLORES RESTAURADAS! +5',900)}
+  else if(e.type==='runeRestored'){beep('star');haptic([18,30,34]);notice(missionId===0&&game.mission.relays.includes(e.id)?'⚡ ¡BALIZA ACTIVADA!':'✨ ¡FLORES RESTAURADAS! +5',1100)}
   else if(e.type==='boxHit'){beep('hit');haptic(12)}
   else if(e.type==='boxBreak'){beep('smash');haptic([18,25,20])}
   else if(e.type==='treasure'){beep('star');haptic(22)}
@@ -380,7 +456,15 @@ function events(){
   else if(e.type==='bossPhase'){beep('boss');haptic([25,35,25]);notice('¡FASE '+e.phase+' · SE ENFURECE!',1750)}
   else if(e.type==='bossHit'){beep('hit');haptic(32);stage.impact(game.map.boss.x,2,-24,'#b9fcf4',20)}
   else if(e.type==='bossDown'){beep('win');haptic([40,65,35,65,90]);stage.impact(0,2,-24,'#f4df87',45)}
-  else if(e.type==='win')victory();
+  else if(e.type==='missionRescue'){beep('star');haptic([18,40,20]);notice('🐾 ¡'+e.name+' RESCATADO! · REGRESA A TU ALDEA',2000);stage.impact(e.x,e.y+.8,e.z,'#b4ffe3',25)}
+  else if(e.type==='missionWave'){beep('boss');notice('⚠ OLEADA '+e.wave+'/3 · ¡DEFENDÉ EL REACTOR!',2600)}
+  else if(e.type==='missionReactorHit'){beep('damage');haptic(23);notice('⚠ REACTOR '+e.health+'/12',1000)}
+  else if(e.type==='missionFragmentDrop'){beep('smash');notice('¡FRAGMENTO LIBERADO! · RECOGELO',1400)}
+  else if(e.type==='missionFragment'){beep('star');haptic([14,30,14]);notice('⚡ ¡CRISTAL RECUPERADO!',1400);stage.impact(e.x,e.y,e.z,'#ffe5a0',24)}
+  else if(e.type==='missionExitOpen'){beep('win');notice('✨ SALIDA ABIERTA · ¡BUSCÁ EL PORTAL!',2600)}
+  else if(e.type==='missionBossUnlocked'){beep('boss');notice('⚡ ¡EL JEFE YA ES VULNERABLE!',2200)}
+  else if(e.type==='missionFail')defeat(e.reason)
+  else if(e.type==='missionWin'||e.type==='win')victory();
  }
 }
 function frame(t,xrFrame){
@@ -422,6 +506,7 @@ function frame(t,xrFrame){
        z:input.z*Math.cos(orbitYaw)-input.x*Math.sin(orbitYaw)}
      :S.cameraRelative(input.x,input.z,heldSteeringYaw??steeringYaw??worldYaw,spatialLock?.yaw??worldYaw);
    C.tick(game,{x:move.x,z:move.z,jump:jumpQueued,punch:punchQueued},1/60);
+   M.tick(game,1/60);
    jumpQueued=false;punchQueued=false;acc-=1/60;
   }
   if(loops>=4)acc=0;
@@ -447,6 +532,9 @@ function frame(t,xrFrame){
   frameFaults++;
  }
  // Optional finishing effects must never interrupt core, XR pose or renderer.
+ try{stage.missionVisual?.update(game,dt,elapsed)}catch(e){
+  frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Mission art error:',e)}
+ }
  try{stage.finish?.update(game,dt,elapsed)}catch(e){
   frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Optional finish error:',e)}
  }
@@ -499,10 +587,38 @@ function frame(t,xrFrame){
  }
 }
 function fillLanding(){
- $('unlocked').textContent=progress.unlocked>0?'2 AVENTURAS DESBLOQUEADAS':'AVENTURA 1 DISPONIBLE';
+ $('unlocked').textContent=(progress.missions.unlocked+1)+' DE 3 MISIONES DISPONIBLES';
  $('levelChoice').innerHTML='';
- for(let i=0;i<2;i++){let b=document.createElement('button');b.className='levelChoice'+(level===i?' picked':'');b.disabled=i>progress.unlocked;b.textContent=(i>progress.unlocked?'🔒 ':'')+(i+1)+'. '+C.LEVELS[i].name;b.onclick=()=>{level=i;fillLanding()};$('levelChoice').appendChild(b)}
- $('saveLabel').textContent=progress.coins+' MONEDAS GANADAS EN TOTAL';$('sounds').textContent=settings.sound?'SONIDO: SÍ':'SONIDO: NO';
+ for(let i=0;i<3;i++){
+  const def=M.MISSIONS[i],best=progress.missions.best[i],locked=i>progress.missions.unlocked;
+  const b=document.createElement('button');
+  b.className='levelChoice missionChoice'+(missionId===i?' picked':'');
+  b.disabled=locked;
+  b.textContent=(locked?'🔒 ':def.icon+' ')+def.title+(best?' · '+'★'.repeat(best.stars)+'☆'.repeat(3-best.stars):'');
+  b.title=def.subtitle;
+  b.onclick=()=>{missionId=i;fillLanding()};
+  $('levelChoice').appendChild(b);
+ }
+ $('saveLabel').textContent=progress.coins+' MONEDAS · '+progress.missions.completed+' RESCATES DE MUNDO';
+ $('sounds').textContent=settings.sound?'SONIDO: SÍ':'SONIDO: NO';
+ const residents=progress.missions.residents.length;
+ $('villageCount').textContent=residents+' HABITANTES RESCATADOS';
+ const buildings=[
+  ['🔧','TALLER DE KAI',1,'BLASTER MÁS RÁPIDO'],
+  ['🌺','JARDÍN DE FLOR',3,'+15 SEGUNDOS POR MISIÓN'],
+  ['🔭','OBSERVATORIO',5,'ESCUDO AL COMENZAR']
+ ];
+ $('villageGrid').innerHTML='';
+ for(const [emoji,title,needed,description] of buildings){
+  const tile=document.createElement('div');tile.className='villageHouse'+(residents>=needed?' restored':'');
+  const glyph=document.createElement('span');glyph.textContent=residents>=needed?emoji:'🏚️';
+  const titleNode=document.createElement('strong');titleNode.textContent=title;
+  const desc=document.createElement('small');desc.textContent=residents>=needed?description:'RESCATÁ '+needed+' HABITANTE'+(needed>1?'S':'');
+  tile.append(glyph,titleNode,desc);$('villageGrid').appendChild(tile);
+ }
+ $('villageHint').textContent=residents===0?'EL VACÍO ARRASÓ LA ALDEA. TU PRIMER RESCATE LA EMPIEZA A RECONSTRUIR.':
+   residents>=5?'¡TRES EDIFICIOS RESTAURADOS! VOLVÉ A TUS MISIONES POR LAS 3 ESTRELLAS.':
+   'CADA HABITANTE DESBLOQUEA BENEFICIOS: TALLER = MÁS DISPAROS, JARDÍN = +15S, OBSERVATORIO = ESCUDO.';
 }
 $('demoPlay').addEventListener('click',()=>play('demo'));$('arPlay').addEventListener('click',()=>play('ar'));
 $('fixWorld').onclick=fixWorld;$('begin').onclick=startGame;

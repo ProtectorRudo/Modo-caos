@@ -53,6 +53,15 @@ body.fury-mode #hud{border-color:#ffcb7f}
 #joystick{position:relative;width:136px;height:136px;border-radius:50%;border:2px solid #b0fff296;background:radial-gradient(circle,#146b806b,#081e3580);box-shadow:inset 0 0 30px #7bffdc3a,0 9px 20px #001f2878;pointer-events:auto;touch-action:none}
 #joystick:before,#joystick:after{content:"";position:absolute;background:#a8ffdc3a}#joystick:before{left:50%;top:12%;bottom:12%;width:1px}#joystick:after{top:50%;left:12%;right:12%;height:1px}
 #stick{position:absolute;left:50%;top:50%;width:67px;height:67px;margin:-33.5px;border-radius:50%;border:2px solid #ceffef;background:radial-gradient(circle at 35% 25%,#8cffdd,#22a99e 70%,#106982);box-shadow:0 5px 14px #00272c9a;pointer-events:none}
+#missionGoal{position:absolute;left:50%;top:max(125px,calc(env(safe-area-inset-top) + 116px));transform:translateX(-50%);width:min(385px,80vw);text-align:center;font-size:11px;font-weight:950;letter-spacing:.6px;color:#fff5b9;text-shadow:0 3px 8px #000;white-space:normal;z-index:5;pointer-events:none}
+#missionReactor{position:absolute;top:max(147px,calc(env(safe-area-inset-top) + 137px));left:50%;transform:translateX(-50%);width:min(280px,62vw);height:10px;border:1px solid #7cfff2;border-radius:12px;overflow:hidden;background:#182d42db;z-index:5}
+#missionReactorFill{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff7770,#ffd06b,#71ffe1);transition:width .15s}
+#village{background:linear-gradient(145deg,#174354,#0b283a);border:1px solid #72dcac77;border-radius:15px;padding:11px;margin:10px 0 14px;box-shadow:inset 0 2px 15px #fff1}
+.villageTop{display:flex;justify-content:space-between;gap:9px;align-items:center;font-size:10px;font-weight:950;color:#e9ffb4}.villageTop strong{color:#b5ffe7;font-size:9px}
+.villageGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:9px}
+.villageHouse{display:flex;align-items:center;flex-direction:column;min-height:91px;gap:4px;justify-content:center;border:1px dashed #6077878d;border-radius:10px;background:#071d2bad;opacity:.77;padding:6px 3px;text-align:center}.villageHouse.restored{background:linear-gradient(145deg,#265d64,#285b4b);border:1px solid #d5ffb8;opacity:1;box-shadow:0 0 10px #8bfac622}
+.villageHouse span{font-size:26px}.villageHouse strong{font-size:9px;color:#edfff6}.villageHouse small{font-size:8px;color:#b9d5d3;line-height:1.2}.villageHint{font-size:8px;margin:8px 1px 0;color:#d6f6c7;letter-spacing:.5px;font-weight:800}
+.missionChoice{min-height:35px;max-width:100%;text-align:left}.missionChoice:disabled{opacity:.48}
 .actionButtons{display:flex;align-items:flex-end;gap:10px;pointer-events:none;padding-bottom:5px}
 .actionButton{border-radius:50%;pointer-events:auto;touch-action:none;box-shadow:0 10px 15px #06282b88,inset 0 3px 6px #fff6;color:#143442;text-shadow:0 1px #fff8;display:grid;place-items:center;align-content:center;letter-spacing:0}
 .actionButton span{font-size:26px;display:block}.actionButton small{font-size:9px;font-weight:1000}
@@ -65,7 +74,19 @@ body.fury-mode #hud{border-color:#ffcb7f}
 #ready{position:absolute;inset:0;z-index:7;display:grid;place-items:center;pointer-events:none}
 .readyCard{text-align:center;background:#0c3445dc;padding:24px 23px;border-radius:21px;border:1px solid #73ebd1;box-shadow:0 13px 50px #07192399;backdrop-filter:blur(9px);width:min(335px,86vw);pointer-events:auto}
 .readyCard h2{font-size:27px;line-height:1.05;margin:5px 0 8px}.readyCard p{font-size:12px;color:#bdede6;margin:7px 0 18px}
-.readyCard .cta{width:100%}
+.readyCard .cta{width:100%;margin-top:14px;font-size:14px;letter-spacing:.5px}
+.readyCard{width:min(408px,91vw);max-height:calc(100dvh - 45px);overflow-y:auto;padding:clamp(17px,4.2vw,25px);text-align:left;overscroll-behavior:contain}
+.readyCard h2{font-size:clamp(24px,5.5vw,30px);margin:8px 0 4px;line-height:1.12}
+.readyCard .label{font-size:10px}
+.readyCard p#readyCopy{font-size:13px;line-height:1.46;margin:9px 0 12px;color:#f0fff9}
+.readyMeta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;margin:12px 0;border-radius:10px;background:#133e4f;color:#ddfff3;font-size:11px;font-weight:900;border:1px solid #77e6bd60}
+.readySubheading{font-size:10px;letter-spacing:1.6px;color:#ffe69a;font-weight:1000;margin:12px 0 8px}
+.readySteps{padding:0;margin:0;list-style:none;display:grid;gap:7px;counter-reset:mission-step}
+.readySteps li{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.38;color:#effff7;border:1px solid #70dfc32e;border-radius:11px;background:#0a2b3bbf;padding:10px 9px}
+.readySteps li::before{counter-increment:mission-step;content:counter(mission-step);display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:#89f2cc;color:#0e353c;font-size:12px;font-weight:1000}
+.readyBonus{color:#ffeda9!important;border-top:1px solid #ffeeb52d;padding-top:10px;font-size:11px!important;margin:12px 0 0!important;line-height:1.4!important}
+.readyHelp{text-align:center;color:#b4e0df!important;font-size:10px!important;line-height:1.4!important;margin:9px 0 0!important}
+@media(max-height:610px){.readyCard{max-height:calc(100dvh - 22px);padding:13px 18px}.readySteps{gap:4px}.readySteps li{padding:7px 8px}.readyCard h2{font-size:23px}}
 #modal{position:absolute;inset:0;z-index:12;background:#071c2fbd;backdrop-filter:blur(9px);display:grid;place-items:center;padding:17px;pointer-events:auto}
 .modalCard{border:1px solid #80d5c1;border-radius:23px;background:linear-gradient(160deg,#1d5062,#12283c 75%);box-shadow:0 25px 100px #000a;padding:25px;width:min(415px,93vw);text-align:center;max-height:88dvh;overflow:auto}
 .modalCard h2{margin:7px 0;font-size:31px;line-height:1.05;letter-spacing:-1px}.modalCard p{font-size:13px;color:#c7e5e6;line-height:1.6}
@@ -78,10 +99,11 @@ body.fury-mode #hud{border-color:#ffcb7f}
 <div id="landing"><div class="wrapper">
 <section>
 <div class="label">MODO CAOS PRESENTA · AVENTURA ÉPICA DE BOLSILLO</div><h1 class="brand">MINI<span>WORLDS.</span></h1>
-<div class="headline">Un zorro aventurero. Un blaster de energía. Cuatro mundos sorprendentes.</div>
-<p class="copy">Guiá al zorro explorador, dispará energía para romper cajas y derrotar enemigos, recuperá flores encantadas y cruzá portales entre islas. Cada sector aparece en el mismo espacio de tu living: no necesitás seguir físicamente al personaje.</p>
-<div class="features"><span>✦ CABE EN UN LIVING</span><span>◈ 3D + REALIDAD AUMENTADA</span><span>⚡ COMBOS Y FURIA</span><span>✺ JEFES ANIMADOS</span></div>
-<div class="label" id="unlocked">AVENTURA 1 DISPONIBLE</div><div id="levelChoice"></div>
+<div class="headline">Un héroe pequeño. Mundos en peligro. ¡Un universo entero por salvar!</div>
+<p class="copy">KAI debe rescatar habitantes, defender el corazón del mundo y recuperar los cristales robados. Cada rescate devuelve vida a tu propia aldea. Cada sector aparece en el mismo espacio de tu living: no necesitás seguir físicamente al personaje.</p>
+<div class="features"><span>🐾 RESCATÁ HABITANTES</span><span>◈ 3D + REALIDAD AUMENTADA</span><span>🏡 RECONSTRUÍ TU ALDEA</span><span>★ TRES ESTRELLAS POR MISIÓN</span></div>
+<div class="label" id="unlocked">MISIÓN 1 DISPONIBLE</div><div id="levelChoice"></div>
+<div id="village" aria-label="Aldea que se reconstruye con habitantes rescatados"><div class="villageTop"><span>🏡 TU REFUGIO</span><strong id="villageCount">0 HABITANTES RESCATADOS</strong></div><div id="villageGrid" class="villageGrid"></div><p id="villageHint" class="villageHint">RESCATÁ HABITANTES PARA RECONSTRUIR TU ALDEA.</p></div>
 <div class="buttonStack"><button class="cta" id="arPlay" disabled>COMPROBANDO AR...</button><button class="cta outline" id="demoPlay">▶ JUGAR AHORA · AVENTURA 3D</button></div>
 <div class="features"><span id="saveLabel">0 MONEDAS GANADAS</span><button class="levelChoice" id="sounds">SONIDO: SÍ</button></div>
 <p class="fine">AR: cuatro escenarios de bolsillo en una zona de aproximadamente 2,5 × 1,9 m, con escala ajustable; manejás al héroe con joystick, no hace falta caminar por el escenario. Necesitás Android con ARCore, Chrome y un lugar despejado. Sin AR podés jugar en 3D. <a href="./index.html">‹ VOLVER A MODO CAOS</a></p>
@@ -96,15 +118,15 @@ body.fury-mode #hud{border-color:#ffcb7f}
 <div id="gameUI" hidden>
 <div id="hud"><span id="health">♥♥♥</span><span>🟡 <b id="coinCount">00</b></span><span>⭐ <b id="starCount">0/3</b></span><span id="clock">0:00</span></div>
 <div id="chaosMeter" hidden><span id="chaosFill"></span><span id="chaosCaption">CAOS 0%</span></div><div id="comboBanner" aria-live="off"></div>
-<div id="zoneTitle">MUNDO 1 · LA ISLA DESPIERTA</div><button id="arStatus" hidden title="Tocá para mostrar u ocultar la guía espacial">3D · comprobando AR</button><button id="pause" hidden aria-label="Pausar">Ⅱ</button><button id="recenter" hidden>⌖ RECENTRAR</button><button id="mapToggle" hidden aria-label="Mostrar minimapa">🗺</button><canvas id="miniMap" width="116" height="156" hidden aria-label="Minimapa del mundo"></canvas>
+<div id="zoneTitle">MISIÓN 1 · RESCATE EN EL VACÍO</div><div id="missionGoal" aria-live="polite">RESCATES 0/2 · BALIZAS 0/2</div><div id="missionReactor" hidden><i id="missionReactorFill"></i></div><button id="arStatus" hidden title="Tocá para mostrar u ocultar la guía espacial">3D · comprobando AR</button><button id="pause" hidden aria-label="Pausar">Ⅱ</button><button id="recenter" hidden>⌖ RECENTRAR</button><button id="mapToggle" hidden aria-label="Mostrar minimapa">🗺</button><canvas id="miniMap" width="116" height="156" hidden aria-label="Minimapa del mundo"></canvas>
 <div id="bossHud" hidden><span id="bossLabel">DRAGÓN DORADO · FASE 1</span><div id="bossTrack"><i id="bossFill"></i></div></div>
 <div id="toast" aria-live="polite"></div>
 <div id="controls" hidden><div id="joystick" aria-label="Joystick de movimiento"><div id="stick"></div></div><div class="actionButtons"><button id="punchBtn" class="actionButton"><span>➤</span><small>DISPARAR</small></button><button id="jumpBtn" class="actionButton"><span>↥</span><small>SALTAR</small></button></div></div>
 <div id="placement" hidden><div id="positionPad"></div><div id="placementHint">BUSCÁ UNA ZONA DESPEJADA DE 2–3 METROS · AJUSTÁ EL MUNDO</div><div id="placementButtons"><button id="scaleLess">−</button><button id="turnLeft">↶</button><button id="fixWorld" disabled>FIJAR MUNDO</button><button id="turnRight">↷</button><button id="scaleMore">＋</button></div></div>
-<div id="ready" hidden><div class="readyCard"><div class="label">MINI WORLDS · EL ZORRO EXPLORADOR</div><h2 id="readyTitle">¡BIENVENIDO A ISLA SALVAJE!</h2><p>Joystick: manejá al zorro aventurero · ↑ doble salto · ➤ dispará con el blaster · entrá en portales para avanzar o volver sin caminar por toda tu casa.</p><button class="cta" id="begin">▶ ¡EMPEZAR AVENTURA!</button></div></div>
+<div id="ready" hidden><section class="readyCard" role="dialog" aria-modal="true" aria-labelledby="readyTitle" aria-describedby="readyCopy"><div class="label" id="readyKicker">MINI WORLDS · TU MISIÓN</div><h2 id="readyTitle">RESCATE EN EL VACÍO</h2><p id="readyCopy">Rescatá habitantes y reactivá el portal.</p><div class="readyMeta"><span id="readyClock">⏱ 4:20</span><span>🏆 HASTA 3 ESTRELLAS</span></div><div class="readySubheading">¿QUÉ TENÉS QUE HACER?</div><ol id="readySteps" class="readySteps"><li>Rescatá a los habitantes.</li><li>Activá las balizas.</li><li>Escapá por el portal.</li></ol><p id="readyBonus" class="readyBonus">★ EXTRA: rescatá al habitante secreto.</p><button class="cta" id="begin" type="button">▶ ¡ENTENDIDO, A JUGAR!</button><p class="readyHelp">Al empezar, este cartel desaparece. El minimapa se puede ocultar tocando 🗺.</p></section></div>
 <div id="modal" hidden><div class="modalCard"><div class="label" id="modalTag">AVENTURA</div><h2 id="modalTitle"></h2><p id="modalDesc"></p><div id="actions"></div></div></div>
 <button id="menuBtn" hidden>VOLVER</button><div id="load" hidden>PREPARANDO TU UNIVERSO 3D…</div>
 </div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
-<script src="./mini-worlds-core.js"></script><script src="./mini-worlds-art.js"></script><script src="./mini-worlds-assets.js"></script><script src="./mini-worlds-premium.js"></script><script src="./mini-worlds-characters.js"></script><script src="./mini-worlds-ar-guide.js"></script><script src="./mini-worlds-ar-compositor.js"></script><script src="./mini-worlds-spatial.js"></script><script src="./mini-worlds-pocket.js"></script><script src="./mini-worlds-finish.js"></script><script src="./mini-worlds-runtime.js"></script>
+<script src="./mini-worlds-core.js"></script><script src="./mini-worlds-missions.js"></script><script src="./mini-worlds-art.js"></script><script src="./mini-worlds-mission-art.js"></script><script src="./mini-worlds-assets.js"></script><script src="./mini-worlds-premium.js"></script><script src="./mini-worlds-characters.js"></script><script src="./mini-worlds-ar-guide.js"></script><script src="./mini-worlds-ar-compositor.js"></script><script src="./mini-worlds-spatial.js"></script><script src="./mini-worlds-pocket.js"></script><script src="./mini-worlds-finish.js"></script><script src="./mini-worlds-runtime.js"></script>
 </body></html>
