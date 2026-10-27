@@ -338,3 +338,20 @@ No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones
 - `mini-worlds-diorama.js` ahora usa `Box3` de cada modelo para comprobar el volumen completo de copa entre cámara y KAI, incluso cuando el tronco está por detrás del zorro. Solo afecta a visuales, no a colisiones, posición del jugador, input, WebXR ni world anchor.
 - Monstruos secundarios ~0,64–0,85 de alto en su visual (hitboxes lógicas sin cambios); rocas y acantilados decorativos reducidos. Minimapa de 92×122 y título duplicado oculto durante la partida, manteniendo misión y rumbo legibles.
 - Tests CI cubren límite de copas, no superposición de áreas clave, ausencia de teletransporte adicional y la desaparición/restauración de una copa que obstruye a KAI. En Android real todavía faltan **capturas de esta versión específica**, FPS y validación táctil para confirmar la mejora.
+
+
+## Mini Worlds — Árboles, rocas, columnas y enemigos con cuerpo físico (27/10/2026)
+
+**Origen:** el usuario reportó que KAI atraviesa árboles, rocas y cualquier decorado, rompiendo la inmersión. Las mallas Quaternius/KayKit/Kenney y la vegetación nativa eran visuales sin registro de colisión.
+
+**Rama correctiva:** `fix/mini-worlds-solid-scenery-20261027` basada en `fix/mini-worlds-clear-view-20261027`. No fusionar con `main` ni editar otros juegos sin validación.
+
+- `mini-worlds-core.js`: `addScenery(s,def)` incorpora un cilindro/círculo sólido lógico (x,z,y,radio,alto,categoría) para cada decorado relevante. `solveScenery` permite deslizamiento a su alrededor, bloquea atravesarlo y deja que un salto libre supere rocas bajas, **sin** cambiar hitboxes de plataformas, cajas o portales.
+- Seguridad de navegación: no registra una roca/árbol si bloquearía la aparición, puntos de control, habitantes, balizas, cajas o pasarelas estrechas. **Si un adorno no admite colisión sin bloquear misiones, se quita visualmente** (no se deja una pared invisible ni un árbol traspasable). Flores, césped, partículas y elementos recolectables permanecen sin colisión, intencionalmente.
+- `mini-worlds-art.js`: palmeras, rocas nativas y columnas de ruinas registran los colliders reales al crear el nivel. Las columnas apuntan al grupo visual de las ruinas, nunca a toda la plataforma.
+- `mini-worlds-assets.js` (Kenney), `mini-worlds-premium.js` (Quaternius) y `mini-worlds-kaykit.js`: al descargar cada GLB, registran el cuerpo basado en la altura y huella estimada de la malla o descartan ese objeto si obstruye un objetivo. Todos en coordenadas lógicas del mismo tablero anclado.
+- `mini-worlds-runtime.js`: un registro de pares malla ↔ cuerpo `stage.registerSolid` se actualiza cada frame fijo. Si el mesh se oculta por corte visual de copa, cambio de región o fallback de modelos, su collider también se desactiva; al reaparecer se reactiva. Si un nuevo GLB llega mientras KAI está cerca de su base, no se crea súbitamente una colisión encima del jugador.
+- Enemigos terrestres impiden atravesar sus cuerpos mientras estén vivos. El respawn con invulnerabilidad tiene período de gracia para no desviar el punto de control. Los disparos del protagonista y los proyectiles enemigos se detienen en árboles, piedras o columnas sólidas.
+- `tests/mini-worlds-solid-scenery.test.cjs`: corre 60 Hz para verificar colisiones reales, salto sobre piedra baja, desactivación de obstáculos invisibles, disparo bloqueado, monstruos con cuerpo, rutas de rescate abiertas y acoplamiento de recursos 3D. Se ejecuta junto con todas las suites previas.
+
+**Límites reales:** pruebas automáticas sin teléfono AR físico; obstáculos aproximados mediante volúmenes conservadores, no geometría triangular completa, para mantener FPS móvil. Es imprescindible inspeccionar capturas reales y confirmar que ni la cámara, ni el joystick, ni los portales se descalibran.
