@@ -225,7 +225,14 @@ function causeway(root,w,i){
  }
  return grp;
 }
-function makeCoin(parent,x,y,z){const g=group(parent,x,y,z);mesh(cyl(.18,.18,.052,16),M.gold,0,0,0,g).rotation.x=P/2;mesh(new T.TorusGeometry(.125,.023,6,16),M.white,0,0,.034,g);mesh(cube(.035,.16,.03),M.white,0,0,.036,g);return g}
+function makeCoin(parent,x,y,z){
+ const g=group(parent,x,y,z);
+ g.name='ANCIENT COPPER RELIC · collectible';
+ mesh(cyl(.145,.145,.055,20),M.gold,0,0,0,g).rotation.x=P/2;
+ mesh(new T.TorusGeometry(.106,.012,7,20),M.woodDark,0,0,.035,g);
+ mesh(new T.OctahedronGeometry(.063,0),M.white,0,0,.041,g).scale.set(.55,1,.22);
+ return g;
+}
 function makeStar(parent,x,y,z){
  const g=group(parent,x,y,z);const shape=new T.Shape();for(let i=0;i<10;i++){let a=-P/2+i*P/5,rad=i%2?.15:.34;let px=Math.cos(a)*rad,py=Math.sin(a)*rad;i?shape.lineTo(px,py):shape.moveTo(px,py)}shape.closePath();
  const o=mesh(new T.ExtrudeGeometry(shape,{depth:.085,bevelEnabled:true,bevelSize:.025,bevelThickness:.022,bevelSegments:1,steps:1}),M.gold,0,0,0,g);o.position.z=-.04;return g;
@@ -467,7 +474,17 @@ function makeStage(map){
  const column=mesh(new T.CylinderGeometry(.015,.045,.8,8),beaconM,0,.4,0,previewBeacon);
  column.renderOrder=2000;column.castShadow=false;previewBeacon.visible=false;
  const flags=map.checkpoints.map(c=>{let g=group(root,c.x,c.y,c.z);mesh(cyl(.038,.04,.95,8),M.steel,0,.46,0,g);mesh(geoCone(.19,.4,3),M.gold,.19,.78,0,g).rotation.z=P/2;return g});
- let portal=group(root,0,1.45,-25.35);let ring=mesh(new T.TorusGeometry(.56,.12,11,35),M.purple,0,.60,0,portal);ring.rotation.y=.2;let center=mesh(sphere(.45,18,13),new T.MeshBasicMaterial({color:0x92ffe2,transparent:true,opacity:.25}),0,.59,0,portal);center.scale.z=.18;portal.visible=false;
+ const portal=group(root,0,1.45,-25.35);
+ portal.name='ANCIENT EXTRACTION GATE · 3D world anchored';
+ const outer=mesh(new T.TorusGeometry(.70,.11,8,40),M.stone,0,.67,0,portal);
+ const inner=mesh(new T.TorusGeometry(.56,.034,7,40),M.gold,0,.67,.03,portal);
+ outer.rotation.y=.11;inner.rotation.y=.11;
+ for(const side of [-1,1]){
+  mesh(cyl(.15,.19,.86,8),M.stone,side*.72,.33,-.05,portal);
+  mesh(cube(.34,.12,.28),M.gold,side*.72,.79,-.05,portal);
+ }
+ const keystone=mesh(new T.OctahedronGeometry(.19,0),M.gold,0,1.48,0,portal);
+ keystone.rotation.z=P/4;portal.visible=false;
  const warning=mesh(new T.RingGeometry(.84,1.3,40),new T.MeshBasicMaterial({color:0xff513e,transparent:true,opacity:.45,side:T.DoubleSide,depthWrite:false}),0,1.20,-23.2,root);warning.rotation.x=-P/2;warning.visible=false;
  const projectilePool=Array.from({length:14},()=>{let o=mesh(sphere(.12,9,7),M.red,0,0,0,root);o.visible=false;return o});
  const hazardPool=Array.from({length:8},()=>{let o=mesh(new T.RingGeometry(.40,.77,24),new T.MeshBasicMaterial({color:0xff583c,transparent:true,opacity:.57,side:T.DoubleSide,depthWrite:false}),0,0,0,root);o.rotation.x=-P/2;o.visible=false;return o});
