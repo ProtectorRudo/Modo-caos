@@ -233,7 +233,7 @@ function attack(s){
  const fury=s.chaos.fury>0,face=p.face,forward={x:Math.sin(face),z:Math.cos(face)};
  const locked=chooseShotAim(s,forward),dir=locked||forward;
  p.attack=(fury?.23:.32)-Math.min(.075,Math.max(0,p.blasterBoost||0));p.attackId++;
- p.lastShotAim=locked?{kind:locked.kind,id:locked.id,dx:dir.dx,z:dir.dz,time:s.clock}:null;
+ p.lastShotAim=locked?{kind:locked.kind,id:locked.id,dx:dir.dx,dz:dir.dz,time:s.clock}:null;
  const vx=Number.isFinite(dir.dx)?dir.dx:dir.x,vz=Number.isFinite(dir.dz)?dir.dz:dir.z;
  const shot={id:p.attackId,x:p.x+vx*.40,z:p.z+vz*.40,y:p.y+.76,
   dx:vx,dz:vz,ttl:1.10,speed:fury?10.1:8.3,ignore:[]};
