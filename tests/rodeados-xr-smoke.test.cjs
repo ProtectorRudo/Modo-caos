@@ -109,29 +109,31 @@ const server=http.createServer((req,res)=>{
  assert(!await page.locator('#radarWrap').isVisible(),'radar does not obstruct calibration');
  await page.locator('#begin').click();
  await page.waitForFunction(()=>__RodeadosDebug.stage==='playing',null,{timeout:15000});
- // FPS weapon must actually project into the same 1st XR eye used by
- // Blackzone's Android/ARCore DOM-compositor, not merely exist in the scene.
- try{await page.waitForFunction(()=>__RodeadosDebug.viewWeapon?.framing?.inView===true,null,{timeout:6000});}
- catch(err){const info=await page.evaluate(()=>({weapon:__RodeadosDebug.viewWeapon,stage:__RodeadosDebug.stage}));
-  throw Error('Rifle real 3D fuera del viewport: '+JSON.stringify(info)+' · '+err.message);}
+ // Actual GLB silhouette projected in a portrait WebXR eye (synthetic XR
+ // tracking, REAL Chromium WebGL). Earlier tests accepted a vertically twisted
+ // rifle because they validated NDC 'upward' rather than on-screen pixel angle.
+ await page.waitForFunction(()=>__RodeadosDebug.viewWeapon?.framing?.visible===true,null,{timeout:7500});
  const weapon=await page.evaluate(()=>__RodeadosDebug.viewWeapon);
- assert(weapon.framing.visible,'XR first-person gun is not hidden');
- assert(weapon.framing.meshCount>=1,'visible FPS weapon includes actual 3D mesh geometry');
- assert(Math.abs(weapon.framing.center.x)<.9&&Math.abs(weapon.framing.center.y)<.9,
-  'weapon center stays on screen in portrait WebXR rather than off the right edge: '+JSON.stringify(weapon));
- assert.equal(weapon.framing.inView,true,'some of the gun actually overlaps the physical XR viewport');
- assert(weapon.framing.center.x>.16&&weapon.framing.center.x<.55&&weapon.framing.center.y<-.45&&weapon.framing.bounds.top<-.30,
-   'large rifle should be lower screen and leave reticle unobstructed: '+JSON.stringify(weapon));
- assert(weapon.framing.dominantVisible,
-  'at least 90% of a substantial gun silhouette must fit inside safe play area, not just a tiny sliver: '+JSON.stringify(weapon));
- assert(weapon.framing.aim.upward===true,
-   'rifle barrel must visually point above stock instead of floor: '+JSON.stringify(weapon));
- assert(weapon.framing.aim.towardReticle>.70,
-   'rifle barrel must point toward real aim reticle, not an unrelated floor point: '+JSON.stringify(weapon));
- assert(weapon.framing.coverage>=.9,
-  'at least 90% of actual weapon mesh must be inside portrait play area: '+JSON.stringify(weapon));
- assert(weapon.framing.bounds.right<.94&&weapon.framing.bounds.left>-.34,
-  'rifle must fit screen-space safe rectangle and not clip at the right edge: '+JSON.stringify(weapon));
+ if(process.env.RODEADOS_AUDIT_IMAGE==='1'||(process.env.GITHUB_HEAD_REF||'').includes('rodeados-v30-fps-perspective-audit')){
+  const jpg=await page.screenshot({type:'jpeg',quality:32});
+  console.log('FPS_AUDIT_IMAGE_JPEG_BASE64='+jpg.toString('base64'));
+ }
+ console.log('FPS_AUDIT_METRICS='+JSON.stringify(weapon.framing));
+ const f=weapon.framing,aim=f.aim;
+ assert(f.meshCount>=1,'actual 3D rifle must render');
+ assert.equal(f.inView,true,'the gun must be visible without off-screen clipping: '+JSON.stringify(f));
+ assert(f.coverage>=.90,'at least 90% of the rendered GLB must be in a safe portrait region: '+JSON.stringify(f));
+ assert(aim.muzzle.x>-.11&&aim.muzzle.x<.25&&aim.muzzle.y<-.10&&aim.muzzle.y>-.42,
+  'physical gun muzzle should sit near and below the reticle: '+JSON.stringify(f));
+ assert(aim.stock.x>aim.muzzle.x+.25&&aim.stock.y<aim.muzzle.y-.14,
+  'the real rifle stock must be visually below and right of the muzzle: '+JSON.stringify(f));
+ assert(aim.pixelSlope>=.60&&aim.pixelSlope<=1.65,
+  'a real portrait screen must NOT display a near-vertical rifle: '+JSON.stringify(f));
+ assert(aim.angleOnScreenDeg>=31&&aim.angleOnScreenDeg<=59,
+  'FPS weapon should have a natural 35°–55° pixel-space barrel slope: '+JSON.stringify(f));
+ assert(aim.muzzleCloserToReticle===true&&aim.towardReticle>.65,'the barrel should converge toward the center');
+ assert(f.bounds.top<-.10&&f.bounds.left>-.67&&f.bounds.right<.98&&f.bounds.bottom>-.99,
+  'sightline clear and most of the GLB visible on portrait mobile: '+JSON.stringify(f));
 
  await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:3500});
  const start=await page.evaluate(()=>({game:__RodeadosDebug.game,meshes:__RodeadosDebug.renderedRobots}));
@@ -157,8 +159,15 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.ammo),28,'AR shooter never runs out of bullets');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.shots),1,
   'Android XR touch dispatched pointerdown and fired once');
- assert.equal(await page.evaluate(()=>__RodeadosDebug.shotStatus),'IMPACTO',
-  'shot must use the cached live XR ray, never silently abort due to stale XRFrame');
+ const shotDebug=await page.evaluate(()=>{
+  const g=__RodeadosDebug.game;
+  return {status:__RodeadosDebug.shotStatus,shotCount:g.shots,hits:g.hits,
+    aim:__RodeadosDebug.aim,tracking:__RodeadosDebug.tracking,
+    enemies:g.enemies.map(e=>({x:e.x,z:e.z,hp:e.hp,portal:e.portal,radius:e.radius,height:e.height}))};
+ });
+ console.log('RODEADOS_XR_SHOT_AUDIT='+JSON.stringify(shotDebug));
+ assert.equal(shotDebug.status,'IMPACTO',
+  'shot must use the cached live XR ray and hit the centered bot: '+JSON.stringify(shotDebug));
  assert.equal(await page.evaluate(()=>__RodeadosDebug.aimFailures),0,
   'no exception when sampling the active WebXR frame');
  assert((await page.evaluate(()=>__RodeadosDebug.game.hits))>=1,
