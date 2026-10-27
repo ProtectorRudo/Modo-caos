@@ -237,7 +237,7 @@ function setPhase(next){
  visible('placementHelp',false);visible('healthTrack',['ready','countdown','playing','paused'].includes(next),'block');
  visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown','block');
  visible('missionObjective',!!game.mission&&['ready','countdown','playing','paused'].includes(next),'block');
- visible('missionAction',next==='playing'&&['loot','ctf'].includes(game.mode),'block');
+ visible('missionAction',next==='playing'&&['loot','ctf','refuge'].includes(game.mode),'block');
  visible('demoMove',demo&&next==='playing'&&['ctf','loot','refuge'].includes(game.mode),'grid');
  visible('radarWrap',next==='playing'||next==='paused','block');visible('botGuide',next==='playing'||next==='paused','block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
