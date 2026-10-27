@@ -28,7 +28,7 @@ root.MiniWorldsAssets=function(T){
   const bounds=new T.Box3().setFromObject(o);
   if(!bounds.isEmpty()&&Number.isFinite(bounds.min.y))o.position.y+=y-bounds.min.y;
   else o.position.y=y;
-  return true;
+  return o;
  }
  async function decorate(stage,level,signal){
   const scene=stage?.worldRoot||stage?.root;if(!scene)return {count:0,loaded:0,failed:models.length};
@@ -57,14 +57,21 @@ root.MiniWorldsAssets=function(T){
    if(!alive||signal?.aborted)return {count:0,loaded,failed};
   }
   const random=rand(level?15773:7093);
-  const pick=(name,x,y,z,height,angle=0)=>{
-   const t=templates.get(name);if(!t)return;
-   if(place(add,t,x,y,z,height,angle))instances++;
+  const setPiece=(parent,name,x,y,z,height,angle)=>{
+   const proto=templates.get(name);if(!proto)return;
+   const obj=place(parent,proto,x,y,z,height,angle);if(!obj)return;
+   const tree=name.startsWith('tree-');
+   const rock=/^(rock-|stone-|cliff-waterfall-rock)/.test(name);
+   const solid=tree||rock||name==='campfire-stones';
+   if(solid&&stage.registerSolid){
+    const radius=tree?.19:rock?Math.min(.42,.15+height*.18):.18;
+    const collider=stage.registerSolid(obj,{x,y,z,height:Math.max(.25,height),radius,kind:tree?'tree':rock?'rock':'prop'});
+    if(!collider){obj.parent?.remove(obj);return}
+   }
+   instances++;
   };
-  const flora=(name,x,y,z,height,angle=0)=>{
-   const t=templates.get(name);if(!t)return;
-   if(place(foliage,t,x,y,z,height,angle))instances++;
-  };
+  const pick=(name,x,y,z,height,angle=0)=>setPiece(add,name,x,y,z,height,angle);
+  const flora=(name,x,y,z,height,angle=0)=>setPiece(foliage,name,x,y,z,height,angle);
   const tiles=stage.map.platforms;
   for(let i=0;i<tiles.length;i++){
    const p=tiles[i],height=p.y+.03,x=p.x,z=p.z,wx=p.w*.5,wz=p.d*.5;
