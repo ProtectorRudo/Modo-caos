@@ -28,7 +28,7 @@
   // Flag is OUTSIDE the home board, world-anchored at the exact point selected.
   const flag=point(plan?.flag,{x:0,z:-3.3},8);
   const spots=Array.isArray(plan?.spots)?plan.spots:ring(7);
-  return {base,flag,kinds:(Array.isArray(plan?.kinds)?plan.kinds:[]).slice(0,7).map(v=>['basic','flanker','spider','creep','tank','random'].includes(v)?v:'random'),spots:spots.slice(0,7).map((p,i)=>{
+  return {base,flag,kinds:(Array.isArray(plan?.kinds)?plan.kinds:[]).slice(0,7).map(v=>v==='creep'?'spider':['basic','flanker','spider','tank','random'].includes(v)?v:'random'),spots:spots.slice(0,7).map((p,i)=>{
     const fallback=ring(7)[i];
     return point(p,fallback,8);
   }).concat(spots.length<6?ring(7).slice(spots.length,6):[])};
@@ -110,7 +110,10 @@
   if(g.mode!=='ctf')return orig.movePlayer(g,p);
   if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
   // CTF needs roaming beyond the 2.6 m cosmetic tile board to retrieve the flag.
-  g.player.x=clamp(p.x,-8,8);g.player.z=clamp(p.z,-8,8);return true;
+  // A 2.6 m base and an enemy flag up to 8 m away must not impose
+  // an invisible 8 m player boundary. Permit normal real-world walking.
+  // 40 m is only a catastrophic-invalid-pose guard, never a CTF play area.
+  g.player.x=clamp(p.x,-40,40);g.player.z=clamp(p.z,-40,40);return true;
  };
  function objectiveDistance(g,point){return d(g.player,point)}
  G.flagLocation=function(g){
