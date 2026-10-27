@@ -74,7 +74,19 @@ body.fury-mode #hud{border-color:#ffcb7f}
 #ready{position:absolute;inset:0;z-index:7;display:grid;place-items:center;pointer-events:none}
 .readyCard{text-align:center;background:#0c3445dc;padding:24px 23px;border-radius:21px;border:1px solid #73ebd1;box-shadow:0 13px 50px #07192399;backdrop-filter:blur(9px);width:min(335px,86vw);pointer-events:auto}
 .readyCard h2{font-size:27px;line-height:1.05;margin:5px 0 8px}.readyCard p{font-size:12px;color:#bdede6;margin:7px 0 18px}
-.readyCard .cta{width:100%}
+.readyCard .cta{width:100%;margin-top:14px;font-size:14px;letter-spacing:.5px}
+.readyCard{width:min(408px,91vw);max-height:calc(100dvh - 45px);overflow-y:auto;padding:clamp(17px,4.2vw,25px);text-align:left;overscroll-behavior:contain}
+.readyCard h2{font-size:clamp(24px,5.5vw,30px);margin:8px 0 4px;line-height:1.12}
+.readyCard .label{font-size:10px}
+.readyCard p#readyCopy{font-size:13px;line-height:1.46;margin:9px 0 12px;color:#f0fff9}
+.readyMeta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;margin:12px 0;border-radius:10px;background:#133e4f;color:#ddfff3;font-size:11px;font-weight:900;border:1px solid #77e6bd60}
+.readySubheading{font-size:10px;letter-spacing:1.6px;color:#ffe69a;font-weight:1000;margin:12px 0 8px}
+.readySteps{padding:0;margin:0;list-style:none;display:grid;gap:7px;counter-reset:mission-step}
+.readySteps li{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.38;color:#effff7;border:1px solid #70dfc32e;border-radius:11px;background:#0a2b3bbf;padding:10px 9px}
+.readySteps li::before{counter-increment:mission-step;content:counter(mission-step);display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:#89f2cc;color:#0e353c;font-size:12px;font-weight:1000}
+.readyBonus{color:#ffeda9!important;border-top:1px solid #ffeeb52d;padding-top:10px;font-size:11px!important;margin:12px 0 0!important;line-height:1.4!important}
+.readyHelp{text-align:center;color:#b4e0df!important;font-size:10px!important;line-height:1.4!important;margin:9px 0 0!important}
+@media(max-height:610px){.readyCard{max-height:calc(100dvh - 22px);padding:13px 18px}.readySteps{gap:4px}.readySteps li{padding:7px 8px}.readyCard h2{font-size:23px}}
 #modal{position:absolute;inset:0;z-index:12;background:#071c2fbd;backdrop-filter:blur(9px);display:grid;place-items:center;padding:17px;pointer-events:auto}
 .modalCard{border:1px solid #80d5c1;border-radius:23px;background:linear-gradient(160deg,#1d5062,#12283c 75%);box-shadow:0 25px 100px #000a;padding:25px;width:min(415px,93vw);text-align:center;max-height:88dvh;overflow:auto}
 .modalCard h2{margin:7px 0;font-size:31px;line-height:1.05;letter-spacing:-1px}.modalCard p{font-size:13px;color:#c7e5e6;line-height:1.6}
@@ -111,7 +123,7 @@ body.fury-mode #hud{border-color:#ffcb7f}
 <div id="toast" aria-live="polite"></div>
 <div id="controls" hidden><div id="joystick" aria-label="Joystick de movimiento"><div id="stick"></div></div><div class="actionButtons"><button id="punchBtn" class="actionButton"><span>➤</span><small>DISPARAR</small></button><button id="jumpBtn" class="actionButton"><span>↥</span><small>SALTAR</small></button></div></div>
 <div id="placement" hidden><div id="positionPad"></div><div id="placementHint">BUSCÁ UNA ZONA DESPEJADA DE 2–3 METROS · AJUSTÁ EL MUNDO</div><div id="placementButtons"><button id="scaleLess">−</button><button id="turnLeft">↶</button><button id="fixWorld" disabled>FIJAR MUNDO</button><button id="turnRight">↷</button><button id="scaleMore">＋</button></div></div>
-<div id="ready" hidden><div class="readyCard"><div class="label">MINI WORLDS · EL ZORRO EXPLORADOR</div><h2 id="readyTitle">¡RESCATE EN EL VACÍO!</h2><p id="readyCopy">Salvá a los habitantes, activá dos balizas y escapá. Joystick para caminar · ↑ doble salto · ➤ disparar.</p><button class="cta" id="begin">▶ ¡EMPEZAR AVENTURA!</button></div></div>
+<div id="ready" hidden><section class="readyCard" role="dialog" aria-modal="true" aria-labelledby="readyTitle" aria-describedby="readyCopy"><div class="label" id="readyKicker">MINI WORLDS · TU MISIÓN</div><h2 id="readyTitle">RESCATE EN EL VACÍO</h2><p id="readyCopy">Rescatá habitantes y reactivá el portal.</p><div class="readyMeta"><span id="readyClock">⏱ 4:20</span><span>🏆 HASTA 3 ESTRELLAS</span></div><div class="readySubheading">¿QUÉ TENÉS QUE HACER?</div><ol id="readySteps" class="readySteps"><li>Rescatá a los habitantes.</li><li>Activá las balizas.</li><li>Escapá por el portal.</li></ol><p id="readyBonus" class="readyBonus">★ EXTRA: rescatá al habitante secreto.</p><button class="cta" id="begin" type="button">▶ ¡ENTENDIDO, A JUGAR!</button><p class="readyHelp">Al empezar, este cartel desaparece. El minimapa se puede ocultar tocando 🗺.</p></section></div>
 <div id="modal" hidden><div class="modalCard"><div class="label" id="modalTag">AVENTURA</div><h2 id="modalTitle"></h2><p id="modalDesc"></p><div id="actions"></div></div></div>
 <button id="menuBtn" hidden>VOLVER</button><div id="load" hidden>PREPARANDO TU UNIVERSO 3D…</div>
 </div>
