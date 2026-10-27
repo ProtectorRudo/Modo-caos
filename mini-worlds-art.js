@@ -34,6 +34,8 @@ M.sand.map=groundTexture('sand',382);M.sand.roughness=.96;M.sand.needsUpdate=tru
 M.grass.map=groundTexture('grass',572);M.grass.roughness=.94;M.grass.needsUpdate=true;
 M.grass2.map=M.grass.map;M.grass2.needsUpdate=true;
 M.stone.map=groundTexture('stone',942);M.stone.roughness=.91;M.stone.needsUpdate=true;
+M.trail=new T.MeshStandardMaterial({color:0x776b55,map:M.stone.map,roughness:.98,metalness:0});
+M.oldRoad=new T.MeshStandardMaterial({color:0x626d69,map:M.stone.map,roughness:.96,metalness:0});
 
 const sphere=(r=1,w=12,h=9)=>new T.SphereGeometry(r,w,h);
 const cube=(x=1,y=1,z=1)=>new T.BoxGeometry(x,y,z);
@@ -146,9 +148,12 @@ function platform(root,p,rand){
  const upper=mesh(cube(p.w,.14,p.d),top,0,-.045,0,g);upper.receiveShadow=true;
  // Color-varied soft ground patch, perfectly coplanar with the REAL physics
  // platform surface: decorative only and never increases standable space.
- if(!isBridge){const capMat=p.kind==='beach'?M.sand:p.kind==='arena'?M.stone:M.grass;
-  const cap=mesh(new T.CircleGeometry(.48,16),capMat,0,.029,0,g);
-  cap.rotation.x=-P/2;cap.scale.set(Math.max(.5,p.w*.77),Math.max(.5,p.d*.77),1);
+ if(!isBridge){
+  // Worn oval footpath is inset into the real walkable ground, not a fake
+  // platform. Shared high-res PBR grain adds a legible safe route.
+  const cap=mesh(new T.CircleGeometry(1,32),
+   p.kind==='ruins'||p.kind==='arena'?M.oldRoad:M.trail,0,.035,0,g);
+  cap.rotation.x=-P/2;cap.scale.set(Math.max(.4,p.w*.22),Math.max(.65,p.d*.37),1);
   cap.castShadow=false;cap.receiveShadow=false;
  }
  // Rock rim and meadow already supplied by the batched coastline material.
