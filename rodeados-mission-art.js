@@ -150,7 +150,10 @@ export function createRodeadosMissionArt(THREE,world){
   if(mode==='timewarp')warp.scale.setScalar(game.elapsed<m.slowUntil?1.8:1);
   if(mode==='mutant')mutators.forEach((b,i)=>{b.scale.setScalar(.85+.2*Math.sin(tick*3+i))});
  }
- return {update,root,dispose(){world.remove(root);root.traverse(o=>{
+ return {update,root,
+  getFlagRender(){return {x:ctfFlag.position.x,y:ctfFlag.position.y,z:ctfFlag.position.z,visible:ctfFlag.visible,beaconVisible:flagBeacon.visible}},
+  getFlagWorldRender(){const v=new THREE.Vector3();ctfFlag.updateWorldMatrix(true,false);ctfFlag.getWorldPosition(v);return {x:v.x,y:v.y,z:v.z}},
+  dispose(){world.remove(root);root.traverse(o=>{
   if(o.isMesh){o.geometry?.dispose();/* Shared materials are disposed below. */ }
  });[metal,dark,cyan,gold,red,blue,reactor.material,shield.material].forEach(m=>m.dispose?.())}};
 }
