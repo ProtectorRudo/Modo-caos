@@ -34,6 +34,8 @@ M.sand.map=groundTexture('sand',382);M.sand.roughness=.96;M.sand.needsUpdate=tru
 M.grass.map=groundTexture('grass',572);M.grass.roughness=.94;M.grass.needsUpdate=true;
 M.grass2.map=M.grass.map;M.grass2.needsUpdate=true;
 M.stone.map=groundTexture('stone',942);M.stone.roughness=.91;M.stone.needsUpdate=true;
+M.trail=new T.MeshStandardMaterial({color:0x776b55,map:M.stone.map,roughness:.98,metalness:0});
+M.oldRoad=new T.MeshStandardMaterial({color:0x626d69,map:M.stone.map,roughness:.96,metalness:0});
 
 const sphere=(r=1,w=12,h=9)=>new T.SphereGeometry(r,w,h);
 const cube=(x=1,y=1,z=1)=>new T.BoxGeometry(x,y,z);
@@ -146,24 +148,25 @@ function platform(root,p,rand){
  const upper=mesh(cube(p.w,.14,p.d),top,0,-.045,0,g);upper.receiveShadow=true;
  // Color-varied soft ground patch, perfectly coplanar with the REAL physics
  // platform surface: decorative only and never increases standable space.
- if(!isBridge){const capMat=p.kind==='beach'?M.sand:p.kind==='arena'?M.stone:M.grass;
-  const cap=mesh(new T.CircleGeometry(.48,16),capMat,0,.029,0,g);
-  cap.rotation.x=-P/2;cap.scale.set(Math.max(.5,p.w*.77),Math.max(.5,p.d*.77),1);
+ if(!isBridge){
+  // Worn oval footpath is inset into the real walkable ground, not a fake
+  // platform. Shared high-res PBR grain adds a legible safe route.
+  const cap=mesh(new T.CircleGeometry(1,32),
+   p.kind==='ruins'||p.kind==='arena'?M.oldRoad:M.trail,0,.035,0,g);
+  cap.rotation.x=-P/2;cap.scale.set(Math.max(.4,p.w*.22),Math.max(.65,p.d*.37),1);
   cap.castShadow=false;cap.receiveShadow=false;
  }
- // Jagged earth breaks the silhouette; narrow decorative stones never obstruct the play corridor.
- for(let i=0;i<Math.floor(p.w*2.4);i++){let x=(rand()-.5)*p.w*.94,z=(rand()>.5?1:-1)*(p.d*.47);
- let a=mesh(new T.DodecahedronGeometry(.12+rand()*.14,0),p.kind==='arena'?M.stone:M.edge,x,-.27,z,g);a.scale.y=.8}
- if(p.kind==='beach' || p.kind==='jungle'){
-  for(let i=0;i<Math.floor(p.w*1.4);i++){let x=(rand()-.5)*p.w*.76,z=(rand()>.5?1:-1)*p.d*.43;
-   if(rand()>.46)addFlower(g,x,z,i);else mesh(sphere(.16,7,6),M.grass2,x,.02,z,g)}
- }
+ // Rock rim and meadow already supplied by the batched coastline material.
+ // No extra fake rocks or bright pastel flower beads clutter the playable
+ // path; visible stones are registered as obstacles by makeStage.
  if(isBridge){for(let i=0;i<6;i++){let z=-p.d*.42+i*p.d/5;mesh(cube(p.w*.9,.065,.18),i%2?M.wood:M.woodDark,0,.02,z,g)}
   for(const x of [-p.w*.47,p.w*.47]){for(let j=0;j<3;j++){let z=-p.d*.44+j*p.d*.44;mesh(cyl(.043,.052,.8,7),M.woodDark,x,.31,z,g)}mesh(cube(.05,.055,p.d),M.wood,x,.66,0,g)}}
  if(p.kind==='ruins')g.userData.ruins=addRuins(g,p.w*.28,.02,-p.d*.20);
  if(p.kind==='waterfall'){
-  mesh(cube(.26,1.12,.24),M.stone,p.w*.43,.54,-.55,g);
-  let water=mesh(cube(.06,.9,.92),M.water,p.w*.40,.5,-.45,g);water.material=M.water;
+  // The old cyan transparent BOX rendered as giant geometric artifacts on
+  // AR cameras. A compact mineral obelisk marks the landmark instead.
+  const stoneMarker=mesh(cyl(.15,.20,.46,7),M.stone,p.w*.42,.19,-.55,g);
+  stoneMarker.castShadow=false;
  }
  if(p.kind==='arena'){let ring=mesh(new T.TorusGeometry(1.95,.07,8,64),M.gold,0,.04,0,g);ring.rotation.x=-P/2;
  for(let i=0;i<8;i++){const a=i*P/4;const ob=mesh(cyl(.08,.14,.45,7),M.stone,Math.cos(a)*2.28,.16,Math.sin(a)*2.05,g);ob.rotation.z=(rand()-.5)*.2}}
@@ -209,13 +212,14 @@ function makeAvatar(parent){
  const highlight=new T.MeshStandardMaterial({color:0xe09250,roughness:.82});
  const cream=new T.MeshStandardMaterial({color:0xe9d5bb,roughness:.87});
  const innerEar=new T.MeshStandardMaterial({color:0x9f584f,roughness:.84});
- const dark=new T.MeshPhysicalMaterial({color:0x282941,roughness:.24,clearcoat:.50});
+ const dark=new T.MeshPhysicalMaterial({color:0x222d31,roughness:.51,clearcoat:.16});
  const leather=new T.MeshStandardMaterial({color:0x35474a,roughness:.75,metalness:.20});
  const vest=new T.MeshPhysicalMaterial({color:0x345860,roughness:.66,metalness:.14,clearcoat:.10});
  const gold=new T.MeshPhysicalMaterial({color:0xb58b58,roughness:.33,metalness:.68,clearcoat:.23});
  const jade=new T.MeshStandardMaterial({color:0x6efce0,emissive:0x3fe4d3,emissiveIntensity:1.5,roughness:.22});
- const eyeWhite=new T.MeshPhysicalMaterial({color:0xffffff,roughness:.1,clearcoat:1});
+ const eyeWhite=new T.MeshPhysicalMaterial({color:0xe8e3d7,roughness:.46,clearcoat:.10});
  const g=group(parent),body=group(g,0,.57,0),head=group(body,0,.48,.055);
+ head.scale.setScalar(.89); // athletic explorer proportions, no oversized baby face
  g.name='KAI / original fox stand-in + energy blaster';
  // Compact heroic figure: larger readable silhouette than realistic anatomy.
  mesh(sphere(.32,22,16),vest,0,-.02,0,body).scale.set(1,.98,.81);
@@ -263,8 +267,8 @@ function makeAvatar(parent){
  const base=mesh(sphere(.23,17,12),fur,0,.03,-.21,tail);
  base.rotation.x=-.46;base.scale.set(.91,.82,1.67);
  const puff=mesh(sphere(.23,18,12),highlight,0,.11,-.53,tail);
- puff.rotation.x=-.40;puff.scale.set(1.1,.84,1.53);
- const tip=mesh(new T.ConeGeometry(.18,.41,10),cream,0,.18,-.87,tail);
+ puff.rotation.x=-.40;puff.scale.set(.90,.78,1.26);
+ const tip=mesh(new T.ConeGeometry(.14,.35,10),cream,0,.18,-.85,tail);
  tip.rotation.x=-Math.PI/2-.28;
  // Keeps a visible and friendly accessory even if rendering is offline.
  const badge=mesh(new T.TorusGeometry(.105,.028,9,20),jade,0,.14,.31,body);
@@ -308,25 +312,9 @@ function makeBoss(parent,b,variant=false){
 // defaults to ~6.7m wide × 11.9m long, anchored to a real floor hit.
 function sprawlingEnvironment(root,rand,cliff){
  const sea=makeOcean(root,{n:cliff?1:0});
- // These far-shore shapes used to be large sandy "islands" without hitboxes:
- // players jumped there and fell through. They are now unmistakably
- // submerged rock outcrops rather than false walkable platforms.
- for(const side of [-1,1]){
-  for(let j=0;j<5;j++){
-   const z=1.0-j*5.0,x=side*(7.2+rand()*.42);
-   const stone=addRock(root,x,-.78,z,.34+rand()*.27);
-   stone.scale.y=.37;
-   if(cliff&&j%3===0){const spear=mesh(geoCone(.24,.62,6),M.stone,x,-.57,z,root);spear.rotation.z=side*.1}
-  }
- }
- // Ancient landmarks at the far ends make the 3D level readable from a distance.
- const arch=group(root,0,0,-25.1);
- for(const x of [-2.45,2.45]){
-  mesh(cyl(.19,.30,2.4,8),M.stone,x,1.3,0,arch);
-  const cap=mesh(new T.DodecahedronGeometry(.35,0),M.gold,x,2.58,0,arch);cap.rotation.y=x;
- }
- const cross=mesh(cube(5.2,.30,.48),M.stone,0,2.44,0,arch);
- cross.rotation.z=.07;
+ // No floating fake rocks or opaque horizon arch: their apparent
+ // solidity encouraged unsafe jumps onto scenery outside logical ground.
+ // Legitimate ancient portals and arches use registered solid obstacles.
  return sea;
 }
 function makeStage(map){
@@ -416,7 +404,7 @@ function makeStage(map){
   return {root:g,crystal,petals,ring};
  });
  // Cheap readable contact shadows: no expensive real-time shadow map in AR.
- const shadowMat=new T.MeshBasicMaterial({color:0x0d2634,transparent:true,opacity:.27,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
+ const shadowMat=new T.MeshBasicMaterial({color:0x0d2634,transparent:true,opacity:.25,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:T.DoubleSide});
  const shadow=(x,z,size=1)=>{const o=mesh(new T.CircleGeometry(.35,24),shadowMat.clone(),x,.046,z,root);o.rotation.x=-P/2;o.scale.set(size,1,.67);o.castShadow=false;return o};
  const heroShadow=shadow(0,0,1.1);
  const enemyShadows=map.enemies.map(e=>shadow(e.x,e.z,.75));
@@ -467,6 +455,10 @@ function makeStage(map){
   rewardTextures.set(text,texture);return texture;
  }
  function rewardPop(text,x,y,z){
+  // AR phones render additive billboard sprites as gray/white pixel
+  // rectangles over the camera on some compositors. Real impact particles,
+  // audio, haptics and the score HUD provide the feedback instead.
+  if(document.body.classList.contains('mw-immersive-ar'))return;
   const o=new T.Sprite(new T.SpriteMaterial({map:rewardTexture(text),transparent:true,depthTest:false,depthWrite:false}));
   o.position.set(x,y,z);o.scale.set(1.1,.44,1);o.renderOrder=1805;root.add(o);
   combatBursts.push({o,t:0,life:.72,kind:'pop',baseY:y});

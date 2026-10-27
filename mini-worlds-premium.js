@@ -58,7 +58,14 @@ root.MiniWorldsPremium=function(T,options={}){
   return o;
  }
  async function decorate(stage,level){
-  if(!stage?.root||!stage?.map?.platforms)return {loaded:0,placed:0,failed:level?7:4};
+  if(!stage?.root||!stage?.map?.platforms)return {loaded:0,placed:0,failed:0};
+  // No round foliage in the opening rescue world, so don't download
+  // 4 unused Quaternius trees/bushes or create an empty scene group.
+  if(level===0){
+   stage.disposePremium=()=>{};
+   return {loaded:0,placed:0,failed:0,canopies:0,skipped:true,
+    source:'No unnecessary foliage GLBs for mission one'};
+  }
   const rootGroup=stage.worldRoot||stage.root,layer=new T.Group();
   stage.premiumLayer=layer;
   layer.name='MINI WORLDS · QUATERNIUS STYLIZED NATURE MEGAKIT · CC0';
@@ -71,7 +78,7 @@ root.MiniWorldsPremium=function(T,options={}){
    layer.parent?.remove(layer);results.failed=level?7:4;console.warn('[MINI WORLDS PREMIUM] GLTFLoader unavailable',e);
    return results;
   }
-  const keys=Object.keys(SOURCES).filter(name=>level>0||!name.startsWith('medieval'));
+  const keys=Object.keys(SOURCES).filter(name=>name.startsWith('medieval'));
   // Four independent loads: each 110–516 KB. A single failed CDN request
   // never removes existing Kenney scenery or blocks a playable level.
   const entries=await Promise.all(keys.map(async(key)=>{
@@ -122,7 +129,7 @@ root.MiniWorldsPremium=function(T,options={}){
   const restricted=[{x:0,z:1.2},...(stage.mission?.rescues||[]),
     ...(stage.map.runes||[])];
   const safe=(x,z,r)=>restricted.every(p=>Math.hypot(x-p.x,z-p.z)>r);
-  const patches=[3,6,9,12];
+  const patches=[]; // no Quaternius spherical shrub crowns
   for(let i=0;i<patches.length;i++){
     const p=stageTiles[patches[i]];if(!p)continue;
     const x=p.x+(i%2?-.5:.5)*p.w+.10;
@@ -141,7 +148,7 @@ root.MiniWorldsPremium=function(T,options={}){
    place('medievalWall',cliff.x+cliff.w*.44,cliff.y-.08,cliff.z-cliff.d*.39,.92,.12);
    place('medievalRock',oldTemple.x+oldTemple.w*.48,oldTemple.y-.18,oldTemple.z-oldTemple.d*.45,.94,.24);
    place('medievalRock',cliff.x-cliff.w*.50,cliff.y-.14,cliff.z+cliff.d*.42,1.10,1.2);
-   place('shrub',oldTemple.x+oldTemple.w*.43,oldTemple.y+.02,oldTemple.z-oldTemple.d*.4,.53,.4);
+   // Avoid the last plastic sphere shrub at the Temple of Clouds.
   }
   if(results.placed>=2){
    stage.premiumNativeActive=true;

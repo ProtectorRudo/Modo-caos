@@ -32,7 +32,7 @@ let out=guide.draw(frame,{},stage,true,false);
 assert(out.pose,'native XR pose must project');
 assert(out.visible>=1,'first playable island must appear where detected floor marker is');
 assert(!svg.hidden,'SVG must be visible during placement');
-assert(svg.children.length>=10,'platform polygon, center circle and start label required');
+assert(svg.children.length>=6,'placement SVG needs four local floor polygons and start indicator, no gameplay debug polygons');
 stage.root.matrixWorld.e[12]=100;
 out=guide.draw(frame,{},stage,true,false);
 assert.equal(out.visible,0,'island outside camera must not be reported visible');

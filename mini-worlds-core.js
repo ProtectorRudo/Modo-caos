@@ -53,19 +53,19 @@ function level(n=0){
  [3.28,-3.45,'mystery'],[-3.3,-9.6,'coins'],
  [3.5,-12.55,'reinforced'],[-3.1,-18.75,'secret'],
  [3.35,-20.3,'mystery']
- ].map(([x,z,type],i)=>({id:i,x:x+(i>3&&i<11?shift*.25:0),z,type,hp:type==='reinforced'?3:1,alive:true,flash:0}));
+ ].filter((_,i)=>[0,1,3,4,6,7,8,9,11,12,13,15].includes(i)).map(([x,z,type],i)=>({id:i,x:x+(i>3&&i<11?shift*.25:0),z,type,hp:type==='reinforced'?3:1,alive:true,flash:0}));
  const coins=[];
  const push=(x,z,y=.53)=>coins.push({id:coins.length,x,z,y,taken:false});
- for(let k=0;k<6;k++)push(-.62+(k%3)*.55,-.65-k*.59);
- for(let k=0;k<5;k++)push(-.62+(k%2)*.7,-5.6-k*.62,.95);
- for(let k=0;k<6;k++)push(-1+(k%3)*.72,-9-k*.65,1.08);
- for(let k=0;k<6;k++)push(-.4+(k%3)*.68,-12.1-k*.6,1.40);
- for(let k=0;k<6;k++)push(-.1+(k%3)*.63,-15.1-k*.63,1.68);
- for(let k=0;k<6;k++)push(-.7+(k%3)*.70,-18.1-k*.65,1.78);
- for(let k=0;k<5;k++)push(-1+(k%5)*.5,-21.55,1.78);
+ for(let k=0;k<4;k++)push(-.62+(k%3)*.55,-.65-k*.59);
+ for(let k=0;k<4;k++)push(-.62+(k%2)*.7,-5.6-k*.62,.95);
+ for(let k=0;k<4;k++)push(-1+(k%3)*.72,-9-k*.65,1.08);
+ for(let k=0;k<4;k++)push(-.4+(k%3)*.68,-12.1-k*.6,1.40);
+ for(let k=0;k<4;k++)push(-.1+(k%3)*.63,-15.1-k*.63,1.68);
+ for(let k=0;k<4;k++)push(-.7+(k%3)*.70,-18.1-k*.65,1.78);
+ for(let k=0;k<4;k++)push(-1+(k%5)*.5,-21.55,1.78);
  // Collectibles reward lateral exploration of the 6 extra land masses.
  const branches=platforms.slice(8).map(p=>[p.x,p.z,p.y]);
- for(const [bx,bz,by] of branches)for(let i=0;i<4;i++)push(bx-.68+i*.43,bz+(i%2?-.42:.44),by+.59);
+ for(const [bx,bz,by] of branches)for(let i=0;i<2;i++)push(bx-.68+i*.43,bz+(i%2?-.42:.44),by+.59);
  const enemies=(n?[
  [0,-4.15,'flying'],[-1.0,-9.15,'thrower'],[.6,-11.7,'defender'],
  [.7,-15.3,'flying'],[-.2,-18.55,'patrol'],[-1.1,-20.1,'defender'],

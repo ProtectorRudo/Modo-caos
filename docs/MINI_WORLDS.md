@@ -389,3 +389,23 @@ No se gana juntando monedas ni cruzando el nivel: cada aventura exige **misiones
 - `tests/mini-worlds-no-toy-solid.test.cjs` prohíbe las antiguas mallas grandes, exige hitboxes basadas en dimensiones reales, verifica la presencia del diseño cinematográfico y ejecuta un recorrido con colisión de roca. Se actualizan las pruebas de paquetes de Kenney/Quaternius para no exigir renderizar objetos que se dejaron de usar, preservando integridad de los GLB almacenados.
 
 **Limitación esencial:** verificación con GitHub Actions/Node; **sin prueba física de AR Android, sin capturas reales de esta nueva rama y sin afirmaciones de que el resultado ya es de nivel consola**. Publicar una preview independiente y verificar su SHA antes de pedir que el usuario vuelva a testear. La antigua URL Vercel no contiene estas correcciones.
+
+
+## Mini Worlds — Limpieza visual premium y corrección AR basada en captura (27/10/2026)
+
+**Rama aislada:** `feat/mini-worlds-clean-adventure-20261027`, base `fix/mini-worlds-zero-toy-solid-world-20261027`. Pedido autorizado por usuario tras identificar 14 defectos en captura Android.
+
+### Raíces encontradas y cambios reales
+- **Polígonos celestes gigantes:** `mini-worlds-runtime.js` forzaba `MiniWorldsARGuide.draw(..., force=webglCalls===0)` durante la partida. `webglCalls=0` no significa que el AR esté roto en el compositor y dibujaba rectángulos semitransparentes gigantes de la guía de piso encima del juego. **Corregido:** guía SVG solo durante `placing`/`ready`, `hide()` explícito jugando. La guía usa 4 contornos solo al calibrar. El mundo 3D sigue totalmente anclado a WebXR.
+- **Cuadrados flotantes de feedback:** sprites de texto flotante `rewardPop` dependían de un overlay con mezcla alfa. Se desactivan únicamente durante WebXR; quedan sonidos, HUD, partículas físicas y vibración. La demo 3D conserva carteles.
+- **Planos aqua/maquetas engañosas:** eliminado el cubo grande de cascada transparente, el arco decorativo no registrable y las falsas rocas flotantes fuera del espacio jugable. Agua oceánica sigue animada y por debajo de las colisiones.
+- **Escenario sobrecargado:** reducidos pickups (40 monedas en vez de >60), cajas a 12 por nivel, vegetación de borde de 13–18 detalles por isla a 5–8, luciérnagas de 24 a 10 y cristales señuelo a solo 3 sitios con sentido. No se ocultan objetos coleccionables que aún puedan recogerse; el core genera realmente menos entidades y conserva récords, estrellas y rescates.
+- **Árboles / rocas de juguete:** se eliminan los arbustos redondos de KayKit y Quaternius; solo se conserva el árbol nativo compacto con tronco físico. Quaternius ya no descarga 4 GLB de árboles inutilizados en misión 1; únicamente se usan recursos arquitectónicos de piedra en segunda campaña. Kenney mantiene rocas físicas vinculadas a las dimensiones XZ del GLB.
+- **Terreno y dirección:** senderos ovalados de tierra/piedra con textura 512 y materiales compartidos sobre la **misma superficie lógica**. Laderas faceteadas más naturales, paleta verde bosque/ocre/piedra, ambientación más discreta sin forzar postprocesado.
+- **Personajes y HUD:** enemigos corrompidos angulares con tamaño legible, KAI menos infantil (ojos mate, proporción de cabeza 0.89, cola contenida), minimapa reducido y **cerrado al iniciar** con botón para abrirlo. Carteles de misión previos conservados.
+- Física de rocas, troncos, ruinas, enemigos y proyectiles sigue siendo pura `MiniWorldsCore` + `stage.registerSolid`, respetando rutas de rescate y tiempo de salto. No se modifican otros juegos ni Supabase.
+
+### QA
+- Nuevas pruebas `tests/mini-worlds-clean-art.test.cjs` junto a ~19 suites anteriores y validación `node --check`. Verifica prohibición de guía de piso durante juego, artefactos transparentes, ausencia de planos de cascada, colisiones sólidas y cantidad real de pickups.
+- GitHub Actions valida código y física simulada, **NO prueba física AR Android ni imagen real de un usuario**. Antes de producción comprobar capturas, respuesta joystick, cuerpos sólidos, objetivos, FPS, recentrado y versiones realmente desplegadas.
+- Como Vercel ha limitado API deploys, **verificar commit SHA exacto y archivos HTTPS**; no presentar una preview vieja como versión nueva.

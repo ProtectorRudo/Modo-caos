@@ -10,7 +10,7 @@ root.MiniWorldsFinish=function(T){
   if(!stage?.worldRoot||!stage?.hero?.root)return null;
   const world=stage.worldRoot,visible=[],sparks=[];
   const palette=level?[0x9bcbff,0xe4a4ff,0xffd17b,0x83ffe2]:colors;
-  const shimmer=new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.58,blending:T.AdditiveBlending,depthWrite:false});
+  const shimmer=new T.MeshBasicMaterial({color:0xe4f1e3,transparent:true,opacity:.34,blending:T.AdditiveBlending,depthWrite:false});
   const gemMaterials=palette.map(c=>new T.MeshPhysicalMaterial({
    color:c,metalness:.24,roughness:.19,clearcoat:.85,clearcoatRoughness:.1,
    emissive:c,emissiveIntensity:.38
@@ -24,7 +24,7 @@ root.MiniWorldsFinish=function(T){
   // The decorations are always next to existing land, never extra floating
   // platforms that would trick players into jumping off a collider.
   stage.map.platforms.forEach((p,i)=>{
-   if(i===7)return; // Keep boss fight silhouettes clean.
+   if(i===7||i%4!==0)return; // Keep just three ancient wayfinders, not one floating gem per island.
    const tint=i%4,side=i%2===0?1:-1,edge=p.w*.49;
    const holder=new T.Group();
    holder.name='MINI WORLDS / premium wayfinder / platform '+i;
@@ -66,7 +66,7 @@ root.MiniWorldsFinish=function(T){
   }
   // Give the artist's rig readable curvature and an understated cyan rim.
   // Lights attach to the SCENE, never to the phone or XR camera.
-  const fill=new T.DirectionalLight(level?0xc7b2ff:0x91fff2,.55);
+  const fill=new T.DirectionalLight(level?0x9bb1bf:0x9dc6ba,.38);
   fill.position.set(4,5,-6);stage.scene.add(fill);
   let time=0;
   function update(game,dt,elapsed){

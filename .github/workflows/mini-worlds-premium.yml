@@ -1,7 +1,7 @@
-name: Mini Worlds no toy trees and honest solid collisions QA
+name: Mini Worlds cinematic clarity and AR artifact regression QA
 on:
   push:
-    branches: [fix/mini-worlds-zero-toy-solid-world-20261027]
+    branches: [feat/mini-worlds-clean-adventure-20261027]
   workflow_dispatch:
 jobs:
   test:
@@ -23,6 +23,7 @@ jobs:
             tests/mini-worlds-solid-scenery.test.cjs \
             tests/mini-worlds-cinematic.test.cjs \
             tests/mini-worlds-no-toy-solid.test.cjs \
+            tests/mini-worlds-clean-art.test.cjs \
             tests/mini-worlds-gamefeel.test.cjs \
             tests/mini-worlds-magic.test.cjs \
             tests/mini-worlds-missions.test.cjs \
