@@ -109,11 +109,22 @@ function makeShoreFoam(parent,map){
  return line;
 }
 const rng=s=>()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296};
+// Original chunky toy palm replaced with a compact ancient cypress.
+// Narrow layered needles frame the mission but never cover the whole
+// phone screen. Its actual trunk is registered as solid by makeStage.
 function addPalm(p,x,z,size=1,groundY=.05){
- const g=group(p,x,groundY,z),trunk=mesh(cyl(.105,.17,1.36,9),M.wood,.04,.63,0,g);trunk.rotation.z=-.11;
- for(let i=0;i<6;i++){const a=i*P/3;let stem=group(g,.16,1.3,0);stem.rotation.y=a;stem.rotation.z=-.16;let leaf=mesh(geoCone(.20,1.35,5),i%2?M.leaf:M.leaf2,0,.10,.57,stem);leaf.rotation.x=P/2+.23;leaf.scale.set(1.25,.85,.7)}
- for(let i=0;i<3;i++)mesh(sphere(.12),M.woodDark,.14+Math.cos(i*2)*.12,1.22,.04+Math.sin(i*2)*.12,g);
- g.scale.setScalar(size);return g;
+ const g=group(p,x,groundY,z);
+ g.name='ANCIENT CYPRESS · compact narrow crown';
+ const trunk=mesh(cyl(.075,.115,1.1,9),M.woodDark,0,.55,0,g);
+ const crown=group(g,0,1.02,0);
+ for(let i=0;i<3;i++){
+  const t=mesh(geoCone(.18-i*.033,.55-i*.07,7),i===1?M.leaf2:M.leaf,0,i*.19,0,crown);
+  t.rotation.y=i*1.04;t.castShadow=false;
+ }
+ const root=mesh(new T.DodecahedronGeometry(.13,0),M.edge,0,.05,.04,g);
+ root.scale.set(1.2,.42,1.05);
+ g.scale.setScalar(size*.88);
+ return g;
 }
 function addFlower(p,x,z,seed){
  const g=group(p,x,.03,z);mesh(cyl(.027,.033,.32,5),M.grass2,0,.13,0,g);
@@ -332,11 +343,11 @@ function makeStage(map){
  for(let i=0;i<(map.walkways||[]).length;i++)causeway(root,map.walkways[i],i);
  for(let i=0;i<map.platforms.length;i++){
   const p=map.platforms[i],prev=map.platforms[i-1];
-  if(p.kind==='beach'||p.kind==='jungle'){
+  if((p.kind==='beach'||p.kind==='jungle')&&i%3===1){
    const x=p.x+(rand()>.5?1:-1)*(p.w*.45+.22),z=p.z+(rand()-.5)*p.d*.8;
-   const size=.72+rand()*.30,obj=addPalm(root,x,z,size,p.y+.05);
+   const size=.70+rand()*.16,obj=addPalm(root,x,z,size,p.y+.05);
    windTargets.push(obj);
-   nativeSolids.push({obj,x,z,y:p.y,height:1.42*size,radius:.15*size,kind:'tree'});
+   nativeSolids.push({obj,x,z,y:p.y,height:1.26*size,radius:.12*size,kind:'tree'});
   }
   if(p.kind==='jungle'||p.kind==='ruins'){
    const x=p.x+p.w*.5,obj=addRock(root,x,p.y+.05,p.z,.22);
