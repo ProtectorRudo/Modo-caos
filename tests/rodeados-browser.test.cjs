@@ -17,7 +17,7 @@ const server=http.createServer((req,res)=>{
  browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--disable-web-security']});
  const page=await browser.newPage({viewport:{width:393,height:852},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const issues=[];page.on('pageerror',e=>issues.push(e.message));
- await page.goto(base+'/rodeados.html',{waitUntil:'load'});
+ await page.goto(base+'/rodeados.html',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!!globalThis.__RodeadosDebug,null,{timeout:25000});
  assert.equal((await page.locator('h1').innerText()).replace(/\s+/g,' ').trim(),'RODEADOS 360°');
  await page.locator('#startDemo').click();
@@ -71,8 +71,8 @@ const server=http.createServer((req,res)=>{
  await page.locator('#sound').click();
  assert.equal(await page.locator('#sound').textContent(),'🔇','muted');
  assert.equal(issues.length,0,'browser runtime exceptions: '+issues.join(' | '));
- await page.goto(base+'/index.html');assert.equal(await page.locator('a[href="/rodeados.html"]').count(),1);
- await page.goto(base+'/salas.html');assert.equal(await page.locator('option[value="rodeados-360"]').count(),1);
+ await page.goto(base+'/index.html',{waitUntil:'domcontentloaded'});assert.equal(await page.locator('a[href="/rodeados.html"]').count(),1);
+ await page.goto(base+'/salas.html',{waitUntil:'domcontentloaded'});assert.equal(await page.locator('option[value="rodeados-360"]').count(),1);
  console.log('PASS: WebGL browser, game loop, gun, infinite ammo, pause, menu and salas. Physical AR NOT tested.');
  }catch(e){console.error(e.stack||e);process.exitCode=1}finally{await browser?.close();await new Promise(r=>server.close(r))}
 })();
