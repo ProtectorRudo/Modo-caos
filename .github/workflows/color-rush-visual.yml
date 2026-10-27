@@ -11,6 +11,7 @@ on:
       - 'tests/color-pro3d-smoke.test.cjs'
       - 'tests/color-pro-finish.test.cjs'
       - 'tests/color-pro3d-webgl.html'
+      - 'tests/color-pro-hud.html'
       - '.github/workflows/color-rush-visual.yml'
   push:
     branches:
@@ -24,6 +25,7 @@ on:
       - 'tests/color-pro3d-smoke.test.cjs'
       - 'tests/color-pro-finish.test.cjs'
       - 'tests/color-pro3d-webgl.html'
+      - 'tests/color-pro-hud.html'
       - '.github/workflows/color-rush-visual.yml'
 permissions:
   contents: read
@@ -67,3 +69,24 @@ jobs:
             exit 1
           }
           echo "PASS: native WebGL 1 shaders compiled and rendered"
+
+      - name: Check compact HUD geometry in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "::warning::Chromium not installed for HUD layout test."
+            exit 0
+          fi
+          URL="file://$PWD/tests/color-pro-hud.html"
+          timeout 40s "$CHROME" --headless --no-sandbox --disable-dev-shm-usage --window-size=430,920 --virtual-time-budget=3000 --dump-dom "$URL" 2>/tmp/crp-hud-log >/tmp/crp-hud-dom || {
+            cat /tmp/crp-hud-log | tail -25
+            exit 1
+          }
+          grep -q 'data-status="PASS"' /tmp/crp-hud-dom || {
+            grep 'id="result"' /tmp/crp-hud-dom || true
+            cat /tmp/crp-hud-log | tail -25
+            exit 1
+          }
+          echo "PASS: compact accessible two-column HUD in Chromium"
