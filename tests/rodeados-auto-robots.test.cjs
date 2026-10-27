@@ -92,6 +92,10 @@ const server=http.createServer((req,res)=>{
    assert(hero.center.x>.30&&hero.center.y<-.24,
      'weapon should be bottom-right and off the crosshair: '+JSON.stringify(hero));
    assert(hero.meshCount>=4,'realistic gun includes metal/slide/grip geometry: '+JSON.stringify(hero));
+   assert(hero.dominantVisible===true,
+     'photorealistic pistol must be substantively visible, unobstructed and above HUD: '+JSON.stringify(hero));
+   assert(hero.coverage>=.90&&hero.bounds.right<.85&&hero.bounds.bottom>-.65,
+     'pistol must fit the portrait safe rectangle, not just touch the right edge: '+JSON.stringify(hero));
 
   }
   if(!real)await page.locator('#startDemo').click();

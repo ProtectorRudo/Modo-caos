@@ -644,69 +644,109 @@ export function createRodeadosArt(THREE,scene,camera){
  setWeaponTier('pistol');
  const camTemp=new THREE.Vector3(),quatTemp=new THREE.Quaternion();
  const weaponOffset=new THREE.Vector3(),weaponCenter=new THREE.Vector3();
- const oneTime=new THREE.Vector3();
- let lastWeaponCamera=null;
+ const oneTime=new THREE.Vector3(),testPoint=new THREE.Vector3();
+ const meshBox=new THREE.Box3(),corner=new THREE.Vector3();
+ let lastWeaponCamera=null,layout=null;
+ // Weapon occupies a deliberately unobstructed portion of portrait UI:
+ // left of the three combat buttons and BELOW the centered reticle.
+ // Values are normalized device coordinates, 1=top/right, -1=bottom/left.
+ const weaponSafe={left:.08,right:.77,bottom:-.56,top:-.025};
+ function measureWeapon(eye){
+  eye.updateWorldMatrix(true,false);
+  activeWeapon.updateWorldMatrix(true,true);
+  let left=Infinity,right=-Infinity,bottom=Infinity,top=-Infinity,front=false,meshes=0;
+  activeWeapon.traverse(obj=>{
+   if(!obj.isMesh||!obj.visible)return;
+   if(!obj.geometry?.boundingBox)obj.geometry?.computeBoundingBox();
+   const bb=obj.geometry?.boundingBox;if(!bb)return;
+   meshes++;
+   for(const x of [bb.min.x,bb.max.x])for(const y of [bb.min.y,bb.max.y])for(const z of [bb.min.z,bb.max.z]){
+    corner.set(x,y,z).applyMatrix4(obj.matrixWorld).project(eye);
+    if(!Number.isFinite(corner.x)||!Number.isFinite(corner.y)||!Number.isFinite(corner.z))continue;
+    if(corner.z>=-1&&corner.z<=1)front=true;
+    left=Math.min(left,corner.x);right=Math.max(right,corner.x);
+    bottom=Math.min(bottom,corner.y);top=Math.max(top,corner.y);
+   }
+  });
+  const width=right-left,height=top-bottom;
+  const clipW=Math.max(0,Math.min(right,weaponSafe.right)-Math.max(left,weaponSafe.left));
+  const clipH=Math.max(0,Math.min(top,weaponSafe.top)-Math.max(bottom,weaponSafe.bottom));
+  const coverage=width>0&&height>0?clipW*clipH/(width*height):0;
+  return {left,right,bottom,top,width,height,coverage,front,meshes,
+   centerX:(left+right)*.5,centerY:(bottom+top)*.5,
+   visible:rifle.visible&&activeWeapon.visible&&meshes>0};
+ }
  function positionWeapon(viewCamera,flash){
-  // The XR compositor uses the FIRST eye's matrices, not ArrayCamera's parent.
-  // That distinction matters for camera-relative objects on Android/ARCore.
-  const eye=viewCamera?.cameras?.[0]||viewCamera;
-  if(!eye)return;
+  const eye=viewCamera?.cameras?.[0]||viewCamera;if(!eye)return;
   lastWeaponCamera=eye;
   eye.getWorldPosition(camTemp);eye.getWorldQuaternion(quatTemp);
-  const projection=eye.projectionMatrix?.elements;
-  const horizontal=Math.abs(projection?.[0])>0.1?Math.abs(projection[0]):2.2;
-  const vertical=Math.abs(projection?.[5])>0.1?Math.abs(projection[5]):1.75;
-  // Occupy the LOWER-RIGHT 20-25% of the phone, not the crosshair.
-  // Use actual XR eye projection, in both portrait and landscape.
-  const pistolMode=currentWeapon==='pistol';
-  const depth=pistolMode?.78:.86;
-  const targetX=pistolMode?.73:.70,targetY=pistolMode?-.57:-.61;
-  weaponOffset.set(
-   THREE.MathUtils.clamp(targetX*depth/horizontal,.07,.28),
-   THREE.MathUtils.clamp(targetY*depth/vertical,-.39,-.14)-recoil*.012,
-   -depth+recoil*.029
-  );
+  const p=eye.projectionMatrix?.elements;
+  const px=Math.abs(p?.[0])>.1?Math.abs(p[0]):2.2;
+  const py=Math.abs(p?.[5])>.1?Math.abs(p[5]):1.75;
+  const shiftX=Number.isFinite(p?.[8])?p[8]:0;
+  const shiftY=Number.isFinite(p?.[9])?p[9]:0;
+  const pistolMode=currentWeapon==='pistol',depth=pistolMode?.66:.78;
+  const needsLayout=!layout||layout.tier!==currentWeapon||layout.asset!==activeWeapon||
+   Math.abs(layout.px-px)>.015||Math.abs(layout.py-py)>.015||
+   Math.abs(layout.shiftX-shiftX)>.015||Math.abs(layout.shiftY-shiftY)>.015;
+  if(needsLayout){
+   // Instead of anchoring the gun's ORIGIN at x=.73 NDC and hoping its
+   // silhouette is still visible, fit the ACTUAL textured mesh bounds.
+   let scale=heroPistol&&pistolMode?1.05:pistolMode?.95:.88;
+   let x=(.39+shiftX)*depth/px,y=(-.25+shiftY)*depth/py;
+   for(let i=0;i<4;i++){
+    activeWeapon.scale.setScalar(scale);
+    weaponOffset.set(x,y,-depth);
+    rifle.position.copy(camTemp).add(weaponOffset.applyQuaternion(quatTemp));
+    rifle.quaternion.copy(quatTemp);rifle.rotateY(-.045);
+    let bb=measureWeapon(eye);
+    if(!bb.front||!Number.isFinite(bb.width)||bb.width<=0)break;
+    // The gun should be a meaningful visual element, but must fit above
+    // the FIRE / BOMB / EMP panel and not cover the center aiming reticle.
+    const maxWidth=weaponSafe.right-weaponSafe.left;
+    const maxHeight=weaponSafe.top-weaponSafe.bottom;
+    let factor=Math.min(1,maxWidth/bb.width,maxHeight/bb.height);
+    if(factor===1&&bb.width<.32&&bb.height<.28){
+     factor=Math.min(1.32, .36/bb.width, .32/bb.height);
+    }
+    scale=THREE.MathUtils.clamp(scale*factor,.66,1.42);
+    // Convert correction of the projected mesh CENTER to camera-local meters.
+    x+=THREE.MathUtils.clamp((.405-bb.centerX)*depth/px,-.27,.27);
+    y+=THREE.MathUtils.clamp((-.285-bb.centerY)*depth/py,-.27,.27);
+   }
+   layout={tier:currentWeapon,asset:activeWeapon,px,py,shiftX,shiftY,depth,x,y,scale};
+  }
+  activeWeapon.scale.setScalar(layout.scale);
+  weaponOffset.set(layout.x,layout.y-recoil*.01,-layout.depth+recoil*.022);
   rifle.position.copy(camTemp).add(weaponOffset.applyQuaternion(quatTemp));
   rifle.quaternion.copy(quatTemp);
-  rifle.rotateY(-.035);rifle.rotateX(-recoil*.065-(flash?.010:0));
-  // High-end pistol: visible three-quarter side silhouette, pointed inward
-  // towards the reticle. Small recoil and breathing motion, no giant blocks.
-  const motion=performance.now()*.001;
-  const shift=(pistolMode?.0018:.0025)*Math.sin(motion*1.6);
-  rifle.position.add(oneTime.set(shift,Math.sin(motion*1.17)*.0015,0).applyQuaternion(quatTemp));
-  if(heroPistol&&pistolMode)activeWeapon.scale.setScalar(.69);
-  else activeWeapon.scale.setScalar(pistolMode?.86:.78);
-  for(const [name,model] of Object.entries(weaponModels)){
-   model.userData.setFiring(name===currentWeapon&&!importedWeapons.has(name)&&!!flash,performance.now()*.001);
-  }
-  for(const [name,model] of importedWeapons){
-   model.userData.setFiring(name===currentWeapon&&!!flash,performance.now()*.001);
-  }
-  activeWeapon.rotation.z=(currentWeapon==='plasma'?.005:.002)*Math.sin(performance.now()*.0024);
-  if(heroPistol&&pistolMode){activeWeapon.rotation.y=Math.PI+.49;activeWeapon.rotation.x=-.02}
+  rifle.rotateY(-.045);rifle.rotateX(-recoil*.06-(flash?.008:0));
+  const t=performance.now()*.001;
+  rifle.position.add(oneTime.set(Math.sin(t*1.5)*.0011,Math.sin(t*1.3)*.0012,0).applyQuaternion(quatTemp));
+  for(const [name,model] of Object.entries(weaponModels))
+   model.userData.setFiring(name===currentWeapon&&!importedWeapons.has(name)&&!!flash,t);
+  for(const [name,model] of importedWeapons)
+   model.userData.setFiring(name===currentWeapon&&!!flash,t);
+  activeWeapon.rotation.z=currentWeapon==='plasma'?Math.sin(t*2.5)*.004:0;
+  if(heroPistol&&pistolMode){activeWeapon.rotation.y=Math.PI+.31;activeWeapon.rotation.x=-.055}
   gloves.rotation.x=-.09-recoil*.06;
  }
  function getWeaponFraming(){
   const eye=lastWeaponCamera;
-  const info={tier:currentWeapon,source:heroPistol&&currentWeapon==='pistol'?'polyhaven-cc0-pbr':importedWeapons.has(currentWeapon)?'quaternius-glb':'safe-procedural',
-   visible:rifle.visible&&activeWeapon.visible,meshCount:0,inView:false,center:null,bounds:null};
+  const info={tier:currentWeapon,
+   source:heroPistol&&currentWeapon==='pistol'?'polyhaven-cc0-pbr':
+     importedWeapons.has(currentWeapon)?'quaternius-glb':'safe-procedural',
+   visible:rifle.visible&&activeWeapon.visible,meshCount:0,inView:false,
+   dominantVisible:false,coverage:0,center:null,bounds:null};
   if(!eye)return info;
-  eye.updateWorldMatrix(true,false);
-  activeWeapon.updateWorldMatrix(true,true);
-  activeWeapon.traverse(o=>{if(o.isMesh&&o.visible&&o.parent?.visible!==false)info.meshCount++});
-  const bb=new THREE.Box3().setFromObject(activeWeapon);
-  if(bb.isEmpty())return info;
-  activeWeapon.getWorldPosition(weaponCenter);
-  const center=weaponCenter.clone().project(eye);
-  const xs=[],ys=[],zs=[];
-  for(const x of [bb.min.x,bb.max.x])for(const y of [bb.min.y,bb.max.y])for(const z of [bb.min.z,bb.max.z]){
-   const corner=new THREE.Vector3(x,y,z).project(eye);
-   xs.push(corner.x);ys.push(corner.y);zs.push(corner.z);
-  }
-  info.center={x:+center.x.toFixed(3),y:+center.y.toFixed(3),z:+center.z.toFixed(3)};
-  info.bounds={left:Math.min(...xs),right:Math.max(...xs),bottom:Math.min(...ys),top:Math.max(...ys)};
-  info.inView=info.visible&&info.meshCount>0&&info.bounds.right>-.95&&info.bounds.left<.95&&
-    info.bounds.top>-.95&&info.bounds.bottom<.95&&zs.some(z=>z>-1&&z<1);
+  const bounds=measureWeapon(eye);
+  info.meshCount=bounds.meshes;
+  info.bounds={left:bounds.left,right:bounds.right,bottom:bounds.bottom,top:bounds.top};
+  info.center={x:+bounds.centerX.toFixed(3),y:+bounds.centerY.toFixed(3),z:0};
+  info.coverage=+bounds.coverage.toFixed(3);
+  info.inView=info.visible&&bounds.front&&bounds.coverage>.65;
+  info.dominantVisible=info.inView&&bounds.coverage>.90&&bounds.width>=.24&&bounds.height>=.16&&
+   bounds.left>0&&bounds.right<.85&&bounds.top<.08&&bounds.bottom>-.65;
   return info;
  }
  function clear(){
