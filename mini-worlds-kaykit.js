@@ -70,6 +70,10 @@ root.MiniWorldsKayKit=function(T,options={}){
     o.position.y=p.y+.012-scaled.min.y;
     o.name='KAYKIT '+kind.toUpperCase()+' · '+proto.name;
     o.userData.mwFoliage=kind!=='rock';
+    const registered=stage.registerSolid?.(o,{x,y:p.y,z,
+     radius:kind==='rock'?.19+wanted*.20:.18,height:wanted,
+     kind:kind==='rock'?'rock':'bush'});
+    if(stage.registerSolid&&!registered){stage.worldRoot.remove(o);continue}
     o.traverse(n=>{if(n.isMesh){n.castShadow=false;n.receiveShadow=true;n.frustumCulled=true;
       if(n.material?.map)n.material.map.anisotropy=Math.max(n.material.map.anisotropy||1,4)}});
     added.push(o);placedBy[kind]++;
