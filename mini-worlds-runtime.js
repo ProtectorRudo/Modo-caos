@@ -124,6 +124,10 @@ function newStage(){
  const stageRefForPhysics=stage;
  document.body.classList.toggle('mw-defense',missionId===1);
  stage.missionVisual=window.MiniWorldsMissionArt?.(T).setup(stage,game)||null;
+ stage.cinematicArt=null;
+ try{stage.cinematicArt=window.MiniWorldsCinematic?.(T).setup(stage,level)||null}
+ catch(err){console.warn('[MINI WORLDS] Cinematic scenery unavailable; playable base retained:',err?.message||err)}
+
  stage.diorama=window.MiniWorldsDiorama?.(T).create(stage,level)||null;
  stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
  stage.pocket=window.MiniWorldsPocket?.create(T,stage)||null;
@@ -160,14 +164,14 @@ function newStage(){
   }).catch(e=>console.warn('[MINI WORLDS] KayKit fallback:',e.message));
  }
  // Animated characters are optional and NEVER delay or replace physics.
- if(window.MiniWorldsCharacters){
+ if(window.MiniWorldsCharacters&&!stage.cinematic){
   Promise.resolve().then(()=>window.MiniWorldsCharacters(T).setup(stageRef,level)).then(stats=>{
    if(stage!==stageRef)return;
    if(stageRef.updateCharacterAnimations)stageRef.bindCharacters(stageRef.updateCharacterAnimations);
    console.info('[MINI WORLDS] Character rigs ready:',stats);
   }).catch(e=>console.warn('[MINI WORLDS] Procedural hero/enemies preserved:',e.message));
  }
- view=stage.scene;view.background=mode==='ar'?null:new T.Color(level?0x9ea6cf:0xa5dadd);
+ view=stage.scene;view.background=mode==='ar'?null:new T.Color(level?0x727f91:0x9aaea9);
  stage.root.rotation.y=mode==='ar'?worldYaw:0;
  stage.root.scale.setScalar(mode==='ar'?scale:1);
  if(mode==='ar'&&spatialLock)S.restoreWorld(stage,spatialLock);
@@ -591,6 +595,9 @@ function frame(t,xrFrame){
   frameFaults++;
  }
  // Optional finishing effects must never interrupt core, XR pose or renderer.
+ try{stage.cinematicArt?.update(game,dt,elapsed)}catch(e){
+  frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Cinematic art fallback:',e)}
+ }
  try{stage.missionVisual?.update(game,dt,elapsed)}catch(e){
   frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Mission art error:',e)}
  }

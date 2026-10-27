@@ -2,7 +2,7 @@
 (function(root){root.MiniWorldsArt=function(T){
 'use strict';
 const P=Math.PI,mat=(c,metal=0,rough=.76)=>new T.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
-const M={sand:mat('#e9ca8f'),edge:mat('#9d754e'),soil:mat('#685445'),grass:mat('#7abb84'),grass2:mat('#419a6d'),leaf:mat('#24795b'),leaf2:mat('#61b987'),dark:mat('#203d54'),wood:mat('#ad8150'),woodDark:mat('#653a2e'),gold:mat('#ffd25b',.68,.23),steel:mat('#72c0ca',.58,.34),coral:mat('#ff8469'),sky:mat('#a9f3e9'),white:mat('#faffed'),ink:mat('#142738'),red:mat('#ff695f'),stone:mat('#9eabb0'),purple:mat('#b67cff'),water:new T.MeshStandardMaterial({color:0x298ca9,transparent:true,opacity:.68,roughness:.35,metalness:0,side:T.DoubleSide})};
+const M={sand:mat('#bbad8d'),edge:mat('#786c58'),soil:mat('#504d44'),grass:mat('#738a69'),grass2:mat('#456a58'),leaf:mat('#345a4d'),leaf2:mat('#578274'),dark:mat('#263841'),wood:mat('#746652'),woodDark:mat('#403b38'),gold:mat('#d6ac70',.72,.29),steel:mat('#72858c',.68,.36),coral:mat('#a8594d'),sky:mat('#7dccca'),white:mat('#e4e4d7'),ink:mat('#18252c'),red:mat('#c95c54'),stone:mat('#79848a'),purple:mat('#765f93'),water:new T.MeshStandardMaterial({color:0x155b67,transparent:true,opacity:.76,roughness:.28,metalness:.04,side:T.DoubleSide})};
 // Small reusable tile textures give the terrain tactile grain instead of
 // flat plastic. Every material references ONE low-cost texture, shared across
 // the stage. The same colors remain deliberately playful, not photorealistic.
@@ -124,6 +124,7 @@ function addRock(p,x,y,z,r=.3){const o=mesh(new T.DodecahedronGeometry(r,0),M.st
 function addRuins(p,x,y,z){const g=group(p,x,y,z);
  for(let q of [-.42,.42]){mesh(cyl(.17,.20,1.35,9),M.stone,q,.68,0,g);mesh(cube(.45,.15,.45),M.sand,q,1.4,0,g)}
  mesh(cube(1.23,.22,.45),M.stone,0,1.52,0,g);let disk=mesh(new T.TorusGeometry(.24,.04,7,20),M.gold,0,1.53,.23,g);disk.rotation.x=.3;
+return g;
 }
 function platform(root,p,rand){
  const g=group(root,p.x,p.y,p.z);
@@ -193,14 +194,14 @@ function makeAvatar(parent){
  // Original high-detail stylized fox adventurer. It is NOT the third-party
  // Sketchfab KAI mesh; exact artist GLB needs an authenticated legal download.
  // World scale, rig groups and physics capsule remain unchanged.
- const fur=new T.MeshPhysicalMaterial({color:0xe8742c,roughness:.61,metalness:0,clearcoat:.12});
- const highlight=new T.MeshStandardMaterial({color:0xffa557,roughness:.74});
- const cream=new T.MeshStandardMaterial({color:0xffeee0,roughness:.84});
- const innerEar=new T.MeshStandardMaterial({color:0xe47e81,roughness:.8});
+ const fur=new T.MeshPhysicalMaterial({color:0xb65d2c,roughness:.84,metalness:0,clearcoat:.03});
+ const highlight=new T.MeshStandardMaterial({color:0xe09250,roughness:.82});
+ const cream=new T.MeshStandardMaterial({color:0xe9d5bb,roughness:.87});
+ const innerEar=new T.MeshStandardMaterial({color:0x9f584f,roughness:.84});
  const dark=new T.MeshPhysicalMaterial({color:0x282941,roughness:.24,clearcoat:.50});
- const leather=new T.MeshStandardMaterial({color:0x33556a,roughness:.62,metalness:.16});
- const vest=new T.MeshPhysicalMaterial({color:0x198b98,roughness:.41,metalness:.16,clearcoat:.44});
- const gold=new T.MeshPhysicalMaterial({color:0xf6c363,roughness:.27,metalness:.67,clearcoat:.58});
+ const leather=new T.MeshStandardMaterial({color:0x35474a,roughness:.75,metalness:.20});
+ const vest=new T.MeshPhysicalMaterial({color:0x345860,roughness:.66,metalness:.14,clearcoat:.10});
+ const gold=new T.MeshPhysicalMaterial({color:0xb58b58,roughness:.33,metalness:.68,clearcoat:.23});
  const jade=new T.MeshStandardMaterial({color:0x6efce0,emissive:0x3fe4d3,emissiveIntensity:1.5,roughness:.22});
  const eyeWhite=new T.MeshPhysicalMaterial({color:0xffffff,roughness:.1,clearcoat:1});
  const g=group(parent),body=group(g,0,.57,0),head=group(body,0,.48,.055);
@@ -208,12 +209,12 @@ function makeAvatar(parent){
  // Compact heroic figure: larger readable silhouette than realistic anatomy.
  mesh(sphere(.32,22,16),vest,0,-.02,0,body).scale.set(1,.98,.81);
  mesh(sphere(.225,20,12),cream,0,-.02,.246,body).scale.set(.84,1.09,.22);
- mesh(sphere(.36,24,17),fur,0,.068,0,head).scale.set(1.05,.90,.93);
+ mesh(sphere(.325,24,17),fur,0,.085,0,head).scale.set(1.05,.93,.94);
  // Crescent muzzle and cheeks make the face unmistakably vulpine.
  mesh(sphere(.26,20,14),cream,0,-.07,.26,head).scale.set(1.24,.58,.80);
  mesh(sphere(.155,16,12),cream,-.175,-.085,.254,head);
  mesh(sphere(.155,16,12),cream,.175,-.085,.254,head);
- const snout=mesh(new T.ConeGeometry(.145,.31,5),cream,0,-.102,.41,head);
+ const snout=mesh(new T.ConeGeometry(.14,.32,6),cream,0,-.102,.39,head);
  snout.rotation.x=Math.PI/2;
  mesh(sphere(.089,12,9),dark,0,-.128,.57,head).scale.set(1.25,.75,.60);
  for(const side of [-1,1]){
@@ -222,9 +223,9 @@ function makeAvatar(parent){
   mesh(new T.ConeGeometry(.17,.44,4),fur,0,.13,0,ear).rotation.y=Math.PI/4;
   mesh(new T.ConeGeometry(.108,.30,4),innerEar,0,.12,.047,ear).rotation.y=Math.PI/4;
   mesh(sphere(.12,14,10),cream,side*.27,-.09,.19,head);
-  mesh(sphere(.145,18,12),eyeWhite,side*.145,.070,.280,head).scale.set(.8,1.12,.47);
-  mesh(sphere(.09,16,12),dark,side*.148,.072,.347,head).scale.set(.78,1.12,.46);
-  mesh(sphere(.032,10,7),eyeWhite,side*.172,.111,.389,head);
+  mesh(sphere(.109,18,12),eyeWhite,side*.145,.070,.275,head).scale.set(.8,1.13,.47);
+  mesh(sphere(.074,16,12),dark,side*.148,.072,.337,head).scale.set(.78,1.12,.46);
+  mesh(sphere(.018,10,7),eyeWhite,side*.172,.098,.374,head);
   mesh(sphere(.05,12,9),highlight,side*.29,-.15,.23,head);
  }
  mesh(new T.TorusGeometry(.099,.016,5,15,Math.PI),dark,0,-.205,.417,head).rotation.z=Math.PI;
@@ -318,9 +319,9 @@ function sprawlingEnvironment(root,rand,cliff){
  return sea;
 }
 function makeStage(map){
- const scene=new T.Scene();scene.background=new T.Color(map.n===0?0x96dae5:0x8e9cc2);scene.fog=new T.Fog(scene.background,12,49);
- const sun=new T.DirectionalLight(0xfff4d6,2.25);sun.position.set(-3,9,5);sun.castShadow=false;scene.add(sun);
- scene.add(new T.HemisphereLight(0xcaf5ff,0x70503d,2.0));
+ const scene=new T.Scene();scene.background=new T.Color(map.n===0?0x93afaf:0x818c9c);scene.fog=new T.Fog(scene.background,13,48);
+ const sun=new T.DirectionalLight(0xe3d6bb,2.05);sun.position.set(-3,9,5);sun.castShadow=false;scene.add(sun);
+ scene.add(new T.HemisphereLight(0xb9d0ce,0x3c3938,2.0));
  // Two transforms: the XR anchor NEVER moves; the world content changes
  // only at explicit magic portals between small AR rooms.
  const anchorRoot=group(scene),root=group(anchorRoot);
@@ -373,8 +374,8 @@ function makeStage(map){
  // to the user's camera. The core still simulates projectile collisions.
  const wand=group(hero.root,.38,.77,.22);
  wand.name='KAI / energy blaster';
- const barrelMat=new T.MeshPhysicalMaterial({color:0x31405d,metalness:.78,roughness:.25,clearcoat:.8});
- const copperMat=new T.MeshPhysicalMaterial({color:0xffc66e,metalness:.75,roughness:.25,clearcoat:.9});
+ const barrelMat=new T.MeshPhysicalMaterial({color:0x2c3c43,metalness:.82,roughness:.32,clearcoat:.24});
+ const copperMat=new T.MeshPhysicalMaterial({color:0xb88a52,metalness:.79,roughness:.34,clearcoat:.18});
  const emitterMat=new T.MeshBasicMaterial({color:0x79fff4,transparent:true,opacity:.91,depthWrite:false});
  const barrel=mesh(cyl(.12,.145,.46,14),barrelMat,0,-.06,.18,wand);
  barrel.rotation.x=Math.PI/2;
