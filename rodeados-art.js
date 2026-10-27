@@ -586,12 +586,15 @@ export function createRodeadosArt(THREE,scene,camera){
  const importedWeapons=new Map();
  let premiumRifle=null,activeWeapon=fallback,currentWeapon='pistol',fpsArms=null,layout=null;
  function setWeaponTier(tier){
-  currentWeapon=['pistol','tactical','plasma'].includes(tier)?tier:'pistol';
-  // Rifle visible from first second; upgrades change performance, not gun size.
-  activeWeapon=premiumRifle||importedWeapons.get('tactical')||fallback;
+  const nextTier=['pistol','tactical','plasma'].includes(tier)?tier:'pistol';
+  const nextAsset=premiumRifle||importedWeapons.get('tactical')||fallback;
+  // Runtime calls this every frame: preserve the fitted AR gun pose.
+  if(nextTier===currentWeapon&&nextAsset===activeWeapon)return;
+  currentWeapon=nextTier;
+  activeWeapon=nextAsset;
   fallback.visible=activeWeapon===fallback;
   for(const m of importedWeapons.values())m.visible=m===activeWeapon;
-  if(premiumRifle)premiumRifle.visible=true;
+  if(premiumRifle)premiumRifle.visible=premiumRifle===activeWeapon;
   layout=null;
  }
  function setWeaponAsset(tier,source){
@@ -600,7 +603,7 @@ export function createRodeadosArt(THREE,scene,camera){
   if(!model)return false;
   model.rotation.y=Math.PI;
   const old=importedWeapons.get(tier);if(old){rifle.remove(old);old.userData.dispose?.()}
-  importedWeapons.set(tier,model);rifle.add(model);setWeaponTier(currentWeapon);return true;
+  importedWeapons.set(tier,model);rifle.add(model);model.visible=false;setWeaponTier(currentWeapon);return true;
  }
  function setPremiumPistol(_source){return false} // User replaced pistol with rifle.
  function setPremiumRifle(source){
