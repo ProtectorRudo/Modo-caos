@@ -40,7 +40,7 @@
   const m={kind:g.mode,signal:'',event:0,completed:false,object:{x:0,z:-.65},base:{x:0,z:.75},
    captures:0,carry:false,flagDropped:0,dropAt:null,loot:0,extracted:0,crates:[],
    reactor:100,slowUntil:0,mutation:'NORMAL',mutationIndex:-1,
-   bossIndex:0,bossPhase:1,spawnPoints:[],enemyCursor:0,bonus:0,locked:false};
+   bossIndex:0,bossPhase:1,spawnPoints:[],enemyCursor:0,bonus:0,locked:false,stations:[],pickupBlockedUntil:0,stormTick:-1};
   if(g.mode==='ctf'){
    m.plan=normalizeFlagPlan(config.flagPlan,g.arena);m.base={...m.plan.base};m.object={...m.plan.flag};
    m.spawnPoints=m.plan.spots.map(p=>({...p}));m.signal='ANDÁ A LA BANDERA ENEMIGA';
@@ -49,7 +49,7 @@
    m.crates=boxCoords.map((p,i)=>({...p,id:i,opened:false}));
    m.base={x:0,z:.83};m.signal='DISPARÁ A LOS 5 COFRES';
   }
-  if(g.mode==='refuge'){m.object={x:0,z:-.40};m.signal='REACTOR AL 100%'}
+  if(g.mode==='refuge'){m.object={x:0,z:-.40};m.stations=[{x:-.96,z:-.82,active:false},{x:.96,z:-.82,active:false},{x:0,z:1.0,active:false}];m.signal='DEFENDÉ EL REACTOR Y ACTIVÁ 3 ESTACIONES'}
   if(g.mode==='colossus'){m.signal='GIGANTE 1 DE 3';g.creepIntroduced=true;g.spiderIntroduced=true;g.minotaurIntroduced=true;g.spawnClock=10000;}
   if(g.mode==='timewarp')m.signal='USÁ EMP PARA CONTROLAR EL TIEMPO';
   if(g.mode==='mutant')m.signal='MUTACIÓN EN 15 SEGUNDOS';
@@ -112,7 +112,7 @@
   }
   if(!m.carry){
    const dest=m.dropAt||m.object;
-   if(objectiveDistance(g,dest)<.43){
+   if(g.elapsed>=m.pickupBlockedUntil&&objectiveDistance(g,dest)<.43){
     m.carry=true;m.flagDropped=0;m.dropAt=null;event(m,'🚩 ¡BANDERA ROBADA! REGRESÁ A TU BASE');
     g.fx.push({type:'flagTake',t:g.elapsed,x:dest.x,z:dest.z});
    }
@@ -138,6 +138,7 @@
   g.player=oldPlayer;
   for(const e of g.enemies)if(!e.missionAssigned){assignSpawn(g,e);orientAwayFromPhone(g,e)}
   if(m.kind==='refuge'){
+   // The reactor is the target; enough shield to endure a multi-enemy hit.
    const hurt=Math.max(0,life-g.lives);
    if(hurt){m.reactor=Math.max(0,m.reactor-hurt*1.65);g.lives=life;event(m,'⚠ NÚCLEO AL '+Math.ceil(m.reactor)+'%')}
    if(m.reactor<=0)G.finish(g,'reactor_destruido');
@@ -156,6 +157,10 @@
     event(m,'⚡ MUTACIÓN: '+m.mutation);
     if(m.mutation==='RESTABLECIMIENTO')g.lives=Math.min(100,g.lives+18);
    }
+   if(m.mutation==='TORMENTA'){
+    const n=Math.floor(g.elapsed/4);
+    if(n!==m.stormTick){m.stormTick=n;if(g.enemies.length<7)G.spawn(g,'fast')}
+   }
    if(m.mutation==='FRENESÍ'){
     for(const e of g.enemies){const was=previous.get(e.id);if(was){
      e.x+=(e.x-was.x)*.35;e.z+=(e.z-was.z)*.35;orientAwayFromPhone(g,e);
@@ -172,10 +177,17 @@
   if(m.kind==='ctf'){
    const damaged=life-g.lives;
    if(m.carry&&damaged>=9){
-    m.carry=false;m.dropAt={...g.player};m.flagDropped=g.elapsed+8;
+    m.carry=false;m.dropAt={...g.player};m.flagDropped=g.elapsed+8;m.pickupBlockedUntil=g.elapsed+1.6;
     event(m,'¡BANDERA CAÍDA! RECUPERALA EN 8 S');
    }
    pickupOrDeliver(g);
+   // Guards cover the enemy flag; interceptors cut the return route.
+   for(const e of g.enemies){
+    const target=e.role==='guardián'?m.object:e.role==='interceptor'&&m.carry?m.base:null;
+    if(!target||e.portal>0||e.stun>0)continue;
+    const dx=target.x-e.x,dz=target.z-e.z,D=Math.hypot(dx,dz)||1;
+    e.x+=dx/D*.24*dt;e.z+=dz/D*.24*dt;orientAwayFromPhone(g,e);
+   }
   }
   if(m.kind==='colossus'){
    const boss=g.enemies.find(e=>e.missionBoss);
@@ -185,8 +197,9 @@
    }else if(m.bossIndex>=3)missionWin(g,'colosos_derrotados');
   }
   if(g.phase==='finished'&&g.finishedReason==='tiempo'){
-   if(['invasion','refuge','timewarp','mutant'].includes(m.kind)&&g.lives>0&&(m.kind!=='refuge'||m.reactor>0))
-    m.completed=true;
+   if(['invasion','refuge','timewarp','mutant','ctf'].includes(m.kind)&&g.lives>0&&
+      (m.kind!=='refuge'||m.reactor>0&&m.stations.every(x=>x.active))&&
+      (m.kind!=='ctf'||m.captures>0))m.completed=true;
   }
   return g;
  };
@@ -243,8 +256,18 @@
    m.extracted=m.loot;grant(g,m.extracted*350);
    missionWin(g,'botin_extraido');return {ok:true,kind:'extraer',count:m.extracted};
   }
+  if(m.kind==='refuge'){
+   const station=m.stations.find(p=>!p.active&&objectiveDistance(g,p)<.46);
+   if(!station)return {ok:false,reason:'acercate_a_una_estacion'};
+   station.active=true;m.reactor=Math.min(100,m.reactor+8);grant(g,350);
+   event(m,'⚡ ESTACIONES '+m.stations.filter(x=>x.active).length+'/3 ACTIVADAS');
+   return {ok:true,kind:'activar',active:m.stations.filter(x=>x.active).length};
+  }
   if(m.kind==='ctf'){
-   pickupOrDeliver(g);return {ok:true,kind:'bandera',carrying:m.carry,captures:m.captures};
+   const carry=m.carry,captures=m.captures;
+   pickupOrDeliver(g);
+   if(carry===m.carry&&captures===m.captures)return {ok:false,reason:'acercate_al_objetivo'};
+   return {ok:true,kind:'bandera',carrying:m.carry,captures:m.captures};
   }
   return {ok:false,reason:'no_disponible'};
  };
@@ -255,7 +278,7 @@
    case 'invasion':return {text:'PORTALES · OLEADA '+(g.wave||1),detail:m.signal};
    case 'loot':return {text:'BOTÍN '+m.loot+'/5 · '+remain+'s',detail:m.signal,button:'💰 EXTRAER',canAct:m.loot>0};
    case 'timewarp':return {text:g.elapsed<m.slowUntil?'⏳ TIEMPO ROTO ACTIVO':'⏳ ACTIVÁ EMP',detail:m.signal};
-   case 'refuge':return {text:'REACTOR '+Math.ceil(m.reactor)+'%',detail:m.signal};
+   case 'refuge':return {text:'REACTOR '+Math.ceil(m.reactor)+'% · '+m.stations.filter(x=>x.active).length+'/3',detail:m.signal,button:'⚡ ACTIVAR',canAct:true};
    case 'mutant':return {text:'⚡ '+m.mutation,detail:m.signal};
    case 'colossus':return {text:'COLOSOS '+Math.min(3,m.bossIndex)+'/3 · FASE '+m.bossPhase,detail:m.signal};
    case 'ctf':return {text:'🚩 CAPTURAS '+m.captures,detail:m.signal,button:m.carry?'🚩 ENTREGAR':'🚩 RECOGER',canAct:true};
