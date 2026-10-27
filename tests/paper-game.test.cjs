@@ -128,7 +128,8 @@ test('small-screen HUD ranks three players, with own rank always visible',()=>{
  const markup=g.get('rank').innerHTML;
  assert.equal((markup.match(/class="rankrow"/g)||[]).length,3);
  assert.match(markup,/VOS/);
- assert.match(g.get('kills').textContent,/^KO /);
+ assert.match(g.get('kills').textContent,/^× /);
+ assert.match(g.get('bestCurrent').textContent,/%/);
 });
 
 test('connected territory is converted to coherent vector boundary loops',()=>{
@@ -138,3 +139,5 @@ test('connected territory is converted to coherent vector boundary loops',()=>{
  assert.ok(loops[0].length>8);
  for(const q of loops[0]){assert.ok(Number.isFinite(q.x));assert.ok(Number.isFinite(q.y));}
 });
+
+test('reference HUD includes best score, transparent layout and a subtle paper grid',()=>{assert.match(source,/id="bestCurrent"/);assert.match(source,/class="best-live"/);assert.match(source,/const tileStep=74/);assert.doesNotMatch(source,/const dotStep=84/);});
