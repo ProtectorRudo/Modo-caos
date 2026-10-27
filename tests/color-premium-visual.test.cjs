@@ -10,7 +10,7 @@ const root=path.resolve(__dirname,'..');
 const page=fs.readFileSync(path.join(root,'color-solo.html'),'utf8');
 const src=fs.readFileSync(path.join(root,'color-premium-art.js'),'utf8');
 const css=fs.readFileSync(path.join(root,'color-premium.css'),'utf8');
-assert.match(page,/color-premium\.css\?v=crp1/);
+assert.match(page,/color-premium\.css\?v=crp30/);
 assert.match(page,/color-premium-art\.js\?v=crp1/);
 assert.ok(page.indexOf('/engine.js?v=110')<page.indexOf('/survivor.js?v=110'));
 assert.ok(page.indexOf('/survivor.js?v=110')<page.indexOf('/color-premium-art.js'));
