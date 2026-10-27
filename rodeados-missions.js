@@ -24,13 +24,13 @@
   {x:+clamp(p.x,-bound,bound).toFixed(3),z:+clamp(p.z,-bound,bound).toFixed(3)}:{...fallback};
  function normalizeFlagPlan(plan,arena=2.6){
   const limit=Math.max(.72,arena/2-.08);
-  const base=point(plan?.base,{x:0,z:limit*.72},limit);
-  let flag=point(plan?.flag,{x:0,z:-limit*.72},limit);
-  if(d(base,flag)<.9)flag={x:0,z:base.z>0?-limit:limit};
+  const base=point(plan?.base,{x:0,z:0},limit);
+  // Flag is OUTSIDE the home board, world-anchored at the exact point selected.
+  const flag=point(plan?.flag,{x:0,z:-3.3},8);
   const spots=Array.isArray(plan?.spots)?plan.spots:ring(7);
   return {base,flag,kinds:(Array.isArray(plan?.kinds)?plan.kinds:[]).slice(0,7).map(v=>['basic','flanker','spider','creep','tank','random'].includes(v)?v:'random'),spots:spots.slice(0,7).map((p,i)=>{
     const fallback=ring(7)[i];
-    return point(p,fallback,5.1);
+    return point(p,fallback,8);
   }).concat(spots.length<6?ring(7).slice(spots.length,6):[])};
  }
  const boxCoords=[{x:-.83,z:-.88},{x:.0,z:-1.02},{x:.83,z:-.88},{x:-.73,z:.20},{x:.73,z:.20}];
@@ -106,8 +106,19 @@
   if(m?.kind==='ctf'&&m.spawnTypes?.length){const selected=m.spawnTypes[m.enemyCursor%m.spawnPoints.length];if(selected&&selected!=='random')type=selected}
   const e=orig.spawn(g,type);if(e&&m){assignSpawn(g,e);orientAwayFromPhone(g,e)}return e
  };
- G.movePlayer=function(g,p){return orig.movePlayer(g,p)};
+ G.movePlayer=function(g,p){
+  if(g.mode!=='ctf')return orig.movePlayer(g,p);
+  if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
+  // CTF needs roaming beyond the 2.6 m cosmetic tile board to retrieve the flag.
+  g.player.x=clamp(p.x,-8,8);g.player.z=clamp(p.z,-8,8);return true;
+ };
  function objectiveDistance(g,point){return d(g.player,point)}
+ G.flagLocation=function(g){
+  const m=g?.mission;if(!m||m.kind!=='ctf')return null;
+  if(m.carry)return {x:g.player.x,z:g.player.z,y:1.02,state:'carried'};
+  const p=m.dropAt||m.object;
+  return {x:p.x,z:p.z,y:0,state:m.dropAt?'dropped':'fixed'};
+ };
  function pickupOrDeliver(g){
   const m=g.mission;if(!m||m.kind!=='ctf')return;
   if(m.flagDropped&&g.elapsed>m.flagDropped){
@@ -115,11 +126,11 @@
   }
   if(!m.carry){
    const dest=m.dropAt||m.object;
-   if(g.elapsed>=m.pickupBlockedUntil&&objectiveDistance(g,dest)<.52){
+   if(m.configured&&g.elapsed>=m.pickupBlockedUntil&&objectiveDistance(g,dest)<.58){
     m.carry=true;m.flagDropped=0;m.dropAt=null;event(m,'🚩 ¡BANDERA ROBADA! REGRESÁ A TU BASE');
     g.fx.push({type:'flagTake',t:g.elapsed,x:dest.x,z:dest.z});
    }
-  }else if(objectiveDistance(g,m.base)<.55){
+  }else if(m.configured&&objectiveDistance(g,m.base)<.65){
    m.carry=false;m.captures++;grant(g,650+m.captures*100);
    event(m,'🏆 ¡CAPTURA '+m.captures+'! VOLVÉ A BUSCAR LA BANDERA');
    g.fx.push({type:'flagScore',t:g.elapsed,x:m.base.x,z:m.base.z});
@@ -303,8 +314,10 @@
    case 'mutant':return {text:'⚡ '+m.mutation,detail:m.signal};
    case 'colossus':return {text:'COLOSOS '+Math.min(3,m.bossIndex)+'/3 · FASE '+m.bossPhase,detail:m.signal};
    case 'ctf':{
-    const target=m.carry?m.base:(m.dropAt||m.object),dist=objectiveDistance(g,target);
-    return {text:'🚩 CAPTURAS '+m.captures+' · '+dist.toFixed(1)+' m',detail:dist<.55?(m.carry?'✅ ESTÁS EN TU BASE · ENTREGÁ':'✅ BANDERA CERCA · RECOGÉ'):m.carry?'REGRESÁ A TU BASE · '+m.signal:'BUSCÁ LA BANDERA · '+m.signal,button:m.carry?'🚩 ENTREGAR':'🚩 RECOGER',canAct:dist<.55};
+    const target=m.carry?m.base:(m.dropAt||m.object),dist=objectiveDistance(g,target),close=dist<(m.carry?.65:.58);
+    return {text:m.carry?'🚩 LLEVÁS LA BANDERA':'🚩 CAPTURAS '+m.captures,
+     detail:close?(m.carry?'✅ EN TU BASE · TOCÁ ENTREGAR':'✅ BANDERA CERCA · TOCÁ RECOGER'):(m.carry?'VOLVÉ A TU BASE':'BUSCÁ LA BANDERA')+' · '+dist.toFixed(1)+' m',
+     button:m.carry?'🚩 ENTREGAR':'🚩 RECOGER',canAct:close};
    }
   }
   return null;
@@ -323,11 +336,17 @@
    return {ok:false,reason:'falta_base_o_bandera'};
   if(!Array.isArray(plan.spots)||![6,7].includes(plan.spots.length))return {ok:false,reason:'elegi_6_o_7_spawns'};
   const bound=arena/2-.08;
-  if(Math.max(Math.abs(plan.base.x),Math.abs(plan.base.z),Math.abs(plan.flag.x),Math.abs(plan.flag.z))>bound)
-   return {ok:false,reason:'base_o_bandera_fuera_del_tablero'};
-  if(d(plan.base,plan.flag)<1.0)return {ok:false,reason:'separa_base_y_bandera'};
+  if(Math.max(Math.abs(plan.base.x),Math.abs(plan.base.z))>bound)
+   return {ok:false,reason:'base_fuera_del_tablero'};
+  if(Math.max(Math.abs(plan.flag.x),Math.abs(plan.flag.z))>8)
+   return {ok:false,reason:'bandera_fuera_del_mundo'};
+  // Unlike the previous 1 m minimum, the enemy flag must be OUTSIDE the home
+  // board, at a meaningful travel distance, so capture is not automatic/easy.
+  if(d(plan.base,plan.flag)<2.35)return {ok:false,reason:'aleja_bandera_al_menos_2_35_metros'};
+  if(Math.max(Math.abs(plan.flag.x),Math.abs(plan.flag.z))<=arena/2+.12)
+   return {ok:false,reason:'bandera_debe_quedar_fuera_de_tu_base'};
   for(let i=0;i<plan.spots.length;i++){
-   const p=plan.spots[i];if(!Number.isFinite(p?.x)||!Number.isFinite(p?.z)||Math.max(Math.abs(p.x),Math.abs(p.z))>5.1)return {ok:false,reason:'spawn_fuera_del_mundo'};
+   const p=plan.spots[i];if(!Number.isFinite(p?.x)||!Number.isFinite(p?.z)||Math.max(Math.abs(p.x),Math.abs(p.z))>8)return {ok:false,reason:'spawn_fuera_del_mundo'};
    if(d(p,plan.base)<2.65)return {ok:false,reason:'spawn_muy_cerca_de_la_base'};
    if(plan.spots.slice(0,i).some(x=>d(x,p)<.40))return {ok:false,reason:'separa_puntos_enemigos'};
   }
