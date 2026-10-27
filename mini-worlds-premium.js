@@ -118,37 +118,18 @@ root.MiniWorldsPremium=function(T,options={}){
    if(stage.registerSolid&&!registered){obj.parent?.remove(obj);return false}
    results.placed++;if(tree)treeCount++;return true;
   };
-  // Gameplay/physics traverse the centers. Canopy is placed exclusively
-  // against the OUTER CORNERS of real islands; it cannot resemble a new,
-  // non-collidable walkway or cover the joystick player's clear route.
-  // ART BUDGET: five small accents across an entire long level, not
-  // twelve giant canopies stacked over KAI. Trees frame exploration;
-  // no trees over the spawn, rescue characters or relay mechanisms.
-  const treeTiles=level?[3,5,7,10,13]:[3,5,7,10,13];
-  const restricted=[
-    {x:0,z:1.2},
-    ...(stage.mission?.rescues||[]),
-    ...(stage.map.runes||[]),
-    ...stage.map.walkways.filter((_,i)=>i<5).map(w=>({x:(w.x1+w.x2)/2,z:(w.z1+w.z2)/2, clearance:0.8}))
-  ];
-  const clear=(x,z,radius=1.55)=>restricted.every(point=>
-    Math.hypot(x-point.x,z-point.z)>radius+(point.clearance||0));
-  let remainingCanopies=5;
-  for(let i=0;i<treeTiles.length;i++){
-   const p=stageTiles[treeTiles[i]],side=i%2?-1:1;
-   if(!p)continue;
-   const key=palettes[(i+(level?2:0))%palettes.length];
-   const x=p.x+side*(p.w*.5+.27);
-   const z=p.z+(i%3===0?-.30:.32)*p.d;
-   if(clear(x,z,1.5)&&remainingCanopies>0){
-    const height=(level?1.22:1.32)+random()*.19;
-    if(place(key,x,p.y+.02,z,height,random()*Math.PI*2))remainingCanopies--;
-   }
-   // Bushes accent outside corners; no center-path decorative collisions.
-   if(i%2===0){
-    const bx=p.x-side*(p.w*.5+.06),bz=p.z+(random()-.5)*p.d*.55;
-    if(clear(bx,bz,.78))place('shrub',bx,p.y+.025,bz,.28+random()*.11,random()*Math.PI*2);
-   }
+  // Deliberately no Quaternius broadleaf spheres: phone screenshots
+  // showed these giant green crowns obscuring KAI and the quest.
+  // Use a handful of low detailed shrubs on verified safe outer rims.
+  const restricted=[{x:0,z:1.2},...(stage.mission?.rescues||[]),
+    ...(stage.map.runes||[])];
+  const safe=(x,z,r)=>restricted.every(p=>Math.hypot(x-p.x,z-p.z)>r);
+  const patches=[3,6,9,12];
+  for(let i=0;i<patches.length;i++){
+    const p=stageTiles[patches[i]];if(!p)continue;
+    const x=p.x+(i%2?-.5:.5)*p.w+.10;
+    const z=p.z+(i%2?.31:-.31)*p.d;
+    if(safe(x,z,1.35))place('shrub',x,p.y+.03,z,.30+random()*.09,random()*Math.PI*2);
   }
   // Detail on physically walkable historic ruins only; never create new
   // fake land/bridges. Premium plants are scenery with no new hitboxes.
@@ -164,7 +145,7 @@ root.MiniWorldsPremium=function(T,options={}){
    place('medievalRock',cliff.x-cliff.w*.50,cliff.y-.14,cliff.z+cliff.d*.42,1.10,1.2);
    place('shrub',oldTemple.x+oldTemple.w*.43,oldTemple.y+.02,oldTemple.z-oldTemple.d*.4,.53,.4);
   }
-  if(treeCount>=2){
+  if(results.placed>=2){
    stage.premiumNativeActive=true;
    // Suppress redundant Kenney tree/bush dressing ONLY after imported models
    // actually loaded. The waterfall, crates, bridges and pickups stay.
