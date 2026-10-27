@@ -37,7 +37,7 @@ test('CTF must have six or seven individually confirmed points with types and no
 
 test('flag: manual retrieval and delivery requires explicit button AND player proximity',()=>{
  const g=G.create({mode:'ctf',seed:234}),points=G.normalizeFlagPlan().spots.slice(0,6);
- const plan={base:{x:0,z:.77},flag:{x:0,z:-.75},spots:points};
+ const plan={base:{x:0,z:.60},flag:{x:0,z:-.75},spots:points};
  assert.equal(G.configureFlagPlan(g,plan).ok,true);
  G.begin(g);g.spawnClock=1000;
  assert.equal(g.mission.captures,0);
@@ -135,4 +135,48 @@ test('classic modes remain compatible when mission decorator is loaded',()=>{
  const g=G.create({mode:'survival',seed:11});G.begin(g);
  G.advance(g,.06);assert.equal(g.phase,'playing');assert.equal(g.mission,undefined);
  assert.equal(G.weaponTier(g),'pistol');
+});
+
+test('invasion portals are stable in fixed AR world even if camera/player moves',()=>{
+ const g=G.create({mode:'invasion',seed:71});G.begin(g);g.spawnClock=10000;
+ G.movePlayer(g,{x:1,z:-1});
+ const p=G.spawn(g,'basic');
+ assert.equal(p.x,0);
+ assert.equal(p.z,3.15);
+});
+
+test('loot cannot be won by surviving without extracting',()=>{
+ const g=G.create({mode:'loot',seed:44});G.begin(g);g.spawnClock=10000;
+ g.elapsed=89.99;G.advance(g,.03);
+ assert.equal(g.phase,'finished');assert.equal(g.mission.completed,false);
+});
+
+test('refuge victory requires intact reactor AND three actual station activations',()=>{
+ const g=G.create({mode:'refuge',seed:32});G.begin(g);g.spawnClock=10000;
+ g.elapsed=74.99;G.advance(g,.04);
+ assert.equal(g.phase,'finished');assert.equal(g.mission.completed,false);
+ const h=G.create({mode:'refuge',seed:32});G.begin(h);h.spawnClock=10000;
+ h.mission.stations.forEach(st=>st.active=true);
+ h.elapsed=74.99;G.advance(h,.04);
+ assert.equal(h.phase,'finished');assert.equal(h.mission.completed,true);
+});
+
+test('colossus has real HP phases and a timed loss condition',()=>{
+ const g=G.create({mode:'colossus',seed:14});G.begin(g);G.advance(g,.04);
+ const boss=g.enemies.find(e=>e.missionBoss);assert.ok(boss);
+ boss.hp=Math.floor(boss.maxHp*.25);
+ G.advance(g,.04);
+ assert.equal(g.mission.bossPhase,3);
+ const fail=G.create({mode:'colossus',seed:14});G.begin(fail);fail.elapsed=89.99;G.advance(fail,.05);
+ assert.equal(fail.phase,'finished');assert.equal(fail.mission.completed,false);
+});
+
+test('Capture the Flag timeout counts completed captures, not combat kills',()=>{
+ const g=G.create({mode:'ctf',seed:17});const p=G.normalizeFlagPlan();
+ const cfg={base:{x:0,z:.6},flag:{x:0,z:-.62},spots:p.spots.slice(0,6)};
+ assert(G.configureFlagPlan(g,cfg).ok);G.begin(g);g.spawnClock=10000;
+ g.elapsed=149.99;G.advance(g,.04);assert.equal(g.mission.completed,false);
+ const h=G.create({mode:'ctf',seed:17});assert(G.configureFlagPlan(h,cfg).ok);
+ G.begin(h);h.spawnClock=10000;h.mission.captures=2;h.elapsed=149.99;G.advance(h,.04);
+ assert.equal(h.mission.completed,true);
 });
