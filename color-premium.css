@@ -121,7 +121,7 @@ button:active {filter:brightness(1.08)}
   box-shadow:0 2px 15px #0008,0 0 13px #23efd939;
 }
 #overlay #timefill {
-  background:linear-gradient(90deg,#26baab,#49ffb8)!important;
+  background:linear-gradient(90deg,#26baab,#49ffb8);
   box-shadow:0 0 9px #31ffacbb,inset 0 2px 2px #fff6;
 }
 #overlay #bottom {
