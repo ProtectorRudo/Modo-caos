@@ -212,13 +212,14 @@ function makeAvatar(parent){
  const highlight=new T.MeshStandardMaterial({color:0xe09250,roughness:.82});
  const cream=new T.MeshStandardMaterial({color:0xe9d5bb,roughness:.87});
  const innerEar=new T.MeshStandardMaterial({color:0x9f584f,roughness:.84});
- const dark=new T.MeshPhysicalMaterial({color:0x282941,roughness:.24,clearcoat:.50});
+ const dark=new T.MeshPhysicalMaterial({color:0x222d31,roughness:.51,clearcoat:.16});
  const leather=new T.MeshStandardMaterial({color:0x35474a,roughness:.75,metalness:.20});
  const vest=new T.MeshPhysicalMaterial({color:0x345860,roughness:.66,metalness:.14,clearcoat:.10});
  const gold=new T.MeshPhysicalMaterial({color:0xb58b58,roughness:.33,metalness:.68,clearcoat:.23});
  const jade=new T.MeshStandardMaterial({color:0x6efce0,emissive:0x3fe4d3,emissiveIntensity:1.5,roughness:.22});
- const eyeWhite=new T.MeshPhysicalMaterial({color:0xffffff,roughness:.1,clearcoat:1});
+ const eyeWhite=new T.MeshPhysicalMaterial({color:0xe8e3d7,roughness:.46,clearcoat:.10});
  const g=group(parent),body=group(g,0,.57,0),head=group(body,0,.48,.055);
+ head.scale.setScalar(.89); // athletic explorer proportions, no oversized baby face
  g.name='KAI / original fox stand-in + energy blaster';
  // Compact heroic figure: larger readable silhouette than realistic anatomy.
  mesh(sphere(.32,22,16),vest,0,-.02,0,body).scale.set(1,.98,.81);
@@ -266,8 +267,8 @@ function makeAvatar(parent){
  const base=mesh(sphere(.23,17,12),fur,0,.03,-.21,tail);
  base.rotation.x=-.46;base.scale.set(.91,.82,1.67);
  const puff=mesh(sphere(.23,18,12),highlight,0,.11,-.53,tail);
- puff.rotation.x=-.40;puff.scale.set(1.1,.84,1.53);
- const tip=mesh(new T.ConeGeometry(.18,.41,10),cream,0,.18,-.87,tail);
+ puff.rotation.x=-.40;puff.scale.set(.90,.78,1.26);
+ const tip=mesh(new T.ConeGeometry(.14,.35,10),cream,0,.18,-.85,tail);
  tip.rotation.x=-Math.PI/2-.28;
  // Keeps a visible and friendly accessory even if rendering is offline.
  const badge=mesh(new T.TorusGeometry(.105,.028,9,20),jade,0,.14,.31,body);
