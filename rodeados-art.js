@@ -644,6 +644,9 @@ export function createRodeadosArt(THREE,scene,camera){
    stock:{x:+aimStock.x.toFixed(3),y:+aimStock.y.toFixed(3)},
    muzzle:{x:+aimMuzzle.x.toFixed(3),y:+aimMuzzle.y.toFixed(3)},
    towardReticle:+((dx*rx+dy*ry)/n).toFixed(3),
+   // NDC slope is misleading on a portrait phone: adjust by W/H first.
+   pixelSlope:+(Math.abs(dy/(dx*(weaponCamera.aspect||1)))||0).toFixed(3),
+   angleOnScreenDeg:+(Math.atan2(Math.abs(dy),Math.abs(dx*weaponCamera.aspect))*180/Math.PI).toFixed(2),
    upward:aimMuzzle.y>aimStock.y+.22,
    muzzleCloserToReticle:Math.hypot(aimMuzzle.x,aimMuzzle.y)<Math.hypot(aimStock.x,aimStock.y)
   };
@@ -672,73 +675,88 @@ export function createRodeadosArt(THREE,scene,camera){
    centerX:(left+right)/2,centerY:(bottom+top)/2,
    coverage:width>0&&height>0?sw*sh/width/height:0};
  }
- // A real first-person sight picture: muzzle sits just below the reticle,
- // stock sits near the lower-right of the screen. Do not fit ONLY to a
- // centered bounding box: that leaves a sideways rifle pointing at the floor.
- // Re-solve when assets load or viewport rotates; never move the AR world.
- const FPS_MUZZLE={x:.10,y:-.23},FPS_DIRECTION={x:-.57,y:.82};
+ // RODEADOS V30 - physically meaningful FIRST PERSON GUN CAMERA.
+ // Technical audit: V29 rotated a GLB using NDC slope, although mobile is
+ // portrait (canvas height > twice its width). A 0.8 vertical NDC delta is
+ // therefore about THREE TIMES the pixel length of 0.5 horizontal NDC.
+ // Previous "aim toward crosshair" tests passed a near-vertical weapon.
+ // Match BOTH stock and muzzle in pixels, not just a normalized vector.
+ const FPS_MUZZLE={x:.08,y:-.25};
+ const FPS_STOCK={x:.69,y:-.53};
  function projectedBarrel(){
   const len=activeWeapon.userData?.modelLength||.62;
   rifle.updateMatrixWorld(true);weaponCamera.updateMatrixWorld(true);
-  const stock=new THREE.Vector3(0,0,-len*.5).applyMatrix4(activeWeapon.matrixWorld).project(weaponCamera);
-  const muzzle=new THREE.Vector3(0,0,len*.5).applyMatrix4(activeWeapon.matrixWorld).project(weaponCamera);
+  const stock=new THREE.Vector3(0,0,-len*.50).applyMatrix4(activeWeapon.matrixWorld).project(weaponCamera);
+  const muzzle=new THREE.Vector3(0,0,len*.50).applyMatrix4(activeWeapon.matrixWorld).project(weaponCamera);
   return {stock,muzzle,dx:muzzle.x-stock.x,dy:muzzle.y-stock.y};
  }
  function solveFPSPose(){
   weaponCamera.updateMatrixWorld(true);
+  // Fixed camera-space rifle layer: only the user's REAL aim ray controls hits.
+  // This viewmodel never becomes part of the anchored floor/world scene.
+  const aspect=weaponCamera.aspect;
+  const goalDX=FPS_MUZZLE.x-FPS_STOCK.x,goalDY=FPS_MUZZLE.y-FPS_STOCK.y;
+  const pixelGoalLen=Math.hypot(goalDX*aspect,goalDY);
+  let bestRoll=-.65,bestError=Infinity;
+  activeWeapon.scale.setScalar(.7);
   rifle.position.set(0,0,-1.3);
-  activeWeapon.scale.setScalar(1);
-  // Compare in normalized display coordinates (not camera world coordinates),
-  // so the barrel keeps the same slope on portrait and landscape phones.
-  // Aim the barrel diagonally toward the center from the lower-right hand.
-  const goal=Math.hypot(FPS_DIRECTION.x,FPS_DIRECTION.y);
-  let bestRoll=-.80,bestScore=Infinity;
-  for(let roll=-1.58;roll<=.36;roll+=.035){
-   rifle.rotation.set(-.09,-.11,roll);
-   const v=projectedBarrel(),L=Math.hypot(v.dx,v.dy);
-   if(!Number.isFinite(L)||L<.015)continue;
-   const similarity=(v.dx*FPS_DIRECTION.x+v.dy*FPS_DIRECTION.y)/(L*goal);
-   if(1-similarity<bestScore){bestScore=1-similarity;bestRoll=roll}
+  // Search around the camera sight axis for a natural right-hand shoulder
+  // silhouette. Discard reversed barrels; compare ASPECT-CORRECTED angles.
+  for(let roll=-1.60;roll<=.72;roll+=.018){
+   rifle.rotation.set(-.115,-.19,roll);
+   const p=projectedBarrel(),ux=p.dx*aspect,uy=p.dy;
+   const u=Math.hypot(ux,uy);
+   if(u<.025||!Number.isFinite(u))continue;
+   const dot=(ux*(goalDX*aspect)+uy*goalDY)/(u*pixelGoalLen);
+   const error=1-dot;
+   if(error<bestError){bestError=error;bestRoll=roll}
   }
-  let x=0,y=0,scale=1;
-  rifle.rotation.set(-.09,-.11,bestRoll);
-  const first=projectedBarrel();
-  const initialLength=Math.hypot(first.dx,first.dy)||1;
-  // Keep a legible 3D weapon, never a giant stock obstructing the crosshair.
-  scale=THREE.MathUtils.clamp(.73/initialLength,.20,4.0);
+  let x=0,y=0,scale=.7;
   const proj=weaponCamera.projectionMatrix.elements;
-  for(let i=0;i<7;i++){
+  rifle.rotation.set(-.115,-.19,bestRoll);
+  // Iterative length+translation solution: model perspective is nonlinear
+  // because the barrel and stock have different eye depths.
+  for(let i=0;i<16;i++){
    activeWeapon.scale.setScalar(scale);
    rifle.position.set(x,y,-1.3);
-   const line=projectedBarrel();
-   x+=THREE.MathUtils.clamp((FPS_MUZZLE.x-line.muzzle.x)*1.3/Math.abs(proj[0]),-.45,.45);
-   y+=THREE.MathUtils.clamp((FPS_MUZZLE.y-line.muzzle.y)*1.3/Math.abs(proj[5]),-.45,.45);
+   const p=projectedBarrel(),current=Math.hypot(p.dx*aspect,p.dy);
+   if(!Number.isFinite(current)||current<.02)break;
+   scale=THREE.MathUtils.clamp(scale*Math.pow(pixelGoalLen/current,.72),.13,1.8);
+   x+=THREE.MathUtils.clamp((FPS_MUZZLE.x-p.muzzle.x)*1.3/Math.abs(proj[0])*.85,-.28,.28);
+   y+=THREE.MathUtils.clamp((FPS_MUZZLE.y-p.muzzle.y)*1.3/Math.abs(proj[5])*.85,-.28,.28);
   }
-  // Do not grow beyond the visible safe HUD area. Reducing the mesh before
-  // re-aligning the muzzle also maintains consistency with the shooting reticle.
-  for(let i=0;i<8;i++){
-   rifle.position.set(x,y,-1.3);
+  // Check the projected REAL mesh, including the wooden stock, not just the
+  // synthetic barrel endpoints. Fit in screen without raising the muzzle.
+  // Reject excessive protrusion; reduce scale, then translate back to target.
+  for(let i=0;i<22;i++){
    activeWeapon.scale.setScalar(scale);
+   rifle.position.set(x,y,-1.3);
    const b=measureWeapon();
-   if(!Number.isFinite(b.left)||!Number.isFinite(b.right))break;
-   if(b.left>=safe.left+.012&&b.right<=safe.right-.012&&b.bottom>=safe.bottom+.012&&b.top<=safe.top-.012)break;
-   scale*=.94;
-   const line=projectedBarrel();
-   x+=(FPS_MUZZLE.x-line.muzzle.x)*1.3/Math.abs(proj[0]);
-   y+=(FPS_MUZZLE.y-line.muzzle.y)*1.3/Math.abs(proj[5]);
+   if(!Number.isFinite(b.left)||!Number.isFinite(b.bottom))break;
+   if(b.left>=safe.left+.018&&b.right<=safe.right-.025&&
+      b.bottom>=safe.bottom+.022&&b.top<=safe.top-.018)break;
+   scale=THREE.MathUtils.clamp(scale*.95,.12,1.8);
+   const p=projectedBarrel();
+   x+=(FPS_MUZZLE.x-p.muzzle.x)*1.3/Math.abs(proj[0]);
+   y+=(FPS_MUZZLE.y-p.muzzle.y)*1.3/Math.abs(proj[5]);
   }
-  return {asset:activeWeapon,x,y,scale,roll:bestRoll};
+  // Recenter the muzzle once with the final scale (avoids drifting).
+  activeWeapon.scale.setScalar(scale);
+  rifle.position.set(x,y,-1.3);
+  const p=projectedBarrel();
+  x+=(FPS_MUZZLE.x-p.muzzle.x)*1.3/Math.abs(proj[0]);
+  y+=(FPS_MUZZLE.y-p.muzzle.y)*1.3/Math.abs(proj[5]);
+  return {asset:activeWeapon,x,y,scale,roll:bestRoll,aspect};
  }
  function positionWeapon(_arCamera,flash){
   if(!rifle.visible)return;
-  if(!layout||layout.asset!==activeWeapon)layout=solveFPSPose();
+  if(!layout||layout.asset!==activeWeapon||Math.abs(layout.aspect-weaponCamera.aspect)>.001)
+    layout=solveFPSPose();
   const t=performance.now()*.001;
   activeWeapon.scale.setScalar(layout.scale);
-  rifle.position.set(layout.x+Math.sin(t*1.8)*.0011,
-    layout.y+Math.sin(t*1.3)*.0012-recoil*.009,-1.3+recoil*.027);
-  // Recoil tilts only a few degrees. Never rotate the rifle with the phone
-  // or aim it toward the floor independently of the true XR center ray.
-  rifle.rotation.set(-.09-recoil*.035,-.11,layout.roll);
+  rifle.position.set(layout.x+Math.sin(t*1.8)*.0008,
+    layout.y+Math.sin(t*1.3)*.0008-recoil*.008,-1.3+recoil*.015);
+  rifle.rotation.set(-.115-recoil*.028,-.19,layout.roll);
   fallback.userData.setFiring(activeWeapon===fallback&&!!flash,t);
   for(const model of importedWeapons.values())model.userData.setFiring(activeWeapon===model&&!!flash,t);
   premiumRifle?.userData.setFiring(!!flash,t);
