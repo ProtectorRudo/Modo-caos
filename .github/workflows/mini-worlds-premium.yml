@@ -1,7 +1,7 @@
-name: Mini Worlds robot premium QA
+name: Mini Worlds fox blaster QA
 on:
   push:
-    branches: [feat/mini-worlds-robot-premium-20261027]
+    branches: [feat/mini-worlds-kai-blaster-20261027]
   workflow_dispatch:
 jobs:
   test:

@@ -69,11 +69,11 @@ function fresh(){
  for(let k=0;k<95;k++){C.tick(s,{},1/60);C.drain(s);elapsed+=1/60}
  assert.equal(s.magicShots.length,0,'missed bolts expire; no memory leak');
 }
-assert(chars.includes('RobotExpressive.glb'),'genuine CC0 expressive robot must be bundled');
+assert(chars.includes('KAI_REFERENCE'),'fox identity must have source reference');
 assert(!chars.includes('Mage.glb'),'old remote Mage should not be loaded');
 assert(art.includes('hero.wand=wand'),'witch must always hold a visible wand');
 assert(art.includes('const magicOrbs'),'visible 3D spell projectile pool missing');
 assert(art.includes('runeRestored'),'rune bloom FX missing');
-assert(html.includes('HECHIZO')&&!html.includes('<small>ATACAR</small>'),'magic control must be intuitive');
+assert(html.includes('DISPARAR')&&!html.includes('<small>HECHIZO</small>'),'blaster control must be intuitive');
 assert(runtime.includes("e.type==='spellCast'"),'wand sound feedback missing');
 console.log('MINI WORLDS: real travelling spells, 3D impact on boxes/monsters, restorative runes, no repeated rewards, projectile cleanup — PASS');

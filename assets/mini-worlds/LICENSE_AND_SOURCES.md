@@ -105,3 +105,10 @@ GLBs de `kikoncuo/jevfire`, commit fijo `5df83b558bf635e006d31f8f2fc2798d0e3ff05
 - **Integración:** `mini-worlds-characters.js` lo usa como protagonista local, con carcasa de materiales ajustados y animación; el robot procedural original diseñado para el juego reemplaza el modelo si WebGL/glTF no carga.
 - **Estilo:** elementos cian, blanco perlado, dorado y violeta; `mini-worlds-finish.js` agrega marcadores de escena y motores de salto originales creados con geometría Three.js, sin introducir nuevas superficies falsas.
 - Las criaturas Quaternius y los paisajes Kenney + Quaternius existentes mantienen sus respectivas licencias descritas arriba. No se incluye ni copia contenido de Astro Bot.
+
+
+## KAI elegido, y zorro original de transición (27/10/2026)
+- Referencia del modelo **KAI — The Little Fox Warrior (Animated)**: https://sketchfab.com/3d-models/kai-the-little-fox-warrior-animated-aa56e447b578470b8d6b1b9587fd29ac
+- Creador: **Realidad Aumentada Empezando Desde Cero**. Licencia **CC BY 4.0**. El modelo oficial NO está empaquetado actualmente: Sketchfab exige autenticación para descargar archivos https://sketchfab.com/developers/download-api/downloading-models.
+- El personaje instalado por esta rama **es una creación procedimental original** en `mini-worlds-art.js`, no un archivo GLB de KAI. No se debe atribuir su geometría al autor del modelo Sketchfab ni afirmar que es idéntico.
+- Blaster, luces, colas, cuerpo y elementos visuales de este zorro se generan mediante geometría Three.js y materiales propios. Las criaturas Quaternius y los 19 props Kenney conservan sus licencias anteriores.

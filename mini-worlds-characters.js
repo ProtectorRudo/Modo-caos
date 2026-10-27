@@ -1,12 +1,12 @@
-/* MINI WORLDS · production character rig bridge. RobotExpressive + Quaternius (CC0).
+/* MINI WORLDS · licensed monster rig bridge + fox avatar art boundary.
  * Keep gameplay/collisions in mini-worlds-core.js. These assets are visual only.
- * RobotExpressive hero and all Quaternius characters are hosted locally.
- * The procedural robot remains the unconditional no-network fallback.
+ * Monster GLTFs are local CC0. Fox hero mesh is original and always available.
+ * The exact KAI Sketchfab mesh is NOT redistributed without authenticated acquisition.
  */
 (function(root){
 'use strict';
 const BASE='./assets/mini-worlds/characters/';
-const ROBOT=BASE+'RobotExpressive.glb';
+const KAI_REFERENCE='https://sketchfab.com/3d-models/kai-the-little-fox-warrior-animated-aa56e447b578470b8d6b1b9587fd29ac';
 const ENEMY=[['Alien','Bat','Cyclops','Cactus'],['Mushroom','Ghost','Cyclops','Cactus']];
 const BOSS=['YellowDragon','Yeti'];
 const FILES=Object.freeze(['Alien','Bat','Cactus','Cyclops','Mushroom','Ghost','YellowDragon','Yeti']);
@@ -25,7 +25,7 @@ root.MiniWorldsCharacters=function(T){
   if(!cache.has(name)){
    const result=(async()=>{
     const loader=await initialize();
-    const uri=name==='Robot'?ROBOT:BASE+name+'.gltf';
+    const uri=BASE+name+'.gltf';
     const obj=await loader.loadAsync(uri);
     if(!obj?.scene)throw Error('GLTF scene missing: '+name);
     const bounds=new T.Box3().setFromObject(obj.scene),size=new T.Vector3();bounds.getSize(size);
@@ -71,30 +71,15 @@ root.MiniWorldsCharacters=function(T){
   if(!stage||!stage.hero)return {loaded:0,failed:1};
   let alive=true;const visual=[],reasons=[];
   stage.disposeCharacters=()=>{alive=false;visual.length=0;stage.updateCharacterAnimations=null};
-  const pending=[load('Robot'),...new Set([...ENEMY[level||0],BOSS[level||0]])].map(v=>typeof v==='string'?load(v):v);
-  const names=['Robot',...new Set([...ENEMY[level||0],BOSS[level||0]])];
+  const names=[...new Set([...ENEMY[level||0],BOSS[level||0]])];
+  const pending=names.map(name=>load(name));
   // Each model failure is isolated: other characters still load.
   const results=await Promise.allSettled(pending);
   if(!alive)return {loaded:0,failed:0};
   const ready=new Map();
   results.forEach((v,i)=>{if(v.status==='fulfilled')ready.set(names[i],v.value);else reasons.push(names[i]+': '+String(v.reason?.message||v.reason))});
-  if(ready.has('Robot')){
-   const rig=physicalRig(ready.get('Robot'),1.17);
-   replaceVisual(stage.hero.root,rig.stand,[stage.hero.wand,stage.hero.finish,...stage.hero.root.children.filter(o=>o.isMesh&&o.geometry?.type==='CircleGeometry')].filter(Boolean));
-   rig.stand.name='ORIN / ROBOT EXPRESSIVE · QUATERNIUS CC0';
-   if(stage.hero.wand)stage.hero.wand.visible=false;
-   rig.stand.traverse(node=>{if(!node.isMesh||!node.material)return;
-    const materials=Array.isArray(node.material)?node.material:[node.material];
-    const revised=materials.map(mat=>{const m=mat.clone();
-     if(m.color&&m.color.r>.2&&m.color.g>.2&&m.color.b>.2){
-      m.color.lerp(new T.Color(0xd7fff5),.10);m.metalness=.32;m.roughness=.29;
-     }
-     return m;
-    });
-    node.material=Array.isArray(node.material)?revised:revised[0];
-   });
-   visual.push({type:'hero',rig});
-  }
+  // Keep the original fox hero fully visible; the 8 monster rigs only
+  // replace enemies and bosses and cannot hide the fox or its blaster.
   let enemiesDone=0;
   for(let i=0;i<stage.map.enemies.length;i++){
    const e=stage.map.enemies[i],types=ENEMY[level||0];
@@ -120,16 +105,7 @@ root.MiniWorldsCharacters=function(T){
   stage.updateCharacterAnimations=(game,dt)=>{
    if(!alive||!game)return;
    for(const x of visual){
-    if(x.type==='hero'){
-     const p=game.player;
-     x.rig.animate(p.attack>.03?['punch','attack']:(!p.grounded?['jump','walkjump','idle']:Math.hypot(p.vx,p.vz)>.3?['running','walking','run','walk']:['idle']));
-     // Keep the entire articulated CC0 robot rig grounded. Subtle lean and
-     // gait bounce add life without moving the collision capsule.
-     const speed=Math.min(1,Math.hypot(p.vx,p.vz)/3.1);
-     x.rig.stand.rotation.z=-p.vx*.024;
-     x.rig.stand.rotation.x=p.grounded?p.vz*.018:-.065;
-     x.rig.stand.position.y=p.grounded?Math.sin(game.clock*13)*.014*speed:0;
-    }else if(x.type==='enemy'){
+    if(x.type==='enemy'){
      const enemy=game.map.enemies[x.id];
      if(!enemy.alive)continue;
      x.rig.animate(enemy.flash>.03?['hitrecieve','hit']:enemy.stun>.01?['idle','flying']:['walk','flying','idle']);
@@ -142,9 +118,9 @@ root.MiniWorldsCharacters=function(T){
    }
   };
   if(reasons.length)console.warn('[MINI WORLDS] Model fallbacks active:',reasons);
-  stage.characterStats={hero:ready.has('Robot'),enemies:enemiesDone,boss:!!b,failed:reasons};
+  stage.characterStats={hero:'original-fox',source:KAI_REFERENCE,enemies:enemiesDone,boss:!!b,failed:reasons};
   return stage.characterStats;
  }
- return {setup,FILES,ROBOT};
+ return {setup,FILES,KAI_REFERENCE};
 };
 })(typeof window!=='undefined'?window:globalThis);

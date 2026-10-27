@@ -19,14 +19,15 @@ for(const clip of ['idle','jump','walking','running','punch'])
 const art=get('mini-worlds-art.js'),chars=get('mini-worlds-characters.js'),
  runtime=get('mini-worlds-runtime.js'),pocket=get('mini-worlds-pocket.js'),
  finish=get('mini-worlds-finish.js'),html=get('mini-worlds.html');
-assert(chars.includes("const ROBOT=BASE+'RobotExpressive.glb'"),'no CDN hero download');
-assert(chars.includes("load('Robot')")&&chars.includes("physicalRig(ready.get('Robot')"),'robot rig not installed');
-assert(chars.includes('stage.hero.finish')&&chars.includes('stage.hero.wand.visible=false'),'hero FX hidden by model swap');
-assert(art.includes('function makeAvatar(parent)')&&art.includes('const visor=new T.MeshPhysicalMaterial'),'robot fallback missing');
+assert(!chars.includes("load('Robot')"),'previous robot must not mask playable fox');
+assert(chars.includes('KAI_REFERENCE'),'source of selected fox must be tracked');
+assert(art.includes('function makeAvatar(parent)')&&art.includes('new T.MeshPhysicalMaterial')&&art.includes('fox stand-in'),'stylized fox missing');
+assert(art.includes('hero.blaster=wand')&&art.includes('hero.muzzleFlash=flash'),'blaster must be attached to hero in world');
+assert(art.includes('hero.tail.rotation.y'),'tail animation missing');
 assert(runtime.includes("stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)"),'finish must initialize before pocket index');
 assert(runtime.includes('stage.finish?.update(game,dt,elapsed)'),'effects must animate per frame');
 assert(pocket.includes('dynamicAlways')&&pocket.includes('reindex()'),'immutable XR room contract');
 assert(finish.includes("world.add(holder)")&&finish.includes("stage.hero.root.add(finish)"),'effects must be world anchored');
 assert(!finish.includes('camera.position')&&!finish.includes('world.position.z='),'visual effects cannot re-anchor XR');
-assert(html.includes('mini-worlds-finish.js')&&html.includes('robot explorador'),'browser entrypoint missing');
-console.log('MINI WORLDS premium robot:',robot.length,'bytes,',meta.animations.length,'animations; local GLB, visual fallback, world-anchored finishing layer: PASS');
+assert(html.includes('mini-worlds-finish.js')&&html.includes('zorro aventurero')&&html.includes('DISPARAR'),'fox UI missing');
+console.log('MINI WORLDS fox blaster: original stylized fox, weapon, physical projectile engine and anchored scenery: PASS');

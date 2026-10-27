@@ -180,37 +180,77 @@ function makeBox(parent,b,y){
  g.userData.baseY=y+.29;return g;
 }
 function makeAvatar(parent){
- // ORIN is a fully playable original glossy robot even before GLB imports.
- // Its transforms remain compatible with all existing platformer animation.
- const shell=new T.MeshPhysicalMaterial({color:0xe9fbff,metalness:.37,roughness:.22,clearcoat:.94,clearcoatRoughness:.13});
- const visor=new T.MeshPhysicalMaterial({color:0x122b49,metalness:.18,roughness:.16,clearcoat:1});
- const glow=new T.MeshStandardMaterial({color:0x8afeee,emissive:0x32fbe7,emissiveIntensity:1.65,roughness:.24});
- const g=group(parent),body=group(g,0,.58,0),head=group(body,0,.49,.06);
- mesh(sphere(.35,20,14),shell,0,0,0,body).scale.set(1.03,1.06,.76);
- mesh(sphere(.255,18,12),visor,0,.02,.235,body).scale.set(.67,.47,.22);
- mesh(new T.IcosahedronGeometry(.085,1),glow,0,.02,.39,body);
- mesh(sphere(.3,24,16),shell,0,.08,0,head).scale.set(1.10,.97,.89);
- mesh(sphere(.235,20,12),visor,0,.04,.235,head).scale.set(1.15,.63,.25);
+ // Original high-detail stylized fox adventurer. It is NOT the third-party
+ // Sketchfab KAI mesh; exact artist GLB needs an authenticated legal download.
+ // World scale, rig groups and physics capsule remain unchanged.
+ const fur=new T.MeshPhysicalMaterial({color:0xe8742c,roughness:.61,metalness:0,clearcoat:.12});
+ const highlight=new T.MeshStandardMaterial({color:0xffa557,roughness:.74});
+ const cream=new T.MeshStandardMaterial({color:0xffeee0,roughness:.84});
+ const innerEar=new T.MeshStandardMaterial({color:0xe47e81,roughness:.8});
+ const dark=new T.MeshPhysicalMaterial({color:0x282941,roughness:.24,clearcoat:.50});
+ const leather=new T.MeshStandardMaterial({color:0x33556a,roughness:.62,metalness:.16});
+ const vest=new T.MeshPhysicalMaterial({color:0x198b98,roughness:.41,metalness:.16,clearcoat:.44});
+ const gold=new T.MeshPhysicalMaterial({color:0xf6c363,roughness:.27,metalness:.67,clearcoat:.58});
+ const jade=new T.MeshStandardMaterial({color:0x6efce0,emissive:0x3fe4d3,emissiveIntensity:1.5,roughness:.22});
+ const eyeWhite=new T.MeshPhysicalMaterial({color:0xffffff,roughness:.1,clearcoat:1});
+ const g=group(parent),body=group(g,0,.57,0),head=group(body,0,.48,.055);
+ g.name='KAI / original fox stand-in + energy blaster';
+ // Compact heroic figure: larger readable silhouette than realistic anatomy.
+ mesh(sphere(.32,22,16),vest,0,-.02,0,body).scale.set(1,.98,.81);
+ mesh(sphere(.225,20,12),cream,0,-.02,.246,body).scale.set(.84,1.09,.22);
+ mesh(sphere(.36,24,17),fur,0,.068,0,head).scale.set(1.05,.90,.93);
+ // Crescent muzzle and cheeks make the face unmistakably vulpine.
+ mesh(sphere(.26,20,14),cream,0,-.07,.26,head).scale.set(1.24,.58,.80);
+ mesh(sphere(.155,16,12),cream,-.175,-.085,.254,head);
+ mesh(sphere(.155,16,12),cream,.175,-.085,.254,head);
+ const snout=mesh(new T.ConeGeometry(.145,.31,5),cream,0,-.102,.41,head);
+ snout.rotation.x=Math.PI/2;
+ mesh(sphere(.089,12,9),dark,0,-.128,.57,head).scale.set(1.25,.75,.60);
  for(const side of [-1,1]){
-  mesh(sphere(.064,12,9),glow,side*.12,.054,.306,head).scale.set(.7,1.18,.5);
-  mesh(sphere(.027,10,8),M.white,side*.132,.074,.332,head);
+  const ear=group(head,side*.245,.348,-.052);
+  ear.rotation.z=-side*.18;
+  mesh(new T.ConeGeometry(.17,.44,4),fur,0,.13,0,ear).rotation.y=Math.PI/4;
+  mesh(new T.ConeGeometry(.108,.30,4),innerEar,0,.12,.047,ear).rotation.y=Math.PI/4;
+  mesh(sphere(.12,14,10),cream,side*.27,-.09,.19,head);
+  mesh(sphere(.145,18,12),eyeWhite,side*.145,.070,.280,head).scale.set(.8,1.12,.47);
+  mesh(sphere(.09,16,12),dark,side*.148,.072,.347,head).scale.set(.78,1.12,.46);
+  mesh(sphere(.032,10,7),eyeWhite,side*.172,.111,.389,head);
+  mesh(sphere(.05,12,9),highlight,side*.29,-.15,.23,head);
  }
- mesh(new T.TorusGeometry(.087,.023,6,20,Math.PI),M.coral,0,-.10,.308,head).rotation.z=P;
- const antenna=mesh(cyl(.03,.045,.14,10),M.steel,0,.43,-.03,head);
- mesh(sphere(.078,10,8),glow,0,.52,-.03,head);
+ mesh(new T.TorusGeometry(.099,.016,5,15,Math.PI),dark,0,-.205,.417,head).rotation.z=Math.PI;
+ // Small tuft, shoulder armor, scarf and a single golden explorer insignia.
+ for(let k=0;k<3;k++){
+  const tuft=mesh(new T.ConeGeometry(.067,.19,6),highlight,(k-1)*.09,.398,-.015,head);
+  tuft.rotation.z=(k-1)*-.32;
+ }
+ mesh(new T.TorusGeometry(.295,.058,8,22),leather,0,.295,.01,body).rotation.x=Math.PI/2;
+ const crest=mesh(new T.OctahedronGeometry(.09,0),gold,0,.15,.27,body);
+ crest.rotation.z=.28;
  const arms=[],legs=[];
  for(const side of [-1,1]){
-  const a=group(body,side*.34,.20,0);
-  mesh(sphere(.145,14,10),M.steel,0,0,0,a);
-  mesh(cyl(.105,.12,.35,12),shell,0,-.23,0,a);
-  mesh(sphere(.12,14,10),glow,0,-.43,.016,a);arms.push(a);
-  const l=group(g,side*.16,.30,0);
-  mesh(cyl(.13,.14,.37,12),shell,0,-.16,0,l);
-  mesh(sphere(.17,14,10),visor,0,-.34,.11,l).scale.set(1,.70,1.3);legs.push(l);
+  const arm=group(body,side*.325,.19,0);
+  mesh(sphere(.155,16,12),gold,0,-.005,-.005,arm).scale.set(.95,.82,.95);
+  mesh(new T.CylinderGeometry(.102,.091,.31,12),leather,0,-.20,0,arm);
+  mesh(sphere(.123,16,12),fur,0,-.39,.035,arm);arms.push(arm);
+  const leg=group(g,side*.16,.33,0);
+  mesh(new T.CylinderGeometry(.135,.12,.35,12),leather,0,-.165,0,leg);
+  mesh(sphere(.164,16,12),dark,0,-.344,.10,leg).scale.set(1,.69,1.30);legs.push(leg);
  }
- const pack=mesh(sphere(.21,14,10),M.steel,0,-.06,-.25,body);pack.scale.set(1,.90,.6);
- const shadow=mesh(new T.CircleGeometry(.38,24),new T.MeshBasicMaterial({color:0x061d22,transparent:true,opacity:.23,depthWrite:false}),0,.015,0,g);shadow.rotation.x=-P/2;
- return {root:g,body,head,arms,legs,shadow};
+ // Three soft tail sections; animate via the existing hero update loop.
+ const tail=group(g,-.06,.48,-.28);tail.rotation.x=.37;
+ const base=mesh(sphere(.23,17,12),fur,0,.03,-.21,tail);
+ base.rotation.x=-.46;base.scale.set(.91,.82,1.67);
+ const puff=mesh(sphere(.23,18,12),highlight,0,.11,-.53,tail);
+ puff.rotation.x=-.40;puff.scale.set(1.1,.84,1.53);
+ const tip=mesh(new T.ConeGeometry(.18,.41,10),cream,0,.18,-.87,tail);
+ tip.rotation.x=-Math.PI/2-.28;
+ // Keeps a visible and friendly accessory even if rendering is offline.
+ const badge=mesh(new T.TorusGeometry(.105,.028,9,20),jade,0,.14,.31,body);
+ badge.rotation.x=.13;
+ const shadow=mesh(new T.CircleGeometry(.4,24),
+  new T.MeshBasicMaterial({color:0x061d22,transparent:true,opacity:.22,depthWrite:false}),0,.014,0,g);
+ shadow.rotation.x=-Math.PI/2;
+ return {root:g,body,head,arms,legs,tail,shadow};
 }
 function makeEnemy(parent,e,y){
  const g=group(parent,e.x,y+.42,e.z);const flying=e.type==='flying',thrower=e.type==='thrower',guard=e.type==='defender';
@@ -307,17 +347,28 @@ function makeStage(map){
  const boxes=map.boxes.map(b=>makeBox(root,b,Math.max(0,...map.platforms.filter(p=>Math.abs(b.x-p.x)<p.w/2&&Math.abs(b.z-p.z)<p.d/2).map(p=>p.y))));
  const enemies=map.enemies.map(e=>makeEnemy(root,e,e.type==='flying'?1.25:(Math.max(0,...map.platforms.filter(p=>Math.abs(e.x-p.x)<p.w/2&&Math.abs(e.z-p.z)<p.d/2).map(p=>p.y)))));
  const hero=makeAvatar(root),boss=makeBoss(root,map.boss,Boolean(map.n));boss.root.visible=false;
- // Robot's energy wand remains an attack focal point in fallback mode; external GLB uses its hands.
- const wand=group(hero.root,.37,.82,.17);
- wand.rotation.z=-.23;
- mesh(cyl(.044,.038,.50,9),M.steel,0,.12,0,wand);
- const wandTip=mesh(new T.IcosahedronGeometry(.102,1),new T.MeshStandardMaterial({
-  color:0xa9fff2,emissive:0x4cdac3,emissiveIntensity:1.6,roughness:.24
- }),0,.41,0,wand);
- hero.wand=wand;hero.wandTip=wandTip;
+ // KAI's compact blaster is attached to the avatar WORLD rig, never
+ // to the user's camera. The core still simulates projectile collisions.
+ const wand=group(hero.root,.38,.77,.22);
+ wand.name='KAI / energy blaster';
+ const barrelMat=new T.MeshPhysicalMaterial({color:0x31405d,metalness:.78,roughness:.25,clearcoat:.8});
+ const copperMat=new T.MeshPhysicalMaterial({color:0xffc66e,metalness:.75,roughness:.25,clearcoat:.9});
+ const emitterMat=new T.MeshBasicMaterial({color:0x79fff4,transparent:true,opacity:.91,depthWrite:false});
+ const barrel=mesh(cyl(.12,.145,.46,14),barrelMat,0,-.06,.18,wand);
+ barrel.rotation.x=Math.PI/2;
+ mesh(cube(.27,.18,.38),copperMat,0,-.035,.05,wand);
+ const grip=mesh(cube(.115,.24,.115),barrelMat,0,-.21,.04,wand);grip.rotation.x=.18;
+ for(const z of [.20,.33]){
+  const coil=mesh(new T.TorusGeometry(.12,.025,8,24),copperMat,0,-.06,z,wand);
+ }
+ const wandTip=mesh(new T.IcosahedronGeometry(.093,2),
+  new T.MeshStandardMaterial({color:0xaafff7,emissive:0x37fff2,emissiveIntensity:2.6,roughness:.15}),0,-.06,.46,wand);
+ const flash=mesh(new T.RingGeometry(.07,.18,28),emitterMat,0,-.06,.56,wand);
+ flash.visible=false;flash.renderOrder=1700;
+ hero.wand=wand;hero.wandTip=wandTip;hero.blaster=wand;hero.muzzleFlash=flash;
  // Animated spell missiles use a constant-size visual pool on mobile.
- const magicMaterial=new T.MeshStandardMaterial({color:0xa1ffef,emissive:0x36ffd2,emissiveIntensity:2.0,roughness:.20});
- const magicGeo=new T.IcosahedronGeometry(.15,1);
+ const magicMaterial=new T.MeshStandardMaterial({color:0xa1fff7,emissive:0x3cfff3,emissiveIntensity:3.4,roughness:.12,metalness:.15});
+ const magicGeo=new T.IcosahedronGeometry(.135,2);
  const magicOrbs=Array.from({length:12},()=>{
   const obj=mesh(magicGeo,magicMaterial,0,0,0,root);
   obj.visible=false;obj.castShadow=false;return obj;
@@ -413,7 +464,7 @@ function makeStage(map){
   const material=color=>new T.MeshBasicMaterial({color,transparent:true,opacity:.95,depthWrite:false,depthTest:false,side:T.DoubleSide});
   if(evt.type==='spellCast'&&actor){
    const angle=actor.face,px=actor.x+Math.sin(angle)*.65,pz=actor.z+Math.cos(angle)*.65;
-   const o=mesh(new T.TorusGeometry(.29,.047,7,24),material(0xa1fff5),px,actor.y+.79,pz,root);
+   const o=mesh(new T.TorusGeometry(.22,.045,7,28),material(0x8cfff9),px,actor.y+.79,pz,root);
    o.rotation.y=angle;o.rotation.z=-.55;o.renderOrder=1800;o.castShadow=false;
    combatBursts.push({o,t:0,life:.17,kind:'slash'});
   }
@@ -514,6 +565,10 @@ function makeStage(map){
   const p=s.player;
   ocean.material.uniforms.uTime.value=elapsed;
   wandTip.scale.setScalar(1+.18*Math.sin(elapsed*9));
+  hero.muzzleFlash.visible=p.attack>.13;
+  hero.muzzleFlash.scale.setScalar(1.2+Math.sin(elapsed*92)*.23);
+  hero.blaster.position.z=.22-Math.max(0,p.attack)*.13;
+  hero.blaster.rotation.x=-Math.max(0,p.attack)*.38;
   for(let i=0;i<magicOrbs.length;i++){
    const b=s.magicShots?.[i],o=magicOrbs[i];
    o.visible=!!b;
@@ -557,7 +612,9 @@ function makeStage(map){
   let run=Math.min(1,Math.hypot(p.vx,p.vz)/2.7),t=elapsed*11;
   hero.body.position.y=.58+(p.grounded?Math.sin(t)*.025*run:Math.sin(elapsed*5)*.035);
   hero.body.rotation.z=Math.sin(t*.5)*.055*run+(p.attack>.03?-.26:0);
-  hero.head.rotation.y=Math.sin(elapsed*1.6)*.04;
+  hero.head.rotation.y=Math.sin(elapsed*1.6)*.042;
+  if(hero.tail){hero.tail.rotation.y=Math.sin(elapsed*4.4)*(.18+.09*run);
+   hero.tail.rotation.x=.37+Math.sin(elapsed*7)*.075*run;}
   for(let k=0;k<2;k++){hero.legs[k].rotation.x=p.grounded?Math.sin(t+k*P)*.8*run:-.28;hero.arms[k].rotation.x=p.attack>.02?(k===1?-1.9:-.25):Math.sin(t+k*P+P)*.58*run}
   for(let i=0;i<coins.length;i++){const c=map.coins[i],o=coins[i];o.visible=!c.taken;if(o.visible){o.rotation.y=elapsed*2.6+i;o.position.set(c.x,c.y+Math.sin(elapsed*3+i)*.09,c.z)}}
   for(let i=0;i<stars.length;i++){const c=map.stars[i],o=stars[i];o.visible=!c.taken;if(o.visible){o.rotation.y=elapsed*1.5;o.position.y=c.y+Math.sin(elapsed*2+i)*.13}}

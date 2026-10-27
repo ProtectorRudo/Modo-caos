@@ -42,9 +42,9 @@ root.MiniWorldsFinish=function(T){
    world.add(holder);
    visible.push({holder,gem,crown,dot,offset:i*.77,base:holder.position.y});
   });
-  // A tiny animated robot energy system, never an opaque screen overlay.
+  // Spatial fox adventurer aura, never an opaque screen overlay.
   const finish=new T.Group();
-  finish.name='ORIN / luminous energy core & jump jets';
+  finish.name='FOX / blaster energy aura and jump sparks';
   stage.hero.root.add(finish);stage.hero.finish=finish;
   const energy=new T.MeshBasicMaterial({
    color:0x6fffe7,transparent:true,opacity:.78,
@@ -52,7 +52,7 @@ root.MiniWorldsFinish=function(T){
   });
   const ring=new T.Mesh(new T.TorusGeometry(.38,.023,6,32),energy);
   ring.rotation.x=-Math.PI/2;ring.position.y=.065;finish.add(ring);
-  const jetGeo=new T.ConeGeometry(.082,.29,10);
+  const jetGeo=new T.ConeGeometry(.055,.19,8);
   const jets=[];
   [-.24,.24].forEach(x=>{
    const outer=new T.Mesh(jetGeo,energy);
@@ -78,7 +78,7 @@ root.MiniWorldsFinish=function(T){
    ring.scale.setScalar(1+Math.sin(time*5)*.045+(charging?.12:0));
    ring.rotation.z=time*.95;
    jets.forEach((jet,i)=>{
-    jet.visible=v>.14||!p.grounded||charging;
+    jet.visible=!p.grounded||charging;
     const height=!p.grounded?.43:charging?.37:.18;
     jet.scale.set(1,.6+height*1.4+Math.sin(time*21+i)*.12,1);
    });
