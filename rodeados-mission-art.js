@@ -33,8 +33,8 @@ export function createRodeadosMissionArt(THREE,world){
   fabric.position.z=.025;mesh(g,new THREE.ConeGeometry(.10,.22,6),gold,0,1.37,0);
   return g;
  }
- const portRoot=new THREE.Group(),lootRoot=new THREE.Group(),refugeRoot=new THREE.Group(),ctfRoot=new THREE.Group(),colRoot=new THREE.Group(),warpRoot=new THREE.Group(),mutantRoot=new THREE.Group();
- [portRoot,lootRoot,refugeRoot,ctfRoot,colRoot,warpRoot,mutantRoot].forEach(o=>root.add(o));
+ const portRoot=new THREE.Group(),lootRoot=new THREE.Group(),refugeRoot=new THREE.Group(),ctfRoot=new THREE.Group(),colRoot=new THREE.Group(),warpRoot=new THREE.Group(),mutantRoot=new THREE.Group(),rescueRoot=new THREE.Group();
+ [portRoot,lootRoot,refugeRoot,ctfRoot,colRoot,warpRoot,mutantRoot,rescueRoot].forEach(o=>root.add(o));
  const portals=[];
  for(let i=0;i<6;i++){
   const angle=i*Math.PI/3,p={x:Math.sin(angle)*3.15,z:Math.cos(angle)*3.15};
@@ -74,6 +74,38 @@ export function createRodeadosMissionArt(THREE,world){
  const flagBeacon=beacon(ctfRoot,{x:0,z:-.8},red,.67);
  const colMark=beacon(colRoot,{x:0,z:-1.1},red,1.2);
  const warp=beacon(warpRoot,{x:0,z:-.6},blue,.8);
+ // World-anchored hostage. A contrasting orange civilian coat and tethered
+ // pose make it readable from 3 m. Never parent it to the XR camera.
+ const fabric=new THREE.MeshStandardMaterial({color:0xf29a42,metalness:.03,roughness:.84});
+ const skin=new THREE.MeshStandardMaterial({color:0xd8a27f,metalness:.02,roughness:.91});
+ const hair=new THREE.MeshStandardMaterial({color:0x25232b,roughness:1});
+ const trousers=new THREE.MeshStandardMaterial({color:0x3c4956,roughness:.85});
+ const stripe=new THREE.MeshStandardMaterial({color:0xf9dfad,emissive:0x965a12,emissiveIntensity:.16});
+ const hostage=new THREE.Group();hostage.visible=false;rescueRoot.add(hostage);
+ function rod(g,a,b,rad,mat){
+  const from=new THREE.Vector3(...a),to=new THREE.Vector3(...b),diff=to.clone().sub(from);
+  const o=mesh(g,new THREE.CylinderGeometry(rad*.82,rad,diff.length(),10),mat);
+  o.position.copy(from.add(to).multiplyScalar(.5));o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),diff.normalize());return o;
+ }
+ const civilian=new THREE.Group();hostage.add(civilian);
+ const torso=mesh(civilian,new THREE.CapsuleGeometry(.225,.48,4,12),fabric,0,.92,0);
+ torso.rotation.z=-.08;
+ mesh(civilian,new THREE.CapsuleGeometry(.12,.1,3,9),skin,0,1.33,.0);
+ mesh(civilian,new THREE.SphereGeometry(.185,16,12),skin,0,1.50,0);
+ mesh(civilian,new THREE.SphereGeometry(.187,16,12,0,Math.PI*2,0,Math.PI*.52),hair,0,1.558,0);
+ for(const side of [-1,1]){
+  rod(civilian,[side*.17,.68,.01],[side*.15,.36,-.14],.094,trousers);
+  rod(civilian,[side*.15,.36,-.14],[side*.23,.09,.04],.079,trousers);
+  mesh(civilian,new THREE.SphereGeometry(.13,11,8),hair,side*.23,.10,-.02);
+  rod(civilian,[side*.20,1.13,0],[side*.29,.98,.12],.073,fabric);
+  rod(civilian,[side*.29,.98,.12],[side*.075,.88,.24],.059,skin);
+  mesh(civilian,new THREE.SphereGeometry(.053,10,8),skin,side*.075,.88,.24);
+  mesh(civilian,new THREE.SphereGeometry(.023,8,6),hair,side*.072,1.51,.178);
+ }
+ rod(civilian,[-.08,.865,.245],[.08,.865,.245],.027,stripe);
+ const rescueBeacon=beacon(rescueRoot,{x:0,z:-3},gold,1.15);
+ const rescueBase=beacon(rescueRoot,{x:0,z:0},cyan,1.12);
+ const rescueSpawns=Array.from({length:7},()=>{const b=beacon(rescueRoot,{x:40,z:40},red,.56);b.visible=false;return b});
  const mutators=Array.from({length:4},(_,i)=>{
   const a=i*Math.PI/2,p={x:Math.sin(a)*1.18,z:Math.cos(a)*1.18};
   return beacon(mutantRoot,p,i%2?red:gold,.55);
@@ -85,7 +117,7 @@ export function createRodeadosMissionArt(THREE,world){
    currentMode=mode;
    portRoot.visible=mode==='invasion';lootRoot.visible=mode==='loot';
    refugeRoot.visible=mode==='refuge';ctfRoot.visible=mode==='ctf';
-   colRoot.visible=mode==='colossus';warpRoot.visible=mode==='timewarp';mutantRoot.visible=mode==='mutant';
+   colRoot.visible=mode==='colossus';warpRoot.visible=mode==='timewarp';mutantRoot.visible=mode==='mutant';rescueRoot.visible=mode==='rescue';
   }
   root.visible=!!m&&['tactical','playing','paused','countdown','ready'].includes(stage);
   if(!root.visible)return;
@@ -147,13 +179,36 @@ export function createRodeadosMissionArt(THREE,world){
    colMark.position.z=-1.1;
    colMark.scale.setScalar(.96+.08*Math.sin(tick*4));
   }
-  if(mode==='timewarp')warp.scale.setScalar(game.elapsed<m.slowUntil?1.8:1);
+  if(mode==='timewarp'){
+   const fracture=m.timePhase==='FRACTURA',surge=m.timePhase==='ACELERADO';
+   warp.position.set(game.player.x,0,game.player.z-.75);
+   warp.scale.setScalar(fracture?2.3+.22*Math.sin(tick*11):surge?1.55+.18*Math.sin(tick*18):.75);
+   warp.rotation.y+=fracture?.014:surge?.041:.003;
+  }
+  if(mode==='rescue'){
+   const active=m.hostageActive&&!m.nextLevelAt;
+   hostage.visible=active;rescueBeacon.visible=active;
+   rescueBase.position.set(m.base.x,0,m.base.z);
+   if(active){
+    const pos=m.carry?{x:game.player.x+.41,z:game.player.z+.32}:m.object;
+    hostage.position.set(pos.x,0,pos.z);
+    hostage.rotation.y=Math.sin(tick*.7)*.07;
+    civilian.position.y=Math.sin(tick*2.6)*.018;
+    rescueBeacon.position.set(pos.x,0,pos.z);
+    rescueBeacon.scale.setScalar(m.carry?.7:1+.09*Math.sin(tick*3));
+   }
+   rescueSpawns.forEach((b,i)=>{
+    const p=m.spawnPoints?.[i];b.visible=active&&!!p;
+    if(p){b.position.set(p.x,0,p.z);b.scale.setScalar(.76+.09*Math.sin(tick*3+i))}
+   });
+  }
   if(mode==='mutant')mutators.forEach((b,i)=>{b.scale.setScalar(.85+.2*Math.sin(tick*3+i))});
  }
  return {update,root,
+  getHostageRender(){return {visible:hostage.visible,x:hostage.position.x,z:hostage.position.z,guardMarkers:rescueSpawns.filter(x=>x.visible).length}},
   getFlagRender(){return {x:ctfFlag.position.x,y:ctfFlag.position.y,z:ctfFlag.position.z,visible:ctfFlag.visible,beaconVisible:flagBeacon.visible}},
   getFlagWorldRender(){const v=new THREE.Vector3();ctfFlag.updateWorldMatrix(true,false);ctfFlag.getWorldPosition(v);return {x:v.x,y:v.y,z:v.z}},
   dispose(){world.remove(root);root.traverse(o=>{
   if(o.isMesh){o.geometry?.dispose();/* Shared materials are disposed below. */ }
- });[metal,dark,cyan,gold,red,blue,reactor.material,shield.material].forEach(m=>m.dispose?.())}};
+ });[metal,dark,cyan,gold,red,blue,fabric,skin,hair,trousers,stripe,reactor.material,shield.material].forEach(m=>m.dispose?.())}};
 }

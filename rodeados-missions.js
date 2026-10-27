@@ -11,11 +11,12 @@
  const definitions={
   invasion:{duration:75,label:'INVASIÓN EN CASA',tip:'Resistí 75 segundos y detené la invasión'},
   loot:{duration:90,label:'BOTÍN MALDITO',tip:'Abrí cofres, volvé a la base y extraé tu botín'},
-  timewarp:{duration:60,label:'TIEMPO ROTO',tip:'EMP ralentiza a los enemigos durante 3 segundos'},
+  timewarp:{duration:75,label:'TIEMPO ROTO',tip:'Congelación y rebote temporal cada 12 segundos, más un poder manual.'},
   refuge:{duration:75,label:'EL ÚLTIMO REFUGIO',tip:'Defendé el reactor 75 segundos'},
   mutant:{duration:90,label:'CAOS MUTANTE',tip:'Una mutación distinta cada 15 segundos'},
   colossus:{duration:90,label:'COLOSOS 360',tip:'Derrotá a los 3 gigantes antes de que termine el tiempo'},
-  ctf:{duration:150,label:'CAPTURA LA BANDERA',tip:'Robá la bandera y entregala en tu base tantas veces como puedas'}
+  ctf:{duration:150,label:'CAPTURA LA BANDERA',tip:'Robá la bandera y entregala en tu base tantas veces como puedas'},
+  rescue:{duration:420,label:'RESCATE DEL REHÉN',tip:'LIBERÁ al rehén y escoltalo a tu base. ¡10 niveles!'}
  };
  Object.assign(G.MODES,definitions);
  const orig={create:G.create,reset:G.reset,advance:G.advance,fire:G.fire,pulse:G.pulse,movePlayer:G.movePlayer,spawn:G.spawn,copy:G.copy};
@@ -38,13 +39,20 @@
   if(!definitions[g.mode])return g;
   const m={kind:g.mode,signal:'',event:0,completed:false,object:{x:0,z:-.65},base:{x:0,z:.75},
    captures:0,carry:false,flagDropped:0,dropAt:null,loot:0,extracted:0,crates:[],
-   reactor:100,slowUntil:0,mutation:'NORMAL',mutationIndex:-1,
+   reactor:100,slowUntil:0,timePhase:'NORMAL',phaseRemaining:6,timeCycles:0,mutation:'NORMAL',mutationIndex:-1,
    bossIndex:0,bossPhase:1,spawnPoints:[],enemyCursor:0,bonus:0,locked:false,stations:[],pickupBlockedUntil:0,stormTick:-1};
   if(g.mode==='ctf'){
    m.plan=normalizeFlagPlan(config.flagPlan,g.arena);m.base={...m.plan.base};m.object={...m.plan.flag};
    m.spawnPoints=m.plan.spots.map(p=>({...p}));m.spawnTypes=m.plan.kinds.slice();m.configured=!!config.flagPlan?.confirmed;m.signal='ANDÁ A LA BANDERA ENEMIGA';
   }
-  if(g.mode==='loot'){
+  if(g.mode==='rescue'){
+    m.level=1;m.rescued=0;m.carry=false;m.hostageHealth=100;m.levelDeadline=0;
+    m.hostageActive=false;m.hostageLost=false;m.nextLevelAt=0;m.phase='RESCATÁ';
+    m.spawnPoints=[];m.spawnTypes=[];m.enemyCursor=0;
+    m.base={x:0,z:0};m.object={x:0,z:-3};
+    m.signal='NIVEL 1/10 · LOCALIZÁ AL REHÉN';
+   }
+   if(g.mode==='loot'){
    m.crates=boxCoords.map((p,i)=>({...p,id:i,opened:false}));
    m.base={x:0,z:.83};m.signal='DISPARÁ A LOS 5 COFRES';
   }
@@ -54,7 +62,7 @@
   if(g.mode==='mutant')m.signal='MUTACIÓN EN 15 SEGUNDOS';
   if(g.mode==='invasion')m.signal='¡INVASIÓN INMINENTE!';
   // Other missions do not unexpectedly spawn scripted legacy boss waves.
-  if(['loot','timewarp','refuge','mutant','ctf'].includes(g.mode)){
+  if(['loot','timewarp','refuge','mutant','ctf','rescue'].includes(g.mode)){
    g.creepIntroduced=true;g.minotaurIntroduced=true;
   }
   g.mission=m;return g;
@@ -77,6 +85,32 @@
   e.missionBoss=true;m.bossPhase=1;
   event(m,'GIGANTE '+m.bossIndex+' DE 3 · APUNTÁ A SU CABEZA');
  }
+ function beginRescueStage(g,{first=false}={}){
+   const m=g.mission;if(m?.kind!=='rescue')return;
+   m.base={...g.player};m.carry=false;m.hostageActive=true;m.hostageLost=false;
+   m.hostageHealth=Math.min(100,76+m.level*2);
+   m.phase='RESCATÁ';m.nextLevelAt=0;m.levelDeadline=g.elapsed+Math.max(28,42-m.level*1.3);
+   const angle=-Math.PI*.5+(g.rand()-.5)*1.3,radius=2.5+Math.min(1,m.level*.1);
+   m.object={x:+(m.base.x+Math.sin(angle)*radius).toFixed(3),
+     z:+(m.base.z+Math.cos(angle)*radius).toFixed(3)};
+   const angle0=g.rand()*Math.PI*2;
+   m.spawnPoints=Array.from({length:7},(_,i)=>{
+    const a=angle0+i*Math.PI*2/7+(g.rand()-.5)*.2,dist=1.25+g.rand()*.65;
+    return {x:+(m.object.x+Math.sin(a)*dist).toFixed(3),
+     z:+(m.object.z+Math.cos(a)*dist).toFixed(3)};
+   });
+   m.enemyCursor=0;g.enemies.length=0;g.spawnClock=.6;
+   if(!first)g.lives=Math.min(100,g.lives+14);
+   for(let i=0;i<Math.min(6,1+Math.ceil(m.level/2));i++){
+    const kind=m.level>=8&&i===0?'tank':m.level>=5&&i===1?'flanker':'basic';
+    G.spawn(g,kind);
+   }
+   event(m,'🚨 NIVEL '+m.level+'/10 · '+(m.level>=8?'GUARDIAS DE ÉLITE':'LIBERÁ AL REHÉN'));
+  }
+  G.prepareRescue=function(g){
+   if(g.mode!=='rescue'||g.mission.hostageActive)return false;
+   beginRescueStage(g,{first:true});return true;
+  };
  function assignSpawn(g,e){
   const m=g.mission;
   if(!m||e.missionAssigned)return;
@@ -88,7 +122,13 @@
    e.x=p.x;e.z=p.z;
    e.role=m.enemyCursor%3===0?'guardián':m.enemyCursor%3===1?'interceptor':'cazador';
   }
-  if(m.kind==='invasion'){
+  if(m.kind==='rescue'&&m.spawnPoints.length){
+    const p=m.spawnPoints[m.enemyCursor++%m.spawnPoints.length];
+    e.x=p.x;e.z=p.z;e.role='guardia';
+    const bonus=Math.floor((m.level-1)/3);e.hp+=bonus;e.maxHp+=bonus;
+    e.attackCD=Math.max(.55,e.attackCD-(m.level-1)*.05);
+   }
+   if(m.kind==='invasion'){
    const a=(m.enemyCursor++%6)*Math.PI/3,gap=3.15;
    e.x=Math.sin(a)*gap;e.z=Math.cos(a)*gap;
   }
@@ -107,7 +147,7 @@
   const e=orig.spawn(g,type);if(e&&m){assignSpawn(g,e);orientAwayFromPhone(g,e)}return e
  };
  G.movePlayer=function(g,p){
-  if(g.mode!=='ctf')return orig.movePlayer(g,p);
+  if(g.mode!=='ctf'&&g.mode!=='rescue')return orig.movePlayer(g,p);
   if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
   // CTF needs roaming beyond the 2.6 m cosmetic tile board to retrieve the flag.
   // A 2.6 m base and an enemy flag up to 8 m away must not impose
@@ -146,6 +186,7 @@
   dt=clamp(Number(dt)||0,0,.07);if(dt<=0)return g;
   const m=g.mission,life=g.lives,previous=new Map(g.enemies.map(e=>[e.id,{x:e.x,z:e.z,cd:e.attackCD}]));
   const oldPlayer={...g.player};
+  if(m.kind==='rescue'&&!m.hostageActive&&!m.nextLevelAt)beginRescueStage(g,{first:true});
   if(m.kind==='colossus'){
    g.spawnClock=10000;
    if(!g.enemies.some(e=>e.missionBoss)&&m.bossIndex<3)spawnColossus(g);
@@ -165,12 +206,37 @@
    if(hurt){m.reactor=Math.max(0,m.reactor-hurt*1.65);g.lives=life;event(m,'⚠ NÚCLEO AL '+Math.ceil(m.reactor)+'%')}
    if(m.reactor<=0)G.finish(g,'reactor_destruido');
   }
-  if(m.kind==='timewarp'&&g.elapsed<m.slowUntil){
-   for(const e of g.enemies){const was=previous.get(e.id);if(!was)continue;
-    e.x=was.x+(e.x-was.x)*.23;e.z=was.z+(e.z-was.z)*.23;
-    e.attackCD=Math.max(e.attackCD,was.cd-dt*.23);
+  if(m.kind==='timewarp'){
+   const cycle=g.elapsed%12;
+   const phase=g.elapsed<m.slowUntil||cycle>=6&&cycle<9?'FRACTURA':cycle>=9?'ACELERADO':'NORMAL';
+   m.phaseRemaining=phase==='FRACTURA'?g.elapsed<m.slowUntil?m.slowUntil-g.elapsed:9-cycle:
+     phase==='ACELERADO'?12-cycle:6-cycle;
+   if(m.timePhase!==phase){
+    m.timePhase=phase;m.timeCycles+=phase==='FRACTURA'?1:0;
+    event(m,phase==='FRACTURA'?'⏳ ¡TIEMPO ROTO! · ENEMIGOS CONGELADOS':
+      phase==='ACELERADO'?'⚠ REBOTE TEMPORAL · ENEMIGOS VELOCES':'⌛ TIEMPO NORMAL');
+    g.fx.push({type:'timeRift',phase,t:g.elapsed});
    }
-   g.lives=Math.min(100,g.lives+(Math.max(0,life-g.lives)*.75));
+   for(const e of g.enemies){
+    const was=previous.get(e.id);if(!was)continue;
+    if(phase==='FRACTURA'){
+     e.x=was.x+(e.x-was.x)*.025;e.z=was.z+(e.z-was.z)*.025;
+     e.attackCD=Math.max(e.attackCD,was.cd-dt*.025);
+     e.stun=Math.max(e.stun,.17);
+    }else if(phase==='ACELERADO'&&e.portal<=0&&e.stun<=0){
+     e.x+=(e.x-was.x)*.45;e.z+=(e.z-was.z)*.45;
+    }
+   }
+   if(phase==='FRACTURA')g.lives=Math.min(100,g.lives+Math.max(0,life-g.lives)*.85);
+  }
+  if(m.kind==='rescue'){
+   if(!m.hostageActive&&!m.nextLevelAt)beginRescueStage(g,{first:true});
+   if(m.carry){
+    m.hostageHealth=Math.max(0,m.hostageHealth-Math.max(0,life-g.lives)*(m.level>=8?1.3:1));
+    if(m.hostageHealth<=0){m.hostageLost=true;G.finish(g,'rehen_perdido');event(m,'💔 EL REHÉN FUE ALCANZADO')}
+   }
+   if(g.elapsed>=m.levelDeadline&&m.hostageActive){m.hostageLost=true;G.finish(g,'tiempo_de_rescate');event(m,'⏱️ NO LLEGASTE A TIEMPO')}
+   if(m.nextLevelAt&&g.elapsed>=m.nextLevelAt&&g.phase==='playing')beginRescueStage(g);
   }
   if(m.kind==='mutant'){
    const index=Math.floor(g.elapsed/15);
@@ -272,9 +338,9 @@
  G.pulse=function(g){
   const done=orig.pulse(g);
   if(done&&g.mission?.kind==='timewarp'){
-   g.skillCooldown=13;
-   g.mission.slowUntil=g.elapsed+3;
-   event(g.mission,'⏳ TIEMPO ROTO · 3 SEGUNDOS');
+   g.skillCooldown=11;
+   g.mission.slowUntil=g.elapsed+4;
+   event(g.mission,'⏳ TIEMPO ROTO · 4 SEGUNDOS');
   }
   return done;
  };
@@ -294,6 +360,23 @@
    event(m,'⚡ ESTACIONES '+m.stations.filter(x=>x.active).length+'/3 ACTIVADAS');
    return {ok:true,kind:'activar',active:m.stations.filter(x=>x.active).length};
   }
+  if(m.kind==='rescue'){
+   if(!m.hostageActive||m.nextLevelAt)return {ok:false,reason:'espera_siguiente_nivel'};
+   if(!m.carry){
+    if(objectiveDistance(g,m.object)>.75)return {ok:false,reason:'acercate_al_rehen'};
+    m.carry=true;m.phase='ESCOLTÁ';m.hostageHealth=Math.max(m.hostageHealth,68);
+    event(m,'🤝 ¡REHÉN LIBERADO! ESCOLTALO A TU BASE');
+    g.fx.push({type:'hostageLiberated',t:g.elapsed,x:m.object.x,z:m.object.z});
+    return {ok:true,kind:'liberar',level:m.level};
+   }
+   if(objectiveDistance(g,m.base)>.85)return {ok:false,reason:'volvé_a_tu_base'};
+   m.carry=false;m.hostageActive=false;m.rescued++;grant(g,550+m.level*230);
+   g.fx.push({type:'hostageSaved',t:g.elapsed,level:m.level,x:m.base.x,z:m.base.z});
+   if(m.level===10){missionWin(g,'diez_rehenes_rescatados');event(m,'🏆 ¡NIVEL 10 SUPERADO!');return {ok:true,kind:'final',level:10}}
+   m.level++;m.nextLevelAt=g.elapsed+2.5;m.phase='TRANSICIÓN';
+   event(m,'🏆 REHÉN SALVADO · SIGUIENTE NIVEL '+m.level+'/10');
+   return {ok:true,kind:'rescatado',level:m.level-1};
+  }
   if(m.kind==='ctf'){
    if(!m.configured)return {ok:false,reason:'sin_configurar'};
    const carry=m.carry,captures=m.captures;
@@ -309,13 +392,25 @@
   switch(m.kind){
    case 'invasion':return {text:'PORTALES · OLEADA '+(g.wave||1),detail:m.signal};
    case 'loot':return {text:'BOTÍN '+m.loot+'/5 · '+remain+'s',detail:m.signal,button:'💰 EXTRAER',canAct:m.loot>0};
-   case 'timewarp':return {text:g.elapsed<m.slowUntil?'⏳ TIEMPO ROTO ACTIVO':'⏳ ACTIVÁ EMP',detail:m.signal};
+   case 'timewarp':return {text:m.timePhase==='FRACTURA'?'⏳ TIEMPO CONGELADO · '+Math.ceil(m.phaseRemaining)+'s':
+      m.timePhase==='ACELERADO'?'⚠ REBOTE TEMPORAL · '+Math.ceil(m.phaseRemaining)+'s':
+      '⌛ PRÓXIMA FRACTURA · '+Math.ceil(m.phaseRemaining||6)+'s',
+     detail:m.timePhase==='FRACTURA'?'¡DISPARÁ! ENEMIGOS CONGELADOS':m.timePhase==='ACELERADO'?'¡CUIDADO! ENEMIGOS MÁS RÁPIDOS':'PULSÁ ⏳ ROMPER TIEMPO PARA CONGELARLOS'};
    case 'refuge':{
      const left=m.stations.filter(p=>!p.active),closest=left.length?Math.min(...left.map(p=>objectiveDistance(g,p))):Infinity;
      return {text:'REACTOR '+Math.ceil(m.reactor)+'% · '+m.stations.filter(x=>x.active).length+'/3',detail:left.length?(closest<.46?'⚡ ESTACIÓN ALCANZADA · ACTIVÁ':'ACERCATE A ESTACIÓN · '+closest.toFixed(1)+' m'):'✅ 3 ESTACIONES ACTIVADAS · DEFENDÉ EL NÚCLEO',button:'⚡ ACTIVAR',canAct:closest<.46};
    }
    case 'mutant':return {text:'⚡ '+m.mutation,detail:m.signal};
    case 'colossus':return {text:'COLOSOS '+Math.min(3,m.bossIndex)+'/3 · FASE '+m.bossPhase,detail:m.signal};
+   case 'rescue':{
+    const target=m.carry?m.base:m.object,dist=objectiveDistance(g,target),close=dist<(m.carry?.85:.75);
+    return {text:m.nextLevelAt?'✅ NIVEL '+(m.level-1)+'/10 COMPLETADO':
+      '🆘 RESCATE NIVEL '+m.level+'/10 · '+Math.max(0,Math.ceil(m.levelDeadline-g.elapsed))+'s',
+     detail:m.nextLevelAt?'PRÓXIMO NIVEL EN '+Math.ceil(m.nextLevelAt-g.elapsed)+'s':
+      m.carry?'ESCOLTÁ AL REHÉN · SALUD '+Math.ceil(m.hostageHealth)+'% · '+dist.toFixed(1)+'m':
+      'LLEGÁ HASTA EL REHÉN · '+dist.toFixed(1)+'m',
+     button:m.carry?'🤝 ENTREGAR REHÉN':'🆘 LIBERAR REHÉN',canAct:close&&!m.nextLevelAt};
+   }
    case 'ctf':{
     const target=m.carry?m.base:(m.dropAt||m.object),dist=objectiveDistance(g,target),close=dist<(m.carry?.65:.58);
     return {text:m.carry?'🚩 LLEVÁS LA BANDERA':'🚩 CAPTURAS '+m.captures,

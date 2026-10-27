@@ -1,0 +1,31 @@
+name: RODEADOS V28 - ten-level rescue and genuine time warp release gate
+on:
+  push:
+    branches: [feat/rodeados-v28-hostage-ten-levels-timewarp]
+    paths: ['rodeados-*.js','rodeados.html','tests/rodeados*','.github/workflows/rodeados-v28-qa.yml']
+  pull_request:
+    paths: ['rodeados-*.js','rodeados.html','tests/rodeados*']
+permissions: {contents: read}
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: node --check rodeados-missions.js && node --check rodeados-runtime.js && node --check rodeados-mission-art.js
+      - run: node --test tests/rodeados-v28-rescue-timewarp.test.cjs tests/rodeados-v18-missions.test.cjs tests/rodeados-v17.test.cjs
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: npm install --no-save --ignore-scripts playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/rodeados-v18-browser.test.cjs
+      - run: node tests/rodeados-xr-smoke.test.cjs
+      - run: node tests/rodeados-v19-xr-tactical.test.cjs
+      - run: node tests/rodeados-v28-browser.test.cjs
