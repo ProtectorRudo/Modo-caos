@@ -93,3 +93,15 @@ GLBs de `kikoncuo/jevfire`, commit fijo `5df83b558bf635e006d31f8f2fc2798d0e3ff05
 - El total nuevo es de aproximadamente **1,4 MB** para el paisaje tropical y unos **200 KB adicionales** de ruinas medievales en el segundo mundo. Carga sujeta al acceso HTTPS/CORS a GitHub.
 - **No atribuir a KayKit Platformer Pack** estas tres piezas de arquitectura: proceden de **KayKit Medieval Hexagon**, aunque su función es decorar un juego de plataformas. La integración directa del pack Platformer de KayKit quedó pendiente porque no se obtuvo un subconjunto GLB distribuible y verificable, sin recurso pagado ni intervención manual.
 - Pruebas: metadata GitHub de los siete archivos/SHAs, mock GLTF de colocación y reemplazo, regresiones del motor original. No se confirmó aún render visual ni FPS del primer y segundo mundo sobre Android real. Para producción definitiva conviene copiar los siete GLB a nuestro mismo origen, previa herramienta autorizada para transferencias binarias.
+
+
+## Protagonista robótico ORIN — RobotExpressive (27/10/2026)
+
+- **Archivo distribuido localmente:** `characters/RobotExpressive.glb`; no se descarga de un CDN ajeno cuando el usuario entra a jugar.
+- **Autores:** Tomás Laulhé (Quaternius), modificaciones glTF / expresiones por Don McCurdy.
+- **Fuente oficial:** https://github.com/mrdoob/three.js/blob/eba30de865cfbf31ac736f792defd9a60ff28d57/examples/models/gltf/RobotExpressive/RobotExpressive.glb
+- **Licencia original del modelo:** CC0 1.0; fuente: https://github.com/mrdoob/three.js/blob/dev/examples/models/gltf/RobotExpressive/README.md
+- **Blob Git original y copia exacta:** `6fec9cfb4b41cb319c70d38cf86965aba5630964` (sin reconversión ni edición binaria). Incluye animaciones faciales y esqueleto para idle, caminar, correr, saltar, golpear y celebrar.
+- **Integración:** `mini-worlds-characters.js` lo usa como protagonista local, con carcasa de materiales ajustados y animación; el robot procedural original diseñado para el juego reemplaza el modelo si WebGL/glTF no carga.
+- **Estilo:** elementos cian, blanco perlado, dorado y violeta; `mini-worlds-finish.js` agrega marcadores de escena y motores de salto originales creados con geometría Three.js, sin introducir nuevas superficies falsas.
+- Las criaturas Quaternius y los paisajes Kenney + Quaternius existentes mantienen sus respectivas licencias descritas arriba. No se incluye ni copia contenido de Astro Bot.

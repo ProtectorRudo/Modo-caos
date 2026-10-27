@@ -180,31 +180,35 @@ function makeBox(parent,b,y){
  g.userData.baseY=y+.29;return g;
 }
 function makeAvatar(parent){
- // Original fallback witch so the player ALWAYS sees a mage if the licensed
- // GLB is offline. Procedural clothes are ours; KayKit Mage swaps in later.
- const g=group(parent),body=group(g,0,.57,0),head=group(body,0,.50,.05);
- const robes=mesh(geoCone(.36,.81,14),M.purple,0,-.17,0,body);
- robes.rotation.y=.12;
- mesh(sphere(.26,14,10),M.purple,0,.12,0,body);
- mesh(sphere(.29,18,13),M.sand,0,.05,.04,head).scale.set(.94,1.03,.87);
- const brim=mesh(cyl(.52,.50,.092,24),M.purple,0,.34,-.03,head);brim.scale.z=.96;
- const crown=mesh(geoCone(.35,.72,20),M.purple,0,.73,-.05,head);crown.rotation.z=-.16;
- mesh(cyl(.35,.35,.08,20),M.gold,0,.48,-.05,head);
+ // ORIN is a fully playable original glossy robot even before GLB imports.
+ // Its transforms remain compatible with all existing platformer animation.
+ const shell=new T.MeshPhysicalMaterial({color:0xe9fbff,metalness:.37,roughness:.22,clearcoat:.94,clearcoatRoughness:.13});
+ const visor=new T.MeshPhysicalMaterial({color:0x122b49,metalness:.18,roughness:.16,clearcoat:1});
+ const glow=new T.MeshStandardMaterial({color:0x8afeee,emissive:0x32fbe7,emissiveIntensity:1.65,roughness:.24});
+ const g=group(parent),body=group(g,0,.58,0),head=group(body,0,.49,.06);
+ mesh(sphere(.35,20,14),shell,0,0,0,body).scale.set(1.03,1.06,.76);
+ mesh(sphere(.255,18,12),visor,0,.02,.235,body).scale.set(.67,.47,.22);
+ mesh(new T.IcosahedronGeometry(.085,1),glow,0,.02,.39,body);
+ mesh(sphere(.3,24,16),shell,0,.08,0,head).scale.set(1.10,.97,.89);
+ mesh(sphere(.235,20,12),visor,0,.04,.235,head).scale.set(1.15,.63,.25);
  for(const side of [-1,1]){
-  mesh(sphere(.045,9,8),M.ink,side*.12,.08,.30,head);
-  mesh(sphere(.016,7,6),M.white,side*.133,.09,.335,head);
+  mesh(sphere(.064,12,9),glow,side*.12,.054,.306,head).scale.set(.7,1.18,.5);
+  mesh(sphere(.027,10,8),M.white,side*.132,.074,.332,head);
  }
- mesh(new T.TorusGeometry(.09,.024,5,16,Math.PI),M.coral,0,-.08,.31,head).rotation.z=P;
+ mesh(new T.TorusGeometry(.087,.023,6,20,Math.PI),M.coral,0,-.10,.308,head).rotation.z=P;
+ const antenna=mesh(cyl(.03,.045,.14,10),M.steel,0,.43,-.03,head);
+ mesh(sphere(.078,10,8),glow,0,.52,-.03,head);
  const arms=[],legs=[];
  for(const side of [-1,1]){
-  const a=group(body,side*.31,.21,0);
-  mesh(cyl(.085,.105,.42,8),M.purple,0,-.16,0,a);
-  mesh(sphere(.105,10,8),M.sand,0,-.37,.015,a);arms.push(a);
-  const l=group(g,side*.14,.30,0);
-  mesh(cyl(.11,.12,.37,8),M.ink,0,-.17,0,l);
-  mesh(sphere(.145,11,9),M.woodDark,0,-.33,.12,l).scale.z=1.2;legs.push(l);
+  const a=group(body,side*.34,.20,0);
+  mesh(sphere(.145,14,10),M.steel,0,0,0,a);
+  mesh(cyl(.105,.12,.35,12),shell,0,-.23,0,a);
+  mesh(sphere(.12,14,10),glow,0,-.43,.016,a);arms.push(a);
+  const l=group(g,side*.16,.30,0);
+  mesh(cyl(.13,.14,.37,12),shell,0,-.16,0,l);
+  mesh(sphere(.17,14,10),visor,0,-.34,.11,l).scale.set(1,.70,1.3);legs.push(l);
  }
- const cloak=mesh(geoCone(.33,.74,12),M.coral,0,-.17,-.20,body);cloak.scale.z=.3;
+ const pack=mesh(sphere(.21,14,10),M.steel,0,-.06,-.25,body);pack.scale.set(1,.90,.6);
  const shadow=mesh(new T.CircleGeometry(.38,24),new T.MeshBasicMaterial({color:0x061d22,transparent:true,opacity:.23,depthWrite:false}),0,.015,0,g);shadow.rotation.x=-P/2;
  return {root:g,body,head,arms,legs,shadow};
 }
@@ -303,10 +307,10 @@ function makeStage(map){
  const boxes=map.boxes.map(b=>makeBox(root,b,Math.max(0,...map.platforms.filter(p=>Math.abs(b.x-p.x)<p.w/2&&Math.abs(b.z-p.z)<p.d/2).map(p=>p.y))));
  const enemies=map.enemies.map(e=>makeEnemy(root,e,e.type==='flying'?1.25:(Math.max(0,...map.platforms.filter(p=>Math.abs(e.x-p.x)<p.w/2&&Math.abs(e.z-p.z)<p.d/2).map(p=>p.y)))));
  const hero=makeAvatar(root),boss=makeBoss(root,map.boss,Boolean(map.n));boss.root.visible=false;
- // Floating enchanted wand stays visible with both fallback witch and GLB Mage.
+ // Robot's energy wand remains an attack focal point in fallback mode; external GLB uses its hands.
  const wand=group(hero.root,.37,.82,.17);
  wand.rotation.z=-.23;
- mesh(cyl(.044,.038,.50,9),M.woodDark,0,.12,0,wand);
+ mesh(cyl(.044,.038,.50,9),M.steel,0,.12,0,wand);
  const wandTip=mesh(new T.IcosahedronGeometry(.102,1),new T.MeshStandardMaterial({
   color:0xa9fff2,emissive:0x4cdac3,emissiveIntensity:1.6,roughness:.24
  }),0,.41,0,wand);

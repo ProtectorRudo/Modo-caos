@@ -87,6 +87,7 @@ function renderSetup(){
 function newStage(){
  if(stage){stage.disposePremium?.();stage.disposeAssets?.();stage.disposeCharacters?.();stage.dispose()}
  game=C.create(level);stage=window.MiniWorldsArt(T).makeStage(game.map);
+ stage.finish=window.MiniWorldsFinish?.(T).setup(stage,level)||null;
  stage.pocket=window.MiniWorldsPocket?.create(T,stage)||null;
  const stageRef=stage;
  // Native, bundled CC0 assets never block controls. Keep the original art if any GLB cannot load.
@@ -444,6 +445,10 @@ function frame(t,xrFrame){
  try{stage.update(game,dt,elapsed)}catch(e){
   if(lastFault!==String(e)){lastFault=String(e);console.error('[MINI WORLDS] Animation error:',e)}
   frameFaults++;
+ }
+ // Optional finishing effects must never interrupt core, XR pose or renderer.
+ try{stage.finish?.update(game,dt,elapsed)}catch(e){
+  frameFaults++;if(lastFault!==String(e)){lastFault=String(e);console.warn('[MINI WORLDS] Optional finish error:',e)}
  }
  if(stage.previewBeacon)stage.previewBeacon.visible=mode==='ar'&&(placing||phase==='ready');
  if(mode==='demo')setCamera();
