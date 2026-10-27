@@ -81,7 +81,7 @@ export function createRodeadosMissionArt(THREE,world){
  const hair=new THREE.MeshStandardMaterial({color:0x25232b,roughness:1});
  const trousers=new THREE.MeshStandardMaterial({color:0x3c4956,roughness:.85});
  const stripe=new THREE.MeshStandardMaterial({color:0xf9dfad,emissive:0x965a12,emissiveIntensity:.16});
- const hostage=new THREE.Group();rescueRoot.add(hostage);
+ const hostage=new THREE.Group();hostage.visible=false;rescueRoot.add(hostage);
  function rod(g,a,b,rad,mat){
   const from=new THREE.Vector3(...a),to=new THREE.Vector3(...b),diff=to.clone().sub(from);
   const o=mesh(g,new THREE.CylinderGeometry(rad*.82,rad,diff.length(),10),mat);
