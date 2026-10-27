@@ -521,7 +521,10 @@ function pause(){
 }
 let lastXRFrame=null,lastShot=0,shotSeq=0;
 async function shoot(){
- if(stage!=='playing'||game.paused||performance.now()-lastShot<175)return;
+ if(stage!=='playing'||game.paused)return;
+ const tier=G.weaponTier?.(game)||'pistol';
+ const cadence=tier==='tactical'?125:tier==='plasma'?235:175;
+ if(performance.now()-lastShot<cadence)return;
 const ray=activeRay();
  if(!ray){
   lastShotStatus='SIN MIRA XR';
