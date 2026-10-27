@@ -54,7 +54,9 @@ export function createRodeadosMissionArt(THREE,world){
   ring(g,0,0,.37,gold);
   lootRoot.add(g);crates.push(g);
  }
- const lootBase=beacon(lootRoot,{x:0,z:.83},cyan,1.2);
+ const lootBase=beacon(lootRoot,{x:0,z:0},cyan,1.2);
+ const lootGhost=beacon(lootRoot,{x:0,z:0},gold,.67);lootGhost.visible=false;
+ const lootGuards=Array.from({length:7},()=>beacon(lootRoot,{x:0,z:0},red,.42));
  const core=beacon(refugeRoot,{x:0,z:-.4},cyan,1.7);
  const reactor=mesh(core,new THREE.IcosahedronGeometry(.37,1),cyan,0,.66,0);
  const shield=mesh(core,new THREE.IcosahedronGeometry(.55,1),glow(0x23b6ff,.17),0,.66,0);
@@ -127,8 +129,19 @@ export function createRodeadosMissionArt(THREE,world){
    p.g.scale.setScalar(.93+Math.sin(tick*2.4+i)*.06);
   });
   if(mode==='loot'){
-   crates.forEach((o,i)=>{o.visible=!m.crates[i]?.opened;o.rotation.y=Math.sin(tick*1.2+i)*.04});
-   lootBase.visible=true;
+   const planning=stage==='tactical',selected=planning?(draft?.crates||[]):(m.crates||[]);
+   crates.forEach((o,i)=>{
+    const p=selected[i];o.visible=!!p&&!p.opened;
+    if(p){o.position.set(p.x,0,p.z);o.rotation.y=Math.sin(tick*1.2+i)*.04}
+   });
+   const base=planning?draft?.base:m.base;
+   lootBase.visible=!!base;if(base)lootBase.position.set(base.x,0,base.z);
+   lootGhost.visible=!!(planning&&draft?.aim);
+   if(lootGhost.visible)lootGhost.position.set(draft.aim.x,0,draft.aim.z);
+   lootGuards.forEach((b,i)=>{
+    const p=m.configured&&m.spawnPoints?.[i];b.visible=!planning&&!!p;
+    if(p){b.position.set(p.x,0,p.z);b.scale.setScalar(.56+.06*Math.sin(tick*2+i))}
+   });
   }
   if(mode==='refuge'){
    stations.forEach((b,i)=>{const active=!!m.stations?.[i]?.active;

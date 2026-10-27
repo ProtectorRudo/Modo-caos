@@ -9,6 +9,7 @@
   const active=$('mode')?.value==='ctf';
   if($('flagPlanner'))$('flagPlanner').style.display='none';
   if($('flagIntro'))$('flagIntro').style.display=active?'block':'none';
+  if($('lootIntro'))$('lootIntro').style.display=$('mode')?.value==='loot'?'block':'none';
  };
  function init(){
   const select=$('tacticalCount');if(!select)return;

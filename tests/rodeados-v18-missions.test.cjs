@@ -4,7 +4,7 @@ const modes=['invasion','loot','timewarp','refuge','mutant','colossus','ctf'];
 const near=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 
 test('all seven modes have individual durations, instructions, reproducible objectives and reset',()=>{
- assert.deepEqual(modes.map(m=>G.create({mode:m,seed:42}).duration),[75,90,75,75,90,90,150]);
+ assert.deepEqual(modes.map(m=>G.create({mode:m,seed:42}).duration),[75,120,75,75,90,90,150]);
  for(const mode of modes){
   const g=G.create({mode,seed:20}),snap=G.copy(g);
   assert.equal(snap.mission.kind,mode);
@@ -57,21 +57,43 @@ test('flag: manual retrieval and delivery requires explicit button AND player pr
  assert.ok(G.missionStatus(g).text.includes('2'));
 });
 
-test('loot: shooting a chest opens it, but extract requires recovered loot and returning to base',()=>{
- const g=G.create({mode:'loot',seed:1});G.begin(g);g.spawnClock=1000;
- assert.equal(G.missionAction(g).reason,'primero_abri_un_cofre');
- const p=g.mission.crates[1];
- const shot={origin:{x:p.x,y:.65,z:p.z+2},direction:{x:0,y:0,z:-1}};
- const fired=G.fire(g,shot);
- assert.equal(fired.crate,true);
+test('loot: user places five remote anchored chests, enemy guards defend them, and opening/extraction requires physical proximity',()=>{
+ const g=G.create({mode:'loot',seed:1});
+ const crates=[{x:0,z:-3},{x:2,z:-3},{x:-2,z:-3},{x:3.5,z:-1},{x:-3.5,z:-1}];
+ const plan={base:{x:0,z:0},crates};
+ assert.equal(g.mission.configured,false);
+ assert.equal(g.mission.crates.length,0,'no nearby automatic loot');
+ assert.equal(G.configureLootPlan(g,{base:plan.base,crates:crates.slice(0,4)}).ok,false);
+ assert.equal(G.configureLootPlan(g,{base:plan.base,crates:[{x:0,z:.5},...crates.slice(1)]}).ok,false);
+ assert.equal(G.configureLootPlan(g,plan).ok,true);
+ assert.equal(g.mission.configured,true);
+ assert.deepEqual(g.mission.crates.map(c=>({x:c.x,z:c.z})),crates,'selected points preserved');
+ assert.equal(g.mission.spawnPoints.length,7);
+ for(const p of g.mission.spawnPoints)assert.ok(Math.hypot(p.x-plan.base.x,p.z-plan.base.z)>=3.05,'guards spawn away from base');
+ G.begin(g);g.spawnClock=10000;
+ const e=G.spawn(g,'basic');assert.ok(e);
+ assert.equal(e.x,g.mission.spawnPoints[0].x);
+ assert.equal(e.z,g.mission.spawnPoints[0].z);
+ assert.equal(G.missionAction(g).reason,'acercate_a_un_botin');
+ assert.equal(G.missionStatus(g).canAct,false);
+ assert.equal(G.missionAction(g).ok,false,'cannot open loot from the starting point');
+ assert.equal(G.configureLootPlan(g,plan).ok,false,'cannot relocate loot in active round');
+ assert.equal(G.movePlayer(g,crates[0]),true);
+ assert.equal(g.player.z,-3,'world roaming beyond cosmetic arena must work');
+ assert.equal(G.missionStatus(g).canAct,true);
+ const opened=G.missionAction(g);
+ assert.equal(opened.ok,true);assert.equal(opened.kind,'abrir');
+ assert.equal(g.mission.crates[0].opened,true);
  assert.equal(g.mission.loot,1);
- assert.equal(g.mission.crates[1].opened,true);
- assert.equal(G.fire(g,shot).crate,undefined,'can not farm the same crate');
- assert.equal(G.missionAction(g).reason,'acercate_a_tu_base');
- G.movePlayer(g,g.mission.base);
- const got=G.missionAction(g);
- assert.equal(got.ok,true);assert.equal(g.mission.extracted,1);
- assert.equal(g.phase,'finished');assert.equal(g.mission.completed,true);
+ assert.equal(G.missionAction(g).ok,false,'same chest cannot be farmed');
+ assert.equal(g.phase,'playing');
+ G.movePlayer(g,plan.base);
+ const extracted=G.missionAction(g);
+ assert.equal(extracted.ok,true);assert.equal(extracted.kind,'extraer');
+ assert.equal(g.mission.extracted,1);assert.equal(g.phase,'finished');assert.equal(g.mission.completed,true);
+ const replay=G.reset(g,{lootPlan:g.mission.plan});
+ assert.equal(replay.mission.configured,true);
+ assert.equal(replay.mission.crates.filter(x=>x.opened).length,0);
 });
 
 test('timewarp: EMP freezes encounter for four seconds without slowing the game clock',()=>{
@@ -146,8 +168,11 @@ test('invasion portals are stable in fixed AR world even if camera/player moves'
 });
 
 test('loot cannot be won by surviving without extracting',()=>{
- const g=G.create({mode:'loot',seed:44});G.begin(g);g.spawnClock=10000;
- g.elapsed=89.99;G.advance(g,.03);
+ const g=G.create({mode:'loot',seed:44});
+ const plan={base:{x:0,z:0},crates:[{x:0,z:-3},{x:2,z:-3},{x:-2,z:-3},{x:3.5,z:-1},{x:-3.5,z:-1}]};
+ assert.equal(G.configureLootPlan(g,plan).ok,true);
+ G.begin(g);g.spawnClock=10000;
+ g.elapsed=119.99;G.advance(g,.03);
  assert.equal(g.phase,'finished');assert.equal(g.mission.completed,false);
 });
 

@@ -629,7 +629,7 @@ export function createRodeadosArt(THREE,scene,camera){
  }
  setWeaponTier('pistol');
  const corner=new THREE.Vector3();
- const safe={left:-.61,right:.64,bottom:-.86,top:-.045};
+ const safe={left:-.34,right:.94,bottom:-.98,top:-.07};
  const aimStock=new THREE.Vector3(),aimMuzzle=new THREE.Vector3();
  function getRifleAimMetrics(){
   // +Z = front/muzzle of the aligned GLB, -Z = buttstock.
@@ -672,29 +672,73 @@ export function createRodeadosArt(THREE,scene,camera){
    centerX:(left+right)/2,centerY:(bottom+top)/2,
    coverage:width>0&&height>0?sw*sh/width/height:0};
  }
+ // A real first-person sight picture: muzzle sits just below the reticle,
+ // stock sits near the lower-right of the screen. Do not fit ONLY to a
+ // centered bounding box: that leaves a sideways rifle pointing at the floor.
+ // Re-solve when assets load or viewport rotates; never move the AR world.
+ const FPS_MUZZLE={x:.10,y:-.23},FPS_DIRECTION={x:-.57,y:.82};
+ function projectedBarrel(){
+  const len=activeWeapon.userData?.modelLength||.62;
+  rifle.updateMatrixWorld(true);weaponCamera.updateMatrixWorld(true);
+  const stock=new THREE.Vector3(0,0,-len*.5).applyMatrix4(activeWeapon.matrixWorld).project(weaponCamera);
+  const muzzle=new THREE.Vector3(0,0,len*.5).applyMatrix4(activeWeapon.matrixWorld).project(weaponCamera);
+  return {stock,muzzle,dx:muzzle.x-stock.x,dy:muzzle.y-stock.y};
+ }
+ function solveFPSPose(){
+  weaponCamera.updateMatrixWorld(true);
+  rifle.position.set(0,0,-1.3);
+  activeWeapon.scale.setScalar(1);
+  // Compare in normalized display coordinates (not camera world coordinates),
+  // so the barrel keeps the same slope on portrait and landscape phones.
+  // Aim the barrel diagonally toward the center from the lower-right hand.
+  const goal=Math.hypot(FPS_DIRECTION.x,FPS_DIRECTION.y);
+  let bestRoll=-.80,bestScore=Infinity;
+  for(let roll=-1.58;roll<=.36;roll+=.035){
+   rifle.rotation.set(-.09,-.11,roll);
+   const v=projectedBarrel(),L=Math.hypot(v.dx,v.dy);
+   if(!Number.isFinite(L)||L<.015)continue;
+   const similarity=(v.dx*FPS_DIRECTION.x+v.dy*FPS_DIRECTION.y)/(L*goal);
+   if(1-similarity<bestScore){bestScore=1-similarity;bestRoll=roll}
+  }
+  let x=0,y=0,scale=1;
+  rifle.rotation.set(-.09,-.11,bestRoll);
+  const first=projectedBarrel();
+  const initialLength=Math.hypot(first.dx,first.dy)||1;
+  // Keep a legible 3D weapon, never a giant stock obstructing the crosshair.
+  scale=THREE.MathUtils.clamp(.73/initialLength,.20,4.0);
+  const proj=weaponCamera.projectionMatrix.elements;
+  for(let i=0;i<7;i++){
+   activeWeapon.scale.setScalar(scale);
+   rifle.position.set(x,y,-1.3);
+   const line=projectedBarrel();
+   x+=THREE.MathUtils.clamp((FPS_MUZZLE.x-line.muzzle.x)*1.3/Math.abs(proj[0]),-.45,.45);
+   y+=THREE.MathUtils.clamp((FPS_MUZZLE.y-line.muzzle.y)*1.3/Math.abs(proj[5]),-.45,.45);
+  }
+  // Do not grow beyond the visible safe HUD area. Reducing the mesh before
+  // re-aligning the muzzle also maintains consistency with the shooting reticle.
+  for(let i=0;i<8;i++){
+   rifle.position.set(x,y,-1.3);
+   activeWeapon.scale.setScalar(scale);
+   const b=measureWeapon();
+   if(!Number.isFinite(b.left)||!Number.isFinite(b.right))break;
+   if(b.left>=safe.left+.012&&b.right<=safe.right-.012&&b.bottom>=safe.bottom+.012&&b.top<=safe.top-.012)break;
+   scale*=.94;
+   const line=projectedBarrel();
+   x+=(FPS_MUZZLE.x-line.muzzle.x)*1.3/Math.abs(proj[0]);
+   y+=(FPS_MUZZLE.y-line.muzzle.y)*1.3/Math.abs(proj[5]);
+  }
+  return {asset:activeWeapon,x,y,scale,roll:bestRoll};
+ }
  function positionWeapon(_arCamera,flash){
   if(!rifle.visible)return;
-  if(!layout||layout.asset!==activeWeapon){
-   let x=.02,y=-.19,scale=1.3;
-   const cx=.06,cy=-.43,targetW=1.08,targetH=.70;
-   for(let k=0;k<8;k++){
-    activeWeapon.scale.setScalar(scale);
-    rifle.position.set(x,y,-1.3);
-    rifle.rotation.set(-.085,-.10,-1.11);
-    const b=measureWeapon();
-    if(!b.front||!Number.isFinite(b.width)||b.width<=.01||b.height<=.01)break;
-    const ratio=Math.min(targetW/b.width,targetH/b.height);
-    scale=THREE.MathUtils.clamp(scale*ratio,.20,4.5);
-    const proj=weaponCamera.projectionMatrix.elements;
-    x+=THREE.MathUtils.clamp((cx-b.centerX)*1.3/Math.abs(proj[0]),-.55,.55);
-    y+=THREE.MathUtils.clamp((cy-b.centerY)*1.3/Math.abs(proj[5]),-.55,.55);
-   }
-   layout={asset:activeWeapon,x,y,scale};
-  }
+  if(!layout||layout.asset!==activeWeapon)layout=solveFPSPose();
   const t=performance.now()*.001;
   activeWeapon.scale.setScalar(layout.scale);
-  rifle.position.set(layout.x+Math.sin(t*1.8)*.0011,layout.y+Math.sin(t*1.3)*.0012-recoil*.012,-1.3+recoil*.027);
-  rifle.rotation.set(-.085-recoil*.08,-.10,-1.11);
+  rifle.position.set(layout.x+Math.sin(t*1.8)*.0011,
+    layout.y+Math.sin(t*1.3)*.0012-recoil*.009,-1.3+recoil*.027);
+  // Recoil tilts only a few degrees. Never rotate the rifle with the phone
+  // or aim it toward the floor independently of the true XR center ray.
+  rifle.rotation.set(-.09-recoil*.035,-.11,layout.roll);
   fallback.userData.setFiring(activeWeapon===fallback&&!!flash,t);
   for(const model of importedWeapons.values())model.userData.setFiring(activeWeapon===model&&!!flash,t);
   premiumRifle?.userData.setFiring(!!flash,t);
@@ -706,7 +750,7 @@ export function createRodeadosArt(THREE,scene,camera){
    source:premiumRifle?'polyhaven-pbr-762-rifle':activeWeapon===fallback?'safe-tactical-rifle':'quaternius-tactical-rifle',
    visible,meshCount:b.meshes,inView,dominantVisible:inView&&b.width>.65&&b.height>.30,
    coverage:+b.coverage.toFixed(3),center:{x:+b.centerX.toFixed(3),y:+b.centerY.toFixed(3),z:0},
-   bounds:{left:b.left,right:b.right,bottom:b.bottom,top:b.top},viewport:'independent-fps-pass',aim:getRifleAimMetrics()};
+   bounds:{left:b.left,right:b.right,bottom:b.bottom,top:b.top},viewport:'independent-fps-pass',fitRoll:layout?.roll??null,aim:getRifleAimMetrics()};
  }
  function clear(){
   if(bombProjectile){root.remove(bombProjectile);bombProjectile=null}
