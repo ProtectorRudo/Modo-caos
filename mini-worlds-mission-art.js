@@ -28,19 +28,33 @@ root.MiniWorldsMissionArt=function(T){
     ear.rotation.z=-side*.18;
    }
    add(g,new T.SphereGeometry(.055,10,7),gold,0,.59,.255);
-   const halo=add(g,new T.TorusGeometry(.36,.034,6,26),cage,0,.60,0);
+   const halo=add(g,new T.TorusGeometry(.40,.04,7,28),cage,0,.59,0);
    halo.rotation.x=Math.PI/2;
-   npcs.push({r,g,halo,body,head,offset:i*2.2});
+   // Rescue targets must be noticeable from a phone-sized screen.
+   // The glowing locator floats above the actual grounded character.
+   const marker=add(g,new T.ConeGeometry(.16,.34,7),gold,0,1.45,0);
+   marker.rotation.x=Math.PI;
+   const markerHalo=add(g,new T.TorusGeometry(.18,.033,8,22),cage,0,1.72,0);
+   markerHalo.rotation.x=Math.PI/2;
+   const glow=add(g,new T.SphereGeometry(.26,16,10),fx(tints[i%4]),0,.36,0);
+   glow.scale.set(1,.94,1);
+   npcs.push({r,g,halo,body,head,marker,markerHalo,offset:i*2.2});
   }
   function beacon(x,y,z,title,color){
    const g=at(x,y,z,title);
    const base=add(g,new T.CylinderGeometry(.42,.51,.14,12),mat(0x325767),0,.09,0);
-   const ring=add(g,new T.TorusGeometry(.43,.057,8,28),fx(color),0,.32,0);
+   const ring=add(g,new T.TorusGeometry(.48,.07,9,32),fx(color),0,.35,0);
    ring.rotation.x=Math.PI/2;
-   const prism=add(g,new T.OctahedronGeometry(.27,1),mat(color,.5),0,.8,0);
-   const stripe=add(g,new T.TorusGeometry(.29,.035,6,28),fx(color),0,.8,0);
+   // Compact bronze/stone pedestals make each activatable mechanic legible.
+   for(const k of [-1,1]){
+    add(g,new T.CylinderGeometry(.10,.14,.66,8),gold,k*.31,.49,0);
+   }
+   const prism=add(g,new T.OctahedronGeometry(.31,1),mat(color,.88),0,1.12,0);
+   const stripe=add(g,new T.TorusGeometry(.34,.035,8,30),fx(color),0,1.13,0);
    stripe.rotation.x=Math.PI/2;
-   const p={g,ring,prism,stripe,base};props.push(p);return p;
+   const locator=add(g,new T.ConeGeometry(.14,.32,7),fx(color),0,2.03,0);
+   locator.rotation.x=Math.PI;
+   const p={g,ring,prism,stripe,base,locator};props.push(p);return p;
   }
   if(m.id===0){
    for(const id of m.relays){
@@ -70,7 +84,10 @@ root.MiniWorldsMissionArt=function(T){
     n.g.visible=!n.r.rescued;
     if(n.g.visible){n.head.position.y=.71+Math.sin(elapsed*2.7+n.offset)*.035;
       n.halo.rotation.z=elapsed*.78+n.offset;
-      n.halo.material.opacity=.5+.24*Math.sin(elapsed*3+n.offset)}
+      n.halo.material.opacity=.5+.24*Math.sin(elapsed*3+n.offset);
+      n.marker.position.y=1.45+Math.sin(elapsed*3.3+n.offset)*.12;
+      n.markerHalo.position.y=1.72+Math.sin(elapsed*3.3+n.offset)*.12;
+      n.markerHalo.rotation.z=elapsed*1.3;}
    }
    for(const p of props){
     if(p.exit){p.g.visible=data.exit.active;continue}
@@ -85,7 +102,8 @@ root.MiniWorldsMissionArt=function(T){
      p.prism.scale.setScalar(.73+.27*ratio);
     }
     p.prism.rotation.y+=dt*.73;
-    p.prism.position.y=.8+Math.sin(elapsed*2.5)*.12;
+    p.prism.position.y=1.12+Math.sin(elapsed*2.5)*.13;
+    p.locator.position.y=2.03+Math.sin(elapsed*2.9)*.12;
     p.stripe.rotation.z+=dt*.52;
     p.ring.rotation.z+=dt*.22;
    }
