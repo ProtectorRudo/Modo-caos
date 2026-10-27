@@ -8,7 +8,8 @@ import {WEAPON_FILES,attachEnemyWeapon} from './rodeados-weapons-v22.js?v=22';
  * This is an armored tactical enemy, NOT Sketchfab M.A.N.U.L.
  */
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/loaders/GLTFLoader.js';
-import {buildAdapter} from './rodeados-manul.js?v=16';
+import {buildAdapter} from './rodeados-manul.js?v=31';
+import {clone as cloneSkinned} from 'https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/utils/SkeletonUtils.js';
 
 const PRIMARY=new URL('./assets/rodeados/tactical-android.glb',import.meta.url).href;
 // Version-pinned mirror for redundancy if project hosting has not synchronized yet.
@@ -74,6 +75,36 @@ function upgradeAndroidMaterials(THREE,scene,label){
  return {meshes,materials};
 }
 
+// V31: prebuild visually distinct PBR uniforms on the SAME proven animated
+// BAMEN skeleton. No unauthenticated Sketchfab files or unrigged impostors.
+const TACTICAL_ROLES=Object.freeze({
+ scout:{name:'EXPLORADOR AZUL',tint:0x99b6c1,roughness:.61,metalness:.31},
+ raider:{name:'ASALTO GRAFITO',tint:0x8b9094,roughness:.53,metalness:.39},
+ commander:{name:'ÉLITE OBSIDIANA',tint:0x727780,roughness:.42,metalness:.52}
+});
+function createSkinnedVariant(THREE,baseline,role){
+ const preset=TACTICAL_ROLES[role];
+ const scene=cloneSkinned(baseline.gltf.scene),materials=new Map();
+ scene.traverse(node=>{
+  if(!node.isMesh)return;
+  const tint=old=>{
+   if(!old)return old;
+   if(!materials.has(old)){
+    const mat=old.clone();
+    // Preserve normal maps, diffuse textures and rig skinning.
+    if(mat.color)mat.color.multiply(new THREE.Color(preset.tint));
+    if('roughness' in mat)mat.roughness=preset.roughness;
+    if('metalness' in mat)mat.metalness=preset.metalness;
+    mat.needsUpdate=true;materials.set(old,mat);
+   }
+   return materials.get(old);
+  };
+  node.material=Array.isArray(node.material)?node.material.map(tint):tint(node.material);
+ });
+ const gltf={scene,animations:baseline.gltf.animations};
+ const adapter=buildAdapter(THREE,gltf,{label:preset.name,source:'licensed-rig-bamen-variation-'+role});
+ return {adapter,role,source:'bundled-CC-BY-4.0',summary:adapter.summary};
+}
 async function prepareOne({THREE,art,primary,backup,label,facing=0}){
  let buffer=null,source='';
  for(const url of [primary,backup]){
@@ -103,6 +134,11 @@ export async function installAutoRobots({THREE,art,signal,debug}){
   heavy=await prepareOne({THREE,art,primary:SECONDARY,backup:BACKUP_HEAVY,label:'ARMORED GUARD'});
  }catch(e){console.warn('Second humanoid unavailable, using standard armored material fallback',e)}
  if(signal?.aborted)return stats;
+ const roles={};
+ for(const role of Object.keys(TACTICAL_ROLES)){
+  try{roles[role]=createSkinnedVariant(THREE,standard,role)}
+  catch(err){console.warn('RODEADOS PBR role fallback '+role,err)}
+ }
  const weaponAssets=Object.create(null),gunStatus={loaded:[],unavailable:[]};
  // Bundled CC0 assets: no consumer file picker, login or marketplace.
  await Promise.all(Object.entries(WEAPON_FILES).map(async ([tier,file])=>{
@@ -148,13 +184,24 @@ export async function installAutoRobots({THREE,art,signal,debug}){
  if(signal?.aborted)return stats;
  try{
   const adapter={
-   name:'ANDROIDES ARMADOS · MODELO ESTABLE',
+   name:'ESCUADRÓN TÁCTICO CC BY · RIG COMPLETO',
    create({actor,enemy,THREE:engine}){
-    // The heavy tactical GLB has a broken headset/accessory and passive pose on
-    // Android. Retain the licensed file as a QA asset, never show the defect.
-    const creature=!!creatures[enemy.type],variant=creatures[enemy.type]||standard;
+    // Assault/scout/commander are material/role variants of the proven
+    // *animated and skinned* rig. The separate heavy GLB remains quarantined:
+    // its headset and static animation are not suitable for mobile AR yet.
+    const kind=enemy.type;
+    const creature=!!creatures[kind];
+    // Even the FIRST two basic robots must be visibly distinct, not twins.
+    // Stable ID-based distribution; no per-frame material or random changes.
+    const stableId=Array.from(String(enemy.id)).reduce((v,c)=>v+c.charCodeAt(0),0);
+    const commonLook=['standard','raider','scout'][stableId%3];
+    const chosen=creature?kind:
+     ['boss','tank'].includes(kind)?'commander':
+     ['fast','flanker'].includes(kind)?'scout':
+     ['joker'].includes(kind)?'raider':commonLook;
+    const variant=creatures[kind]||roles[chosen]||standard;
     const anim=variant.adapter.create({actor,enemy,THREE:engine});
-    anim.variant=creature?enemy.type:'standard';
+    anim.variant=creature?kind:roles[chosen]?chosen:'standard';
     if(creature)return anim;
     // Only mount a CC0 rifle if the rig includes a genuine right hand.
     // Otherwise show no gun, never a giant floating chest-shaped block.
@@ -183,6 +230,11 @@ export async function installAutoRobots({THREE,art,signal,debug}){
     }
   })();
   stats.phase='active';
+  stats.roleProfiles=Object.keys(roles);
+  stats.roleRigged=Object.fromEntries(Object.entries(roles).map(([role,item])=>
+   [role,item.adapter.summary.bones>0&&item.adapter.summary.clips.length>0]));
+  stats.roleSources=Object.fromEntries(Object.keys(roles).map(role=>[role,'BAMEN CC BY 4.0']));
+  stats.heavyQuarantined=true;
   stats.source=standard.source;
   stats.weapons=gunStatus;
   stats.models=[{name:'TACTICAL',source:standard.source,triangles:standard.adapter.summary.tris},

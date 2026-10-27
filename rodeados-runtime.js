@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=30';
+import {createRodeadosArt} from './rodeados-art.js?v=31';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 import {createRodeadosMissionArt} from './rodeados-mission-art.js?v=29';
 import {createTacticalPlanner} from './rodeados-tactical-ui.js?v=29';
@@ -35,7 +35,7 @@ let lastConfirmedPlan=null;
    .then(({installManulPreview})=>installManulPreview({THREE,art,notice:msg=>console.info(msg)}))
    .catch(err=>console.warn('Developer preview unavailable',err));
  }else{
-  import('./rodeados-robots-auto.js?v=26')
+  import('./rodeados-robots-auto.js?v=31')
    .then(({installAutoRobots})=>installAutoRobots({THREE,art,debug:true}))
    .catch(err=>console.warn('Rodeados tactical skin unavailable; safe original bot fallback',err));
  }
@@ -44,7 +44,7 @@ let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null
 let weaponNoticeTier='',lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
 let trackingLostSince=0,pausedByTracking=false,limitedTrackingSince=0,initialBotsSpawned=false,openingEyePosition=null;let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
-let sounds=true,vibration=true,ctx=null,lastLaugh=0,lastMenaceAt=0,lastBlastSignal='',fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
+let sounds=true,vibration=true,ctx=null,lastLaugh=0,lastMenaceAt=0,lastWarSoundAt=0,lastBlastSignal='',fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
 let online=null,onlineBusy=false,onlineRoomCode=new URLSearchParams(location.search).get('room')?.toUpperCase()||'',roomTimer=0;
 const pointer=new Map();let lastPinch=null;
 const THREEVec=(x,y,z)=>new THREE.Vector3(x,y,z);
@@ -71,6 +71,7 @@ function audio(type='shot',position=null){
   if(type==='reload'){f=490;d=.27;vol=.055;wave='triangle';end=.70}
   if(type==='danger'){f=450;d=.24;vol=.11;wave='triangle';end=.60}
   if(type==='menace'){f=88;d=.64;vol=.045;wave='sawtooth';end=.58}
+  if(type==='distantWar'){f=63;d=.85;vol=.018;wave='triangle';end=.42}
   if(type==='laugh'){f=270;d=.30;vol=.085;end=1.8;wave='triangle'}
   if(type==='finish'){f=660;d=.6;vol=.10;end=.36}
   if(type==='blast'){f=105;d=.57;vol=.30;wave='sawtooth';end=.30}
@@ -833,6 +834,7 @@ function tickGame(dt,t){
  if(t-lastHud>110){lastHud=t;updateHud()}
  if(t-lastPing>1100){
   lastPing=t;
+  if(t-lastWarSoundAt>17000){lastWarSoundAt=t;audio('distantWar');}
   const closest=game.enemies.filter(e=>e.portal<.05).sort((a,b)=>Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z))[0];
   if(closest&&Math.hypot(closest.x-game.player.x,closest.z-game.player.z)<3.3&&t-lastMenaceAt>6100){
    lastMenaceAt=t;audio('menace',closest);
@@ -944,6 +946,7 @@ function animate(t,frame){
  performanceFrames++;performanceTotal+=dt;
  if(performanceFrames>=150&&performanceTotal>0){
   const fps=performanceFrames/performanceTotal;
+  art.setAtmosphereQuality?.(fps);
   // ARCore owns the immersive framebuffer; adapt resolution in demo only.
    if(!xrSession)renderer.setPixelRatio(Math.min(devicePixelRatio||1,fps<35?1.0:fps<48?1.2:1.5));
   performanceFrames=0;performanceTotal=0;

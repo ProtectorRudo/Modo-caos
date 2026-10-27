@@ -198,6 +198,71 @@ export function createRodeadosArt(THREE,scene,camera){
   fragments.visible=visible>0&&!editing;
   battlefieldCorners.visible=!editing;
  }
+
+ // V31 / anchored low-density battlefield haze.
+ // Four small world-locked smoke wisps around the ARENA CORNERS, never a
+ // fullscreen filter; 8 cheap transparent quads with one shared material.
+ // Alpha peak <= .10: safe for headshots, UI visibility and AR passthrough.
+ const smokeGeometry=new THREE.PlaneGeometry(1,1);
+ const smokeUniforms={uTime:{value:0},uOpacity:{value:.095}};
+ const smokeMaterial=new THREE.ShaderMaterial({
+  transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,
+  uniforms:smokeUniforms,
+  vertexShader:`
+   varying vec2 vUv;
+   void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}
+  `,
+  fragmentShader:`
+   precision mediump float;
+   varying vec2 vUv;
+   uniform float uTime;
+   uniform float uOpacity;
+   void main(){
+    vec2 p=(vUv-.5)*vec2(1.14,1.08);
+    float w=.026*sin(p.x*14.0+uTime*.23)*sin(p.y*11.0-uTime*.18);
+    float r=length(p+vec2(w,-w*.40));
+    float cloud=1.0-smoothstep(.22,.59,r);
+    float floorFade=smoothstep(.03,.24,vUv.y);
+    float topFade=1.0-smoothstep(.78,1.0,vUv.y);
+    float detail=.83+.17*sin(p.x*19.0+p.y*8.0+uTime*.24);
+    float alpha=clamp(cloud*floorFade*topFade*detail*uOpacity,0.0,.095);
+    gl_FragColor=vec4(vec3(.31,.34,.36),alpha);
+   }
+  `
+ });
+ const smokeRoot=new THREE.Group();arena.add(smokeRoot);
+ const smokePlumes=[];
+ for(let n=0;n<4;n++){
+  const cluster=new THREE.Group();smokeRoot.add(cluster);smokePlumes.push(cluster);
+  for(let q=0;q<2;q++){
+   const sheet=new THREE.Mesh(smokeGeometry,smokeMaterial);
+   sheet.rotation.y=q?Math.PI*.46:Math.PI*.03;
+   sheet.scale.set(q?.95:1.10,.68+(n%2)*.13,1);
+   sheet.position.y=.36+(n%2)*.08;
+   sheet.renderOrder=2;cluster.add(sheet);
+  }
+ }
+ let atmosphereFPS=60,atmospherePlayer={x:0,z:0};
+ function placeBattleSmoke(side){
+  const h=Math.max(1.8,side||2.6)*.52;
+  smokePlumes.forEach((p,n)=>{
+   p.position.set((n%2?1:-1)*h*.92,0,(n<2?-1:1)*h*.90);
+  });
+ }
+ placeBattleSmoke(2.6);
+ function setAtmosphereQuality(fps){
+  if(Number.isFinite(fps))atmosphereFPS=fps;
+  smokeUniforms.uOpacity.value=atmosphereFPS<38?.065:.095;
+ }
+ function updateSmokeVisibility(){
+  smokeRoot.visible=!battlefieldEditing;
+  for(let i=0;i<smokePlumes.length;i++){
+   const plume=smokePlumes[i];
+   // Never blanket the physical player: reduce or hide close smoke locally.
+   const distance=Math.hypot(atmospherePlayer.x-plume.position.x,atmospherePlayer.z-plume.position.z);
+   plume.visible=!battlefieldEditing&&distance>1.08&&(atmosphereFPS>=38||i%2===0);
+  }
+ }
  // Ambient ash is restrained: one GPU points draw call, not CPU-heavy sprites.
  const ashCount=26,ashGeometry=new THREE.BufferGeometry();
  const ashPositions=new Float32Array(ashCount*3),ashBase=new Float32Array(ashCount*3);
@@ -215,7 +280,9 @@ export function createRodeadosArt(THREE,scene,camera){
  ashCloud.frustumCulled=false;arena.add(ashCloud);
  let ashTime=0;
  function updateBattlefieldAtmosphere(dt){
+  updateSmokeVisibility();
   if(battlefieldEditing){ashCloud.visible=false;return}
+  smokeUniforms.uTime.value=(smokeUniforms.uTime.value+dt)%500;
   ashCloud.visible=true;ashTime+=dt;
   for(let i=0;i<ashCount;i++){
    const k=i*3,base=ashBase;
@@ -240,6 +307,7 @@ export function createRodeadosArt(THREE,scene,camera){
  function setFloor(side,editing,cell=-1,player=null){
   const pitch=side/5,half=side*.5;
   battlefieldSide=side;battlefieldEditing=editing;
+  placeBattleSmoke(side);updateSmokeVisibility();
   // These four low metal marker posts are grounded on the four AR arena
   // corners. Never place a wall in front of the physical user's camera.
   for(const group of battlefieldCorners.children){
@@ -272,6 +340,7 @@ export function createRodeadosArt(THREE,scene,camera){
   battlefieldEditing=editing;
   battlefieldCorners.visible=!editing;
   ashCloud.visible=!editing;
+  updateSmokeVisibility();
   for(let i=0;i<25;i++){
    const damage=game?.floorDamage?.[i]||0;
    const time=game?.floorHeat?.[i]??-100;
@@ -415,6 +484,10 @@ export function createRodeadosArt(THREE,scene,camera){
   return actor;
  }
  function drawEnemies(game){
+  if(game?.player){
+   atmospherePlayer.x=game.player.x;
+   atmospherePlayer.z=game.player.z;
+  }
   const active=new Set();
   for(const e of game.enemies){
    active.add(e.id);
@@ -803,6 +876,9 @@ export function createRodeadosArt(THREE,scene,camera){
    else fallback++;
   }
   return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,spiders,variants,fpsArmsLoaded:!!fpsArms,
+    atmosphere:{type:'anchored-subtle-war-smoke',plumes:smokePlumes.length,sheets:smokePlumes.length*2,
+     alphaMax:smokeUniforms.uOpacity.value,qualityFPS:atmosphereFPS,
+     worldAnchored:smokeRoot.parent===arena,visible:smokeRoot.visible},
     weaponSources:[...importedWeapons.keys()],
     handMountedWeapons,
    robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
@@ -814,5 +890,5 @@ export function createRodeadosArt(THREE,scene,camera){
    textured:warMat.every(m=>m.map===warTexture&&m.isMeshStandardMaterial),
    fragmentCount:activeDebris,ashCount:ashCloud.visible?ashCount:0,
    perimeterPosts:battlefieldCorners.visible?battlefieldCorners.children.length:0}),
-  drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
+  drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,setAtmosphereQuality,clear,robotCount:()=>actors.size};
 }
