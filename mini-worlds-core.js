@@ -374,7 +374,7 @@ function moveEnemies(s,dt){
  }
  // Ground enemies also have physical bodies: KAI slides around them
   // instead of visibly passing through their chest.
-  if(e.type!=='flying'&&Math.abs(p.y-e.y)<.94){
+  if(p.invuln<=0&&e.type!=='flying'&&Math.abs(p.y-(platformY(s,e.x,e.z)??e.y))<.94){
    const dx=p.x-e.x,dz=p.z-e.z,d=Math.hypot(dx,dz);
    if(d<.51){
     const nx=d>.0001?dx/d:1,nz=d>.0001?dz/d:0;
