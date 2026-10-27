@@ -14,6 +14,19 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 .top{position:absolute;top:max(13px,env(safe-area-inset-top));left:13px;display:flex;align-items:center;gap:9px}
 .score{width:154px;border-radius:15px;background:#ffffffeb;box-shadow:0 4px 20px #54bca647;padding:10px 12px}
 .score .num{font-size:31px;line-height:1;font-weight:950;letter-spacing:-1px;color:#1a4852;font-variant-numeric:tabular-nums}
+#boostline{margin-top:6px;font-size:9px;font-weight:950;letter-spacing:.8px;color:#6c999e;display:flex;justify-content:space-between}
+#boostline.active{color:#fb994a}
+#boostbar{height:3px;margin-top:3px;background:#dcefe8;border-radius:10px;overflow:hidden}
+#boostfill{display:block;background:linear-gradient(90deg,#ffd064,#ff8f50);height:100%;width:0%;transition:width .1s}
+#hud .score{border:1px solid #ffffffc8}
+#hud .rankrow{transition:background .25s}
+.skinrow{display:flex;justify-content:center;gap:9px;margin:9px 0 14px}
+.skinrow button{width:43px;height:39px;border-radius:12px;background:#e8f9f7;border:2px solid #cbeae7;color:#235b6a;font-size:23px;display:grid;place-items:center;cursor:pointer}
+.skinrow button.active{background:#d2ffef;border-color:#1bb5b7;box-shadow:0 2px 0 #74c8c9}
+.mini-label{color:#87a5a8;font-weight:900;font-size:10px;letter-spacing:1px;margin-top:9px}
+#controls{transition:opacity .5s}
+#rank{filter:drop-shadow(0 2px 4px #6a9c8733)}
+#msg{z-index:2}
 .score small{display:block;font-size:10px;letter-spacing:1px;font-weight:850;color:#66898c;margin-bottom:3px}
 .progress{margin-top:8px;height:7px;border-radius:8px;background:#d4eee9;overflow:hidden}
 .progress i{display:block;width:0%;height:100%;border-radius:8px;background:#16c2e4;transition:width .3s}
@@ -62,18 +75,18 @@ input[type=text]:focus{border-color:#42bcca}
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <div id="hud">
- <div class="top"><div class="score"><small>TERRITORIO</small><div class="num" id="percent">0.0%</div><div class="progress"><i id="bar"></i></div></div><div id="kills">☠ 0</div></div>
+ <div class="top"><div class="score"><small>TERRITORIO</small><div class="num" id="percent">0.0%</div><div class="progress"><i id="bar"></i></div><div id="boostline"><span>VELOCIDAD EXTRA</span><b id="boostnumber">0%</b></div><div id="boostbar"><i id="boostfill"></i></div></div><div id="kills">☠ 0</div></div>
  <div id="rank"></div><canvas id="mini" width="182" height="182"></canvas><button id="pause" aria-label="Pausar partida">Ⅱ</button><div id="msg"></div>
- <div id="controls">DESLIZÁ PARA GIRAR</div>
+ <div id="controls">ARRASTRÁ PARA GIRAR · CERRÁ CIRCUITOS</div>
 </div>
 <section id="home" class="overlay"><div class="panel">
  <div class="brand">MODO CAOS · ARCADE ORIGINAL</div><h1>TERRITORY <em>LOOP</em></h1>
  <p class="description">Pintá el mapa, cerrá circuitos y cortá las estelas enemigas. Si alguien toca tu estela mientras estás afuera, perdés.</p>
  <div class="preview"><div class="trace"></div><div class="avatarDemo"></div><div class="floating">⚡</div></div>
  <input id="nick" maxlength="16" type="text" placeholder="Tu nombre" value="VOS" aria-label="Nombre de jugador">
- <div class="colors" id="colors"></div>
+ <div class="colors" id="colors"></div><div class="mini-label">ELEGÍ TU PERSONAJE</div><div class="skinrow" id="skins"></div>
  <button class="primary" id="start">▶ JUGAR AHORA</button>
- <div class="best" id="best"></div><div class="subline">12 jugadores · movimiento continuo · móvil y PC · sin descargas</div>
+ <div class="best" id="best"></div><div class="subline">Vos contra 11 rivales IA · movimiento continuo · móvil y PC · sin descargas</div>
  <div class="rowbtn"><button class="secondary" id="mutebtn">🔊 Sonido activado</button><button class="secondary" id="homeback">↩ Modo Caos</button></div>
 </div></section>
 <section id="result" class="overlay hidden"><div class="panel">
@@ -108,7 +121,30 @@ function inside(x,y){return (x-CX)**2+(y-CY)**2<(R-16)**2;}
 function updateMap(){
  const data=terrainCtx.createImageData(N,N),buf=data.data;
  for(let k=0;k<SIZE;k++){const v=land[k];if(!inArena[k]||!v)continue;const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]);let o=k*4;buf[o]=rgb[0];buf[o+1]=rgb[1];buf[o+2]=rgb[2];buf[o+3]=255;}
- terrainCtx.putImageData(data,0,0);mapCtx.clearRect(0,0,N*3,N*3);mapCtx.imageSmoothingEnabled=true;mapCtx.imageSmoothingQuality='high';mapCtx.drawImage(terrainCanvas,0,0,N*3,N*3);
+ terrainCtx.putImageData(data,0,0);mapCtx.clearRect(0,0,N*3,N*3);
+ mapCtx.imageSmoothingEnabled=true;mapCtx.imageSmoothingQuality='high';mapCtx.drawImage(terrainCanvas,0,0,N*3,N*3);
+ // Soft overlapping discs remove the sharp pixel corners of the territory raster.
+ // Cached on each capture, never re-created each animation frame.
+ for(let y=1;y<N-1;y++)for(let x=1;x<N-1;x++){
+  const k=y*N+x,v=land[k];if(!v||!inArena[k])continue;
+  if(land[k-1]===v&&land[k+1]===v&&land[k-N]===v&&land[k+N]===v)continue;
+  mapCtx.fillStyle=COLORS[(v-1+settingColor)%12];
+  mapCtx.beginPath();mapCtx.arc((x+.5)*3,(y+.5)*3,2.65,0,Math.PI*2);mapCtx.fill();
+ }
+ // A subtle perimeter gives claimed regions the finished look of the reference.
+ mapCtx.lineCap='round';mapCtx.lineJoin='round';mapCtx.lineWidth=1.45;
+ for(let v=1;v<=12;v++){
+  mapCtx.beginPath();let edges=0;
+  for(let y=1;y<N-1;y++)for(let x=1;x<N-1;x++){
+   const k=y*N+x;if(land[k]!==v)continue;
+   const X=x*3,Y=y*3;
+   if(land[k-N]!==v){mapCtx.moveTo(X,Y);mapCtx.lineTo(X+3,Y);edges++;}
+   if(land[k+N]!==v){mapCtx.moveTo(X,Y+3);mapCtx.lineTo(X+3,Y+3);edges++;}
+   if(land[k-1]!==v){mapCtx.moveTo(X,Y);mapCtx.lineTo(X,Y+3);edges++;}
+   if(land[k+1]!==v){mapCtx.moveTo(X+3,Y);mapCtx.lineTo(X+3,Y+3);edges++;}
+  }
+  if(edges){mapCtx.strokeStyle='rgba(27,72,84,0.19)';mapCtx.stroke();}
+ }
 }
 
 function burstAt(x,y,color,count=16,strength=85){
@@ -295,6 +331,9 @@ function step(dt){
 function showHud(){
  const p=game.people[0],v=p.score.toFixed(1);
  $('percent').textContent=v+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('kills').textContent='☠ '+game.kills;
+ const boost=Math.round(100*(clock<p.boostUntil?1:p.edgeCharge));
+ $('boostfill').style.width=boost+'%';$('boostnumber').textContent=boost+'%';
+ if(boost>80)$('boostline').classList.add('active');else $('boostline').classList.remove('active');
  const arr=game.ordered.slice(0,6);
  $('rank').innerHTML=arr.map((q,i)=>'<div class="rankrow" style="border-left:5px solid '+COLORS[(q.id+settingColor)%12]+';'+(q.id===0?'background:#d7fff5;':'')+'"><span>'+(i+1)+'. '+safe(q.name)+'</span><b>'+q.score.toFixed(1)+'%</b></div>').join('');
  drawMini();
@@ -320,23 +359,36 @@ function drawUnit(p){
  c.fillStyle=col;c.strokeStyle='#ffffffec';c.lineWidth=2;
  c.beginPath();c.roundRect(-13,-13,26,26,5);c.fill();c.stroke();
  c.fillStyle='#ffffff55';c.beginPath();c.roundRect(-10,-10,20,9,3);c.fill();
- c.fillStyle='#ffffff';c.beginPath();c.arc(-5,-2,3.3,0,7);c.arc(5,-2,3.3,0,7);c.fill();
- c.fillStyle='#325369';c.beginPath();c.arc(-4.4,-2,1.4,0,7);c.arc(5.6,-2,1.4,0,7);c.fill();
+ const skin=p.id===0?selectedSkin:0;
+ if(skin===1){ // An original fox-inspired rounded-square skin
+  c.fillStyle=col;c.strokeStyle='#ffffff';c.lineWidth=2;
+  c.beginPath();c.moveTo(-11,-9);c.lineTo(-13,-22);c.lineTo(-3,-13);c.lineTo(3,-13);c.lineTo(13,-22);c.lineTo(11,-9);c.closePath();c.fill();c.stroke();
+ }
+ if(skin===2){c.fillStyle='#fff9ab';c.beginPath();for(let j=0;j<10;j++){let a=-Math.PI/2+j*Math.PI/5,r=j%2?7:13;c.lineTo(Math.cos(a)*r,Math.sin(a)*r);}c.closePath();c.fill();}
+ if(skin===3){c.fillStyle='#fff2a8';c.beginPath();c.moveTo(-7,-5);c.lineTo(-4,4);c.lineTo(2,4);c.lineTo(5,-5);c.closePath();c.fill();}
+ if(skin!==2){c.fillStyle='#ffffff';c.beginPath();c.arc(-5,-2,3.3,0,7);c.arc(5,-2,3.3,0,7);c.fill();
+ c.fillStyle='#325369';c.beginPath();c.arc(-4.4,-2,1.4,0,7);c.arc(5.6,-2,1.4,0,7);c.fill();}
+ if(p.id===0&&clock<p.boostUntil){c.strokeStyle='#ffb94a';c.lineWidth=3;c.strokeRect(-18,-18,36,36);}
  c.restore();
  if(p.id!==0){c.fillStyle='#42635d';c.font='bold 13px system-ui';c.textAlign='center';c.fillText(p.name,p.x,p.y-24);}
  else {c.fillStyle='#277c85';c.font='900 14px system-ui';c.textAlign='center';c.fillText(p.name,p.x,p.y-27);}
 }
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
- c.fillStyle='#88e8e8';c.fillRect(0,0,screenW,screenH);
+ c.fillStyle='#b8f5e9';c.fillRect(0,0,screenW,screenH);
  if(!game)return;
  const ref=Math.min(screenW,screenH*0.75);
  zoom=clamp(ref/430,.7,1.28);
  c.save();c.translate(screenW/2,screenH/2);c.scale(zoom,zoom);c.translate(-camX,-camY);
  // Ocean and map boundary, matching the soft arcade look.
- c.fillStyle='#eafff5';c.beginPath();c.arc(CX,CY,R+4,0,7);c.fill();
+ c.save();c.shadowColor='#458b8170';c.shadowBlur=24;c.fillStyle='#effff7';c.beginPath();c.arc(CX,CY,R+4,0,7);c.fill();c.restore();
  c.save();c.beginPath();c.arc(CX,CY,R,0,7);c.clip();
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
+ // Very faint dots add surface texture without obscuring the territory.
+ c.fillStyle='#62ae9a22';const dotStep=68;
+ const minX=Math.max(0,Math.floor((camX-screenW/zoom)/dotStep)),maxX=Math.min(40,Math.ceil((camX+screenW/zoom)/dotStep));
+ const minY=Math.max(0,Math.floor((camY-screenH/zoom)/dotStep)),maxY=Math.min(40,Math.ceil((camY+screenH/zoom)/dotStep));
+ for(let dx=minX;dx<=maxX;dx++)for(let dy=minY;dy<=maxY;dy++){c.beginPath();c.arc(dx*dotStep,dy*dotStep,1.6,0,7);c.fill();}
  c.restore();
  c.strokeStyle='#68b9b39c';c.lineWidth=8;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
  drawEffects();
@@ -374,6 +426,7 @@ $('leave').onclick=goHome;$('tohome').onclick=goHome;
 $('homeback').onclick=()=>{location.href='/';};
 $('share').onclick=()=>{const text='¡Conquisté '+game.people[0].score.toFixed(1)+'% en Territory Loop! ¿Me superás? '+location.href;if(navigator.share)navigator.share({title:'Territory Loop',text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>popup('ENLACE COPIADO')).catch(()=>{});};
 $('mutebtn').onclick=()=>{muted=!muted;$('mutebtn').textContent=muted?'🔇 Sin sonido':'🔊 Sonido activado';};
+['🙂','🦊','⭐','🚀'].forEach((symbol,i)=>{const b=document.createElement('button');b.textContent=symbol;b.setAttribute('aria-label','Personaje '+(i+1));b.className=i===0?'active':'';b.onclick=()=>{selectedSkin=i;document.querySelectorAll('#skins button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('skins').append(b);});
 COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Color '+(i+1));b.style.background=col;b.className=i===0?'active':'';b.onclick=()=>{settingColor=i;document.querySelectorAll('#colors button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('colors').append(b);});
 $('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';
 fit();window.addEventListener('resize',fit);
