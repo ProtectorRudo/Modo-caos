@@ -664,7 +664,7 @@ export function createRodeadosArt(THREE,scene,camera){
    if(a.external){external++;const v=a.external.variant||'standard';variants[v]=(variants[v]||0)+1}
    else fallback++;
   }
-  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,spiders,variants,
+  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,spiders,variants,fpsArmsLoaded:!!fpsArms,
    robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
  return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,setWeaponTier,setFPSArms,getRobotAdapterStatus,
