@@ -26,7 +26,7 @@ test('CTF must have six or seven individually confirmed points with types and no
  const saved=G.configureFlagPlan(g,plan);
  assert.equal(saved.ok,true);assert.equal(g.mission.configured,true);
  assert.deepEqual(g.mission.spawnPoints,points,'markers never silently migrate');
- assert.deepEqual(g.mission.spawnTypes,plan.kinds,'each point stores its chosen enemy type');
+ assert.deepEqual(g.mission.spawnTypes,plan.kinds.map(x=>x==='creep'?'spider':x),'deprecated purple monster replaced with spider in saved plans');
  G.begin(g);g.spawnClock=1000;G.movePlayer(g,g.mission.base);
  const e=G.spawn(g,'fast');
  assert.equal(e.type,'basic','type of spawn number one overrides unrelated default random kind');
@@ -217,4 +217,27 @@ test('flag must be outside base perimeter and player movement can reach it',()=>
  G.begin(g);G.movePlayer(g,{x:0,z:-5.7});
  assert.equal(g.player.z,-5.7,'phone/player no longer clipped to the original 2.6m platform');
  assert.equal(G.missionAction(g).ok,true);
+});
+
+test('CTF physical movement does not stop at 2.6m home platform or the obsolete 8m boundary',()=>{
+ const g=G.create({mode:'ctf',seed:221});
+ const plan={base:{x:0,z:0},flag:{x:0,z:-7.9},spots:G.normalizeFlagPlan().spots.slice(0,6)};
+ assert.equal(G.configureFlagPlan(g,plan).ok,true);
+ G.begin(g);
+ assert(G.movePlayer(g,{x:0,z:-2.7}));assert.equal(g.player.z,-2.7);
+ assert(G.movePlayer(g,{x:0,z:-8.6}));assert.equal(g.player.z,-8.6,'no invisible 8m clip');
+ assert(G.movePlayer(g,plan.flag));assert.equal(G.missionAction(g).ok,true,'flag can be taken at target');
+ assert(G.movePlayer(g,plan.base));assert.equal(G.missionAction(g).ok,true,'one delivery scored');
+ assert.equal(g.mission.captures,1);
+ assert.equal(g.paused,false,'CTF never forces recalibration on leaving base');
+});
+test('legacy creep selection, random spawn, and forced wave are all purple-monster-free',()=>{
+ const g=G.create({mode:'ctf',seed:155});
+ const plan={base:{x:0,z:0},flag:{x:0,z:-4},spots:G.normalizeFlagPlan().spots.slice(0,6),kinds:['creep','random','basic','tank','spider','flanker']};
+ assert(G.configureFlagPlan(g,plan).ok);
+ assert.equal(g.mission.spawnTypes[0],'spider','saved purple choice becomes spider');
+ G.begin(g);
+ for(let i=0;i<6;i++)assert.notEqual(G.spawn(g,'creep')?.type,'creep');
+ g.enemies=[];g.elapsed=30.01;G.advance(g,.05);
+ assert.equal(g.enemies.some(e=>e.type==='creep'),false);
 });

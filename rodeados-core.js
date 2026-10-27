@@ -52,9 +52,9 @@
   if(g.mode==='boss'&&g.elapsed>3&&!g.announcedBoss)return 'boss';
   if(g.mode==='reflex')return g.rand()<.68?'fast':'flanker';
   if(g.wave<2)return 'basic';
-  if(g.wave>=3&&g.enemies.filter(e=>e.type==='creep').length<2&&g.rand()<.29)return 'creep';
+  // Removed the unpopular purple stalker: keep the wolf-spider and tactical enemies.
    if(g.enemies.filter(e=>e.type==='spider').length<2&&g.rand()<.23)return 'spider';
-  const choices=['basic','basic','flanker','fast','tank','joker','creep'];return choices[Math.floor(g.rand()*Math.min(choices.length,2+Math.floor(g.wave/2)))];
+  const choices=['basic','basic','flanker','fast','tank','joker','spider'];return choices[Math.floor(g.rand()*Math.min(choices.length,2+Math.floor(g.wave/2)))];
  }
  // The calibrated 5×5 board marks the human SAFE ZONE; full-scale robots
  // roam a separate virtual ring. Do not crowd the phone on a 2.6m floor.
@@ -73,6 +73,8 @@
   return null;
  }
  function spawn(g,type){
+  // Never instantiate the purple stalker, including legacy explicit types.
+  if(type==='creep')type='spider';
   const def=TYPES[type]||TYPES.basic,p=positionSpawn(g,g.arena*.65);
   if(!p)return null;
   const e={id:++g.enemyId,type,x:p.x,z:p.z,y:0,angle:Math.atan2(g.player.x-p.x,g.player.z-p.z),sector:p.sector,
@@ -107,7 +109,7 @@
    // One unmistakable wolf-spider encounter after the opening humanoids.
    // Never spawn it next to the phone or force the player to walk.
    if(g.elapsed>=60&&!g.minotaurIntroduced&&['survival','infinite','boss'].includes(g.mode)&&g.enemies.length<6)spawn(g,'minotaur');
-   if(g.elapsed>=30&&!g.creepIntroduced&&g.enemies.length<6)spawn(g,'creep');
+   // No forced purple-stalker encounter at 30 seconds.
    if(g.elapsed>=12&&!g.spiderIntroduced&&g.enemies.length<6){
     const spider=spawn(g,'spider');if(spider)g.spiderIntroduced=true;
    }

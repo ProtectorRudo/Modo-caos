@@ -22,19 +22,18 @@ test('tactical rounds are faster and upgrade body hits without headshot inflatio
  assert.equal(result.hit,true);
  assert.equal(result.damage,2);
 });
-test('creep arrives on wave three and boss on wave five, away from player',()=>{
+test('purple stalker never spawns, including former 30s scripted arrival; spider and boss remain',()=>{
  const g=G.create({mode:'survival',seed:903});
- G.begin(g);
- g.elapsed=30.01;
- G.advance(g,.04);
- assert.ok(g.creepIntroduced,'creep should be introduced');
- const creature=g.enemies.find(e=>e.type==='creep');
- assert.ok(creature);
- assert.ok(Math.hypot(creature.x-g.player.x,creature.z-g.player.z)>=2.45);
+ G.begin(g);g.elapsed=12.01;G.advance(g,.04);
+ assert.ok(g.spiderIntroduced,'wolf-spider still introduces tactical variety');
+ assert.ok(g.enemies.some(e=>e.type==='spider'),'spider remains playable');
+ g.elapsed=30.01;G.advance(g,.04);
+ assert.equal(g.enemies.some(e=>e.type==='creep'),false,'no purple monster on wave three');
+ const legacy=G.spawn(g,'creep');
+ assert.ok(legacy&&legacy.type==='spider','even explicit old creep requests spawn a spider instead');
  g.enemies.length=0;
- g.elapsed=60.01;
- G.advance(g,.04);
- assert.ok(g.minotaurIntroduced,'fifth-wave boss should appear');
+ g.elapsed=60.01;G.advance(g,.04);
+ assert.ok(g.minotaurIntroduced,'fifth-wave boss should still appear');
  const boss=g.enemies.find(e=>e.type==='minotaur');
  assert.ok(boss&&boss.hp===G.TYPES.minotaur.hp);
  assert.ok(Math.hypot(boss.x-g.player.x,boss.z-g.player.z)>=2.45);
