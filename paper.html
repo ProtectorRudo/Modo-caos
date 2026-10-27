@@ -571,7 +571,7 @@ function countAreas(){
 }
 function reset(){
  clock=0;lastHud=-1;land.fill(0);trails.fill(0);game={people:[],ordered:[],kills:0,started:0,record:0,lastArea:0,defeated:new Set(),rewards:new Set(),epicTrail:false,crowned:false};particles=[];bursts=[];rewardToastUntil=0;$('rewardToast').classList.remove('visible');for(let i=0;i<REWARDS.length;i++)$('milestone'+i).classList.remove('unlocked');let player={x:CX,y:CY};
- game.people.push(makePerson(0,player));game.people[0].angle=-Math.PI/2;base(game.people[0],6);
+ game.people.push(makePerson(0,player));game.people[0].angle=-Math.PI/2;game.earnedCoins=0;emoteUntil=0;celebrationBursts=[];base(game.people[0],6);
  for(let i=1;i<12;i++){const pos=spawnPoint();const p=makePerson(i,pos);game.people.push(p);base(p,random(3.5,5)|0);}
  countAreas();game.lastArea=game.people[0].area;updateMap();camX=CX;camY=CY;desiredAngle=null;pointer=null;keys={};mode='play';
  $('home').classList.add('hidden');$('result').classList.add('hidden');$('paused').classList.add('hidden');$('hud').style.display='block';$('controls').style.opacity='1';$('msg').classList.remove('show');game.started=clock;
@@ -585,7 +585,7 @@ function death(p,killer=-1){
  if(!p.alive||(killer>=0&&killer!==p.id&&clock<p.protectedUntil))return;
  clearTrail(p);p.alive=false;
  if(p.id!==0){for(let k=0;k<SIZE;k++)if(land[k]===p.id+1)land[k]=0;}
- burstAt(p.x,p.y,COLORS[(p.id+settingColor)%12],28,100);updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;game.defeated.add(p.id);popup('¡ELIMINACIÓN!');audio('kill');vibrate(30);}}
+ burstAt(p.x,p.y,COLORS[(p.id+settingColor)%12],28,100);updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;game.defeated.add(p.id);game.earnedCoins+=awardCoins(25);celebrateAt(attacker,'kill');popup('¡ELIMINACIÓN! +25 🪙');audio('kill');vibrate(30);}}
  if(p.id===0){audio('death');vibrate([80,70,110]);end(false);}else{p.respawn=clock+random(1.8,3.8);countAreas();if(game.defeated.size===11)end(true);}
 }
 function respawn(p){
@@ -624,7 +624,9 @@ function capture(p){
  for(let k=0;k<SIZE;k++)if(inArena[k]&&!seen[k]&&land[k]!==p.id+1)land[k]=p.id+1;
  clearTrail(p);countAreas();updateMap();
  const increase=Math.max(0,p.area-beforeArea);if(increase>0){captureEffect(outline,p,COLORS[(p.id+settingColor)%12],increase/landCount);}
- if(p.id===0){grantRewards(p);const points=Math.round(increase*100/landCount*10)/10;game.lastArea=p.area;
+ if(p.id===0){grantRewards(p);const bonus=awardCoins(Math.max(1,Math.min(120,Math.round(increase*100/landCount*12))));game.earnedCoins+=bonus;
+ if(bonus>0&&increase>0)celebrateAt(p,'capture');
+ const points=Math.round(increase*100/landCount*10)/10;game.lastArea=p.area;
  if(points>=.15){popup('+'+points.toFixed(1)+'%');audio('capture');vibrate(25);}if(game.people[0].score>game.record)game.record=game.people[0].score;
  if(game.people[0].score>=99.8){end(true);return;}}
 }
@@ -697,7 +699,7 @@ function stepBot(p,dt){
  move(p,dt);
 }
 function step(dt){
- clock+=dt;tickEffects(dt);if(rewardToastUntil&&clock>=rewardToastUntil){$('rewardToast').classList.remove('visible');rewardToastUntil=0;}const p=game.people[0];if(p.alive){
+ clock+=dt;tickEffects(dt);drawCelebrations(dt);if(rewardToastUntil&&clock>=rewardToastUntil){$('rewardToast').classList.remove('visible');rewardToastUntil=0;}const p=game.people[0];if(p.alive){
  let aim=desiredAngle;
  if(keys.ArrowUp||keys.KeyW)aim=-Math.PI/2;
  if(keys.ArrowDown||keys.KeyS)aim=Math.PI/2;
@@ -708,7 +710,15 @@ function step(dt){
  if((keys.ArrowDown||keys.KeyS)&&(keys.ArrowLeft||keys.KeyA))aim=3*Math.PI/4;
  if((keys.ArrowUp||keys.KeyW)&&(keys.ArrowLeft||keys.KeyA))aim=-3*Math.PI/4;
  if(aim!==null){let dif=angleDelta(p.angle,aim);p.angle+=clamp(dif,-p.turn*dt,p.turn*dt);}
- move(p,dt);}
+ move(p,dt);
+ // Light cosmetics are spawned in fixed intervals, not every animation frame.
+ if(p.outside&&Math.floor(clock*10)!==Math.floor((clock-dt)*10)){
+  const t=wardrobe.equipped.trail;
+  if(t==='trail_starlight')burstAt(p.x,p.y,'#ffe978',2,14);
+  if(t==='trail_bubbles')burstAt(p.x,p.y,'#c1faff',2,16);
+  if(t==='trail_rainbow')burstAt(p.x,p.y,COLORS[Math.floor(clock*7)%COLORS.length],2,17);
+ }
+ }
  if(mode!=='play')return;
  for(let i=1;i<12;i++)stepBot(game.people[i],dt);
  camX+=(p.x-camX)*Math.min(1,dt*7.6);camY+=(p.y-camY)*Math.min(1,dt*7.6);
@@ -767,7 +777,7 @@ function drawUnit(p){
   c.lineCap='round';c.lineJoin='round';
   c.save();c.translate(0,5);c.strokeStyle='rgba(21,52,94,.22)';c.lineWidth=16.5;c.stroke();c.restore();
   c.strokeStyle='#2448b5';c.lineWidth=17;c.stroke();
-  c.strokeStyle=col;c.lineWidth=12.5;c.stroke();
+  c.strokeStyle=p.id===0&&wardrobe.equipped.trail==='trail_rainbow'?COLORS[Math.floor(clock*6)%COLORS.length]:col;c.lineWidth=12.5;c.stroke();
   c.strokeStyle=(p.id===0&&game&&game.epicTrail)?'#fff0a0':'#ffffffb5';c.lineWidth=(p.id===0&&game&&game.epicTrail)?3.4:2.0;c.stroke();
   if(p.id===0&&game&&game.epicTrail){
    c.save();c.strokeStyle='#fff8d2';c.lineWidth=1.35;c.globalAlpha=.72;
@@ -819,11 +829,18 @@ function drawUnit(p){
   for(const xx of [-1,1]){c.save();c.scale(xx,1);c.beginPath();c.moveTo(12,-7);c.lineTo(17,-3);c.lineTo(17,7);c.lineTo(12,9);c.closePath();c.fill();c.stroke();c.restore();}
   c.fillStyle='#ffe768';c.beginPath();c.moveTo(-5,16);c.lineTo(0,21);c.lineTo(5,16);c.closePath();c.fill();
  }
+ drawOutfit(p);
  if(p.id===0&&clock<p.boostUntil){c.strokeStyle='#fff1a6';c.lineWidth=2;c.beginPath();c.roundRect(-18,-18,36,35,6);c.stroke();}
  c.restore();
  // Text stays readable without putting a huge comic heading over the actor.
  c.font='900 14px system-ui';c.textAlign='center';c.lineWidth=3.6;c.strokeStyle='#153da7';
  c.strokeText(p.name,p.x,p.y-(p.id===0?43:34));c.fillStyle='#fff';c.fillText(p.name,p.x,p.y-(p.id===0?43:34));
+ if(p.id===0&&clock<emoteUntil){
+  const yy=p.y-80,cx=p.x;
+  c.save();c.fillStyle='#fffffff2';c.strokeStyle='#2c5dc0';c.lineWidth=2;c.beginPath();
+  c.roundRect(cx-60,yy-14,120,29,9);c.fill();c.stroke();
+  c.fillStyle='#2047a3';c.font='900 11px system-ui';c.fillText(emoteLabel,cx,yy+4);c.restore();
+ }
 }
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
@@ -847,21 +864,24 @@ function render(){
  c.stroke();
  c.restore();
  c.strokeStyle='rgba(102,149,137,.32)';c.lineWidth=2;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
- drawEffects();
+ drawEffects();paintCelebrations();
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
  drawUnit(game.people[0]);c.restore();
 }
 function end(win){
  if(mode!=='play')return;mode='result';countAreas();let p=game.people[0],best=Math.max(readBest(),p.score);
  try{localStorage.setItem('territoryloop_best',String(best));}catch(e){}
+ const reward=Math.min(80,Math.round(p.score*2)+(win?35:0));
+ game.earnedCoins+=awardCoins(reward);$('matchCoins').textContent='🪙 Ganaste '+game.earnedCoins+' monedas en esta partida';
+ refreshWallet();
  $('finaltitle').textContent=win?(game.defeated.size===11?'¡DERROTASTE A TODOS!':'¡DOMINASTE EL MAPA!'):'TE CORTARON LA ESTELA';
  $('finalscore').textContent=p.score.toFixed(1)+'%';$('finaldesc').textContent=win?(game.defeated.size===11?'¡Eliminaste a los once rivales al menos una vez!':'¡Conquistaste casi todo el mapa!'):'Una estela descubierta es una invitación para tus rivales. ¡Volvé por la revancha!';
  $('finalkills').textContent=game.kills;$('finalbest').textContent=best.toFixed(1)+'%';$('finalrank').textContent='#'+(1+game.people.filter(q=>q.id!==0&&q.area>p.area).length);
  $('result').classList.remove('hidden');$('hud').style.display='none';
 }
 function readBest(){try{return Number(localStorage.getItem('territoryloop_best'))||0;}catch(e){return 0;}}
-function start(){reset();audio('start');}
-function goHome(){mode='home';game=null;$('hud').style.display='none';$('result').classList.add('hidden');$('paused').classList.add('hidden');$('home').classList.remove('hidden');$('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';}
+function start(){selectedSkin=wardrobe.hero;reset();audio('start');}
+function goHome(){mode='home';game=null;renderHeroPicker();refreshWallet();$('hud').style.display='none';$('result').classList.add('hidden');$('paused').classList.add('hidden');$('home').classList.remove('hidden');$('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';}
 function pause(){if(mode!=='play')return;mode='pause';$('paused').classList.remove('hidden');}
 function resume(){mode='play';$('paused').classList.add('hidden');}
 function fit(){screenW=innerWidth;screenH=innerHeight;dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(screenW*dpr);canvas.height=Math.round(screenH*dpr);}
@@ -882,7 +902,15 @@ $('leave').onclick=goHome;$('tohome').onclick=goHome;
 $('homeback').onclick=()=>{location.href='/';};
 $('share').onclick=()=>{const text='¡Conquisté '+game.people[0].score.toFixed(1)+'% en Territory Loop! ¿Me superás? '+location.href;if(navigator.share)navigator.share({title:'Territory Loop',text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>popup('ENLACE COPIADO')).catch(()=>{});};
 $('mutebtn').onclick=()=>{muted=!muted;$('mutebtn').textContent=muted?'🔇 Sin sonido':'🔊 Sonido activado';};
-['🙂','🦊','⭐','🚀'].forEach((symbol,i)=>{const b=document.createElement('button');b.textContent=symbol;b.setAttribute('aria-label','Personaje '+(i+1));b.className=i===0?'active':'';b.onclick=()=>{selectedSkin=i;document.querySelectorAll('#skins button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('skins').append(b);});
+$('heroPicker').onclick=e=>{const node=e.target.closest('[data-hero]');if(node)setHero(Number(node.dataset.hero));};
+$('openShopHome').onclick=()=>openShop('home');
+$('openShopResult').onclick=()=>openShop('result');
+$('closeShop').onclick=closeShop;
+$('backFromShop').onclick=closeShop;
+$('shopTabs').onclick=e=>{const node=e.target.closest('[data-tab]');if(node){shopCategory=node.dataset.tab;renderShop();}};
+$('shopGrid').onclick=e=>{const node=e.target.closest('[data-buy]');if(node)buyOrEquip(node.dataset.buy);};
+renderHeroPicker();refreshWallet();
+
 COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Color '+(i+1));b.style.background=col;b.className=i===0?'active':'';b.onclick=()=>{settingColor=i;document.querySelectorAll('#colors button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('colors').append(b);});
 $('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';
 fit();window.addEventListener('resize',fit);
