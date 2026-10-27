@@ -124,6 +124,7 @@ function addRock(p,x,y,z,r=.3){const o=mesh(new T.DodecahedronGeometry(r,0),M.st
 function addRuins(p,x,y,z){const g=group(p,x,y,z);
  for(let q of [-.42,.42]){mesh(cyl(.17,.20,1.35,9),M.stone,q,.68,0,g);mesh(cube(.45,.15,.45),M.sand,q,1.4,0,g)}
  mesh(cube(1.23,.22,.45),M.stone,0,1.52,0,g);let disk=mesh(new T.TorusGeometry(.24,.04,7,20),M.gold,0,1.53,.23,g);disk.rotation.x=.3;
+return g;
 }
 function platform(root,p,rand){
  const g=group(root,p.x,p.y,p.z);
