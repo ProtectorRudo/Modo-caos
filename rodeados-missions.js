@@ -10,7 +10,7 @@
  const d=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
  const definitions={
   invasion:{duration:75,label:'INVASIÓN EN CASA',tip:'Resistí 75 segundos y detené la invasión'},
-  loot:{duration:90,label:'BOTÍN MALDITO',tip:'Abrí cofres, volvé a la base y extraé tu botín'},
+  loot:{duration:120,label:'BOTÍN MALDITO',tip:'Recorré tus 5 cofres, abrilos y regresá a extraer antes de que se acabe el tiempo'},
   timewarp:{duration:75,label:'TIEMPO ROTO',tip:'Congelación y rebote temporal cada 12 segundos, más un poder manual.'},
   refuge:{duration:75,label:'EL ÚLTIMO REFUGIO',tip:'Defendé el reactor 75 segundos'},
   mutant:{duration:90,label:'CAOS MUTANTE',tip:'Una mutación distinta cada 15 segundos'},
@@ -35,6 +35,34 @@
   }).concat(spots.length<6?ring(7).slice(spots.length,6):[])};
  }
  const boxCoords=[{x:-.83,z:-.88},{x:.0,z:-1.02},{x:.83,z:-.88},{x:-.73,z:.20},{x:.73,z:.20}];
+ // Enemy guard positions orbit PLAYER-PLACED chest locations, not the player's feet.
+ // All points remain in anchored arena coordinates, never in camera/HUD space.
+ function lootGuardPoints(plan){
+  const spots=[];
+  for(let i=0;i<7;i++){
+   const box=plan.crates[i%plan.crates.length],a=(i*.81+2.3)*Math.PI/2;
+   let x=box.x+Math.cos(a)*1.5,z=box.z+Math.sin(a)*1.5;
+   let d0=Math.hypot(x-plan.base.x,z-plan.base.z);
+   if(d0<3.1){const dx=box.x-plan.base.x,dz=box.z-plan.base.z,L=Math.hypot(dx,dz)||1;
+    x=plan.base.x+dx/L*3.45;z=plan.base.z+dz/L*3.45;}
+   x=clamp(x,-7.8,7.8);z=clamp(z,-7.8,7.8);
+   if(spots.some(p=>d(p,{x,z})<.7)){x=clamp(x+.65,-7.8,7.8);z=clamp(z+.55,-7.8,7.8)}
+   spots.push({x:+x.toFixed(2),z:+z.toFixed(2)});
+  }
+  return spots;
+ }
+ function validateLootPlan(plan,arena=2.6){
+  if(!plan||!Number.isFinite(plan.base?.x)||!Number.isFinite(plan.base?.z))return {ok:false,reason:'falta_base'};
+  if(Math.max(Math.abs(plan.base.x),Math.abs(plan.base.z))>arena/2-.08)return {ok:false,reason:'base_fuera_de_la_pista'};
+  if(!Array.isArray(plan.crates)||plan.crates.length!==5)return {ok:false,reason:'marca_cinco_botines'};
+  for(let i=0;i<5;i++){
+   const p=plan.crates[i];
+   if(!Number.isFinite(p?.x)||!Number.isFinite(p?.z)||Math.max(Math.abs(p.x),Math.abs(p.z))>8)return {ok:false,reason:'botin_fuera_de_rango'};
+   if(d(p,plan.base)<2.35)return {ok:false,reason:'botin_demasiado_cerca_de_tu_base'};
+   if(plan.crates.slice(0,i).some(q=>d(q,p)<.85))return {ok:false,reason:'separa_los_botines'};
+  }
+  return {ok:true};
+ }
  function setupMission(g,config={}){
   if(!definitions[g.mode])return g;
   const m={kind:g.mode,signal:'',event:0,completed:false,object:{x:0,z:-.65},base:{x:0,z:.75},
@@ -53,8 +81,14 @@
     m.signal='NIVEL 1/10 · LOCALIZÁ AL REHÉN';
    }
    if(g.mode==='loot'){
-   m.crates=boxCoords.map((p,i)=>({...p,id:i,opened:false}));
-   m.base={x:0,z:.83};m.signal='DISPARÁ A LOS 5 COFRES';
+   const plan=config.lootPlan,valid=validateLootPlan(plan,g.arena);
+   m.configured=!!plan?.confirmed&&valid.ok;
+   m.base=m.configured?{x:plan.base.x,z:plan.base.z}:{x:0,z:0};
+   m.crates=m.configured?plan.crates.map((p,i)=>({x:p.x,z:p.z,id:i,opened:false})):[];
+   m.spawnPoints=m.configured?lootGuardPoints(plan):[];
+   m.spawnTypes=[];m.enemyCursor=0;
+   m.plan=m.configured?{base:{...m.base},crates:plan.crates.map(p=>({...p})),confirmed:true}:null;
+   m.signal=m.configured?'BUSCÁ LOS COFRES · ABRILOS Y REGRESÁ A TU BASE':'ELEGÍ DÓNDE ESTARÁN TUS 5 BOTINES';
   }
   if(g.mode==='refuge'){m.object={x:0,z:-.40};m.stations=[{x:-.96,z:-.82,active:false},{x:.96,z:-.82,active:false},{x:0,z:1.0,active:false}];m.signal='DEFENDÉ EL REACTOR Y ACTIVÁ 3 ESTACIONES'}
   if(g.mode==='colossus'){m.signal='GIGANTE 1 DE 3';g.creepIntroduced=true;g.spiderIntroduced=true;g.minotaurIntroduced=true;g.spawnClock=10000;}
@@ -68,7 +102,7 @@
   g.mission=m;return g;
  }
  G.create=function(config={}){return setupMission(orig.create(config),config)};
- G.reset=function(g,config={}){return G.create({...config,mode:config.mode||g.mode,arena:config.arena||g.arena,flagPlan:config.flagPlan||g.mission?.plan,ownerId:config.ownerId??g.ownerId})};
+ G.reset=function(g,config={}){return G.create({...config,mode:config.mode||g.mode,arena:config.arena||g.arena,flagPlan:config.flagPlan||g.mission?.plan,lootPlan:config.lootPlan||(g.mode==='loot'?g.mission?.plan:null),ownerId:config.ownerId??g.ownerId})};
  G.copy=function(g){
   const data=orig.copy(g);
   if(g.mission)data.mission=JSON.parse(JSON.stringify(g.mission));
@@ -115,6 +149,10 @@
   const m=g.mission;
   if(!m||e.missionAssigned)return;
   e.missionAssigned=true;
+  if(m.kind==='loot'&&m.configured&&m.spawnPoints.length){
+   const p=m.spawnPoints[m.enemyCursor++%m.spawnPoints.length];
+   e.x=p.x;e.z=p.z;e.role=m.enemyCursor%3===0?'interceptor':'guardián';
+  }
   if(m.kind==='ctf'&&m.spawnPoints.length){
    const p=m.spawnPoints[m.enemyCursor++%m.spawnPoints.length];
    // Maintain >=2.45m of separation from the tracked phone.
@@ -147,7 +185,7 @@
   const e=orig.spawn(g,type);if(e&&m){assignSpawn(g,e);orientAwayFromPhone(g,e)}return e
  };
  G.movePlayer=function(g,p){
-  if(g.mode!=='ctf'&&g.mode!=='rescue')return orig.movePlayer(g,p);
+  if(!['ctf','rescue','loot'].includes(g.mode))return orig.movePlayer(g,p);
   if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
   // CTF needs roaming beyond the 2.6 m cosmetic tile board to retrieve the flag.
   // A 2.6 m base and an enemy flag up to 8 m away must not impose
@@ -186,6 +224,7 @@
   dt=clamp(Number(dt)||0,0,.07);if(dt<=0)return g;
   const m=g.mission,life=g.lives,previous=new Map(g.enemies.map(e=>[e.id,{x:e.x,z:e.z,cd:e.attackCD}]));
   const oldPlayer={...g.player};
+  if(m.kind==='loot'&&!m.configured){g.paused=true;return g}
   if(m.kind==='rescue'&&!m.hostageActive&&!m.nextLevelAt)beginRescueStage(g,{first:true});
   if(m.kind==='colossus'){
    g.spawnClock=10000;
@@ -260,7 +299,7 @@
    for(let k=0;k<2;k++)G.spawn(g,g.elapsed>=50?'creep':'flanker');
   }
   if(m.kind==='loot'){
-   if(g.elapsed>=75&&m.loot&&m.signal!=='⚠ ÚLTIMOS 15 S · REGRESÁ A EXTRAER')event(m,'⚠ ÚLTIMOS 15 S · REGRESÁ A EXTRAER');
+   if(g.elapsed>=g.duration-15&&m.loot&&m.signal!=='⚠ ÚLTIMOS 15 S · REGRESÁ A EXTRAER')event(m,'⚠ ÚLTIMOS 15 S · REGRESÁ A EXTRAER');
   }
   if(m.kind==='ctf'){
    if(!m.configured){g.paused=true;return g}
@@ -299,35 +338,8 @@
   }
   return g;
  };
- function crateHit(m,ray){
-  if(!ray?.origin||!ray?.direction)return null;
-  const o=ray.origin,v=ray.direction,L=Math.hypot(v.x,v.y,v.z);
-  if(!Number.isFinite(L)||L<.5)return null;
-  let best=null;
-  for(const box of m.crates){
-   if(box.opened)continue;
-   const dy=v.y/L,dx=v.x/L,dz=v.z/L;
-   // Ray-sphere check: 50cm lock target floating above each supply crate.
-   const cx=box.x- o.x,cy=.65-o.y,cz=box.z-o.z,t=(cx*dx+cy*dy+cz*dz);
-   if(t<.15||t>12)continue;
-   const miss=Math.hypot(cx-t*dx,cy-t*dy,cz-t*dz);
-   if(miss<.34&&(!best||t<best.distance))best={box,distance:t};
-  }
-  return best;
- }
  G.fire=function(g,ray,shooter='vos'){
   const m=g.mission;
-  if(m?.kind==='loot'&&g.phase==='playing'&&!g.paused){
-   const hit=crateHit(m,ray),enemy=G.rayHit(g,ray?.origin,ray?.direction);
-   if(hit&&(!enemy||hit.distance<enemy.distance)){
-    const result=orig.fire(g,ray,shooter);
-    if(!result.ok)return result;
-    hit.box.opened=true;m.loot++;grant(g,250+m.loot*50);
-    event(m,m.loot===5?'💰 BOTÍN COMPLETO · ¡REGRESÁ A TU BASE!':'📦 BOTÍN '+m.loot+'/5 · VOLVÉ O ARRIESGÁ MÁS');
-    g.fx.push({type:'crateOpen',t:g.elapsed,x:hit.box.x,z:hit.box.z});
-    return {ok:true,hit:true,crate:true,points:250+m.loot*50,distance:hit.distance};
-   }
-  }
   const before=g.kills,r=orig.fire(g,ray,shooter);
   if(r.ok&&r.killed&&m){
    if(m.kind==='colossus'&&g.kills>before&&m.bossIndex>=3&&!g.enemies.some(e=>e.missionBoss))missionWin(g,'colosos_derrotados');
@@ -348,10 +360,19 @@
   const m=g.mission;
   if(!m||g.phase!=='playing'||g.paused)return {ok:false,reason:'no_disponible'};
   if(m.kind==='loot'){
-   if(!m.loot)return {ok:false,reason:'primero_abri_un_cofre'};
-   if(objectiveDistance(g,m.base)>.53)return {ok:false,reason:'acercate_a_tu_base'};
-   m.extracted=m.loot;grant(g,m.extracted*350);
-   missionWin(g,'botin_extraido');return {ok:true,kind:'extraer',count:m.extracted};
+   if(!m.configured)return {ok:false,reason:'sin_configurar'};
+   const box=m.crates.filter(b=>!b.opened).sort((a,b)=>d(g.player,a)-d(g.player,b))[0];
+   if(box&&d(g.player,box)<.82){
+    box.opened=true;m.loot++;grant(g,250+m.loot*75);
+    event(m,m.loot===5?'💰 CINCO BOTINES · ¡REGRESÁ A EXTRAER!':'📦 BOTÍN '+m.loot+'/5 · CONTINUÁ O REGRESÁ');
+    g.fx.push({type:'crateOpen',t:g.elapsed,x:box.x,z:box.z});
+    return {ok:true,kind:'abrir',count:m.loot};
+   }
+   if(m.loot&&objectiveDistance(g,m.base)<.80){
+    m.extracted=m.loot;grant(g,m.extracted*350);
+    missionWin(g,'botin_extraido');return {ok:true,kind:'extraer',count:m.extracted};
+   }
+   return {ok:false,reason:m.loot?'acercate_a_un_botin_o_base':'acercate_a_un_botin'};
   }
   if(m.kind==='refuge'){
    const station=m.stations.find(p=>!p.active&&objectiveDistance(g,p)<.46);
@@ -391,7 +412,16 @@
   const remain=Math.max(0,Math.ceil(g.duration-g.elapsed));
   switch(m.kind){
    case 'invasion':return {text:'PORTALES · OLEADA '+(g.wave||1),detail:m.signal};
-   case 'loot':return {text:'BOTÍN '+m.loot+'/5 · '+remain+'s',detail:m.signal,button:'💰 EXTRAER',canAct:m.loot>0};
+   case 'loot':{
+     const left=m.crates.filter(b=>!b.opened);
+     const nearest=left.slice().sort((a,b)=>d(g.player,a)-d(g.player,b))[0];
+     const nearChest=nearest&&d(g.player,nearest)<.82,nearBase=m.loot>0&&d(g.player,m.base)<.80;
+     const distance=nearest?d(g.player,nearest):null;
+     return {text:'📦 BOTÍN '+m.loot+'/5 · '+remain+'s',
+       detail:nearChest?'✅ COFRE CERCA · TOCÁ ABRIR':nearBase?'✅ EN TU BASE · TOCÁ EXTRAER':left.length?
+       'BUSCÁ EL SIGUIENTE COFRE · '+distance.toFixed(1)+' m':'REGRESÁ A TU BASE · '+d(g.player,m.base).toFixed(1)+' m',
+       button:nearBase?'💰 EXTRAER':'📦 ABRIR',canAct:!!(nearChest||nearBase)};
+   }
    case 'timewarp':return {text:m.timePhase==='FRACTURA'?'⏳ TIEMPO CONGELADO · '+Math.ceil(m.phaseRemaining)+'s':
       m.timePhase==='ACELERADO'?'⚠ REBOTE TEMPORAL · '+Math.ceil(m.phaseRemaining)+'s':
       '⌛ PRÓXIMA FRACTURA · '+Math.ceil(m.phaseRemaining||6)+'s',
@@ -420,6 +450,19 @@
   }
   return null;
  };
+ G.configureLootPlan=function(g,plan){
+  if(!g.mission||g.mode!=='loot'||g.phase!=='ready')return {ok:false,reason:'fuera_de_preparacion'};
+  const valid=validateLootPlan(plan,g.arena);if(!valid.ok)return valid;
+  const m=g.mission;
+  m.base={x:+plan.base.x.toFixed(2),z:+plan.base.z.toFixed(2)};
+  m.crates=plan.crates.map((p,i)=>({x:+p.x.toFixed(2),z:+p.z.toFixed(2),id:i,opened:false}));
+  m.spawnPoints=lootGuardPoints({base:m.base,crates:m.crates});
+  m.spawnTypes=[];m.enemyCursor=0;m.configured=true;
+  m.plan={base:{...m.base},crates:m.crates.map(({x,z})=>({x,z})),confirmed:true};
+  event(m,'✅ 5 COFRES EN EL MUNDO · LOS GUARDIAS LOS DEFENDERÁN');
+  return {ok:true,plan:m.plan};
+ };
+ G.validateLootPlan=validateLootPlan;
  G.configureFlagPlan=function(g,plan){
   if(!g.mission||g.mode!=='ctf'||g.phase!=='ready')return {ok:false,reason:'fuera_de_preparacion'};
   const valid=validateFlagPlan(plan,g.arena);
