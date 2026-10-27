@@ -109,8 +109,8 @@ function makeShoreFoam(parent,map){
  return line;
 }
 const rng=s=>()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296};
-function addPalm(p,x,z,size=1){
- const g=group(p,x,.05,z),trunk=mesh(cyl(.105,.17,1.36,9),M.wood,.04,.63,0,g);trunk.rotation.z=-.11;
+function addPalm(p,x,z,size=1,groundY=.05){
+ const g=group(p,x,groundY,z),trunk=mesh(cyl(.105,.17,1.36,9),M.wood,.04,.63,0,g);trunk.rotation.z=-.11;
  for(let i=0;i<6;i++){const a=i*P/3;let stem=group(g,.16,1.3,0);stem.rotation.y=a;stem.rotation.z=-.16;let leaf=mesh(geoCone(.20,1.35,5),i%2?M.leaf:M.leaf2,0,.10,.57,stem);leaf.rotation.x=P/2+.23;leaf.scale.set(1.25,.85,.7)}
  for(let i=0;i<3;i++)mesh(sphere(.12),M.woodDark,.14+Math.cos(i*2)*.12,1.22,.04+Math.sin(i*2)*.12,g);
  g.scale.setScalar(size);return g;
@@ -333,7 +333,7 @@ function makeStage(map){
   const p=map.platforms[i],prev=map.platforms[i-1];
   if(p.kind==='beach'||p.kind==='jungle'){
    const x=p.x+(rand()>.5?1:-1)*(p.w*.45+.22),z=p.z+(rand()-.5)*p.d*.8;
-   const size=.72+rand()*.30,obj=addPalm(root,x,z,size);
+   const size=.72+rand()*.30,obj=addPalm(root,x,z,size,p.y+.05);
    windTargets.push(obj);
    nativeSolids.push({obj,x,z,y:p.y,height:1.42*size,radius:.15*size,kind:'tree'});
   }
