@@ -179,7 +179,12 @@ root.MiniWorldsCinematic=function(T){
    const side=i%2?-1:1;
    const x=p.x+side*(p.w*.43),z=p.z+(i%3===1?-.27:.25)*p.d;
    const monolith=group(world,x,p.y,z);
-   monolith.name='ARCHEOLOGICAL SITE · non-collidable edge ornament';
+   monolith.name='ARCHEOLOGICAL SITE · physical ruins';
+   // Only keep large scenery if its real collider can be registered.
+   // This prevents both walk-through monuments and blocked escape routes.
+   if(stage.registerSolid&&!stage.registerSolid(monolith,{x,y:p.y,z,height:1.03,radius:.20,kind:'column'})){
+    world.remove(monolith);continue;
+   }
    mesh(monolith,'tapered',basalt,0,.28,0,.27,.55,.30);
    mesh(monolith,'box',bronze,0,.52,0,.34,.057,.36);
    const obelisk=mesh(monolith,'octa',i%3===0?jade:gold,0,.82,0,.115,.25,.13);
@@ -193,8 +198,24 @@ root.MiniWorldsCinematic=function(T){
   // islands. They are portals of atmosphere, NOT collidable fake terrain.
   for(const id of [5,11]){
    const p=samples[id];if(!p)continue;
-   const g=group(world,p.x,p.y,p.z-p.d*.41);
-   g.name='TEMPLE RUIN SILHOUETTE';
+   const z=p.z-p.d*.41;
+   const g=group(world,p.x,p.y,z);
+   g.name='TEMPLE RUIN · solid arch';
+   // Both pillars must be reachable around their sides, not over rescue
+   // NPCs or on connector walkways. If either collides with a required
+   // route, discard the arch entirely and disable any registered base.
+   const registered=[];
+   if(stage.registerSolid){
+    for(const k of [-1,1]){
+     const physical=stage.registerSolid(g,{x:p.x+k*.64,y:p.y,z,
+      radius:.19,height:1.45,kind:'column'});
+     if(physical)registered.push(physical);
+    }
+    if(registered.length!==2){
+     g.visible=false;registered.forEach(o=>o.enabled=false);
+     world.remove(g);continue;
+    }
+   }
    for(const k of [-1,1]){
     mesh(g,'tapered',basalt,k*.64,.62,0,.20,1.23,.22);
     mesh(g,'box',bronze,k*.64,1.24,0,.31,.14,.32);
