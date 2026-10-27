@@ -33,8 +33,8 @@ function init(s,id=0){
   m.relays=[0,1];
  }else if(id===1){
   s.map.boss.alive=false;
-  s.player.x=.2;s.player.z=-3.35;s.player.y=.22;
-  s.checkpoint={x:.2,z:-3.35,y:.22};
+  s.player.x=-1.0;s.player.z=-2.9;s.player.y=.22;
+  s.checkpoint={x:-1.0,z:-2.9,y:.22};
   m.rescues=[resident('technician','TUCO',3.2,-3.42,.22,true)];
   m.reactor={x:.2,z:-3.30,y:.22,health:12,maxHealth:12,pressure:0};
   m.exit={x:.2,z:-3.30,y:.22,active:false};
