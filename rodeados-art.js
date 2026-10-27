@@ -629,7 +629,7 @@ export function createRodeadosArt(THREE,scene,camera){
  }
  setWeaponTier('pistol');
  const corner=new THREE.Vector3();
- const safe={left:-.61,right:.64,bottom:-.86,top:-.045};
+ const safe={left:-.34,right:.94,bottom:-.98,top:-.07};
  const aimStock=new THREE.Vector3(),aimMuzzle=new THREE.Vector3();
  function getRifleAimMetrics(){
   // +Z = front/muzzle of the aligned GLB, -Z = buttstock.
@@ -675,12 +675,14 @@ export function createRodeadosArt(THREE,scene,camera){
  function positionWeapon(_arCamera,flash){
   if(!rifle.visible)return;
   if(!layout||layout.asset!==activeWeapon){
-   let x=.02,y=-.19,scale=1.3;
-   const cx=.06,cy=-.43,targetW=1.08,targetH=.70;
+   let x=.18,y=-.27,scale=.95;
+   // The realistic wooden butt must sit BELOW-RIGHT of the reticle, not
+   // dominate the center of the camera with an almost vertical silhouette.
+   const cx=.35,cy=-.66,targetW=.76,targetH=.57;
    for(let k=0;k<8;k++){
     activeWeapon.scale.setScalar(scale);
     rifle.position.set(x,y,-1.3);
-    rifle.rotation.set(-.085,-.10,-1.11);
+    rifle.rotation.set(-.095,-.14,-.64);
     const b=measureWeapon();
     if(!b.front||!Number.isFinite(b.width)||b.width<=.01||b.height<=.01)break;
     const ratio=Math.min(targetW/b.width,targetH/b.height);
@@ -694,7 +696,7 @@ export function createRodeadosArt(THREE,scene,camera){
   const t=performance.now()*.001;
   activeWeapon.scale.setScalar(layout.scale);
   rifle.position.set(layout.x+Math.sin(t*1.8)*.0011,layout.y+Math.sin(t*1.3)*.0012-recoil*.012,-1.3+recoil*.027);
-  rifle.rotation.set(-.085-recoil*.08,-.10,-1.11);
+  rifle.rotation.set(-.095-recoil*.065,-.14,-.64);
   fallback.userData.setFiring(activeWeapon===fallback&&!!flash,t);
   for(const model of importedWeapons.values())model.userData.setFiring(activeWeapon===model&&!!flash,t);
   premiumRifle?.userData.setFiring(!!flash,t);
