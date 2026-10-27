@@ -69,9 +69,9 @@ export function createTacticalPlanner({G, $,getGame,getRay,getArena,isDemo,onCom
   if(!res?.ok){onNotice('⚠ NO SE PUEDE CONFIRMAR: '+(res?.reason||'REVISÁ EL CAMPO'),3);return}
   const copy=JSON.parse(JSON.stringify(res.plan));draft=null;aim=null;onComplete(copy);
  }
- $('tacticalMark').addEventListener('pointerdown',e=>{e.preventDefault();mark()});
- $('tacticalUndo').addEventListener('click',undo);
- $('tacticalConfirm').addEventListener('click',confirm);
+ $('tacticalMark')?.addEventListener('pointerdown',e=>{e.preventDefault();mark()});
+ $('tacticalUndo')?.addEventListener('click',undo);
+ $('tacticalConfirm')?.addEventListener('click',confirm);
  return {
   start(count){draft={base:null,flag:null,spots:[],kinds:[],count:count===6?6:7};aim=null;onPhase('tactical');draw()},
   updateTarget,
