@@ -360,6 +360,23 @@
    event(m,'⚡ ESTACIONES '+m.stations.filter(x=>x.active).length+'/3 ACTIVADAS');
    return {ok:true,kind:'activar',active:m.stations.filter(x=>x.active).length};
   }
+  if(m.kind==='rescue'){
+   if(!m.hostageActive||m.nextLevelAt)return {ok:false,reason:'espera_siguiente_nivel'};
+   if(!m.carry){
+    if(objectiveDistance(g,m.object)>.75)return {ok:false,reason:'acercate_al_rehen'};
+    m.carry=true;m.phase='ESCOLTÁ';m.hostageHealth=Math.max(m.hostageHealth,68);
+    event(m,'🤝 ¡REHÉN LIBERADO! ESCOLTALO A TU BASE');
+    g.fx.push({type:'hostageLiberated',t:g.elapsed,x:m.object.x,z:m.object.z});
+    return {ok:true,kind:'liberar',level:m.level};
+   }
+   if(objectiveDistance(g,m.base)>.85)return {ok:false,reason:'volvé_a_tu_base'};
+   m.carry=false;m.hostageActive=false;m.rescued++;grant(g,550+m.level*230);
+   g.fx.push({type:'hostageSaved',t:g.elapsed,level:m.level,x:m.base.x,z:m.base.z});
+   if(m.level===10){missionWin(g,'diez_rehenes_rescatados');event(m,'🏆 ¡NIVEL 10 SUPERADO!');return {ok:true,kind:'final',level:10}}
+   m.level++;m.nextLevelAt=g.elapsed+2.5;m.phase='TRANSICIÓN';
+   event(m,'🏆 REHÉN SALVADO · SIGUIENTE NIVEL '+m.level+'/10');
+   return {ok:true,kind:'rescatado',level:m.level-1};
+  }
   if(m.kind==='ctf'){
    if(!m.configured)return {ok:false,reason:'sin_configurar'};
    const carry=m.carry,captures=m.captures;
@@ -375,13 +392,25 @@
   switch(m.kind){
    case 'invasion':return {text:'PORTALES · OLEADA '+(g.wave||1),detail:m.signal};
    case 'loot':return {text:'BOTÍN '+m.loot+'/5 · '+remain+'s',detail:m.signal,button:'💰 EXTRAER',canAct:m.loot>0};
-   case 'timewarp':return {text:g.elapsed<m.slowUntil?'⏳ TIEMPO ROTO ACTIVO':'⏳ ACTIVÁ EMP',detail:m.signal};
+   case 'timewarp':return {text:m.timePhase==='FRACTURA'?'⏳ TIEMPO CONGELADO · '+Math.ceil(m.phaseRemaining)+'s':
+      m.timePhase==='ACELERADO'?'⚠ REBOTE TEMPORAL · '+Math.ceil(m.phaseRemaining)+'s':
+      '⌛ PRÓXIMA FRACTURA · '+Math.ceil(m.phaseRemaining||6)+'s',
+     detail:m.timePhase==='FRACTURA'?'¡DISPARÁ! ENEMIGOS CONGELADOS':m.timePhase==='ACELERADO'?'¡CUIDADO! ENEMIGOS MÁS RÁPIDOS':'PULSÁ ⏳ ROMPER TIEMPO PARA CONGELARLOS'};
    case 'refuge':{
      const left=m.stations.filter(p=>!p.active),closest=left.length?Math.min(...left.map(p=>objectiveDistance(g,p))):Infinity;
      return {text:'REACTOR '+Math.ceil(m.reactor)+'% · '+m.stations.filter(x=>x.active).length+'/3',detail:left.length?(closest<.46?'⚡ ESTACIÓN ALCANZADA · ACTIVÁ':'ACERCATE A ESTACIÓN · '+closest.toFixed(1)+' m'):'✅ 3 ESTACIONES ACTIVADAS · DEFENDÉ EL NÚCLEO',button:'⚡ ACTIVAR',canAct:closest<.46};
    }
    case 'mutant':return {text:'⚡ '+m.mutation,detail:m.signal};
    case 'colossus':return {text:'COLOSOS '+Math.min(3,m.bossIndex)+'/3 · FASE '+m.bossPhase,detail:m.signal};
+   case 'rescue':{
+    const target=m.carry?m.base:m.object,dist=objectiveDistance(g,target),close=dist<(m.carry?.85:.75);
+    return {text:m.nextLevelAt?'✅ NIVEL '+(m.level-1)+'/10 COMPLETADO':
+      '🆘 RESCATE NIVEL '+m.level+'/10 · '+Math.max(0,Math.ceil(m.levelDeadline-g.elapsed))+'s',
+     detail:m.nextLevelAt?'PRÓXIMO NIVEL EN '+Math.ceil(m.nextLevelAt-g.elapsed)+'s':
+      m.carry?'ESCOLTÁ AL REHÉN · SALUD '+Math.ceil(m.hostageHealth)+'% · '+dist.toFixed(1)+'m':
+      'LLEGÁ HASTA EL REHÉN · '+dist.toFixed(1)+'m',
+     button:m.carry?'🤝 ENTREGAR REHÉN':'🆘 LIBERAR REHÉN',canAct:close&&!m.nextLevelAt};
+   }
    case 'ctf':{
     const target=m.carry?m.base:(m.dropAt||m.object),dist=objectiveDistance(g,target),close=dist<(m.carry?.65:.58);
     return {text:m.carry?'🚩 LLEVÁS LA BANDERA':'🚩 CAPTURAS '+m.captures,
