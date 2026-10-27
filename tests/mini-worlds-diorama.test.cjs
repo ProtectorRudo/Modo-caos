@@ -78,7 +78,7 @@ for(let level=0;level<2;level++){
  const instances=diorama.patchGroups.flatMap(g=>g.children).filter(x=>x.isInstancedMesh);
  assert(instances.length>=6,'multiple shared instanced flower, shrub and stone packs');
  assert(instances.every(x=>x.count<190),'must cap AR instance counts for mid-range Android');
- assert(instances.reduce((a,x)=>a+x.count,0)>100,'visible foliage density must improve meaningfully');
+ assert(instances.reduce((a,x)=>a+x.count,0)>45&&instances.reduce((a,x)=>a+x.count,0)<140,'sparse foliage must preserve visual interest without crowding roads');
  const origin={...anchor.position};
  diorama.update({},1/60,5,new Group());
  assert.deepEqual({...anchor.position},origin,'FX must not move AR world anchor');
