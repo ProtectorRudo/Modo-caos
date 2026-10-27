@@ -59,7 +59,7 @@ for(const time of [100,137,174,211]){
 }
 assert.ok(visual.children.every(g=>g.children.some(p=>p.attrs.d&&p.attrs.d.startsWith('M'))));
 hud.style.display='flex';heading.textContent='¡VERDE!';
-queue.shift()(248);
+for(const time of [248,285,322,359,396])queue.shift()(time);
 assert.equal(heading.style.color,colors[0]);
 svg.style.pointerEvents='auto'; // simulator for Survivor's existing tile-picking mode
 assert.equal(svg.children.filter(n=>n.tagName==='polygon').length,26);
