@@ -18,6 +18,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Fetch and verify original Styloo 3D characters
+        run: python3 scripts/vendor-styloo.py
+        continue-on-error: true # Other Modo Caos games must still publish if upstream is temporarily down
       - name: Build GitHub Pages path-safe copy
         run: python3 scripts/build-pages.py
       - name: Configure GitHub Pages
