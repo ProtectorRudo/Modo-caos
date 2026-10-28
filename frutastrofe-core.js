@@ -32,7 +32,7 @@ function create(opts={}){
   if(kind==='boss'){obj.x=0;obj.y=2.55;obj.z=0;obj.r=.82;obj.vy=0;obj.hp=12;obj.spin=.35}
   g.objects.push(obj);emit('spawn',{id:obj.id,kind});return obj;
  }
- function begin(){if(g.state==='ready'){g.state='playing';emit('start');if(g.level===10&&g.mode==='campaign')spawn('boss')}return g}
+ function begin(){if(g.state==='ready'){g.state='playing';emit('start');if(g.level===10&&g.mode==='campaign')spawn('boss');else{const intro=pick(TYPES,rng);for(let j=0;j<3;j++){const f=spawn(intro);f.x=(j-1)*1.12;f.y=3.2+.10*j;f.vy=cfg.speed*.86}g.nextSpawn=1.05}}return g}
  function remove(o){o.dead=true}
  function award(points,reason,x,y,z){const n=Math.round(points*g.multiplier*(g.fever?2:1));g.score+=n;emit('points',{points:n,reason,x,y,z});return n}
  function punish(o){g.errors++;g.combo=0;g.streakCount=0;g.streakType=null;g.multiplier=1;g.score=Math.max(0,g.score-(o.kind==='bomb'?85:40));emit('trap',{kind:o.kind,score:g.score,x:o.x,y:o.y,z:o.z});if(g.cfg.goal==='clean'&&g.errors>g.cfg.maxErrors)finish(false)}
