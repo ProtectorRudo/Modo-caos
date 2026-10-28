@@ -1235,6 +1235,8 @@ function showVS(){
  $('vsPlayerRole').textContent=you.role;
  $('vsRivalName').textContent=rival.name;
  $('vsRivalRole').textContent=rival.role;
+ const myEmote=SHOP_ITEMS.find(x=>x.id===wardrobe.equipped.emote);
+ $('vsEmoteTitle').textContent=wardrobe.equipped.emote==='emote_hello'?'SHOW SIX SEVEN':(myEmote?.name||'SHOW SIX SEVEN').toUpperCase();
  $('vsCountdown').textContent='5';
  $('vsPortraitPlayer').src=portraitURL(player);
  $('vsPortraitOpponent').src=portraitURL(vsRival);
