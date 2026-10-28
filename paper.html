@@ -716,29 +716,52 @@ const terrainCtx=terrainCanvas.getContext('2d',{alpha:true});
 let mapCanvas=document.createElement('canvas');mapCanvas.width=WORLD;mapCanvas.height=WORLD;
 const mapCtx=mapCanvas.getContext('2d',{alpha:true});
 
-/* Visual-only procedural materials. Nothing here changes land[], boundaries or physics. */
-const cvFloorTile=document.createElement('canvas');cvFloorTile.width=240;cvFloorTile.height=240;
+/* V2 visual material: naturally lit arena floor, without an oversized visible hex grid. */
+const cvFloorTile=document.createElement('canvas');cvFloorTile.width=512;cvFloorTile.height=512;
 const cvFloorBrush=cvFloorTile.getContext('2d');
-const cvFloorGrad=cvFloorBrush.createLinearGradient(0,0,240,240);
-cvFloorGrad.addColorStop(0,'#193e65');cvFloorGrad.addColorStop(.56,'#173454');cvFloorGrad.addColorStop(1,'#0f2949');
-cvFloorBrush.fillStyle=cvFloorGrad;cvFloorBrush.fillRect(0,0,240,240);
-const cvDetailTile=document.createElement('canvas');cvDetailTile.width=240;cvDetailTile.height=240;
-const cvDetailBrush=cvDetailTile.getContext('2d');
-function cvHex(ctx,x,y,rad){ctx.beginPath();for(let q=0;q<6;q++){const a=q*Math.PI/3+Math.PI/6;const px=x+Math.cos(a)*rad,py=y+Math.sin(a)*rad;if(q)ctx.lineTo(px,py);else ctx.moveTo(px,py);}ctx.closePath();}
-for(let row=-1;row<=5;row++)for(let col=-1;col<=5;col++){
- const x=col*76+(row%2)*38,y=row*66;
- cvHex(cvFloorBrush,x,y,42);
- cvFloorBrush.strokeStyle='rgba(105,194,245,.13)';cvFloorBrush.lineWidth=1.5;cvFloorBrush.stroke();
- cvHex(cvDetailBrush,x,y,42);
- cvDetailBrush.strokeStyle='rgba(255,255,255,.16)';cvDetailBrush.lineWidth=1;cvDetailBrush.stroke();
- if((row*7+col*11)%7===0){
-  cvFloorBrush.fillStyle='rgba(108,238,255,.18)';cvFloorBrush.beginPath();cvFloorBrush.arc(x,y,2.5,0,7);cvFloorBrush.fill();
-  cvDetailBrush.fillStyle='rgba(255,255,255,.35)';cvDetailBrush.beginPath();cvDetailBrush.arc(x,y,2,0,7);cvDetailBrush.fill();
+const cvFloorGrad=cvFloorBrush.createLinearGradient(0,0,512,512);
+cvFloorGrad.addColorStop(0,'#315471');cvFloorGrad.addColorStop(.42,'#23415e');cvFloorGrad.addColorStop(1,'#1b324c');
+cvFloorBrush.fillStyle=cvFloorGrad;cvFloorBrush.fillRect(0,0,512,512);
+function cvHex(ctx,x,y,rad){
+ ctx.beginPath();
+ for(let q=0;q<6;q++){
+  const a=q*Math.PI/3+Math.PI/6,px=x+Math.cos(a)*rad,py=y+Math.sin(a)*rad;
+  if(q)ctx.lineTo(px,py);else ctx.moveTo(px,py);
+ }
+ ctx.closePath();
+}
+// Non-gameplay material variation: deterministic, seamless, and extremely low contrast.
+for(let row=0;row<8;row++)for(let col=0;col<8;col++){
+ const x=32+col*64,y=32+row*64,n=(row*17+col*37)%11;
+ const g=cvFloorBrush.createRadialGradient(x-8,y-11,1,x,y,51);
+ g.addColorStop(0,n%3?'rgba(131,200,224,.075)':'rgba(255,203,144,.06)');
+ g.addColorStop(1,'rgba(9,24,49,0)');
+ cvFloorBrush.fillStyle=g;cvFloorBrush.fillRect(x-51,y-51,102,102);
+ if(n%4===0){
+  cvFloorBrush.beginPath();cvFloorBrush.moveTo(x-18,y+16);cvFloorBrush.lineTo(x+8,y-10);
+  cvFloorBrush.lineTo(x+25,y+9);cvFloorBrush.closePath();
+  cvFloorBrush.fillStyle='rgba(181,218,229,.035)';cvFloorBrush.fill();
+ }
+ if(n===0||n===7){
+  cvFloorBrush.strokeStyle='rgba(125,214,229,.14)';cvFloorBrush.lineWidth=1.1;
+  cvFloorBrush.beginPath();cvFloorBrush.moveTo(x-13,y+9);cvFloorBrush.lineTo(x-13,y-8);
+  cvFloorBrush.lineTo(x+9,y-8);cvFloorBrush.stroke();
+  cvFloorBrush.fillStyle='rgba(143,239,255,.33)';cvFloorBrush.beginPath();cvFloorBrush.arc(x+9,y-8,1.75,0,7);cvFloorBrush.fill();
  }
 }
 const cvFloorPattern=c.createPattern(cvFloorTile,'repeat');
+const cvDetailTile=document.createElement('canvas');cvDetailTile.width=256;cvDetailTile.height=256;
+const cvDetailBrush=cvDetailTile.getContext('2d');
+for(let y=0;y<256;y+=64)for(let x=0;x<256;x+=64){
+ cvDetailBrush.strokeStyle='rgba(255,255,255,.075)';cvDetailBrush.lineWidth=.8;
+ cvDetailBrush.beginPath();cvDetailBrush.moveTo(x+9,y+47);cvDetailBrush.lineTo(x+23,y+58);
+ cvDetailBrush.lineTo(x+39,y+58);cvDetailBrush.stroke();
+ if((x+y)%128===0){
+  cvDetailBrush.fillStyle='rgba(255,255,255,.22)';
+  cvDetailBrush.beginPath();cvDetailBrush.arc(x+45,y+15,1.35,0,7);cvDetailBrush.fill();
+ }
+}
 const cvTerritoryPattern=mapCtx.createPattern(cvDetailTile,'repeat');
-
 for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=(x+.5)*CELL-CX,dy=(y+.5)*CELL-CY,k=y*N+x;if(dx*dx+dy*dy<(R-5)*(R-5)){inArena[k]=1;landCount++;}}
 function idx(x,y){let gx=Math.floor(x/CELL),gy=Math.floor(y/CELL);return gx<0||gy<0||gx>=N||gy>=N?-1:gy*N+gx;}
 // Runtime storm is a nested circular playfield. It pushes characters inward,
@@ -903,38 +926,46 @@ function drawPowerBoxes(){
  if(!game?.boxes)return;
  for(const box of game.boxes){
   if(!box.active)continue;
-  const t=clock-box.spawnAt,ready=clock>=box.collectAt;
-  const alpha=Math.min(1,Math.max(0,t/.36)),bob=Math.sin(clock*3.3+box.x*.012)*3.5;
-  const col=POWER_COLORS[box.type]||'#63e6fc';
-  c.save();c.translate(box.x,box.y+bob);c.globalAlpha=alpha;
-  const outer=25,osc=.7+.3*Math.sin(clock*4+box.y);
-  // Circular collectible pad, shadow and vertical loot beam.
-  c.fillStyle='#03132d88';c.beginPath();c.ellipse(1,23,26,9,0,0,7);c.fill();
-  const halo=c.createRadialGradient(0,13,0,0,13,44);halo.addColorStop(0,col+'88');halo.addColorStop(1,col+'00');
-  c.fillStyle=halo;c.beginPath();c.arc(0,13,43,0,7);c.fill();
-  c.lineWidth=2.4;c.strokeStyle=col;c.globalAlpha=alpha*osc;c.beginPath();c.ellipse(0,20,31,11,0,0,7);c.stroke();c.globalAlpha=alpha;
+  const dt=clock-box.spawnAt,ready=clock>=box.collectAt,alpha=Math.min(1,dt/.34);
+  const col=POWER_COLORS[box.type]||'#79f2ff',scale=1.12+Math.sin(clock*3+box.x*.02)*.035;
+  const rise=Math.sin(clock*2.9+box.x*.011)*2.6;
+  c.save();c.translate(box.x,box.y+rise);c.scale(scale,scale);c.globalAlpha=Math.max(0,alpha);
+  c.fillStyle='#020e2390';c.beginPath();c.ellipse(0,27,27,9,0,0,7);c.fill();
+  const aura=c.createRadialGradient(0,10,0,0,10,51);
+  aura.addColorStop(0,col+'88');aura.addColorStop(.55,col+'28');aura.addColorStop(1,col+'00');
+  c.fillStyle=aura;c.beginPath();c.arc(0,10,50,0,7);c.fill();
+  c.globalAlpha=Math.max(0,alpha)*(.65+.25*Math.sin(clock*5));
+  c.strokeStyle=col;c.lineWidth=2.3;c.beginPath();c.ellipse(0,23,32,10,0,0,7);c.stroke();
+  c.globalAlpha=Math.max(0,alpha);
   if(ready){
-   const beam=c.createLinearGradient(0,-80,0,-18);beam.addColorStop(0,col+'00');beam.addColorStop(.7,col+'22');beam.addColorStop(1,col+'77');
-   c.fillStyle=beam;c.beginPath();c.moveTo(-14,-19);c.lineTo(-9,-76);c.lineTo(9,-76);c.lineTo(14,-19);c.fill();
+   const light=c.createLinearGradient(0,-95,0,-18);
+   light.addColorStop(0,col+'00');light.addColorStop(.77,col+'0c');light.addColorStop(1,col+'70');
+   c.fillStyle=light;c.beginPath();c.moveTo(-10,-16);c.lineTo(-15,-95);c.lineTo(15,-95);c.lineTo(10,-16);c.fill();
   }
-  // Machine-cut metallic supply chest with lighting on each face.
-  c.shadowColor=col;c.shadowBlur=ready?13:4;
-  c.beginPath();c.moveTo(-22,-18);c.lineTo(0,-29);c.lineTo(22,-18);c.lineTo(0,-7);c.closePath();
-  let top=c.createLinearGradient(-12,-30,20,-6);top.addColorStop(0,'#effaff');top.addColorStop(.38,'#6686ad');top.addColorStop(1,'#223e6f');
-  c.fillStyle=top;c.strokeStyle='#0b1e4d';c.lineWidth=3;c.fill();c.stroke();
-  c.beginPath();c.moveTo(-22,-18);c.lineTo(0,-7);c.lineTo(0,18);c.lineTo(-22,6);c.closePath();
-  const left=c.createLinearGradient(-22,-16,0,16);left.addColorStop(0,'#405b88');left.addColorStop(1,'#101d3c');
-  c.fillStyle=left;c.fill();c.stroke();
-  c.beginPath();c.moveTo(0,-7);c.lineTo(22,-18);c.lineTo(22,6);c.lineTo(0,18);c.closePath();
-  const right=c.createLinearGradient(0,0,22,20);right.addColorStop(0,'#47628d');right.addColorStop(1,'#101b3e');
-  c.fillStyle=right;c.fill();c.stroke();c.shadowBlur=0;
-  c.strokeStyle=col;c.lineWidth=2.9;
-  c.beginPath();c.moveTo(-19,-14);c.lineTo(0,-4);c.lineTo(19,-14);c.moveTo(0,-4);c.lineTo(0,15);c.stroke();
-  c.strokeStyle='#eefaffdd';c.lineWidth=1.1;c.beginPath();c.moveTo(-17,-18);c.lineTo(0,-26);c.lineTo(16,-18);c.stroke();
-  c.fillStyle=col;c.shadowColor=col;c.shadowBlur=9;c.fillRect(-14,-2,8,6);c.fillRect(8,-2,8,6);
-  c.shadowBlur=0;c.fillStyle='#fff5dc';c.textAlign='center';c.font='1000 15px system-ui';
-  c.fillText(POWER_SYMBOLS[box.type]||'✦',0,3);
-  if(!ready){c.fillStyle='#11275185';c.beginPath();c.roundRect(-24,-29,48,48,4);c.fill();}
+  // Faceted loot trunk, distinctive chunky lid, rim metalwork and luminous crest.
+  c.shadowColor=col;c.shadowBlur=ready?15:6;
+  c.fillStyle='#0d1632';c.strokeStyle='#101a34';c.lineWidth=3;
+  c.beginPath();c.moveTo(-24,-14);c.lineTo(0,-25);c.lineTo(24,-14);c.lineTo(24,10);
+  c.lineTo(0,23);c.lineTo(-24,10);c.closePath();c.fill();c.stroke();
+  c.shadowBlur=0;
+  const l=c.createLinearGradient(-22,-18,0,22);l.addColorStop(0,'#62718e');l.addColorStop(.55,'#2b395d');l.addColorStop(1,'#0a1430');
+  c.fillStyle=l;c.beginPath();c.moveTo(-22,-13);c.lineTo(0,-3);c.lineTo(0,19);c.lineTo(-22,8);c.closePath();c.fill();
+  const r=c.createLinearGradient(0,-7,24,17);r.addColorStop(0,'#637490');r.addColorStop(.5,'#273658');r.addColorStop(1,'#0a1229');
+  c.fillStyle=r;c.beginPath();c.moveTo(0,-3);c.lineTo(22,-13);c.lineTo(22,8);c.lineTo(0,19);c.closePath();c.fill();
+  const top=c.createLinearGradient(-18,-32,10,-8);top.addColorStop(0,'#f4f5ff');top.addColorStop(.3,'#a7b3c9');top.addColorStop(.65,'#4d5a78');top.addColorStop(1,'#1a2d4c');
+  c.fillStyle=top;c.beginPath();c.moveTo(-26,-21);c.lineTo(0,-34);c.lineTo(26,-21);c.lineTo(0,-8);c.closePath();c.fill();
+  c.strokeStyle='#111932';c.lineWidth=3;c.stroke();
+  c.strokeStyle=col;c.lineWidth=2.3;c.shadowColor=col;c.shadowBlur=9;
+  c.beginPath();c.moveTo(-22,-18);c.lineTo(0,-6);c.lineTo(22,-18);c.moveTo(0,-6);c.lineTo(0,18);c.stroke();
+  c.shadowBlur=0;
+  // Four rivets and chromed faceplates: extra volume without external downloads.
+  for(const dx of [-17,17])for(const dy of [-6,6]){
+   c.fillStyle='#e5ebff';c.beginPath();c.arc(dx,dy,1.65,0,7);c.fill();
+  }
+  c.fillStyle=col;c.shadowColor=col;c.shadowBlur=6;c.beginPath();c.roundRect(-9,-20,18,6,2);c.fill();
+  c.shadowBlur=0;c.font='900 16px system-ui';c.textAlign='center';c.fillStyle='#fdfcff';
+  c.fillText(POWER_SYMBOLS[box.type]||'✦',0,6);
+  if(!ready){c.fillStyle='#12204574';c.beginPath();c.roundRect(-25,-34,50,56,7);c.fill();}
   c.restore();
  }
 }
@@ -1015,7 +1046,7 @@ function contourPath(ctx,loops,ox=0,oy=0){
 }
 
 function updateMap(){
- // Exact same territory contour geometry and occupancy grid. Only surface shading changes.
+ // Physics, circular map mask, and capture contour topology are unchanged.
  const data=terrainCtx.createImageData(N,N),buf=data.data,active=new Uint8Array(12);
  for(let k=0;k<SIZE;k++){
   const v=land[k];if(!inArena[k]||!v)continue;
@@ -1023,29 +1054,55 @@ function updateMap(){
   buf[o]=rgb[0];buf[o+1]=rgb[1];buf[o+2]=rgb[2];buf[o+3]=255;
  }
  terrainCtx.putImageData(data,0,0);
- mapCtx.clearRect(0,0,WORLD,WORLD);mapCtx.lineJoin='round';mapCtx.lineCap='round';
+ mapCtx.clearRect(0,0,WORLD,WORLD);
+ mapCtx.lineJoin='round';mapCtx.lineCap='round';
  for(let v=1;v<=12;v++){
   if(!active[v-1])continue;
-  const loops=territoryLoops(v);if(!loops.length)continue;
-  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),col=COLORS[(v-1+settingColor)%12];
-  const dark='rgb('+Math.round(rgb[0]*.39)+','+Math.round(rgb[1]*.39)+','+Math.round(rgb[2]*.52)+')';
-  // Beveled, grounded side wall under the unmodified round contour.
-  contourPath(mapCtx,loops,0,10);mapCtx.fillStyle='#061c35a6';mapCtx.fill('evenodd');
-  contourPath(mapCtx,loops,0,7);mapCtx.fillStyle=dark;mapCtx.fill('evenodd');
-  contourPath(mapCtx,loops,0,0);mapCtx.fillStyle=col;mapCtx.fill('evenodd');
-  // Soft diagonal directional lighting, translucent hex engraving.
+  const loops=territoryLoops(v);
+  if(!loops.length)continue;
+  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]);
+  const color=COLORS[(v-1+settingColor)%12];
+  const rgbString=(f)=>'rgb('+rgb.map(n=>Math.max(0,Math.min(255,Math.round(n*f)))).join(',')+')';
+  // Real perceptual depth: broad diffused shadow, vertical extrusion, bright bevel, top surface.
+  mapCtx.save();mapCtx.shadowColor='rgba(3,10,25,.67)';mapCtx.shadowBlur=16;mapCtx.shadowOffsetY=12;
+  contourPath(mapCtx,loops,0,10);mapCtx.fillStyle='#0b182e';mapCtx.fill('evenodd');mapCtx.restore();
+  for(let depth=10;depth>=3;depth-=2){
+   contourPath(mapCtx,loops,0,depth);
+   mapCtx.fillStyle=rgbString(depth>=7?.45:.64);mapCtx.fill('evenodd');
+  }
+  contourPath(mapCtx,loops);
+  const top=mapCtx.createLinearGradient(0,0,WORLD*.6,WORLD);
+  top.addColorStop(0,rgbString(1.12));top.addColorStop(.44,color);top.addColorStop(1,rgbString(.81));
+  mapCtx.fillStyle=top;mapCtx.fill('evenodd');
   mapCtx.save();contourPath(mapCtx,loops);mapCtx.clip('evenodd');
-  const light=mapCtx.createLinearGradient(0,0,WORLD,WORLD);
-  light.addColorStop(0,'rgba(255,255,255,.26)');
-  light.addColorStop(.48,'rgba(255,255,255,.065)');
-  light.addColorStop(1,'rgba(5,20,60,.17)');
-  mapCtx.fillStyle=light;mapCtx.fillRect(0,0,WORLD,WORLD);
-  if(cvTerritoryPattern){mapCtx.globalAlpha=.44;mapCtx.fillStyle=cvTerritoryPattern;mapCtx.fillRect(0,0,WORLD,WORLD);}
+  const bloom=mapCtx.createRadialGradient(WORLD*.28,WORLD*.16,10,WORLD*.48,WORLD*.53,WORLD*.87);
+  bloom.addColorStop(0,'rgba(255,255,255,.25)');
+  bloom.addColorStop(.4,'rgba(255,255,255,.08)');
+  bloom.addColorStop(1,'rgba(7,20,51,.20)');
+  mapCtx.fillStyle=bloom;mapCtx.fillRect(0,0,WORLD,WORLD);
+  // Fine ornamental engraving: no coarse, highly visible hex cells.
+  if(cvTerritoryPattern){
+   mapCtx.globalAlpha=.5;mapCtx.fillStyle=cvTerritoryPattern;mapCtx.fillRect(0,0,WORLD,WORLD);
+   mapCtx.globalAlpha=1;
+  }
+  for(let y=79;y<WORLD;y+=201)for(let x=102;x<WORLD;x+=211){
+   const k=idx(x,y);if(k<0||land[k]!==v)continue;
+   const q=(x*3+y*7+v*31)%13;
+   if(q<5)continue;
+   mapCtx.lineWidth=1.15;mapCtx.strokeStyle='rgba(255,255,255,.22)';
+   mapCtx.beginPath();mapCtx.arc(x,y,7+(q%3)*3,Math.PI*.15,Math.PI*1.12);mapCtx.stroke();
+   mapCtx.fillStyle='rgba(255,255,255,.3)';
+   mapCtx.beginPath();mapCtx.arc(x,y,1.5,0,7);mapCtx.fill();
+  }
   mapCtx.restore();
-  // Firm shadow and precise neon rim. Keeps every enemy trail visibly distinct.
-  contourPath(mapCtx,loops,0,2);mapCtx.lineWidth=7;mapCtx.strokeStyle='rgba(6,18,47,.42)';mapCtx.stroke();
-  contourPath(mapCtx,loops);mapCtx.lineWidth=4.5;mapCtx.strokeStyle=col;mapCtx.stroke();
-  contourPath(mapCtx,loops,0,-1.4);mapCtx.lineWidth=1.7;mapCtx.strokeStyle='rgba(255,255,255,.76)';mapCtx.stroke();
+  contourPath(mapCtx,loops,0,5);
+  mapCtx.lineWidth=4;mapCtx.strokeStyle=rgbString(.48);mapCtx.stroke();
+  contourPath(mapCtx,loops);
+  mapCtx.shadowColor=color;mapCtx.shadowBlur=6;
+  mapCtx.lineWidth=2.7;mapCtx.strokeStyle=rgbString(1.15);mapCtx.stroke();
+  mapCtx.shadowBlur=0;
+  contourPath(mapCtx,loops,0,-1.3);
+  mapCtx.strokeStyle='rgba(255,255,255,.77)';mapCtx.lineWidth=1.3;mapCtx.stroke();
  }
 }
 function burstAt(x,y,color,count=16,strength=85){
@@ -1502,6 +1559,20 @@ function paintMascotCanvas(p,hero,color){
 function drawUnit(p){
  if(!p.alive)return;
  const col=COLORS[(p.id+settingColor)%12];
+ // Rendered contact shadow grounds actual GLB actors, whose canvas remains transparent.
+ c.save();c.translate(p.x,p.y+8);
+ const shadowScale=powerScale(p)*(p.id===0?1.12:1);
+ c.scale(shadowScale,shadowScale);
+ const shadow=c.createRadialGradient(0,0,2,0,0,36);
+ shadow.addColorStop(0,'rgba(0,12,31,.55)');shadow.addColorStop(1,'rgba(0,12,31,0)');
+ c.fillStyle=shadow;c.beginPath();c.ellipse(0,0,36,16,0,0,7);c.fill();
+ if(p.id===0){
+  c.strokeStyle='rgba(236,250,255,.48)';c.lineWidth=2;
+  c.beginPath();c.ellipse(0,0,24,10,0,0,7);c.stroke();
+  c.strokeStyle=col;c.globalAlpha=.7+.25*Math.sin(clock*4);c.lineWidth=2.4;
+  c.beginPath();c.ellipse(0,0,24,10,0,Math.PI*1.4);c.stroke();
+ }
+ c.restore();
 
  if(p.outside&&p.trailPoints.length){
   // Same vulnerable trail geometry: premium energized ribbon is presentation only.
@@ -1553,27 +1624,26 @@ function drawUnit(p){
 
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
- const screenLight=c.createLinearGradient(0,0,screenW,screenH);
- screenLight.addColorStop(0,'#183f68');screenLight.addColorStop(.55,'#09284b');screenLight.addColorStop(1,'#0a1938');
- c.fillStyle=screenLight;c.fillRect(0,0,screenW,screenH);
+ // V2: consistent slate backdrop, no turquoise footer, restrained atmospheric vignette.
+ const sky=c.createLinearGradient(0,0,screenW,screenH);
+ sky.addColorStop(0,'#1a3c5d');sky.addColorStop(.58,'#183351');sky.addColorStop(1,'#0d233d');
+ c.fillStyle=sky;c.fillRect(0,0,screenW,screenH);
  if(!game)return;
  const ref=Math.min(screenW,screenH*.75);zoom=clamp(ref/520,.68,1.12);
  c.save();c.translate(screenW/2,screenH/2);c.scale(zoom,zoom);c.translate(-camX,-camY);
  const storm=arenaState();
- // Original ROUND arena. No square or island collision changes.
- c.beginPath();c.arc(CX,CY,R+21,0,Math.PI*2);c.fillStyle='#061124';c.fill();
- c.beginPath();c.arc(CX,CY,R+12,0,Math.PI*2);c.fillStyle='#336f97';c.fill();
+ // Keep ONE circular arena and the existing seven nested shrinking zones.
+ c.beginPath();c.arc(CX,CY,R+21,0,Math.PI*2);c.fillStyle='#071629';c.fill();
+ c.beginPath();c.arc(CX,CY,R+12,0,Math.PI*2);c.fillStyle='#366989';c.fill();
  c.save();c.beginPath();c.arc(storm.x,storm.y,storm.radius,0,Math.PI*2);c.clip();
- c.fillStyle=cvFloorPattern||'#18395d';c.fillRect(0,0,WORLD,WORLD);
- // Ambient light anchors the currently active part of the map.
- const glow=c.createRadialGradient(storm.x-280,storm.y-320,40,storm.x,storm.y,Math.max(120,storm.radius));
- glow.addColorStop(0,'rgba(111,210,255,.18)');glow.addColorStop(1,'rgba(4,15,38,.2)');
+ c.fillStyle=cvFloorPattern||'#24405e';c.fillRect(0,0,WORLD,WORLD);
+ const glow=c.createRadialGradient(storm.x-280,storm.y-320,45,storm.x,storm.y,Math.max(200,storm.radius));
+ glow.addColorStop(0,'rgba(174,218,233,.11)');glow.addColorStop(.56,'rgba(88,149,181,.045)');glow.addColorStop(1,'rgba(8,24,45,.18)');
  c.fillStyle=glow;c.fillRect(0,0,WORLD,WORLD);
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
  c.restore();
- // Energy lens is a distinct signal at the REAL safe zone boundary.
  c.beginPath();c.arc(storm.x,storm.y,storm.radius,0,Math.PI*2);
- c.strokeStyle='#76ddff50';c.lineWidth=18;c.stroke();
+ c.strokeStyle='#85d8ed55';c.lineWidth=12;c.stroke();
  drawEffects();paintCelebrations();drawPowerBoxes();
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
  drawUnit(game.people[0]);drawStorm();c.restore();
