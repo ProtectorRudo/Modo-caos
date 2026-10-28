@@ -78,7 +78,7 @@ for name, (digest, size) in pins.items():
         data = file.read_bytes()
         try:
             magic, version, declared = struct.unpack_from("<III", data)
-            sha = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\\0" + data).hexdigest()
+            sha = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
             valid = magic == 0x46546c67 and version == 2 and declared == size and sha == digest
         except (ValueError, struct.error):
             valid = False
@@ -93,7 +93,7 @@ status = {
     "ready_assets": client_ready and all(validated_models.values()),
     "note": "Asset integrity only; visual Android QA is a separate requirement."
 }
-(TARGET / "cividom-health.json").write_text(json.dumps(status, indent=2) + "\\n", encoding="utf-8")
+(TARGET / "cividom-health.json").write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8")
 print("CIVIDOM verified release assets:", status["ready_assets"], validated_models)
 
 print("Pages static build OK:", len(published), "safe public files; prefix", PREFIX)
