@@ -383,7 +383,9 @@ test('original Six-Seven dance drives genuine arm bones on two 3D showdown chara
  assert.match(renderer,/function syncVS\(state,dt\)/);
  assert.match(renderer,/window\.PaperVSReady=true/);
  assert.match(source,/id="versus3dCanvas"/);
- assert.match(source,/if\(!window\.PaperVSReady\)/);
+ assert.match(source,/id="vsPortraits"/);
+ assert.match(source,/style\.opacity=window\.PaperVSReady\?'0':'1'/);
+ assert.doesNotMatch(source,/if\(!window\.PaperVSReady\)/);
 });
 test('showdown preloads GLBs while the countdown is running',()=>{
  const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
@@ -449,4 +451,24 @@ test('3D stage is reparented between menu and versus without creating additional
  assert.match(module,/window\.PaperMenuReady=true/);
  assert.match(module,/state\.menuing/);
  assert.equal((module.match(/new THREE\.WebGLRenderer\(/g)||[]).length,2); // gameplay + shared menu/VS
+});
+
+test('real generated 3D portraits replace CSS doll tiles and old VS fallback',()=>{
+ const g=boot(419);
+ assert.match(source,/const STYLOO_PORTRAITS=\['archer','merchant','student','ninja'\]/);
+ assert.match(g.get('heroPicker').innerHTML,/hero3DThumbnail/);
+ assert.doesNotMatch(g.get('heroPicker').innerHTML,/heroMini/);
+ assert.match(source,/id="menuHeroPortrait"/);
+ assert.match(source,/id="vsPortraitPlayer"/);
+ assert.match(source,/id="vsPortraitOpponent"/);
+ assert.doesNotMatch(source,/versusActor\(ctx,wardrobe\.hero,168/);
+ assert.match(source,/document\.getElementById\('menuHeroPortrait'\)/);
+});
+test('changing selected hero updates the original GLB portrait before the model loads',()=>{
+ const g=boot(419),h=g.win.__paperTest;
+ h.setHero(2);
+ assert.match(g.get('menuHeroPortrait').src,/student\.png$/);
+ h.setHero(3);
+ assert.match(g.get('menuHeroPortrait').src,/ninja\.png$/);
+ assert.match(g.get('heroPicker').innerHTML,/ninja\.png/);
 });
