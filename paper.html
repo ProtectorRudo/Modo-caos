@@ -589,22 +589,31 @@ function renderHeroPicker(){
  $('menuModelLoader').classList.remove('loaded');
  if(window.PaperMenuHeroChanged)window.PaperMenuHeroChanged(h.id);
 }
+const SHOP_TABS=[['outfit','ROPA'],['headwear','GORROS'],['eyewear','LENTES'],['shoes','CALZADO'],['emote','BAILES'],['celebration','FESTEJOS'],['trail','ESTELAS']];
 function openShop(from='home'){
  if(mode==='play')return;
- shopReturn=from;shopCategory='outfit';$('shopNotice').textContent='Todo se consigue jugando. Sin compras con dinero real.';
+ shopReturn=from;shopCategory='outfit';shopPreviewId=wardrobe.equipped.outfit;shopPreviewYaw=0;
+ $('shopNotice').textContent='Probá gratis cualquier look. Solo gastás monedas al confirmar.';
  $('shop').classList.remove('hidden');
  if(from==='home')$('home').classList.add('hidden');else $('result').classList.add('hidden');
  renderShop();refreshWallet();
 }
 function closeShop(){
- $('shop').classList.add('hidden');
+ $('shop').classList.add('hidden');shopPreviewId=null;
  if(shopReturn==='result')$('result').classList.remove('hidden');else $('home').classList.remove('hidden');
 }
+function previewItem(id){
+ const item=SHOP_ITEMS.find(x=>x.id===id);if(!item)return;
+ shopPreviewId=id;renderShop();
+}
 function renderShop(){
- $('shopTabs').innerHTML=[['outfit','ROPA'],['emote','GESTOS'],['celebration','FESTEJOS'],['trail','ESTELAS']].map(([cat,name])=>'<button class="shopTab '+(shopCategory===cat?'active':'')+'" data-tab="'+cat+'">'+name+'</button>').join('');
+ $('shopTabs').innerHTML=SHOP_TABS.map(([cat,name])=>'<button class="shopTab '+(shopCategory===cat?'active':'')+'" data-tab="'+cat+'">'+name+'</button>').join('');
+ if(!SHOP_ITEMS.some(x=>x.id===shopPreviewId&&x.category===shopCategory))shopPreviewId=wardrobe.equipped[shopCategory];
+ const selected=SHOP_ITEMS.find(x=>x.id===shopPreviewId);
+ $('shopPreviewName').textContent=HEROES[wardrobe.hero].name+' · '+(selected?.name||'ORIGINAL').toUpperCase();
  $('shopGrid').innerHTML=SHOP_ITEMS.filter(x=>x.category===shopCategory).map(item=>{
-  const owned=wardrobe.owned.has(item.id),equipped=wardrobe.equipped[item.category]===item.id;
-  return '<article class="shopItem '+(equipped?'equipped':'')+'"><div class="itemArt">'+item.icon+'</div><strong>'+item.name+'</strong><small>'+item.desc+'</small><button class="buyItem" data-buy="'+item.id+'" '+(equipped?'disabled':'')+'>'+(equipped?'✓ EQUIPADO':owned?'EQUIPAR':'🪙 '+item.price)+'</button></article>';
+  const owned=wardrobe.owned.has(item.id),equipped=wardrobe.equipped[item.category]===item.id,previewed=item.id===shopPreviewId;
+  return '<article class="shopItem '+(equipped?'equipped ':'')+(previewed?'previewed':'')+'"><button class="shopPreviewChoice" data-preview="'+item.id+'" aria-label="Probar '+item.name+'"><span class="itemArt">'+item.icon+'</span><strong>'+item.name+'</strong><small>'+item.desc+'</small></button><button class="buyItem" data-buy="'+item.id+'" '+(equipped?'disabled':'')+'>'+(equipped?'✓ EQUIPADO':owned?'EQUIPAR':'🪙 '+item.price+' · COMPRAR')+'</button></article>';
  }).join('');
 }
 function emoteFor(p,reason='capture'){
@@ -1379,8 +1388,16 @@ $('openShopHome').onclick=()=>openShop('home');
 $('openShopResult').onclick=()=>openShop('result');
 $('closeShop').onclick=closeShop;
 $('backFromShop').onclick=closeShop;
-$('shopTabs').onclick=e=>{const node=e.target.closest('[data-tab]');if(node){shopCategory=node.dataset.tab;renderShop();}};
-$('shopGrid').onclick=e=>{const node=e.target.closest('[data-buy]');if(node)buyOrEquip(node.dataset.buy);};
+$('shopTabs').onclick=e=>{const node=e.target.closest('[data-tab]');if(node){shopCategory=node.dataset.tab;shopPreviewId=wardrobe.equipped[shopCategory];renderShop();}};
+$('shopGrid').onclick=e=>{
+ const buy=e.target.closest('[data-buy]');if(buy){buyOrEquip(buy.dataset.buy);return;}
+ const prev=e.target.closest('[data-preview]');if(prev)previewItem(prev.dataset.preview);
+};
+let showroomPointer=null;
+$('shopHeroStage').addEventListener('pointerdown',e=>{showroomPointer={id:e.pointerId,x:e.clientX};$('shopHeroStage').setPointerCapture(e.pointerId);});
+$('shopHeroStage').addEventListener('pointermove',e=>{if(!showroomPointer||showroomPointer.id!==e.pointerId)return;shopPreviewYaw+=(e.clientX-showroomPointer.x)*.012;showroomPointer.x=e.clientX;});
+$('shopHeroStage').addEventListener('pointerup',()=>{showroomPointer=null;});
+$('shopHeroStage').addEventListener('pointercancel',()=>{showroomPointer=null;});
 renderHeroPicker();refreshWallet();
 
 COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Color '+(i+1));b.style.background=col;b.className=i===settingColor?'active':'';b.onclick=()=>{settingColor=i;document.querySelectorAll('#colors button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('colors').append(b);});
@@ -1392,8 +1409,13 @@ requestAnimationFrame(frame);
 // The 3D renderer is a separate, optional visual layer. Expose only the
 // lightweight read-only coordinates it needs; all gameplay stays unchanged.
 window.Paper3DState=()=>({
- playing:!!game&&mode==='play',menuing:mode==='home',menuHero:wardrobe.hero,previewing:mode==='versus',vsHero:wardrobe.hero,vsRival,vsSeconds:vsLastElapsed,clock,camX,camY,zoom,screenW,screenH,
- outfit:wardrobe.equipped.outfit,
+ playing:!!game&&mode==='play',menuing:mode==='home'&&$('shop').classList.contains('hidden'),menuHero:wardrobe.hero,previewing:mode==='versus',vsHero:wardrobe.hero,vsRival,vsSeconds:vsLastElapsed,clock,camX,camY,zoom,screenW,screenH,
+ equipment:{...wardrobe.equipped},
+ shopping:!$('shop').classList.contains('hidden'),
+ previewEquipment:shopPreviewId?{...wardrobe.equipped,...(SHOP_ITEMS.some(x=>x.id===shopPreviewId)?{[SHOP_ITEMS.find(x=>x.id===shopPreviewId).category]:shopPreviewId}:{})}:null,
+ previewYaw:shopPreviewYaw,
+ previewEmote:shopCategory==='emote'?shopPreviewId:'idle',
+ vsEmote:wardrobe.equipped.emote==='emote_hello'?'emote_sixseven':wardrobe.equipped.emote,
  people:game?game.people.map(p=>({
   id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,
   hero:p.id===0?wardrobe.hero:p.id===1?vsRival:p.id%HEROES.length,
