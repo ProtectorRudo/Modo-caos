@@ -63,11 +63,26 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
    return {types:types.map(type=>{const image=art.sprite(type);return {type,w:image.width,h:image.height}}),count:art.stats().spriteCount};
   });
   assert(premium&&premium.count===11&&premium.types.every(x=>x.w>=256&&x.h>=256),'all premium offline prelit sprites must exist at full 256px resolution '+JSON.stringify(premium));
+  const apoc=await page.evaluate(()=>{
+   const a=window.FrutaPremiumArt;
+   const half=a.slicedHalf('orange',-1),other=a.slicedHalf('watermelon',1);
+   const gun=document.querySelector('#weapon svg');
+   const cards=[...document.querySelectorAll('#hud .hudCard')];
+   return {portal:a.stats().portal,halfSize:[half.width,half.height],otherSize:[other.width,other.height],
+      gun:!!gun,gunSize:gun?.getAttribute('viewBox'),cardHeights:cards.map(c=>Math.round(c.getBoundingClientRect().height)),
+      gunWidth:Math.round(document.querySelector('#weapon').getBoundingClientRect().width)};
+  });
+  assert.equal(apoc.portal,'juice-apocalypse-5-chamber','not the old giant empty sky ring');
+  assert.deepEqual(apoc.halfSize,[128,128]);assert.deepEqual(apoc.otherSize,[128,128]);
+  assert(apoc.gun&&apoc.gunSize==='0 0 240 335','MK II must render as a real layered weapon');
+  assert(apoc.cardHeights.every(h=>h<82)&&apoc.gunWidth<=166,'HUD and blaster must be compact and clear the scene '+JSON.stringify(apoc));
+  console.log('JUICE APOCALYPSE QA',JSON.stringify(apoc));
 
   assert.equal(await page.locator('#arWorld #fx-scene').count(),0,'no rebuilt SVG scene remains');
   assert(await page.locator('#weapon').isVisible(),'first-person Juice Blaster must be visible');
   await page.screenshot({path:'frutastrofe-ar-world-projection-mobile.png',animations:'disabled'});
   await page.waitForFunction(()=>window.__frutaQA.state().elapsed>7,null,{timeout:16000});
+  assert(await page.locator('#hud').evaluate(el=>el.classList.contains('apocalypse-guide-hidden')),'persistent tutorial must disappear after introduction');
   const wave=await page.evaluate(()=>({objects:window.__frutaQA.state().objects,targets:window.__frutaQA.previewWorld(0).length}));
   assert(wave.objects>=3&&wave.objects<=12,'sky fruit must arrive in spaced manageable waves '+JSON.stringify(wave));
   await page.screenshot({path:'frutastrofe-ar-dense-volley-mobile.png',animations:'disabled'});
