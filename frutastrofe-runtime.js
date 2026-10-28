@@ -1,8 +1,8 @@
 /* FRUTÁSTROFE · runtime 3D / WebXR floor-locked / save / local versus */
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
-const $=id=>document.getElementById(id),C=window.FrutaCore,A=window.FrutaArt;
+const $=id=>document.getElementById(id),C=window.FrutaCore,A=window.FrutaArt,P=window.FrutaARProjection;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),number=x=>Math.round(x).toLocaleString('es-AR');
-if(!C||!A){throw new Error('Frutástrofe: faltan core o arte')}
+if(!C||!A||!P){throw new Error('Frutástrofe: faltan core, arte o proyección AR')}
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight);
 renderer.setClearColor(0x070b23,1);renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -16,7 +16,7 @@ const params=new URLSearchParams(location.search);
 let progress={unlocked:1,stars:{},coins:0,best:0,scores:{}};
 try{const o=JSON.parse(localStorage.getItem('mc-frutastrofe-save-v1')||'{}');if(o&&typeof o==='object')progress={...progress,...o,stars:o.stars||{},scores:o.scores||{}}}catch(e){}
 const save=()=>{try{localStorage.setItem('mc-frutastrofe-save-v1',JSON.stringify(progress))}catch(e){}};
-let g=null,view='home',selected=1,preferAR=false,isAR=false,arSession=null,hitSource=null,anchor=null,placement=null,reticle=null,glHit=false,arHitResult=null,arViewerSpace=null;
+let g=null,view='home',selected=1,isAR=false,arSession=null,hitSource=null,anchor=null,placement=null,reticle=null,glHit=false,arHitResult=null,arViewerSpace=null,arTargets=[],lastOverlay=0,arFrameCount=0;
 let lastTime=0,lastHud=0,toastUntil=0,pulseUntil=0,paused=false,musicEnabled=true,lastMusic=0,wasLost=false;
 let duel=null,musicCtx=null,touchAim=new THREE.Vector2(0,0),lastPointer=null;
 const show=name=>{view=name;for(const n of ['home','selector','hud','readyOverlay','pausePanel','results','arPanel'])$(n).style.display=n===name?(n==='hud'||n==='home'?'flex':'flex'):'none';};
@@ -29,7 +29,7 @@ function progressUI(){
  }
  const cfg=C.LEVELS[selected-1];
  $('levelInfo').textContent='NIVEL '+selected+' · '+cfg.name+' · '+(cfg.goal==='combos'?'Completá '+cfg.target+' cadenas':cfg.goal==='citrus'?'Destruí '+cfg.target+' cítricos':cfg.goal==='boss'?'Derrotá a la Sandía Gigante':cfg.goal==='clean'?'Sumá '+number(cfg.target)+' puntos sin más de '+cfg.maxErrors+' fallo(s)':'Alcanzá '+number(cfg.target)+' puntos')+' · '+cfg.duration+' segundos';
- $('choose3D').classList.toggle('on',!preferAR);$('chooseAR').classList.toggle('on',preferAR);
+
 }
 function alertTxt(text,ms=1350){$('toast').textContent=text;$('toast').classList.add('show');toastUntil=performance.now()+ms}
 function tone(freq=600,duration=.10,type='sine',vol=.08,offset=0){
@@ -59,11 +59,11 @@ function createGame(mode='campaign',level=selected,seed){
  $('readyEyebrow').textContent=mode==='arcade'?'DESAFÍO ARCADE':'NIVEL '+String(level).padStart(2,'0');
  $('readyTitle').textContent=duel?'JUGADOR '+duel.turn+' · '+g.cfg.name:g.cfg.name;
  $('readyDescription').textContent=g.cfg.goal==='boss'?'La Sandía Gigante tiene 12 puntos débiles. ¡Apuntá con precisión!':g.cfg.goal==='combos'?'¡Conseguí '+g.cfg.target+' cadenas de tres frutas iguales!':'Dispará a las frutas, encadená tres iguales y evitá las bombas. ¡Completá el objetivo antes de que acabe el tiempo!';
- $('playTip').textContent=isAR?'APUNTÁ CON EL TELÉFONO · TOCÁ ¡PUM!':'TOCÁ FRUTAS O APUNTÁ Y TOCÁ ¡PUM!';$('recenterBtn').style.display=isAR?'inline-block':'none';
+ $('playTip').textContent='MIRÁ LA ARENA · APUNTÁ A LAS FRUTAS · ¡PUM!';$('recenterBtn').style.display=isAR?'inline-block':'none';
  $('hudBest').textContent=number(progress.best);
  show('readyOverlay');
 }
-function play(mode='campaign',level=selected,seed){createGame(mode,level,seed)}
+function play(mode='campaign',level=selected,seed){if(!isAR||!placement)throw Error('Iniciá AR y fijá una arena antes de jugar.');createGame(mode,level,seed)}
 function hudUpdate(){
  if(!g||view!=='hud')return;
  const goal=g.goalStatus();
@@ -91,10 +91,10 @@ function handleFinish(ev){
  if(duel&&duel.turn===1)$('nextBtn').textContent='▶ TURNO JUGADOR 2';else $('nextBtn').textContent='▶ SIGUIENTE NIVEL';
  show('results');progressUI();
 }
-function resetToMenu(){arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
+function resetToMenu(){arTargets=[];$('arWorld').style.display='none';arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
 function matchFromResults(){
- if(duel&&duel.turn===1){duel.turn=2;play('arcade',1,duel.seed);return}
- if(!duel&&g?.mode==='campaign'&&g.level<10){selected=g.level+1;play('campaign',selected);return}
+ if(duel&&duel.turn===1){duel.turn=2;createGame('arcade',1,duel.seed);return}
+ if(!duel&&g?.mode==='campaign'&&g.level<10){selected=g.level+1;createGame('campaign',selected);return}
  resetToMenu();
 }
 function shareChallenge(){
@@ -131,44 +131,41 @@ $('pauseBtn').onclick=pauseGame;
 $('resumeBtn').onclick=()=>{paused=false;show('hud')};
 $('quitBtn').onclick=resetToMenu;
 $('soundHome').onclick=()=>{musicEnabled=!musicEnabled;$('soundHome').textContent=musicEnabled?'♫ SONIDO':'♫ SILENCIO';tone(660)};
-$('campaign').onclick=()=>{duel=null;preferAR=false;progressUI();show('selector')};
-$('arcade').onclick=()=>{duel=null;preferAR=false;play('arcade',1)};
-$('versus').onclick=()=>{duel={seed:C.challengeSeed(new Date().toISOString().slice(0,10))^((Math.random()*1e7)|0),turn:1,first:0,second:0};preferAR=false;play('arcade',1,duel.seed)};
+$('campaign').onclick=()=>{duel=null;progressUI();show('selector')};
+$('arcade').onclick=()=>{duel=null;startAR('arcade',1)};
+$('versus').onclick=()=>{duel={seed:C.challengeSeed(new Date().toISOString().slice(0,10))^((Math.random()*1e7)|0),turn:1,first:0,second:0};startAR('arcade',1)};
 $('selectorBack').onclick=e=>{e.preventDefault();show('home')};
-$('choose3D').onclick=()=>{preferAR=false;progressUI()};
-$('chooseAR').onclick=()=>{preferAR=true;progressUI()};
-$('levelPlay').onclick=()=>{if(preferAR)startAR('campaign',selected);else play('campaign',selected)};
-$('arStart').onclick=()=>{duel=null;startAR('arcade',1)};
+$('levelPlay').onclick=()=>startAR('campaign',selected);
 $('goBtn').onclick=startPlay;
 $('readyBack').onclick=resetToMenu;
 $('nextBtn').onclick=matchFromResults;
-$('replayBtn').onclick=()=>{if(duel){duel.turn=1;duel.first=duel.second=0;play('arcade',1,duel.seed)}else play(g.mode,g.level,g.seed)};
+$('replayBtn').onclick=()=>{if(duel){duel.turn=1;duel.first=duel.second=0;createGame('arcade',1,duel.seed)}else createGame(g.mode,g.level,g.seed)};
 $('menuBtn').onclick=resetToMenu;
 $('shareBtn').onclick=shareChallenge;
 let nextAR={mode:'arcade',level:1};
 async function startAR(mode,level){
  nextAR={mode,level};
- if(!navigator.xr||!window.isSecureContext){alert('La realidad aumentada requiere HTTPS y Chrome Android con WebXR/ARCore. Podés jugar en 3D sin instalar nada.');return}
+ if(!navigator.xr||!window.isSecureContext){alert('Frutástrofe se juega exclusivamente en AR. Requiere HTTPS, Chrome Android y ARCore compatible.');return}
  try{
   if(!await navigator.xr.isSessionSupported('immersive-ar'))throw Error('Este dispositivo no es compatible con AR inmersiva.');
-  art.reset();art.world.visible=false;renderer.setClearColor(0,0);art.scene.background=null;art.scene.fog=null;
+  art.reset();art.world.visible=false;renderer.setClearColor(0,0);art.scene.background=null;art.scene.fog=null;renderer.toneMapping=THREE.NoToneMapping;
   const opts={requiredFeatures:['hit-test','local-floor','dom-overlay'],optionalFeatures:['anchors'],domOverlay:{root:document.body}};
   arSession=await navigator.xr.requestSession('immersive-ar',opts);
   isAR=true;await renderer.xr.setSession(arSession);
   renderer.xr.getReferenceSpace();
   const viewerSpace=await arSession.requestReferenceSpace('viewer');arViewerSpace=viewerSpace;
   hitSource=await arSession.requestHitTestSource({space:viewerSpace});
-  placement=null;glHit=false;anchor=null;arHitResult=null;arMarker.visible=false;art.world.scale.setScalar(.43);
+  placement=null;glHit=false;anchor=null;arHitResult=null;arMarker.visible=false;art.world.scale.setScalar(.23);$('arWorld').style.display='block';
   show('arPanel');$('arLock').disabled=true;
   $('arTitle').textContent='BUSCÁ EL PISO';$('arMessage').textContent='Apuntá a un suelo despejado. Cuando aparezca LISTO PARA FIJAR, tocá el botón.';
   Object.assign($('arPanel').style,{background:'transparent',alignItems:'flex-end',backdropFilter:'none'});
   Object.assign($('arPanel').querySelector('.modal').style,{background:'#100c2bd9',maxWidth:'440px',padding:'13px',marginBottom:'12px'});
-  arSession.addEventListener('end',()=>{isAR=false;arSession=null;hitSource=null;anchor=null;placement=null;art.world.visible=true;art.world.scale.setScalar(1);art.world.position.set(0,0,0);art.scene.background=new THREE.Color(0x070b23);art.scene.fog=new THREE.FogExp2(0x090d25,.021);$('arPanel').removeAttribute('style');$('arPanel').querySelector('.modal').removeAttribute('style');if(view==='hud'||view==='arPanel'||view==='readyOverlay'||view==='pausePanel')resetToMenu()},{once:true});
- }catch(err){console.warn('Frutástrofe AR:',err);isAR=false;art.world.visible=true;art.scene.background=new THREE.Color(0x070b23);art.world.scale.setScalar(1);alert('No se pudo abrir AR: '+err.message+'\nEl modo 3D sigue disponible.');show('home')}
+  arSession.addEventListener('end',()=>{isAR=false;arSession=null;hitSource=null;anchor=null;placement=null;art.world.visible=true;art.world.scale.setScalar(1);art.world.position.set(0,0,0);art.scene.background=new THREE.Color(0x070b23);art.scene.fog=new THREE.FogExp2(0x090d25,.021);renderer.toneMapping=THREE.ACESFilmicToneMapping;$('arPanel').removeAttribute('style');$('arPanel').querySelector('.modal').removeAttribute('style');if(view==='hud'||view==='arPanel'||view==='readyOverlay'||view==='pausePanel')resetToMenu()},{once:true});
+ }catch(err){console.warn('Frutástrofe AR:',err);isAR=false;art.world.visible=true;art.scene.background=new THREE.Color(0x070b23);art.world.scale.setScalar(1);alert('No se pudo abrir Frutástrofe AR: '+err.message+'\nNecesitás Chrome Android con ARCore.');show('home')}
 }
 $('arLock').onclick=async()=>{
  if(!glHit||!reticle||!arSession)return;
- placement=reticle.clone();art.world.position.copy(placement.position);art.world.quaternion.identity();art.world.visible=true;arMarker.visible=false;
+ placement=reticle.clone();art.world.position.copy(placement.position);art.world.position.y+=.09;art.world.quaternion.identity();art.world.visible=true;arMarker.visible=false;
  if(arHitResult&&typeof arHitResult.createAnchor==='function'){try{anchor=await arHitResult.createAnchor()}catch(e){console.warn('Ancla no disponible, usando pose fija del piso:',e.message)}}
  $('arLock').disabled=true;hitSource?.cancel?.();hitSource=null;
  // The scene is fixed in local-floor coordinates; moving the device NEVER rewrites the anchor transform.
@@ -185,7 +182,7 @@ $('recenterBtn').onclick=async()=>{
 function arFrame(frame){
  if(!isAR||!frame)return;
  const ref=renderer.xr.getReferenceSpace();if(!ref)return;
- if(anchor){const pose=frame.getPose(anchor.anchorSpace,ref);if(pose&&placement)art.world.position.set(pose.transform.position.x,pose.transform.position.y,pose.transform.position.z)}
+ if(anchor){const pose=frame.getPose(anchor.anchorSpace,ref);if(pose&&placement)art.world.position.set(pose.transform.position.x,pose.transform.position.y+.09,pose.transform.position.z)}
  if(!hitSource||placement)return;
  const hits=frame.getHitTestResults(hitSource);
  if(hits.length){
@@ -214,4 +211,4 @@ function resize(){const w=innerWidth,h=innerHeight;art.camera.aspect=w/h;art.cam
 addEventListener('resize',resize);resize();
 progressUI();show('home');
 if(params.has('qa'))window.__frutaQA={state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,frames:renderer.info.render.frame}),finish:()=>g?.finish(true)};
-if(params.has('seed')){const l=clamp(Number(params.get('level')||1),1,10),m=params.get('mode')==='arcade'?'arcade':'campaign';if(m==='arcade'||l<=progress.unlocked){duel=null;play(m,l,getSeed())}}
+if(params.has('seed')){const l=clamp(Number(params.get('level')||1),1,10),m=params.get('mode')==='arcade'?'arcade':'campaign';if(m==='arcade'||l<=progress.unlocked){duel=null;selected=l;window.__frutaSharedChallenge={mode:m,level:l,seed:getSeed()};if(m==='campaign'){progressUI();show('selector')}else alertTxt('RETO DISPONIBLE · ABRÍ AR PARA JUGAR',2000)}}
