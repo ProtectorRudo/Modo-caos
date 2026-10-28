@@ -240,11 +240,25 @@ function draw(view,origin,scale,objects,mode='playing'){
   html+='<ellipse cx="'+n(q.x)+'" cy="'+n(q.y)+'" rx="'+n(r)+'" ry="'+n(r*(p.shape==='star'?.8:1.45))+'" transform="rotate('+n(age*260)+' '+n(q.x)+' '+n(q.y)+')" fill="'+p.col+'" stroke="#ffffff" stroke-width=".4" opacity="'+n(alpha)+'"/>';
  }
  for(let i=shots.length-1;i>=0;i--){
-  const sh=shots[i],age=t-sh.t;if(age>.23){shots.splice(i,1);continue}
-  const alpha=clamp(1-age/.23,0,1),gun=$('weapon'),gunRect=gun?.getBoundingClientRect(),sx=gunRect?gunRect.left+gunRect.width*.492:w*.50,sy=gunRect?gunRect.top+gunRect.width*(48/260):h*.84,tx=n(sh.x),ty=n(sh.y);
-  html+='<path d="M'+n(sx)+' '+n(sy)+'L'+tx+' '+ty+'" fill="none" stroke="#19dff5" stroke-width="'+n(16*alpha)+'" opacity="'+n(alpha*.4)+'"/>';
-  html+='<path d="M'+n(sx)+' '+n(sy)+'L'+tx+' '+ty+'" fill="none" stroke="#edffff" stroke-width="'+n(4*alpha)+'" opacity="'+n(alpha)+'"/>';
-  html+='<circle cx="'+tx+'" cy="'+ty+'" r="'+n(22+age*120)+'" stroke="'+(sh.hit?'#fcff98':'#47ffff')+'" stroke-width="'+n(5*alpha)+'" fill="none" opacity="'+n(alpha)+'"/>';
+  const sh=shots[i],age=t-sh.t;if(age>.19){shots.splice(i,1);continue}
+  const alpha=clamp(1-age/.19,0,1),gun=$('weapon'),gunRect=gun?.getBoundingClientRect(),sx=gunRect?gunRect.left+gunRect.width*.492:w*.50,sy=gunRect?gunRect.top+gunRect.width*(48/260):h*.84,tx=n(sh.x),ty=n(sh.y);
+  const a=n(alpha),flare=n(11+20*alpha),vx=tx-sx,vy=ty-sy,dist=Math.hypot(vx,vy)||1,
+    nx=-vy/dist,ny=vx/dist,mx=sx+vx*.57,my=sy+vy*.57;
+  html+='<path d="M'+n(sx)+' '+n(sy)+'L'+tx+' '+ty+'" fill="none" stroke="#22d8f8" stroke-linecap="round" stroke-width="'+n(19*alpha)+'" opacity="'+n(alpha*.32)+'" filter="url(#fp-glow)"/>';
+  html+='<path d="M'+n(sx)+' '+n(sy)+'L'+tx+' '+ty+'" fill="none" stroke="#2cdbff" stroke-linecap="round" stroke-width="'+n(9*alpha)+'" opacity="'+n(alpha*.83)+'"/>';
+  html+='<path d="M'+n(sx)+' '+n(sy)+'L'+tx+' '+ty+'" fill="none" stroke="#f3fff9" stroke-linecap="round" stroke-width="'+n(2.6*alpha)+'" opacity="'+a+'"/>';
+  // electrically jittered split branches, computed from projectile direction
+  for(let k of [-1,1]){
+   const offset=k*(9+3*Math.sin(t*62+k));
+   html+='<path d="M'+n(sx+nx*k*2)+' '+n(sy+ny*k*2)+'Q'+n(mx+nx*offset)+' '+n(my+ny*offset)+' '+n(tx-nx*k*2)+' '+n(ty-ny*k*2)+'" fill="none" stroke="#7bfeff" stroke-width="'+n(1.6*alpha)+'" opacity="'+n(alpha*.78)+'"/>';
+  }
+  // Muzzle detonation: an energetic sunburst attached to the actual blaster muzzle.
+  html+='<circle cx="'+n(sx)+'" cy="'+n(sy)+'" r="'+flare+'" fill="url(#fp-bloom)" opacity="'+n(alpha*.95)+'"/>';
+  html+='<circle cx="'+n(sx)+'" cy="'+n(sy)+'" r="'+n(6+age*75)+'" fill="none" stroke="#efffa3" stroke-width="'+n(4*alpha)+'" opacity="'+a+'"/>';
+  for(let k=0;k<8;k++){const angle=k*Math.PI/4+t*16,rr=(15+age*70)*(k%2?.7:1);
+   html+='<path d="M'+n(sx+Math.cos(angle)*9)+' '+n(sy+Math.sin(angle)*9)+'L'+n(sx+Math.cos(angle)*rr)+' '+n(sy+Math.sin(angle)*rr)+'" stroke="'+(k%2?'#a3fffa':'#fcff9d')+'" stroke-width="'+n(2.2*alpha)+'" stroke-linecap="round" opacity="'+a+'"/>';
+  }
+  html+='<circle cx="'+tx+'" cy="'+ty+'" r="'+n(13+age*80)+'" stroke="'+(sh.hit?'#fbff98':'#68ffff')+'" stroke-width="'+n(4*alpha)+'" fill="none" opacity="'+a+'"/>';
  }
  svg.innerHTML=html;state=mode;lastView=view;lastOrigin=origin;lastScale=scale;lastTs=t;return seen.slice();
 }
