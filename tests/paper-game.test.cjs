@@ -454,7 +454,7 @@ test('3D stage is reparented between menu and versus without creating additional
 
 test('real generated 3D portraits replace CSS doll tiles and old VS fallback',()=>{
  const g=boot(419);
- assert.match(source,/const STYLOO_PORTRAITS=\['archer','merchant','student','ninja'\]/);
+ assert.match(source,/function portraitURL\(i\)/);
  assert.match(g.get('heroPicker').innerHTML,/hero3DThumbnail/);
  assert.doesNotMatch(g.get('heroPicker').innerHTML,/heroMini/);
  assert.match(source,/id="menuHeroPortrait"/);
@@ -463,13 +463,13 @@ test('real generated 3D portraits replace CSS doll tiles and old VS fallback',()
  assert.doesNotMatch(source,/versusActor\(ctx,wardrobe\.hero,168/);
  assert.match(fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8'),/document\.getElementById\('menuHeroPortrait'\)/);
 });
-test('changing selected hero updates the original GLB portrait before the model loads',()=>{
+test('changing selected mascot updates its original vector portrait before 3D loads',()=>{
  const g=boot(419),h=g.win.__paperTest;
  h.setHero(2);
- assert.match(g.get('menuHeroPortrait').src,/student\.png$/);
+ assert.match(g.get('menuHeroPortrait').src,/^data:image\/svg\+xml/);
  h.setHero(3);
- assert.match(g.get('menuHeroPortrait').src,/ninja\.png$/);
- assert.match(g.get('heroPicker').innerHTML,/ninja\.png/);
+ assert.match(g.get('menuHeroPortrait').src,/^data:image\/svg\+xml/);
+ assert.match(g.get('heroPicker').innerHTML,/TORA/);
 });
 
 test('eight playable animals have unique, commercial-safe model/portrait choices',()=>{
