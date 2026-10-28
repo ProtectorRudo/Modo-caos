@@ -120,7 +120,7 @@ function prime(){let i=0;function step(){
 
 function poly(c,p,fill,stroke,w=2){if(p.some(x=>!x))return false;c.beginPath();c.moveTo(p[0].x,p[0].y);for(let i=1;i<p.length;i++)c.lineTo(p[i].x,p[i].y);c.closePath();c.fillStyle=fill;c.fill();c.lineWidth=w;c.strokeStyle=stroke;c.stroke();return true}
 function drawDeck(c,pos,t){
- const coords=[[-2.28,-1.55],[2.28,-1.55],[2.52,-.9],[2.52,.95],[2.24,1.55],[-2.24,1.55],[-2.52,.95],[-2.52,-.9]];
+ const coords=[[-2.18,-1.18],[2.18,-1.18],[2.38,-.70],[2.38,.70],[2.18,1.18],[-2.18,1.18],[-2.38,.70],[-2.38,-.70]];
  const p=coords.map(([x,z])=>pos(x,-.075,z)),q=coords.map(([x,z])=>pos(x,-.29,z));if(p.some(x=>!x))return false;
  c.save();c.lineJoin='round';
  for(let i=2;i<6;i+=2)if(q[i]&&q[i+1])poly(c,[p[i],p[i+1],q[i+1],q[i]],'#0a182d','#236485',1.4);
@@ -140,90 +140,95 @@ function drawDeck(c,pos,t){
   }
  }
  c.save();c.beginPath();c.moveTo(p[0].x,p[0].y);for(let i=1;i<p.length;i++)c.lineTo(p[i].x,p[i].y);c.closePath();c.clip();
- for(let x=-2;x<=2;x++){const a=pos(x,-.069,-1.5),b=pos(x,-.069,1.5);if(a&&b){c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.strokeStyle='rgba(108,191,214,.22)';c.lineWidth=1;c.stroke()}}
- for(let z=-1;z<=1;z++){const a=pos(-2.4,-.069,z),b=pos(2.4,-.069,z);if(a&&b){c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.strokeStyle='rgba(108,191,214,.22)';c.stroke()}}
+ for(let x=-2;x<=2;x++){const a=pos(x,-.069,-1.15),b=pos(x,-.069,1.15);if(a&&b){c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.strokeStyle='rgba(108,191,214,.22)';c.lineWidth=1;c.stroke()}}
+ for(let z=-1;z<=1;z++){const a=pos(-2.30,-.069,z),b=pos(2.30,-.069,z);if(a&&b){c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.strokeStyle='rgba(108,191,214,.22)';c.stroke()}}
  c.restore();
  for(let i=0;i<8;i++){const a=p[i],b=p[(i+1)%8];disc(c,(a.x+b.x)/2,(a.y+b.y)/2,3,i%2?'#fff2ae':'#8bffe5')}
  c.restore();return true;
 }
 function drawPortal(c,pos,t,phase=1,fever=false){
- // APÓCALIPSIS CORE: a suspended 5-chamber fruit machine instead of a huge thin ring.
- // All housing, doors and lights live in world coordinates over the arena.
- const Y=9.46,Z=-.35,heat=clamp((phase-1)/5+(fever?.55:0),0,1.5),spin=t*(.36+heat*.24);
- const hull=[
-  pos(-1.64,Y+.22,Z-.38),pos(1.64,Y+.22,Z-.38),
-  pos(1.79,Y-.27,Z-.38),pos(-1.79,Y-.27,Z-.38)
- ];
- const lower=[
-  pos(-1.64,Y+.22,Z+.24),pos(1.64,Y+.22,Z+.24),
-  pos(1.79,Y-.27,Z+.24),pos(-1.79,Y-.27,Z+.24)
- ];
+ // Orbital juice refinery: central armored heart + five DISTINCT suspended launch pods.
+ // World-space points align with the five actual deterministic spawn lanes.
+ // Compared with the earlier full-width billboard, this design has vertical height,
+ // tapered nozzles, front/back wall thickness and coherent mechanical hierarchy.
+ const Y=9.46,Z=-.35,heat=clamp((phase-1)/5+(fever?.55:0),0,1.6);
+ const cyan=fever?'#ffca75':'#6af4e3',high=fever?'#fff0ad':'#caff96';
  c.save();c.lineJoin='round';
- if(hull.every(Boolean)&&lower.every(Boolean)){
-  const metal=grad(c,hull[0].x,hull[0].y,hull[2].x,hull[2].y,
-    '#a8c1c8','#2a4b66','#061a30');
-  poly(c,[hull[0],hull[1],hull[2],hull[3]],metal,'#b6d7e2',2.2);
-  poly(c,[lower[3],lower[2],hull[2],hull[3]],'#112b40','#3eb9c4',1.6);
-  poly(c,[lower[0],lower[1],hull[1],hull[0]],'#24415a','#8fbdcb',1.7);
-  // Armored front has 3 bevel insets, with changing light levels as the round escalates.
-  for(let i=0;i<3;i++){
-   const X=(i-1)*.92;
-   const plate=[pos(X-.35,Y+.07,Z-.407),pos(X+.35,Y+.07,Z-.407),
-      pos(X+.35,Y-.12,Z-.407),pos(X-.35,Y-.12,Z-.407)];
-   if(plate.every(Boolean)){
-    poly(c,plate,'rgba(7,29,52,.82)',i===1?'#96ffe8':'#53859a',1.25);
-    const led=pos(X,Y-.03,Z-.42);
-    if(led){disc(c,led.x,led.y,2.6+i*.4,i===1?'#d8ff83':'#81f0ef')}
-   }
+ const pp=(x,y,z)=>pos(x,y,z);
+ function contour(coords,fill,edge,w=1){
+  const points=coords.map(q=>pp(q[0],q[1],q[2]));
+  if(points.some(q=>!q))return false;
+  poly(c,points,fill,edge,w);return true;
+ }
+ // A gently arched dark cable/hydraulic beam linking all five physically situated pods.
+ for(let j=-2;j<2;j++){
+  const ax=j*1.05,bx=(j+1)*1.05;
+  const a=pp(ax,Y+.47,Z+.09),mid=pp((ax+bx)/2,Y+.67+Math.sin(t*.9+j)*.02,Z+.12),b=pp(bx,Y+.47,Z+.09);
+  if(!a||!b||!mid)continue;
+  c.beginPath();c.moveTo(a.x,a.y);c.quadraticCurveTo(mid.x,mid.y,b.x,b.y);
+  c.strokeStyle='#0b2339';c.lineWidth=11;c.stroke();
+  c.strokeStyle='#7eb5c5';c.lineWidth=3;c.stroke();
+ }
+ // Five elevated vertical pods; the outer pair has exactly the positions used
+ // by the physics core so fruit visibly emerge from real ducts, not empty space.
+ for(let i=-2;i<=2;i++){
+  const x=i*1.05,z=Z-.17,front=z-.15,rear=z+.15;
+  contour([[x-.28,Y+.43,rear],[x+.28,Y+.43,rear],
+   [x+.32,Y-.18,rear],[x+.19,Y-.45,rear],[x-.19,Y-.45,rear],[x-.32,Y-.18,rear]],
+   '#122d43','#38637b',2);
+  contour([[x-.28,Y+.43,front],[x+.28,Y+.43,front],
+   [x+.32,Y-.18,front],[x+.19,Y-.45,front],[x-.19,Y-.45,front],[x-.32,Y-.18,front]],
+   i===0?'#2d5a73':'#163752','#a6d9dc',2);
+  const notch=pp(x,Y+.34,front-.025),indicator=pp(x,Y-.04,front-.025);
+  if(notch&&indicator){
+   const r=clamp(Math.abs((pp(x+.17,Y+.34,front-.025)||notch).x-notch.x),2.5,15);
+   c.beginPath();c.ellipse(notch.x,notch.y,r*1.48,Math.max(2,r*.7),0,0,TAU);
+   c.fillStyle='#061e31';c.fill();c.strokeStyle=cyan;c.lineWidth=1.8;c.stroke();
+   c.globalAlpha=.76+.18*Math.sin(t*4+i);
+   disc(c,indicator.x,indicator.y,clamp(r*.39,2,5),i===0?high:cyan);c.globalAlpha=1;
+  }
+  // The launch pipe is a short deep trumpet facing the fruit trajectory.
+  const mouth=pp(x,Y-.49,front-.025),lip=pp(x,Y-.42,front-.025);
+  if(mouth&&lip){
+   const rad=clamp(Math.abs((pp(x+.16,Y-.49,front-.025)||mouth).x-mouth.x),4,13);
+   c.beginPath();c.moveTo(lip.x,lip.y);c.lineTo(mouth.x,mouth.y);
+   c.lineWidth=rad*1.8;c.strokeStyle='#092337';c.stroke();
+   c.beginPath();c.ellipse(mouth.x,mouth.y,rad,Math.max(3,rad*.43),0,0,TAU);
+   c.fillStyle='#031b2d';c.fill();c.strokeStyle='#9ce5e7';c.lineWidth=1.6;c.stroke();
+   disc(c,mouth.x,mouth.y,Math.max(2,rad*.38),i===0?high:cyan);
   }
  }
- // Main reactor turbine: elliptical rings with visible rear rim and rotating fan.
- const outer=[],inner=[];
- for(let i=0;i<=28;i++){const angle=i*TAU/28;
-  outer.push(pos(Math.cos(angle)*.94,Y+.14*Math.sin(angle),Z-.49+Math.sin(angle)*.52));
-  inner.push(pos(Math.cos(angle)*.68,Y+.11*Math.sin(angle),Z-.54+Math.sin(angle)*.35));
- }
- const ring=(pts,col,w)=>{c.beginPath();let prev=false;
-  for(const p of pts){if(!p){prev=false;continue}prev?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y);prev=true}
-  c.strokeStyle=col;c.lineWidth=w;c.stroke()};
- ring(outer,'rgba(7,19,39,.98)',13);
- ring(outer,fever?'#ffb967':'#77ebdf',4);
- ring(inner,'rgba(193,244,255,.77)',2);
- const center=pos(0,Y,Z-.55);
- if(center&&center.y>-90&&center.y<innerHeight+85){
-  const rad=Math.max(19,Math.min(48,Math.abs((pos(.7,Y,Z-.55)||center).x-center.x)*.94));
-  const glow=c.createRadialGradient(center.x,center.y,2,center.x,center.y,rad);
-  glow.addColorStop(0,fever?'rgba(255,238,135,.84)':'rgba(235,255,225,.83)');
-  glow.addColorStop(.25,'rgba(54,229,210,.42)');glow.addColorStop(1,'rgba(20,190,230,0)');
-  disc(c,center.x,center.y,rad,glow);
+ // The round central engine projects out in front, with depth and moving fins.
+ const center=pp(0,Y+.16,Z-.55);
+ if(center&&center.y>-120&&center.y<innerHeight+100){
+  const right=pp(.60,Y+.16,Z-.55),up=pp(0,Y+.60,Z-.55);
+  const rx=clamp(right?Math.abs(right.x-center.x):35,16,68),
+    ry=clamp(up?Math.abs(up.y-center.y):rx*.8,13,64);
+  const core=c.createRadialGradient(center.x-rx*.25,center.y-ry*.18,1,center.x,center.y,Math.max(rx,ry)*1.1);
+  core.addColorStop(0,'#e4fff8');core.addColorStop(.18,fever?'#ffc17d':'#94f4e0');
+  core.addColorStop(.45,'#235a78');core.addColorStop(.80,'#081f36');core.addColorStop(1,'#020f20');
+  c.beginPath();c.ellipse(center.x,center.y,rx*1.15,ry*1.15,0,0,TAU);
+  c.fillStyle='#0a1b34';c.fill();c.lineWidth=5;c.strokeStyle='#a5d1de';c.stroke();
+  c.beginPath();c.ellipse(center.x,center.y,rx*.85,ry*.85,0,0,TAU);c.fillStyle=core;c.fill();
+  c.strokeStyle=cyan;c.lineWidth=2.4;c.stroke();
   for(let i=0;i<5;i++){
-   const a=spin+i*TAU/5,tip=pos(Math.cos(a)*.62,Y+.09*Math.sin(a),Z-.53+Math.sin(a)*.26);
-   if(!tip)continue;
-   c.beginPath();c.moveTo(center.x,center.y);c.lineTo(tip.x,tip.y);
-   c.strokeStyle=i%2?'#b1ffd7':'#dffe92';c.lineWidth=2.8;c.stroke();
+   const a=t*(.44+heat*.18)+i*TAU/5;
+   c.beginPath();c.moveTo(center.x,center.y);
+   c.lineTo(center.x+Math.cos(a)*rx*.62,center.y+Math.sin(a)*ry*.62);
+   c.lineWidth=3.2;c.strokeStyle=i%2?high:'#97eef3';c.stroke();
   }
-  c.fillStyle='#e3f9f6';c.textAlign='center';c.font='900 10px system-ui';
-  c.fillText(fever?'CORE CRÍTICO':'JUICE CORE',center.x,center.y-15);
+  disc(c,center.x,center.y,clamp(rx*.21,4,12),high);
  }
- // Five visibly separate hatches correspond to the game's five deterministic lanes.
- // Rather than a single ring spanning the entire camera, they explain the spread.
- for(let i=0;i<5;i++){
-  const x=(i-2)*1.05,slot=pos(x,Y-.29,-.55),neck=pos(x,Y-.52,-.5);
-  if(!slot||!neck)continue;
-  const r=clamp(Math.abs((pos(x+.20,Y-.29,-.55)||slot).x-slot.x)*.95,3.6,12);
-  c.beginPath();c.moveTo(slot.x,slot.y);c.lineTo(neck.x,neck.y);
-  c.strokeStyle='#203f50';c.lineWidth=Math.max(4,r*1.7);c.stroke();
-  disc(c,neck.x,neck.y,r+2,'#071b31');
-  disc(c,neck.x,neck.y,r,fever?'#f4a65e':'#43e3db');
-  disc(c,neck.x,neck.y,r*.44,'#efffcb');
+ // Small amber warning lamps pulse on the sides as the difficulty increases.
+ const blink=(Math.sin(t*(3.2+heat*2.3))+1)*.5;
+ for(const sign of [-1,1]){
+  const lamp=pp(sign*2.19,Y+.53,Z-.1);
+  if(!lamp)continue;
+  c.globalAlpha=.52+blink*.38;
+  disc(c,lamp.x,lamp.y,3.2+heat*1.8,fever?'#ff8065':'#cfff9a');
+  c.globalAlpha=1;
  }
- // Narrow downward electrostatic sparks telegraph the next wave without occluding fruits.
- const beat=(Math.sin(t*(2.4+heat*2))+1)/2;
- for(let i=0;i<3;i++){
-  const a=spin+i*TAU/3,p=pos(Math.cos(a)*1.1,Y-.2,Z+Math.sin(a)*.45);
-  if(!p)continue;c.globalAlpha=.22+beat*.25;disc(c,p.x,p.y,2.7,i%2?'#a9fbff':'#eeffae');
- }
- c.globalAlpha=1;c.restore();
+ c.restore();
 }
 function installGun(){
  const el=document.getElementById('weapon');if(!el||el.dataset.v3)return;
