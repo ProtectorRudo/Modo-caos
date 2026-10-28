@@ -74,7 +74,20 @@ try{
  console.log('CIVIDOM_MULTIPLAYER_E2E_PASS='+JSON.stringify({h,g,code}));
 }catch(e){
  logs.result='FAIL';logs.phase=phase;logs.error=e.stack||String(e);
- console.error('CIVIDOM_MULTIPLAYER_E2E_FAILURE='+JSON.stringify({phase,error:String(e),code}));
+ const diagnostic={};
+ for(const [label,page] of [['host',host],['guest',guest]]){
+  try{
+   if(page)diagnostic[label]=await page.evaluate(()=>({
+    status:document.getElementById('cv-status')?.textContent,
+    actionDisabled:document.getElementById('cv-action')?.disabled,
+    onlineLoaded:!!window.CividomOnlineUI,
+    gameBridge:!!window.CividomOnlineBridge,
+    url:location.pathname
+   }));
+  }catch(err){diagnostic[label]={error:String(err)}}
+ }
+ logs.diagnostic=diagnostic;
+ console.error('CIVIDOM_MULTIPLAYER_E2E_FAILURE='+JSON.stringify({phase,error:String(e),code,diagnostic,errors:logs.host.slice(-8)}));
  try{await host?.screenshot({path:'artifacts/cividom-room-host-failure.png'})}catch(_){}
  try{await guest?.screenshot({path:'artifacts/cividom-room-guest-failure.png'})}catch(_){}
  process.exitCode=1;
