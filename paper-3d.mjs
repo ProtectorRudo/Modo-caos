@@ -21,7 +21,7 @@ const models=CHIBI_ROSTER.map(x=>x.model+'.glb');
 const backupBase='./assets/styloo/';
 const backupModels=['archer.glb','merchant.glb','student.glb','ninja.glb','archer.glb','merchant.glb','student.glb','ninja.glb'];
 const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
-const RIG_HEIGHT=80;
+const RIG_HEIGHT=98; // Present more expressive chibi silhouettes; no hitbox changes.
 const gltfLoader=new GLTFLoader();
 const sourceAssets=new Array(TOTAL_HEROES).fill(null),instances=new Map();
 const assetVersions=new Uint32Array(TOTAL_HEROES);
@@ -38,12 +38,13 @@ try{
  renderer.setClearColor(0,0);
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;
- renderer.toneMappingExposure=1.25;
+ renderer.toneMappingExposure=1.32;
  scene=new THREE.Scene();
  camera=new THREE.OrthographicCamera(-200,200,350,-350,.1,3000);
- scene.add(new THREE.HemisphereLight(0xf1ffff,0x5e7aab,2.8));
- const key=new THREE.DirectionalLight(0xfff9e8,3.1);key.position.set(-250,350,700);scene.add(key);
- const fill=new THREE.DirectionalLight(0x86d9ff,1.3);fill.position.set(200,180,340);scene.add(fill);
+ scene.add(new THREE.HemisphereLight(0xf6ffff,0x526aab,2.45));
+ const key=new THREE.DirectionalLight(0xfff4db,3.4);key.position.set(-250,390,700);scene.add(key);
+ const fill=new THREE.DirectionalLight(0x82d5ff,1.8);fill.position.set(230,170,370);scene.add(fill);
+ const rim=new THREE.DirectionalLight(0xffd09e,1.05);rim.position.set(110,120,-220);scene.add(rim);
 }catch(e){failed=true;console.warn('3D not available, using original chibi fallback',e);}
 const material=(color,metalness=0,roughness=.34)=>new THREE.MeshStandardMaterial({color,metalness,roughness});
 const addMesh=(group,geometry,mat,x,y,z=0)=>{const m=new THREE.Mesh(geometry,mat);m.position.set(x,y,z);group.add(m);return m;};
@@ -240,7 +241,7 @@ function sync(dt){
   if(!p.alive)continue;
   item.root.position.set(p.x,-p.y+7,0);
   // BIG / SMOLL use the same gameplay modifier in 2D and in the WebGL actors.
-  item.root.scale.setScalar(Math.max(.65,Math.min(1.7,p.scale||1)));
+  item.root.scale.setScalar(Math.max(.65,Math.min(1.7,p.scale||1))); // visual scale only
   // Always show faces and outfit silhouettes while hinting at turning.
   item.root.rotation.y=Math.sin(p.angle)*.45;
   if(item.mixer){
