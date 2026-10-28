@@ -27,7 +27,7 @@ function create(opts={}){
  function spawn(override){
   const r=rng(),kind=override|| (r<cfg.trap?'bomb':r<cfg.trap+.045?'rotten':r<cfg.trap+cfg.special+.045?pick(['gold','ice','rainbow'],rng):pick(TYPES,rng));
   // Targets are spread through a frontal 3D curtain and deliberately remain shootable.
-  const x=(rng()-.5)*5.3,z=(rng()-.5)*1.05,y=3.5+rng()*.35;
+  const x=(rng()-.5)*3.62,z=(rng()-.5)*.80,y=3.45+rng()*.35;
   const obj={id:g.nextId++,kind,x,y,z,r:.25+(rng()*.10),vy:cfg.speed*(.82+rng()*.38),age:0,rot:rng()*Math.PI*2,spin:(rng()-.5)*2.3,dead:false};
   if(kind==='boss'){obj.x=0;obj.y=2.55;obj.z=0;obj.r=.82;obj.vy=0;obj.hp=12;obj.spin=.35}
   g.objects.push(obj);emit('spawn',{id:obj.id,kind});return obj;
@@ -93,10 +93,10 @@ function create(opts={}){
   dt=clamp(Number(dt)||0,0,.07);g.elapsed+=dt;g.fever=g.elapsed>=g.duration-12;
   if(g.elapsed>=g.duration){finish(g.goalsMet||g.mode==='arcade');return g;}
   const slow=g.elapsed<g.slowUntil ? 0.48 : 1;
-  if(g.elapsed>=g.nextCluster&&g.cfg.goal!=='boss'){const choice=pick(TYPES,rng),base=(rng()-.5)*2.6;for(let j=0;j<3;j++){const q=spawn(choice);q.x=base+(j-1)*.55;q.y=3.25+.14*j;q.vy=Math.max(.7,q.vy*.84)}emit('opportunity',{kind:choice});g.nextCluster+=9.5}
+  if(g.elapsed>=g.nextCluster&&g.cfg.goal!=='boss'){const choice=pick(TYPES,rng),base=(rng()-.5)*2.0;for(let j=0;j<3;j++){const q=spawn(choice);q.x=base+(j-1)*.55;q.y=3.25+.14*j;q.vy=Math.max(.7,q.vy*.84)}emit('opportunity',{kind:choice});g.nextCluster+=9.5}
   if(g.elapsed>=g.nextSpawn){
    spawn();
-   const period=Math.max(.32,cfg.rate*(g.fever ? 0.58 : 1));
+   const period=Math.max(.29,cfg.rate*.68*(g.fever ? 0.58 : 1));
    g.nextSpawn=g.elapsed+period*(.7+rng()*.56);
    // Periodic guaranteed same-fruit clusters provide real strategic combo opportunities.
    if(g.elapsed>8&&Math.floor(g.elapsed)%13===0){const fruit=pick(TYPES,rng);spawn(fruit);spawn(fruit)}
