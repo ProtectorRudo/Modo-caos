@@ -104,18 +104,39 @@ function draw(view,origin,scale,objects,mode='playing'){
   html+='<path d="'+path+'" fill="none" stroke="url(#fp-rim)" stroke-width="5" opacity=".95"/>';
  }
  // MACHINE: physical emitter standing on the back of the stage. Silhouette + glowing throat.
- const left=pos(-1.0,.18,-1.55),right=pos(1.0,.18,-1.55);
- const lTop=pos(-.96,2.0,-1.55),rTop=pos(.96,2.0,-1.55),lBack=pos(-.95,.14,-1.9),rBack=pos(.95,.14,-1.9);
+ const left=pos(-1.38,.18,-1.55),right=pos(1.38,.18,-1.55);
+ const lTop=pos(-1.3,2.42,-1.55),rTop=pos(1.3,2.42,-1.55),lBack=pos(-1.3,.14,-1.9),rBack=pos(1.3,.14,-1.9);
  if(left&&right&&lTop&&rTop){
   html+=poly([lTop,rTop,right,left],'url(#fp-steel)','#86c3e4',2);
-  if(rBack)html+=poly([rTop,right,rBack,pos(.9,1.7,-1.9)],'#0c1c31','#3beadf',1.4,'opacity=".85"');
+  if(rBack)html+=poly([rTop,right,rBack,pos(1.3,2.12,-1.9)],'#0c1c31','#3beadf',1.4,'opacity=".85"');
   // plate, luminous power lines, custom badge
-  const panel=pos(0,1.1,-1.55),screen=pos(0,1.52,-1.55);
+  const panel=pos(0,1.0,-1.55),screen=pos(0,2.04,-1.55);
   if(panel){const ww=Math.max(27,Math.abs(right.x-left.x)*.34);
    html+='<rect x="'+n(panel.x-ww)+'" y="'+n(panel.y-17)+'" width="'+n(2*ww)+'" height="31" rx="6" fill="#0b1634" stroke="#7bfcf0" stroke-width="1.5"/>';
    html+='<text x="'+n(panel.x)+'" y="'+n(panel.y-2)+'" text-anchor="middle" font-size="'+n(clamp(ww*.23,8,12))+'" font-weight="1000" letter-spacing="1.5" fill="#e6fff2">JUICE</text><text x="'+n(panel.x)+'" y="'+n(panel.y+9)+'" text-anchor="middle" font-size="'+n(clamp(ww*.18,7,10))+'" fill="#92fdaf" font-weight="900">REACTOR</text>'}
   if(screen){html+='<circle cx="'+n(screen.x)+'" cy="'+n(screen.y)+'" r="7" fill="#0c1223" stroke="#7bffde" stroke-width="2"/><circle cx="'+n(screen.x)+'" cy="'+n(screen.y)+'" r="3.5" fill="#f2ff6c"/>'}
  }
+
+ // Armored lateral fruit tanks, thick hydraulic braces and an upper feed hopper.
+ for(const side of [-1,1]){
+  const x=side*1.42;
+  const shell=[pos(x-.26,.43,-1.44),pos(x+.26,.43,-1.44),pos(x+.26,2.5,-1.44),pos(x-.26,2.5,-1.44)];
+  if(shell.every(Boolean)){
+   html+=poly(shell,'url(#fp-steel)','#8bcbdd',2.0);
+   const middle=pos(x,1.52,-1.44),bar=pos(x,2.33,-1.44),base=pos(x,.65,-1.44);
+   if(middle&&bar&&base){
+    html+='<path d="M'+n(bar.x)+' '+n(bar.y)+'L'+n(base.x)+' '+n(base.y)+'" stroke="'+(side===-1?'#43f2f2':'#f48bd3')+'" stroke-width="6" opacity=".78"/>';
+    html+='<circle cx="'+n(middle.x)+'" cy="'+n(middle.y)+'" r="6" fill="#ddffe4" stroke="#48f5c9" stroke-width="3"/>';
+   }
+  }
+ }
+ const funnel=[pos(-1.65,2.55,-1.65),pos(1.65,2.55,-1.65),pos(.86,3.38,-1.65),pos(-.86,3.38,-1.65)];
+ if(funnel.every(Boolean)){
+  html+=poly(funnel,'url(#fp-steel)','#4cebf4',3);
+  const header=pos(0,2.95,-1.65);
+  if(header){html+='<text x="'+n(header.x)+'" y="'+n(header.y)+'" text-anchor="middle" font-size="10" letter-spacing="1" fill="#f7ffba" font-weight="1000">FRUIT FEEDER</text>'}
+ }
+
  // Telegraphed feed pipe and cannon nozzle at the actual world spawn position.
  const nozzle=pos(0,2.76,-1.15),pipe=pos(0,2.1,-1.55),port=pos(0,2.76,-1.3);
  if(nozzle){
@@ -161,7 +182,7 @@ function draw(view,origin,scale,objects,mode='playing'){
  }
  for(let i=shots.length-1;i>=0;i--){
   const sh=shots[i],age=t-sh.t;if(age>.23){shots.splice(i,1);continue}
-  const alpha=clamp(1-age/.23,0,1),sx=w*.52,sy=h*.89,tx=n(sh.x),ty=n(sh.y);
+  const alpha=clamp(1-age/.23,0,1),gun=$('weapon'),gunRect=gun?.getBoundingClientRect(),sx=gunRect?gunRect.left+gunRect.width*.492:w*.50,sy=gunRect?gunRect.top+gunRect.width*(48/260):h*.84,tx=n(sh.x),ty=n(sh.y);
   html+='<path d="M'+n(sx)+' '+n(sy)+'L'+tx+' '+ty+'" fill="none" stroke="#19dff5" stroke-width="'+n(16*alpha)+'" opacity="'+n(alpha*.4)+'"/>';
   html+='<path d="M'+n(sx)+' '+n(sy)+'L'+tx+' '+ty+'" fill="none" stroke="#edffff" stroke-width="'+n(4*alpha)+'" opacity="'+n(alpha)+'"/>';
   html+='<circle cx="'+tx+'" cy="'+ty+'" r="'+n(22+age*120)+'" stroke="'+(sh.hit?'#fcff98':'#47ffff')+'" stroke-width="'+n(5*alpha)+'" fill="none" opacity="'+n(alpha)+'"/>';
