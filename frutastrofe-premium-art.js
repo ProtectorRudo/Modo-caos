@@ -90,6 +90,18 @@ function drawDeck(c,pos,t){
  const v=grad(c,p[0].x,p[0].y,p[5].x,p[5].y,'rgba(86,122,145,.92)','rgba(26,48,74,.92)','rgba(7,18,39,.95)');
  poly(c,p,v,'#2c506a',8);c.shadowColor='#45d9db';c.shadowBlur=8;
  poly(c,p,'rgba(0,0,0,0)','#60f6dd',3);c.shadowBlur=0;
+ // Segmented side-lighting and industrial yellow safety marks that read as physical plates.
+ for(let edge=0;edge<8;edge++){
+  const a=p[edge],b=p[(edge+1)%8];
+  const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+  if(len<28)continue;
+  c.lineWidth=3;
+  for(let f=.12;f<.90;f+=.20){
+   const x=a.x+dx*f,y=a.y+dy*f;
+   c.strokeStyle=edge%2?'rgba(252,213,91,.75)':'rgba(112,255,221,.80)';
+   c.beginPath();c.moveTo(x,y);c.lineTo(x+dx*.09,y+dy*.09);c.stroke();
+  }
+ }
  c.save();c.beginPath();c.moveTo(p[0].x,p[0].y);for(let i=1;i<p.length;i++)c.lineTo(p[i].x,p[i].y);c.closePath();c.clip();
  for(let x=-2;x<=2;x++){const a=pos(x,-.069,-1.5),b=pos(x,-.069,1.5);if(a&&b){c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.strokeStyle='rgba(108,191,214,.22)';c.lineWidth=1;c.stroke()}}
  for(let z=-1;z<=1;z++){const a=pos(-2.4,-.069,z),b=pos(2.4,-.069,z);if(a&&b){c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.strokeStyle='rgba(108,191,214,.22)';c.stroke()}}
@@ -102,6 +114,15 @@ function drawPortal(c,pos,t){
  c.save();c.beginPath();let prev=false;for(const p of ring){if(!p){prev=false;continue}prev?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y);prev=true}
  c.lineWidth=12;c.strokeStyle='rgba(51,234,231,.23)';c.stroke();c.lineWidth=4;c.strokeStyle='#9bffee';c.stroke();
  c.lineWidth=2;c.setLineDash([14,13]);c.lineDashOffset=-t*38;c.strokeStyle='#e4ff99';c.stroke();c.setLineDash([]);
+ // Orbital electro-mechanical fins: every segment is anchored at the same sky height.
+ for(let i=0;i<12;i++){
+  const a=i*TAU/12+t*.12;
+  const q=pos(Math.cos(a)*2.36,9.46+.1*Math.sin(3*a),-.32+Math.sin(a)*.64);
+  const r=pos(Math.cos(a)*2.60,9.46+.1*Math.sin(3*a),-.32+Math.sin(a)*.70);
+  if(!q||!r)continue;
+  c.strokeStyle=i%3?'rgba(175,248,254,.85)':'rgba(239,255,135,.94)';
+  c.lineWidth=i%3?2.3:3.6;c.beginPath();c.moveTo(q.x,q.y);c.lineTo(r.x,r.y);c.stroke();
+ }
  const cp=pos(0,9.46,-.32);if(cp&&cp.y>-90&&cp.y<innerHeight+90){
   const g=c.createRadialGradient(cp.x,cp.y,0,cp.x,cp.y,72);g.addColorStop(0,'rgba(230,255,211,.7)');g.addColorStop(.33,'rgba(55,233,217,.25)');g.addColorStop(1,'rgba(44,212,242,0)');
   disc(c,cp.x,cp.y,72,g);
