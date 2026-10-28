@@ -40,7 +40,7 @@ def verified(name: str, data: bytes) -> tuple[str, str]:
     magic, version, size = struct.unpack_from("<III", data)
     if magic != 0x46546C67 or version != 2 or size != len(data):
         raise ValueError(f"{name}: invalid GLB v2")
-    digest = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\\0" + data).hexdigest()
+    digest = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
     if digest != expected_sha:
         raise ValueError(f"{name}: Git source hash mismatch: {digest}")
     return digest, hashlib.sha256(data).hexdigest()
@@ -81,11 +81,11 @@ def main() -> None:
         _, sha256 = verified(name, file.read_bytes())
         manifest["models"][name] = {"bytes": size, "git_blob_sha1": sha, "sha256": sha256}
         print(f"VALIDATED {name}.glb ({size:,} bytes)")
-    (OUT / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\\n", encoding="utf-8")
+    (OUT / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     (OUT / "LICENSE.txt").write_text(
-        "Styloo Chibi Characters - CC0 1.0 Universal\\n"
-        "https://styloo.itch.io/chibi\\n"
-        "https://creativecommons.org/publicdomain/zero/1.0/\\n",
+        "Styloo Chibi Characters - CC0 1.0 Universal\n"
+        "https://styloo.itch.io/chibi\n"
+        "https://creativecommons.org/publicdomain/zero/1.0/\n",
         encoding="utf-8",
     )
     print("CIVIDOM: five real Styloo Chibi 3D models vendored, integrity verified")
