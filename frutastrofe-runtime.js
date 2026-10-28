@@ -40,14 +40,14 @@ function fxSound(type){if(type==='shot')tone(280,.085,'triangle',.07);if(type===
 function moodMusic(t){if(!musicEnabled||!g||g.state!=='playing'||t-lastMusic<.34)return;lastMusic=t;const beat=Math.floor(g.elapsed*3);if(beat%2===0)tone([220,247,277,330][Math.floor(beat/2)%4],.07,'triangle',.018)}
 function events(){
  if(!g)return;for(const ev of g.events.splice(0)){
-  if(ev.type==='hit'){art.burst(ev.x,ev.y,ev.z,ev.kind,14);if(isAR)O.impact(ev,ev.kind);fxSound('hit')}
-  if(ev.type==='splash'){art.burst(ev.x,ev.y,ev.z,ev.kind,9);if(isAR)O.impact(ev,ev.kind)}
-  if(ev.type==='trap'){art.burst(ev.x,ev.y,ev.z,'bomb',22);if(isAR)O.impact(ev,'bomb');fxSound('trap');alertTxt('¡TRAMPA! − PUNTOS',900)}
-  if(ev.type==='chain'){art.burst(ev.x,ev.y,ev.z,'rainbow',30);if(isAR)O.impact(ev,'rainbow',true);fxSound('chain');alertTxt('JUICE CHAIN ×'+Math.min(5,1+Math.floor(ev.combo/2)),1300)}
+  if(ev.type==='hit'){if(!isAR)art.burst(ev.x,ev.y,ev.z,ev.kind,14);if(isAR)O.impact(ev,ev.kind);fxSound('hit')}
+  if(ev.type==='splash'){if(!isAR)art.burst(ev.x,ev.y,ev.z,ev.kind,9);if(isAR)O.impact(ev,ev.kind)}
+  if(ev.type==='trap'){if(!isAR)art.burst(ev.x,ev.y,ev.z,'bomb',22);if(isAR)O.impact(ev,'bomb');fxSound('trap');alertTxt('¡TRAMPA! − PUNTOS',900)}
+  if(ev.type==='chain'){if(!isAR)art.burst(ev.x,ev.y,ev.z,'rainbow',30);if(isAR)O.impact(ev,'rainbow',true);fxSound('chain');alertTxt('JUICE CHAIN ×'+Math.min(5,1+Math.floor(ev.combo/2)),1300)}
   if(ev.type==='rainbow')alertTxt('¡EXPLOSIÓN ARCOÍRIS!',1100);
   if(ev.type==='slow')alertTxt('¡TIEMPO HELADO!',950);
   if(ev.type==='gold')alertTxt('¡FRUTA DORADA!',950);
-  if(ev.type==='boss-hit'){art.burst(ev.x,ev.y,ev.z,'boss',28);if(isAR)O.impact(ev,'boss',true);fxSound('boss')}
+  if(ev.type==='boss-hit'){if(!isAR)art.burst(ev.x,ev.y,ev.z,'boss',28);if(isAR)O.impact(ev,'boss',true);fxSound('boss')}
   if(ev.type==='boss-down'){fxSound('chain');alertTxt('¡SANDÍA DERROTADA!',1800)}
   if(ev.type==='finish')handleFinish(ev);
  }
@@ -166,7 +166,7 @@ async function startAR(mode,level){
 }
 $('arLock').onclick=async()=>{
  if(!glHit||!reticle||!arSession)return;
- placement=reticle.clone();art.world.position.copy(placement.position);art.world.position.y+=.09;art.world.quaternion.identity();art.world.visible=true;arMarker.visible=false;
+ placement=reticle.clone();art.world.position.copy(placement.position);art.world.position.y+=.09;art.world.quaternion.identity();art.world.visible=false;arMarker.visible=false;
  if(arHitResult&&typeof arHitResult.createAnchor==='function'){try{anchor=await arHitResult.createAnchor()}catch(e){console.warn('Ancla no disponible, usando pose fija del piso:',e.message)}}
  $('arLock').disabled=true;hitSource?.cancel?.();hitSource=null;
  // The scene is fixed in local-floor coordinates; moving the device NEVER rewrites the anchor transform.
@@ -199,7 +199,7 @@ function onFrame(t,frame){
   const kinds=['strawberry','orange','watermelon','apple','lemon','gold','ice','rainbow','strawberry','orange','apple','lemon'];
   const mock=kinds.map((kind,i)=>({id:10000+i,kind,x:Math.sin(i*2.4)*2.65,y:1.1+(i%4)*.82+Math.sin(sec*.9+i)*.28,z:Math.cos(i*2.3)*.35,rot:sec*(.42+(i%3)*.14),dead:false}));
   art.sync(mock,sec);
- }else if(g){art.sync(g.objects,g.elapsed)}
+ }else if(g&&!isAR){art.sync(g.objects,g.elapsed)}
  if(!isAR&&view!=='home'&&!g)art.sync([],sec);
  if(isAR&&frame){try{
    const ref=renderer.xr.getReferenceSpace(),pose=ref&&frame.getViewerPose(ref),vr=pose?.views?.[0];
@@ -227,7 +227,7 @@ progressUI();show('home');
 if(params.has('qa'))window.__frutaQA={
  state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,frames:renderer.info.render.frame,arOnly:isAR,projectedSprites:arTargets.length}),
  finish:()=>g?.finish(true),
- simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.set(.23,.23*.46,.23);art.world.position.set(0,.09,-2.5);art.world.visible=true;createGame('campaign',1);return true},
+ simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.set(.23,.23*.46,.23);art.world.position.set(0,.09,-2.5);art.world.visible=false;createGame('campaign',1);return true},
  previewWorld:(dx=0)=>{const I=[1,0,0,0,0,1,0,0,0,0,-1.002,-1,0,0,-.2,0],V=[1,0,0,0,0,1,0,0,0,0,1,0,-dx,-1.2,0,1];const v={projectionMatrix:[1.4,0,0,0,0,2.1,0,0,0,0,-1.002,-1,0,0,-.2,0],transform:{inverse:{matrix:V}}};arTargets=O.draw(v,art.world.position,art.world.scale.x,g?.objects||[],'playing');return arTargets}
 };
 if(params.has('seed')){const l=clamp(Number(params.get('level')||1),1,10),m=params.get('mode')==='arcade'?'arcade':'campaign';if(m==='arcade'||l<=progress.unlocked){duel=null;selected=l;window.__frutaSharedChallenge={mode:m,level:l,seed:getSeed()};if(m==='campaign'){progressUI();show('selector')}else alertTxt('RETO DISPONIBLE · ABRÍ AR PARA JUGAR',2000)}}
