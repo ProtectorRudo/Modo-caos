@@ -64,7 +64,7 @@ try{
  assert.ok(compactHUD.panel.height<178,'combined HUD must occupy less than 178px');
  assert.ok(compactHUD.viewport-compactHUD.panel.right<=16,'map must sit in top-right corner');
  assert.equal(compactHUD.metrics.length,3,'clock, live players, and eliminations on a single strip');
- assert.match(compactHUD.text||'',/^\\d+:\\d{2}$/,'the zone countdown must fit mm:ss');
+ assert.match(compactHUD.text||'',/^\d+:\d{2}$/,'the zone countdown must fit mm:ss');
  console.log('CIVIDOM_COMPACT_HUD='+JSON.stringify(compactHUD));
  const elapsed=(Date.now()-started)/1000;
  const frames=await page.evaluate(async()=>new Promise(resolve=>{
