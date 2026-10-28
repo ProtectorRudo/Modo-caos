@@ -50,7 +50,7 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   const sliced=await page.locator('#arWorld').innerHTML();
   assert(sliced.includes('clip-path="url(#slice-'),'each fruit explosion must show visibly split halves');
   const fx=await page.evaluate(()=>window.__frutaQA.diagnostics());
-  assert(fx.particles>=16&&fx.shots>=1,'juice particles and shot beams must actually exist '+JSON.stringify(fx));
+  assert(fx.particles>=10&&fx.particles<=42&&fx.shots>=1&&fx.svgNodes<220,'optimized FX must still render without excessive SVG DOM '+JSON.stringify(fx));
   await page.screenshot({path:'frutastrofe-ar-impact-mobile.png',animations:'disabled'});
   // Real pointer hold on the actual button, not a simulated direct core call.
   const beforeShots=await page.evaluate(()=>window.__frutaQA.state().shots);
