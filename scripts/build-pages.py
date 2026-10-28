@@ -9,8 +9,8 @@ import shutil
 ROOT = Path(__file__).resolve().parent.parent
 TARGET = ROOT / "_site"
 PREFIX = "/Modo-caos"
-PUBLISH = {".html", ".js", ".css", ".json", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".woff", ".woff2", ".mp3", ".ogg", ".glb", ".gltf", ".wasm"}
-TEXT = {".html", ".js", ".css"}
+PUBLISH = {".html", ".js", ".mjs", ".css", ".json", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".woff", ".woff2", ".mp3", ".ogg", ".glb", ".gltf", ".wasm"}
+TEXT = {".html", ".js", ".mjs", ".css"}
 # Only rewrite quoted root-relative paths; preserve external https:// and // URLs.
 ROOT_URL = re.compile(r"""(?P<quote>['"])(?P<path>/(?!/)[^'"]*)(?P=quote)""")
 
@@ -36,6 +36,22 @@ for item in ROOT.iterdir():
     else:
         shutil.copyfile(item, out)
     published.append(item.name)
+# CIVIDOM: publish only verified, specifically named chibi GLBs and license files.
+# Previously the root-only packager omitted .mjs and this asset directory,
+# silently breaking the 3D roster on the GitHub Pages fallback.
+STYLOO = ROOT / "assets" / "styloo"
+ALLOWED_STYLOO = {"ninja.glb","archer.glb","student.glb","merchant.glb","knight.glb","manifest.json","LICENSE.txt"}
+if STYLOO.exists() and STYLOO.is_dir():
+    for item in STYLOO.iterdir():
+        if not item.is_file() or item.is_symlink() or item.name not in ALLOWED_STYLOO:
+            continue
+        dest = TARGET / "assets" / "styloo" / item.name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(item, dest)
+        published.append("assets/styloo/" + item.name)
+assert (TARGET / "paper-3d.mjs").is_file(), "CIVIDOM WebGL runtime missing from Pages"
+assert (TARGET / "paper-chibi.mjs").is_file(), "CIVIDOM chibi rig runtime missing from Pages"
+assert (TARGET / "paper.html").is_file(), "CIVIDOM game missing from Pages"
 (TARGET / ".nojekyll").write_text("", encoding="utf-8")
 assert {"index.html", "meteoros.html", "meteoros-runtime.js", "meteoros-core.js", "meteoros-art.js", "engine.js"}.issubset(published)
 assert 'src="/Modo-caos/engine.js' in (TARGET / "meteoros.html").read_text()
