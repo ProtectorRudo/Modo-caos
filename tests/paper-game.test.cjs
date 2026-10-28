@@ -49,7 +49,7 @@ test('page has complete standalone territory game and licensed external characte
 test('12 agents, territory HUD and pause controls initialize',()=>{
  const g=boot();assert.equal(g.win.territoryQA.mode,'home');g.get('start').onclick();
  assert.equal(g.win.territoryQA.mode,'play');
- assert.equal(g.win.territoryQA.players,12);
+ assert.equal(g.win.territoryQA.players,25);
  assert.ok(g.win.territoryQA.area>0.4);
  g.tick(5);assert.match(g.get('percent').textContent,/%/);
  const clock=g.win.territoryQA.clock;g.get('pause').onclick();g.tick(20);
@@ -81,7 +81,7 @@ test('restarting a match resets the territory and score',()=>{
  g.get('restart').onclick();assert.equal(g.win.territoryQA.mode,'play');
  assert.ok(g.win.territoryQA.clock<.05);
  assert.equal(g.win.territoryQA.kills,0);
- assert.equal(g.win.territoryQA.players,12);
+ assert.equal(g.win.territoryQA.players,25);
 });
 
 test('crossing your own exposed trail no longer eliminates your character',()=>{
@@ -127,7 +127,7 @@ test('eliminating all rival identities ends the match with victory',()=>{
  const g=boot(419);g.get('start').onclick();
  const h=g.win.__paperTest,game=h.getGame();
  for(const rival of game.people.slice(1)){rival.protectedUntil=-1;h.death(rival,0);}
- assert.equal(game.defeated.size,11);
+ assert.equal(game.defeated.size,24);
  assert.equal(g.win.territoryQA.mode,'result');
  assert.match(g.get('finaltitle').textContent,/ÚLTIMO SUPERVIVIENTE/);
 });
@@ -136,7 +136,7 @@ test('seven shifting safe circles remain nested and land in variable locations',
  const g=boot(71);g.get('start').onclick();
  const h=g.win.__paperTest,game=h.getGame(),stages=game.storm.stages;
  assert.equal(stages.length,7);
- assert.deepEqual(stages.map(z=>z.at),[15,30,45,60,75,90,105]);
+ assert.deepEqual(stages.map(z=>z.at),[45,75,105,135,165,195,225]);
  let previous={x:h.CX,y:h.CY,radius:h.R};
  for(const stage of stages){
   assert.ok(stage.radius<previous.radius);
@@ -150,24 +150,24 @@ test('seven shifting safe circles remain nested and land in variable locations',
 test('first shrink happens at 15s and the next safe zone is previewed accurately',()=>{
  const g=boot(71);g.get('start').onclick();
  const h=g.win.__paperTest,game=h.getGame();
- h.setClock(14.8);h.updateStorm(0);
+ h.setClock(44.8);h.updateStorm(0);
  assert.equal(h.stormZoneState().phase,0);
  assert.equal(game.storm.radius,h.R);
- h.setClock(17.5);h.updateStorm(0);
+ h.setClock(49.5);h.updateStorm(0);
  assert.equal(h.stormZoneState().phase,1);
  assert.ok(game.storm.radius<h.R);
  assert.ok(game.storm.next.radius<game.storm.radius);
- h.setClock(20.1);h.updateStorm(0);
+ h.setClock(56.1);h.updateStorm(0);
  assert.equal(game.storm.closing,false);
  assert.equal(Math.round(game.storm.radius),Math.round(game.storm.stages[0].radius));
- assert.equal(h.stormZoneState().next.at,30);
+ assert.equal(h.stormZoneState().next.at,75);
 });
 test('permanently defeated bots do not respawn and 100% conquest cannot grant victory',()=>{
  const g=boot(994);g.get('start').onclick();
  const h=g.win.__paperTest,game=h.getGame(),victim=game.people[1];
  h.death(victim,0);
  assert.equal(victim.alive,false);
- assert.equal(game.people.filter(p=>p.alive).length,11);
+ assert.equal(game.people.filter(p=>p.alive).length,24);
  assert.equal(g.win.territoryQA.mode,'play');
  game.people[0].score=100;
  h.setClock(3);h.step(1/60);
@@ -184,7 +184,7 @@ test('premium render uses world-size sharp canvas without magnified low resoluti
 test('survival HUD shows eliminations and players alive, never a ranking by area',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(20);
  assert.equal(g.get('rank').innerHTML,'');
- assert.equal(String(g.get('survivorsCount').textContent),'12');
+ assert.equal(String(g.get('survivorsCount').textContent),'25');
  assert.equal(String(g.get('survivalKills').textContent),'0');
  assert.match(g.get('nextZoneLabel').textContent,/SIGUIENTE ZONA/);
  assert.match(source,/id="survivalPanel"/);
@@ -285,7 +285,7 @@ test('wardrobe balance and equipped emote persist into fresh match',()=>{
  assert.equal(saved.coins,75);
  assert.equal(saved.equipped.emote,'emote_laugh');
  g.get('start').onclick();
- assert.equal(h.getGame().people.length,12);
+ assert.equal(h.getGame().people.length,25);
  assert.equal(h.wardrobe.equipped.emote,'emote_laugh');
  assert.equal(g.get('rank').innerHTML,'');
 });
@@ -329,7 +329,7 @@ test('progressive 3D state is exposed without changing territory physics',()=>{
  const g=boot(419);g.get('start').onclick();
  const state=g.win.Paper3DState();
  assert.equal(state.playing,true);
- assert.equal(state.people.length,12);
+ assert.equal(state.people.length,25);
  assert.equal(state.people[0].hero,0);
  assert.ok(state.screenW>0&&state.zoom>0);
  assert.match(source,/three\/addons/);

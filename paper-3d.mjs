@@ -152,7 +152,7 @@ function startLoading(){
     for(const i of available){sourceAssets[i]={...asset,chibi:true,model:name};assetVersions[i]++;}
     success++;window.PaperChibiStatus='partial';
     // Photo portraits update progressively with each rigged GLB load.
-    setTimeout(snapshotChibiPortraits,60);
+    setTimeout(()=>{if(!getState()?.playing)snapshotChibiPortraits();},60);
    }).catch(error=>{
     console.warn('Chibi model could not load, retaining gameplay fallback:',name,error);
     for(let i=0;i<CHIBI_ROSTER.length;i++)if(CHIBI_ROSTER[i].model===name)
@@ -232,7 +232,14 @@ function sync(dt){
  camera.lookAt(state.camX,-state.camY,0);
  camera.updateProjectionMatrix();
  const all=new Set();
+ // APK-sized roster: keep only eight rigged actors visible at a time on Android.
+ // The other participants still move/capture/fight normally in the 2D layer.
+ const viewW=w/(2*zoom)+100,viewH=h/(2*zoom)+130;
+ const visible=state.people.filter(p=>p.alive&&Math.abs(p.x-state.camX)<viewW&&Math.abs(p.y-state.camY)<viewH)
+  .sort((a,b)=>(a.id===0?-1:b.id===0?1:Math.hypot(a.x-state.camX,a.y-state.camY)-Math.hypot(b.x-state.camX,b.y-state.camY)));
+ const richActors=new Set(visible.slice(0,8).map(p=>p.id));
  for(const p of state.people){
+  if(!richActors.has(p.id)){if(instances.has(p.id))destroyInstance(p.id);continue;}
   all.add(p.id);let item=instances.get(p.id);
   if(!item||item.hero!==p.hero||item.assetVersion!==assetVersions[p.hero]){if(item)destroyInstance(p.id);item=instantiate(p);}
   if(!item)continue;

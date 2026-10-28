@@ -416,7 +416,7 @@ input[type=text]:focus{border-color:#42bcca}
     </div>
     <div class="vsTrack"><i id="vsTrackFill"></i></div>
     <button id="vsPlayNow" class="vsPlayNow" aria-label="Entrar a la partida sin esperar">▶ ENTRAR A JUGAR</button>
-    <div class="vsInfo">Vos contra 11 rivales controlados por computadora · La presentación no afecta tus recompensas</div>
+    <div class="vsInfo">Vos contra 24 rivales controlados por computadora · La presentación no afecta tus recompensas</div>
   </div>
 </section>
 <section id="home" class="overlay"><div class="panel">
@@ -434,7 +434,7 @@ input[type=text]:focus{border-color:#42bcca}
  <input id="nick" maxlength="16" type="text" placeholder="Tu nombre" value="VOS" aria-label="Nombre de jugador">
  <div class="colors" id="colors"></div><div class="heroRosterHead">CIVIDOM CHIBI · ELEGÍ TU CAMPEÓN</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
  <button class="primary" id="start">▶ JUGAR AHORA</button>
- <div class="best" id="best"></div><div class="mini-label">PERSONAJE SELECCIONADO: <b id="heroName">NOVA</b></div><div class="subline">Vos contra 11 rivales IA · movimiento continuo · móvil y PC · sin descargas</div>
+ <div class="best" id="best"></div><div class="mini-label">PERSONAJE SELECCIONADO: <b id="heroName">NOVA</b></div><div class="subline">Vos contra 24 rivales IA · movimiento continuo · móvil y PC · sin descargas</div>
  <div class="rowbtn"><button class="secondary" id="mutebtn">🔊 Sonido activado</button><button class="secondary" id="homeback">↩ Modo Caos</button></div>
 </div></section>
 <section id="result" class="overlay hidden"><div class="panel">
@@ -459,8 +459,8 @@ input[type=text]:focus{border-color:#42bcca}
 (function(){
 'use strict';
 const N=172, CELL=13, SIZE=N*N, WORLD=N*CELL, CX=WORLD/2, CY=WORLD/2, R=WORLD/2-29, RUN=1/60;
-const COLORS=['#27c7d7','#ffbd3f','#f16c96','#a45be6','#53d96e','#f0824c','#3a90eb','#da56bb','#84c94b','#df6862','#9279df','#39b99a'];
-const NAMES=['VOS','Luna','Pixel','Fuego','Ninja','Mora','Kira','Zeta','Neo','Chispa','Toro','Sol'];
+const COLORS=['#27c7d7','#ffbd3f','#f16c96','#a45be6','#53d96e','#f0824c','#3a90eb','#da56bb','#84c94b','#df6862','#9279df','#39b99a','#ff7b68','#43c0ff','#c5df54','#ff80d2','#74dca0','#bd81f2','#ff995b','#60bec4','#e5b354','#a7e45c','#ed719c','#8cafe6','#4ed9b4'];
+const NAMES=['VOS','Luna','Pixel','Fuego','Ninja','Mora','Kira','Zeta','Neo','Chispa','Toro','Sol','Rayo','Atlas','Cometa','Rubi','Trueno','Cosmo','Brisa','Tango','Bamboo','Fenix','Magma','Turbo','Nube'];
 const REWARDS=[
  {at:2,title:'MONEDA DE TURBO',desc:'Impulso de 2 segundos',icon:'◎',boost:2},
  {at:6,title:'ESTELA ÉPICA',desc:'Chispas de conquista desbloqueadas',icon:'✦',boost:1},
@@ -710,7 +710,7 @@ function drawOutfit(p){
  c.restore();
 }
 
-const land=new Uint8Array(SIZE),trails=new Uint16Array(SIZE),inArena=new Uint8Array(SIZE);
+const land=new Uint8Array(SIZE),trails=new Uint32Array(SIZE),inArena=new Uint8Array(SIZE);
 let landCount=0, terrainCanvas=document.createElement('canvas');terrainCanvas.width=N;terrainCanvas.height=N;
 const terrainCtx=terrainCanvas.getContext('2d',{alpha:true});
 let mapCanvas=document.createElement('canvas');mapCanvas.width=WORLD;mapCanvas.height=WORLD;
@@ -726,7 +726,9 @@ function inside(x,y,pad=16){
 }
 // CIVIDOM Battle Royale: seven nested circles start every 15 seconds.
 // The final location shifts each match, and each upcoming safe zone is announced.
-const STORM_INTERVAL=15,STORM_SHRINK_SECONDS=5;
+const MATCH_PLAYERS=25; // APK target: 1 human + 24 bots
+const STORM_FIRST_AT=45,STORM_INTERVAL=30,STORM_SHRINK_SECONDS=10;
+const MATCH_FAILSAFE_SECONDS=300;
 const STORM_FRACTIONS=[.77,.56,.39,.27,.19,.13,.09];
 function createStormStages(){
  const angle=random(-Math.PI,Math.PI),distance=R*random(.21,.49);
@@ -738,14 +740,14 @@ function createStormStages(){
   const desired={x:CX+dx*steps[i],y:CY+dy*steps[i]};
   const ox=desired.x-previous.x,oy=desired.y-previous.y,length=Math.hypot(ox,oy);
   const maxShift=Math.max(0,previous.radius-radius-8),factor=length?Math.min(1,maxShift/length):1;
-  const target={at:(i+1)*STORM_INTERVAL,x:previous.x+ox*factor,y:previous.y+oy*factor,radius};
+  const target={at:STORM_FIRST_AT+i*STORM_INTERVAL,x:previous.x+ox*factor,y:previous.y+oy*factor,radius};
   stages.push(target);previous=target;
  }
  return stages;
 }
 function stormZoneState(t=clock){
  const storm=game?.storm;
- if(!storm)return{phase:0,active:false,remaining:STORM_INTERVAL,next:null};
+ if(!storm)return{phase:0,active:false,remaining:STORM_FIRST_AT,next:null};
  const stages=storm.stages;let phase=0;
  while(phase<stages.length&&t>=stages[phase].at)phase++;
  const from=phase>1?stages[phase-2]:{x:CX,y:CY,radius:R};
@@ -978,24 +980,24 @@ function contourPath(ctx,loops,ox=0,oy=0){
 function updateMap(){
  // Capture physics keeps the accurate occupancy grid. Presentation uses smooth
  // connected vector contours rather than thousands of low-res circular stamps.
- const data=terrainCtx.createImageData(N,N),buf=data.data,active=new Uint8Array(12);
+ const data=terrainCtx.createImageData(N,N),buf=data.data,active=new Uint8Array(MATCH_PLAYERS);
  for(let k=0;k<SIZE;k++){
   const v=land[k];if(!inArena[k]||!v)continue;
-  active[v-1]=1;const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),o=k*4;
+  active[v-1]=1;const rgb=colorToRGB(COLORS[(v-1+settingColor)%COLORS.length]),o=k*4;
   buf[o]=rgb[0];buf[o+1]=rgb[1];buf[o+2]=rgb[2];buf[o+3]=255;
  }
  terrainCtx.putImageData(data,0,0);
  mapCtx.clearRect(0,0,WORLD,WORLD);
  mapCtx.lineJoin='round';mapCtx.lineCap='round';
- for(let v=1;v<=12;v++){
+ for(let v=1;v<=MATCH_PLAYERS;v++){
   if(!active[v-1])continue;
   const loops=territoryLoops(v);if(!loops.length)continue;
-  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]);
+  const rgb=colorToRGB(COLORS[(v-1+settingColor)%COLORS.length]);
   contourPath(mapCtx,loops,0,7);
   mapCtx.fillStyle='rgba('+Math.floor(rgb[0]*.77)+','+Math.floor(rgb[1]*.77)+','+Math.floor(rgb[2]*.77)+',1)';
   mapCtx.fill('evenodd');
   contourPath(mapCtx,loops);
-  mapCtx.fillStyle=COLORS[(v-1+settingColor)%12];mapCtx.fill('evenodd');
+  mapCtx.fillStyle=COLORS[(v-1+settingColor)%COLORS.length];mapCtx.fill('evenodd');
   // Intricate but subtle procedural motif, clipped inside owned territory.
   // No copyrighted sprite sheets, no image downloads, no noisy background.
   mapCtx.save();contourPath(mapCtx,loops);mapCtx.clip('evenodd');
@@ -1059,11 +1061,18 @@ function vibrate(ms){if(navigator.vibrate)navigator.vibrate(ms);}
 function popup(s){if(!game)return;$('msg').textContent=s;$('msg').classList.add('show');msgTime=clock+1.1;}
 function base(p,rad=5){const gx=Math.floor(p.x/CELL),gy=Math.floor(p.y/CELL);for(let dy=-rad;dy<=rad;dy++)for(let dx=-rad;dx<=rad;dx++){let x=gx+dx,y=gy+dy;if(x<0||y<0||x>=N||y>=N||dx*dx+dy*dy>(rad+.15)**2)continue;let k=y*N+x;if(inArena[k])land[k]=p.id+1;}}
 function spawnPoint(){
- const a=arenaState();
- for(let i=0;i<150;i++){const ang=random(-Math.PI,Math.PI),rad=Math.sqrt(Math.random())*a.radius*.69;
- const x=a.x+Math.cos(ang)*rad,y=a.y+Math.sin(ang)*rad;
- if(inside(x,y)&&(!game||game.people.every(p=>!p.alive||Math.hypot(p.x-x,p.y-y)>215)))return{x,y};}
- return{x:a.x+random(-a.radius*.15,a.radius*.15),y:a.y+random(-a.radius*.15,a.radius*.15)};
+ const a=arenaState();let best=null,bestDistance=-1;
+ // With 25 contestants, never fall back to a crowded central spawn.
+ // Deterministically prefer the farthest tested candidate if full separation is impossible.
+ for(let i=0;i<240;i++){
+  const ang=random(-Math.PI,Math.PI),rad=Math.sqrt(Math.random())*a.radius*.76;
+  const x=a.x+Math.cos(ang)*rad,y=a.y+Math.sin(ang)*rad;
+  if(!inside(x,y,85))continue;
+  const nearest=game?.people?.reduce((d,p)=>p.alive?Math.min(d,Math.hypot(p.x-x,p.y-y)):d,Infinity)??Infinity;
+  if(nearest>=190)return{x,y};
+  if(nearest>bestDistance){bestDistance=nearest;best={x,y};}
+ }
+ return best||{x:a.x,y:a.y};
 }
 function makePerson(id,pnt){
  return {id,name:id===0?($('nick').value.trim().slice(0,16)||'VOS'):id===1?HEROES[vsRival].name:NAMES[id],x:pnt.x,y:pnt.y,angle:random(-Math.PI,Math.PI),
@@ -1072,7 +1081,7 @@ function makePerson(id,pnt){
  powerKind:null,powerUntil:0,shieldUntil:0,style:id%3};
 }
 function countAreas(){
- if(!game)return;const counts=new Int32Array(12);for(let k=0;k<SIZE;k++)if(land[k])counts[land[k]-1]++;
+ if(!game)return;const counts=new Int32Array(MATCH_PLAYERS);for(let k=0;k<SIZE;k++)if(land[k])counts[land[k]-1]++;
  for(const p of game.people){p.area=counts[p.id];p.score=100*p.area/landCount;}game.ordered=game.people.filter(p=>p.alive).sort((a,b)=>b.area-a.area);
 }
 function reset(){
@@ -1080,10 +1089,10 @@ function reset(){
  for(let k=0;k<SIZE;k++){const x=(k%N+.5)*CELL,y=((k/N|0)+.5)*CELL;inArena[k]=(x-CX)**2+(y-CY)**2<(R-5)**2?1:0;}
  landCount=inArena.reduce((n,v)=>n+v,0);
  game={people:[],ordered:[],kills:0,started:0,record:0,lastArea:0,defeated:new Set(),rewards:new Set(),
- epicTrail:false,crowned:false,storm:{x:CX,y:CY,radius:R,phase:0,closing:false,remaining:STORM_INTERVAL,next:null,stages:createStormStages(),nextMaskAt:0,lastWarning:-99},
+ epicTrail:false,crowned:false,storm:{x:CX,y:CY,radius:R,phase:0,closing:false,remaining:STORM_FIRST_AT,next:null,stages:createStormStages(),nextMaskAt:0,lastWarning:-99},
  boxes:[],boxSerial:0,nextBoxAt:9,lastPower:null,lastBarrierSound:-9};particles=[];bursts=[];rewardToastUntil=0;$('rewardToast').classList.remove('visible');for(let i=0;i<REWARDS.length;i++)$('milestone'+i).classList.remove('unlocked');let player={x:CX,y:CY};
  game.people.push(makePerson(0,player));game.people[0].angle=-Math.PI/2;game.earnedCoins=0;emoteUntil=0;celebrationBursts=[];base(game.people[0],6);
- for(let i=1;i<12;i++){const pos=spawnPoint();const p=makePerson(i,pos);game.people.push(p);base(p,random(3.5,5)|0);}
+ for(let i=1;i<MATCH_PLAYERS;i++){const pos=spawnPoint();const p=makePerson(i,pos);game.people.push(p);base(p,random(3.5,5)|0);}
  countAreas();game.lastArea=game.people[0].area;updateMap();camX=CX;camY=CY;desiredAngle=null;pointer=null;keys={};mode='play';
  $('home').classList.add('hidden');$('result').classList.add('hidden');$('paused').classList.add('hidden');$('hud').style.display='block';$('controls').style.opacity='1';$('msg').classList.remove('show');game.started=clock;
  showHud();setTimeout(()=>{$('controls').style.opacity='.5'},2400);
@@ -1096,7 +1105,7 @@ function death(p,killer=-1){
  if(!p.alive||(killer>=0&&killer!==p.id&&clock<p.shieldUntil))return; // Only active SHIELD blocks trail kills.
  clearTrail(p);p.alive=false;
  if(p.id!==0){for(let k=0;k<SIZE;k++)if(land[k]===p.id+1)land[k]=0;}
- burstAt(p.x,p.y,COLORS[(p.id+settingColor)%12],28,100);dropMystery(p);updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;game.defeated.add(p.id);game.earnedCoins+=awardCoins(25);celebrateAt(attacker,'kill');popup('¡ELIMINACIÓN! +25 🪙');audio('kill');vibrate(30);}}
+ burstAt(p.x,p.y,COLORS[(p.id+settingColor)%COLORS.length],28,100);dropMystery(p);updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;game.defeated.add(p.id);game.earnedCoins+=awardCoins(25);celebrateAt(attacker,'kill');popup('¡ELIMINACIÓN! +25 🪙');audio('kill');vibrate(30);}}
  if(p.id===0){audio('death');vibrate([80,70,110]);end(false);}else{p.respawn=Infinity;countAreas();if(game.people.filter(q=>q.alive).length===1&&game.people[0].alive)end(true);}
 }
 function respawn(p){
@@ -1141,7 +1150,7 @@ function capture(p){
  while(head<tail){const k=queue[head++],x=k%N,y=(k/N)|0;if(x>0)add(k-1);if(x<N-1)add(k+1);if(y>0)add(k-N);if(y<N-1)add(k+N);}
  for(let k=0;k<SIZE;k++)if(inArena[k]&&!seen[k]&&land[k]!==p.id+1)land[k]=p.id+1;
  clearTrail(p);countAreas();updateMap();
- const increase=Math.max(0,p.area-beforeArea);if(increase>0){captureEffect(outline,p,COLORS[(p.id+settingColor)%12],increase/landCount);}
+ const increase=Math.max(0,p.area-beforeArea);if(increase>0){captureEffect(outline,p,COLORS[(p.id+settingColor)%COLORS.length],increase/landCount);}
  if(p.id===0){grantRewards(p);const bonus=awardCoins(Math.max(1,Math.min(120,Math.round(increase*100/landCount*12))));game.earnedCoins+=bonus;
  if(bonus>0&&increase>0)celebrateAt(p,'capture');
  const points=Math.round(increase*100/landCount*10)/10;game.lastArea=p.area;
@@ -1278,7 +1287,13 @@ function step(dt){
  }
  }
  if(mode!=='play')return;
- for(let i=1;i<12;i++){stepBot(game.people[i],dt);if(mode!=='play')return;}
+ if(clock>=MATCH_FAILSAFE_SECONDS){
+  countAreas();
+  const survivor=game.ordered[0];
+  end(!!survivor&&survivor.id===0,true);
+  return;
+ }
+ for(let i=1;i<game.people.length;i++){stepBot(game.people[i],dt);if(mode!=='play')return;}
  camX+=(p.x-camX)*Math.min(1,dt*7.6);camY+=(p.y-camY)*Math.min(1,dt*7.6);
  if(msgTime&&clock>msgTime){$('msg').classList.remove('show');msgTime=0;}
  if(clock-lastHud>.28){countAreas();showHud();lastHud=clock;}
@@ -1337,7 +1352,7 @@ function drawMini(){
  for(const p of game.people){
   if(!p.alive||p.id===0)continue;
   const x=mapX(p.x),y=mapY(p.y);
-  mc.fillStyle=COLORS[(p.id+settingColor)%12];
+  mc.fillStyle=COLORS[(p.id+settingColor)%COLORS.length];
   mc.strokeStyle='#142e76';mc.lineWidth=1.15;
   mc.beginPath();mc.arc(x,y,3.2,0,7);mc.fill();mc.stroke();
  }
@@ -1464,7 +1479,7 @@ function paintMascotCanvas(p,hero,color){
 
 function drawUnit(p){
  if(!p.alive)return;
- const col=COLORS[(p.id+settingColor)%12];
+ const col=COLORS[(p.id+settingColor)%COLORS.length];
  if(p.outside&&p.trailPoints.length){
   // Raised, neon-rimmed ribbons: visually continuous even through a sharp turn.
   c.beginPath();c.moveTo(p.trailPoints[0].x,p.trailPoints[0].y);
@@ -1529,14 +1544,14 @@ function render(){
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
  drawUnit(game.people[0]);drawStorm();c.restore();
 }
-function end(win){
+function end(win,timedOut=false){
  if(mode!=='play')return;mode='result';countAreas();let p=game.people[0],best=Math.max(readBest(),p.score);
  try{localStorage.setItem('territoryloop_best',String(best));}catch(e){}
  const reward=Math.min(80,Math.round(p.score*2)+(win?35:0));
  game.earnedCoins+=awardCoins(reward);$('matchCoins').textContent='🪙 Ganaste '+game.earnedCoins+' monedas en esta partida';
  refreshWallet();
- $('finaltitle').textContent=win?'¡ÚLTIMO SUPERVIVIENTE!':'¡QUEDASTE ELIMINADO!';
- $('finalscore').textContent=p.score.toFixed(1)+'%';$('finaldesc').textContent=win?'¡Sobreviviste a todos los rivales!':'Gana el último que sigue con vida. ¡Volvé por la revancha!';
+ $('finaltitle').textContent=timedOut?(win?'¡VICTORIA POR DOMINIO!':'¡TIEMPO AGOTADO!'):(win?'¡ÚLTIMO SUPERVIVIENTE!':'¡QUEDASTE ELIMINADO!');
+ $('finalscore').textContent=p.score.toFixed(1)+'%';$('finaldesc').textContent=timedOut?'Se terminó el tiempo: gana quien tenga más territorio.':(win?'¡Sobreviviste a todos los rivales!':'Gana el último que sigue con vida. ¡Volvé por la revancha!');
  $('finalkills').textContent=game.kills;$('finalbest').textContent=best.toFixed(1)+'%';$('finalrank').textContent=win?'#1':'#'+(1+game.people.filter(q=>q.alive).length);
  $('result').classList.remove('hidden');$('hud').style.display='none';
 }
