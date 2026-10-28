@@ -1302,26 +1302,52 @@ function showHud(){
 function safe(s){return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function drawMini(){
  const w=182;mc.clearRect(0,0,w,w);mc.save();
- // Show the same moving, shrinking circle as the actual playfield.
- const a=arenaState(),arenaMx=9+a.x/WORLD*164,arenaMy=9+a.y/WORLD*164,arenaRad=a.radius/WORLD*164;
- mc.strokeStyle='#173b9a88';mc.lineWidth=4.5;mc.beginPath();mc.arc(91,91,79,0,Math.PI*2);mc.stroke();
- mc.strokeStyle=clock>=18?'#54edfa':'#1646b1';mc.lineWidth=4.5;
- mc.beginPath();mc.arc(arenaMx,arenaMy,arenaRad,0,Math.PI*2);mc.stroke();
- mc.save();mc.beginPath();mc.arc(arenaMx,arenaMy,arenaRad,0,Math.PI*2);mc.clip();
- mc.globalAlpha=.91;mc.imageSmoothingEnabled=true;
- mc.drawImage(terrainCanvas,9,9,164,164);mc.globalAlpha=1;
- for(const box of game.boxes){if(!box.active)continue;const px=9+box.x/WORLD*164,py=9+box.y/WORLD*164;mc.fillStyle=POWER_COLORS[box.type];mc.strokeStyle='#162c79';mc.lineWidth=1.3;mc.fillRect(px-2.5,py-2.5,5,5);mc.strokeRect(px-2.5,py-2.5,5,5);}
+ const zone=stormZoneState(),current=arenaState(),next=zone.next;
+ const mapX=x=>9+x/WORLD*164,mapY=y=>9+y/WORLD*164,rad=r=>r/WORLD*164;
+ // Every part of the map is visible. The storm covers the unsafe outer region
+ // with a readable purple mask, exactly like the familiar battle-royale maps.
+ mc.save();mc.beginPath();mc.roundRect(7,7,168,168,10);mc.clip();
+ mc.fillStyle='#dffbf0';mc.fillRect(7,7,168,168);
+ mc.imageSmoothingEnabled=true;mc.drawImage(terrainCanvas,9,9,164,164);
+ const cx=mapX(current.x),cy=mapY(current.y),r=rad(current.radius);
+ mc.fillStyle='rgba(119,65,183,.68)';
+ mc.beginPath();mc.rect(7,7,168,168);mc.arc(cx,cy,r,0,Math.PI*2,true);
+ mc.fill('evenodd');
+ // A blue ring is the ACTUAL safe boundary; a dashed white ring is the NEXT
+ // safe area. Its displaced position changes from game to game.
+ mc.strokeStyle='#1151de';mc.lineWidth=3.5;mc.beginPath();mc.arc(cx,cy,r,0,7);mc.stroke();
+ if(next){
+  const nx=mapX(next.x),ny=mapY(next.y),nr=rad(next.radius);
+  mc.setLineDash([5,4]);mc.strokeStyle='#fff';mc.lineWidth=3.6;
+  mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();mc.setLineDash([]);
+  mc.strokeStyle='#163577';mc.lineWidth=1;mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();
+  mc.fillStyle='#ffe77c';mc.beginPath();mc.arc(nx,ny,3.8,0,7);mc.fill();
+  const me=game.people[0],out=Math.hypot(me.x-next.x,me.y-next.y)>next.radius-22;
+  if(out&&me.alive){
+   mc.save();mc.setLineDash([4,4]);mc.strokeStyle='#ffef86';mc.lineWidth=1.8;
+   mc.beginPath();mc.moveTo(mapX(me.x),mapY(me.y));mc.lineTo(nx,ny);mc.stroke();mc.restore();
+  }
+ }
+ for(const box of game.boxes){
+  if(!box.active)continue;
+  const x=mapX(box.x),y=mapY(box.y);
+  mc.fillStyle=POWER_COLORS[box.type];mc.strokeStyle='#203f80';mc.lineWidth=1.1;
+  mc.fillRect(x-2.2,y-2.2,4.4,4.4);mc.strokeRect(x-2.2,y-2.2,4.4,4.4);
+ }
  for(const p of game.people){
   if(!p.alive||p.id===0)continue;
-  const x=9+p.x/WORLD*164,y=9+p.y/WORLD*164;
-  mc.fillStyle=COLORS[(p.id+settingColor)%12];mc.strokeStyle='#1740a6';mc.lineWidth=1.2;
-  mc.beginPath();mc.arc(x,y,4.3,0,7);mc.fill();mc.stroke();
+  const x=mapX(p.x),y=mapY(p.y);
+  mc.fillStyle=COLORS[(p.id+settingColor)%12];
+  mc.strokeStyle='#142e76';mc.lineWidth=1.15;
+  mc.beginPath();mc.arc(x,y,3.2,0,7);mc.fill();mc.stroke();
  }
- const player=game.people[0],mx=9+player.x/WORLD*164,my=9+player.y/WORLD*164;
- mc.translate(mx,my);mc.rotate(player.angle+Math.PI/2);
- mc.fillStyle='#fff';mc.strokeStyle='#1640b0';mc.lineWidth=3;
- mc.beginPath();mc.moveTo(0,-10);mc.lineTo(7,8);mc.lineTo(-7,8);mc.closePath();mc.fill();mc.stroke();
- mc.restore();mc.restore();
+ const player=game.people[0];
+ mc.save();mc.translate(mapX(player.x),mapY(player.y));mc.rotate(player.angle+Math.PI/2);
+ mc.fillStyle='#fff';mc.strokeStyle='#113da5';mc.lineWidth=2.5;
+ mc.beginPath();mc.moveTo(0,-9);mc.lineTo(6.3,7);mc.lineTo(-6.3,7);mc.closePath();mc.fill();mc.stroke();mc.restore();
+ mc.restore();
+ mc.strokeStyle='#bedfff';mc.lineWidth=2;mc.strokeRect(8,8,166,166);
+ mc.restore();
 }
 function paintChibi(p,hero,col){
  const t=clock*7+p.id*.7,bob=Math.sin(t)*1.7,step=Math.sin(t*1.4)*4,blush=hero===1?'#efac94':'#f6c4bb';
