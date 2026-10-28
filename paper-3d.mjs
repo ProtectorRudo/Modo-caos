@@ -9,20 +9,23 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {buildMascot,animateMascot,MASCOT_DATA} from './paper-mascots.mjs';
 import {setFashion} from './paper-fashion.mjs';
+import {CHIBI_ROSTER,applyChibiFashion,chibiEmote,disposeChibi} from './paper-chibi.mjs';
 import {setHumanFashion,animateHuman,initializeHumanRig,disposeHumanActor,HUMAN_HEROES,transplantQuaterniusHead,syncQuaterniusHead} from './paper-quaternius.mjs';
 
 const canvas=document.getElementById('characterStage');
 const getState=()=>typeof window.Paper3DState==='function'?window.Paper3DState():null;
 const relative='./assets/mascots/';
-const HUMAN_COUNT=HUMAN_HEROES.length;
-const TOTAL_HEROES=HUMAN_COUNT+MASCOT_DATA.length;
-const models=MASCOT_DATA.map(x=>x.species+'.procedural');
+const HUMAN_COUNT=CHIBI_ROSTER.length;
+const TOTAL_HEROES=HUMAN_COUNT;
+const models=CHIBI_ROSTER.map(x=>x.model+'.glb');
 const backupBase='./assets/styloo/';
 const backupModels=['archer.glb','merchant.glb','student.glb','ninja.glb','archer.glb','merchant.glb','student.glb','ninja.glb'];
 const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
 const RIG_HEIGHT=80;
 const gltfLoader=new GLTFLoader();
 const sourceAssets=new Array(TOTAL_HEROES).fill(null),instances=new Map();
+window.PaperPortraits=window.PaperPortraits||[];
+window.PaperChibiStatus='loading';
 let mainGameVisible=false;
 window.Paper3DReady=Object.create(null);
 window.PaperVSReady=false;
@@ -46,7 +49,7 @@ const addMesh=(group,geometry,mat,x,y,z=0)=>{const m=new THREE.Mesh(geometry,mat
 function destroyInstance(id){
  const item=instances.get(id);if(!item)return;
  if(item.mixer)item.mixer.stopAllAction();
- disposeHumanActor(item);
+ disposeChibi(item);disposeHumanActor(item);
  scene.remove(item.root);instances.delete(id);delete window.Paper3DReady[id];
 }
 function chooseAnimation(gltf,kind){
@@ -77,7 +80,7 @@ function instantiate(person){
  const hero=person.hero;
  const asset=sourceAssets[hero];if(!asset)return null;
  const root=new THREE.Group();root.name='Hero_'+person.id;
- const kit=asset.procedural?buildMascot(THREE,hero<HUMAN_COUNT?hero:hero-HUMAN_COUNT):null;
+ const kit=asset.procedural?buildMascot(THREE,hero%MASCOT_DATA.length):null;
  const base=kit?kit.root:SkeletonUtils.clone(asset.scene);
  const human=asset.human?initializeHumanRig(base,hero,!!asset.nativeOutfit):null;
  const headOverlay=asset.nativeOutfit&&asset.referenceHead?
@@ -97,14 +100,15 @@ function instantiate(person){
  const rig=findArmRig(base);
  const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,
  restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null,...(human||{}),
- nativeOutfit:!!asset.nativeOutfit,headOverlay,headBones:face?.humanBones,headRest:face?.humanRest};
- if(instance.humanBones)updateOutfit(instance,{});
+ nativeOutfit:!!asset.nativeOutfit,headOverlay,headBones:face?.humanBones,headRest:face?.humanRest,chibi:!!asset.chibi,chibiSourceHeight:size.y};
+ if(instance.humanBones||instance.chibi)updateOutfit(instance,{});
  scene.add(root);instances.set(person.id,instance);
  window.Paper3DReady[person.id]=true;
  return instance;
 }
 function updateOutfit(instance,equipment){
- if(instance.humanBones)setHumanFashion(THREE,instance,equipment||{});
+ if(instance.chibi)applyChibiFashion(THREE,instance,equipment||{});
+ else if(instance.humanBones)setHumanFashion(THREE,instance,equipment||{});
  else setFashion(THREE,instance,equipment||{});
 }
 function loadModel(index){
@@ -120,29 +124,21 @@ function loadModel(index){
 function startLoading(){
  if(started||failed)return;
  started=true;
- // Keep the legacy eight mascots as selectable alternatives. The first four
- // champions are genuinely skinned Quaternius humanoids, not primitives.
- for(let i=HUMAN_COUNT;i<TOTAL_HEROES;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
- window.PaperQuaterniusStatus='loading';
- const getGLTF=(url)=>new Promise((resolve,reject)=>gltfLoader.load(url,resolve,undefined,reject));
- const root='./assets/cividom-quaternius/';
- Promise.all([
-   getGLTF(root+'ubc-superhero-male.glb'),
-   getGLTF(root+'outfits/Male_Peasant.gltf'),
-   getGLTF(root+'outfits/Female_Peasant.gltf')
- ]).then(([base,male,female])=>{
-   for(const asset of [base,male,female]){
-    let skinned=false;asset.scene.traverse(n=>{if(n.isSkinnedMesh)skinned=true;});
-    if(!skinned)throw new Error('Quaternius source missing skinned meshes');
-   }
-   const outfits=[male,female,male,female];
-   for(let i=0;i<HUMAN_COUNT;i++)
-     sourceAssets[i]={...outfits[i],human:true,nativeOutfit:true,referenceHead:base.scene};
-   window.PaperQuaterniusStatus='native-outfits-ready';
+ const getGLB=name=>new Promise((resolve,reject)=>gltfLoader.load('./assets/styloo/'+name+'.glb',resolve,undefined,reject));
+ const unique=[...new Set(CHIBI_ROSTER.map(x=>x.model))];
+ Promise.all(unique.map(name=>getGLB(name).then(asset=>({name,asset})))).then(loaded=>{
+  const lib=Object.fromEntries(loaded.map(x=>[x.name,x.asset]));
+  for(let i=0;i<CHIBI_ROSTER.length;i++){
+   const model=CHIBI_ROSTER[i].model;
+   if(!lib[model]?.scene)throw new Error('Missing licensed chibi '+model);
+   sourceAssets[i]={...lib[model],chibi:true,model};
+  }
+  window.PaperChibiStatus='ready';
+  setTimeout(snapshotChibiPortraits,160);
  }).catch(error=>{
-  console.error('Authentic Quaternius outfit load failed; legacy fallback available',error);
-  for(let i=0;i<HUMAN_COUNT;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
-  window.PaperQuaterniusStatus='fallback';
+  console.error('Styloo Chibi models not loaded; gameplay uses fallback:',error);
+  for(let i=0;i<TOTAL_HEROES;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
+  window.PaperChibiStatus='fallback';
  });
 }
 
@@ -191,6 +187,7 @@ function sync(dt){
   }else{item.root.position.y+=Math.sin(state.clock*9+item.phase)*1.8;}
   if(item.mascotRig)animateMascot(item,state.clock,p.emoting?p.emoteId:'run');
    else if(item.humanBones)animateHuman(THREE,item,state.clock,p.emoting?p.emoteId:'run');
+   else if(item.chibi&&p.emoting)chibiEmote(THREE,item,state.clock,p.emoteId||'emote_hello');
    if(item.headOverlay)syncQuaterniusHead(THREE,item);
   if(p.id===0){updateOutfit(item,state.equipment);}
  }
@@ -222,7 +219,7 @@ function vsCreate(){
 function vsActor(hero){
  if(!sourceAssets[hero])return null;
  const asset=sourceAssets[hero],root=new THREE.Group();
- const kit=asset.procedural?buildMascot(THREE,hero<HUMAN_COUNT?hero:hero-HUMAN_COUNT):null;
+ const kit=asset.procedural?buildMascot(THREE,hero%MASCOT_DATA.length):null;
  const mesh=kit?kit.root:SkeletonUtils.clone(asset.scene);
  const human=asset.human?initializeHumanRig(mesh,hero,!!asset.nativeOutfit):null;
  const headOverlay=asset.nativeOutfit&&asset.referenceHead?
@@ -241,12 +238,12 @@ function vsActor(hero){
  const actor={hero,root,mesh,base:mesh,mixer,action,arms,forearms,
  dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6,
  mascotRig:kit?.rig||null,...(human||{}),nativeOutfit:!!asset.nativeOutfit,
- headOverlay,headBones:face?.humanBones,headRest:face?.humanRest};
- if(actor.humanBones)updateOutfit(actor,{});
+ headOverlay,headBones:face?.humanBones,headRest:face?.humanRest,chibi:!!asset.chibi,chibiSourceHeight:size.y};
+ if(actor.humanBones||actor.chibi)updateOutfit(actor,{});
  return actor;
 }
 function clearVSActors(){
- for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();disposeHumanActor(item);vsScene?.remove(item.root);}
+ for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();disposeChibi(item);disposeHumanActor(item);vsScene?.remove(item.root);}
  vsCharacters=[];
 }
 // Store a bind/rest orientation once per model. Never multiply incremental angles
@@ -315,6 +312,7 @@ function syncMenu(state,dt){
   if(actor.mixer)actor.mixer.update(Math.min(dt,.04));
   if(actor.mascotRig)animateMascot(actor,t,inShop?(state.previewEmote||'idle'):'idle');
    else if(actor.humanBones)animateHuman(THREE,actor,t,inShop?(state.previewEmote||'idle'):'idle');
+   else if(actor.chibi&&inShop&&state.previewEmote)chibiEmote(THREE,actor,t,state.previewEmote);
    if(actor.headOverlay)syncQuaterniusHead(THREE,actor);
   updateOutfit(actor,inShop?(state.previewEquipment||state.equipment):state.equipment);
   vsRenderer.render(vsScene,vsCamera);
@@ -363,8 +361,9 @@ function syncVS(state,dt){
    if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
    if(actor.mascotRig)animateMascot(actor,state.vsSeconds,i===0?(state.vsEmote||'emote_sixseven'):'emote_sixseven',i===1);
     else if(actor.humanBones)animateHuman(THREE,actor,state.vsSeconds,i===0?(state.vsEmote||'emote_sixseven'):'emote_sixseven',i===1);
+    else if(actor.chibi)chibiEmote(THREE,actor,state.vsSeconds,i===0&&state.vsEmote!=='emote_hello'?(state.vsEmote||'emote_sixseven'):'emote_sixseven',i===1);
     if(actor.headOverlay)syncQuaterniusHead(THREE,actor);
-   else if(!actor.humanBones)danceBones(actor,state.vsSeconds,i===1);
+   else if(!actor.humanBones&&!actor.chibi)danceBones(actor,state.vsSeconds,i===1);
    if(i===0)updateOutfit(actor,state.equipment);
   }
   window.PaperVSReady=true;vsCanvas.style.opacity='1';document.getElementById('versusStage')?.classList.add('is-3d');
@@ -386,7 +385,8 @@ function frame(ms){
 if(new URLSearchParams(location.search).has('qa')){
  window.PaperMascotQA=()=>({
   models:sourceAssets.filter(x=>x?.procedural).length,
-   quaternius:window.PaperQuaterniusStatus||'none',
+   chibi:window.PaperChibiStatus||'none',
+   licensedChibiAssets:sourceAssets.filter(x=>x?.chibi).length,
    nativeOutfitActors:[...instances.values()].filter(x=>x.nativeOutfit).length,
    nativeOutfitPreview:vsCharacters.filter(x=>x?.nativeOutfit).length,
    syncedHeadPreview:vsCharacters.filter(x=>x?.headOverlay).length,
