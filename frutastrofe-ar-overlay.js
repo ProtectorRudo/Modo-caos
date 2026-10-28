@@ -102,6 +102,19 @@ function draw(view,origin,scale,objects,kind='playing'){
  }
  targets=[];
  if(kind==='playing'){
+  // Contact shadows on the REAL anchored deck; their strength depends on height.
+  // This makes flying targets read as objects in 3D space, not stickers on a screen.
+  for(const o of objects||[]){
+   if(o.y>5.5||o.y<0||o.kind==='boss')continue;
+   const foot=pos(o.x,-.064,o.z);
+   if(!foot||foot.y<50||foot.y>height+40)continue;
+   const rad=clamp(13+o.y*1.8,13,26),opacity=clamp(.28-o.y*.028,.07,.27);
+   c.save();c.translate(foot.x,foot.y);c.scale(1,.42);
+   const shade=c.createRadialGradient(0,0,1,0,0,rad);
+   shade.addColorStop(0,'rgba(3,11,27,'+opacity+')');
+   shade.addColorStop(1,'rgba(3,11,27,0)');
+   disc(c,0,0,rad,shade);c.restore();
+  }
   const mapped=P.targets(view,origin,scale,objects,width,height).sort((a,b)=>b.depth-a.depth);
   for(const q of mapped){
    if(q.y<66||q.y>height-86)continue;
