@@ -144,3 +144,11 @@ Se revisaron Kenney Food Kit (CC0: https://kenney.nl/assets/food-kit), Quaterniu
 - Regresiones: sin alterar `frutastrofe-core.js`, `frutastrofe-online.js`, el estado de Supabase, las salas, el anclaje o el menú de otros juegos.
 
 **Límites de validación:** los tests GitHub Actions ejecutan el juego y el flujo de disparos bajo Chromium con una vista WebXR simulada, más smoke sobre CDN público. Eso no confirma FPS físico ni la experiencia completa en dos Android con ARCore.
+
+## 28/10/2026 · Sable de energía en lugar del bláster (JUICE SABER)
+- El jugador solicitó reemplazar la pistola por un sable. Se creó un SVG original `JUICE SABER` con hoja luminosa, empuñadura metalizada, guardas y núcleo verde/cian; el viejo bláster ya no se renderiza.
+- El control AR sigue siendo **apuntar con el teléfono** y pulsar `¡CORTÁ!`; mantener presionado produce tajos consecutivos cada 160 ms aproximadamente. Evitamos requerir movimientos físicos bruscos del usuario o prometer reconocimiento de manos/cuerpo.
+- El impacto usa ahora cortes curvos de energía de 190 ms sobre la fruta apuntada, en lugar de proyectiles que salían de la pistola. No hay rayos largos ni coste adicional de WebGL.
+- La salida luminosa se calibra desde `#saberTip` SVG. La animación de tajo usa una transformación CSS compuesta y efectos Canvas limitados a dos trazos visibles.
+- Cambió el sonido de disparo por un swish grave breve. Conserva 60 segundos, seis oleadas, bombas y penalizaciones, puntuación y multiplayer 1v1 (sin modificaciones a Supabase).
+- Pendiente prueba física Android ARCore; tests automáticos cubren botón CORTÁ, hoja en pantalla, ausencia de cañón y ráfaga de cortes, además del núcleo.
