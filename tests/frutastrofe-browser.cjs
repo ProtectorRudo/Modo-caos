@@ -29,7 +29,9 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   await page.evaluate(()=>window.__frutaQA.simulateAR());
   assert(await page.locator('#readyOverlay').isVisible());
   // Software WebGL can be slow to satisfy Playwright's layout stability wait; click via DOM in simulation.
-  await page.evaluate(()=>document.getElementById('goBtn').click());assert(await page.locator('#hud').isVisible());
+  await page.evaluate(()=>document.getElementById('goBtn').click());
+  console.log('QA BEGIN STATE',JSON.stringify(await page.evaluate(()=>({state:window.__frutaQA.state(),hud:document.getElementById('hud').style.display,ready:document.getElementById('readyOverlay').style.display,handler:typeof document.getElementById('goBtn').onclick,btn:document.getElementById('goBtn').outerHTML}))),errors);
+  assert(await page.locator('#hud').isVisible());
   await page.waitForFunction(()=>window.__frutaQA.state().elapsed>1,null,{timeout:14000});
   const t=Number(await page.locator('#hudTime').textContent());assert(t<54&&t>=36,'core clock runs during AR simulation: '+t);
   const before=await page.evaluate(()=>window.__frutaQA.previewWorld(0));
