@@ -88,7 +88,7 @@ client_ready = all((TARGET / x).is_file() for x in ("paper.html", "paper-3d.mjs"
 status = {
     "game": "CIVIDOM",
     "art_direction": "rayo-nova-styloo-chibi",
-    "source_commit": os.getenv("GITHUB_SHA", "unavailable"),
+    "source_commit": os.getenv("GITHUB_SHA") or os.getenv("VERCEL_GIT_COMMIT_SHA") or "unavailable",
     "page_present": client_ready,
     "models": validated_models,
     "ready_assets": client_ready and all(validated_models.values()),
