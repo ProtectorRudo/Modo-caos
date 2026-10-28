@@ -219,6 +219,13 @@ function installGun(){
  '<ellipse id="gunFlash" cx="129" cy="34" rx="56" ry="59" fill="url(#jbf)" opacity="0"/>',
  '<path d="M61 196L85 188L94 230L78 243L58 228Z" fill="#10283f" stroke="#5ad2e1" stroke-width="3"/>',
  '<path d="M69 206L83 202L85 226L72 231Z" fill="#b8ff8b" stroke="#dfffca" stroke-width="1.5"/>',
+ '<path d="M180 129L195 139L190 186L177 195Z" fill="#06253b" stroke="#a3d3dd" stroke-width="2"/>',
+ '<path d="M182 140L192 146L188 180L179 187Z" fill="url(#jbc)" opacity=".84"/>',
+ '<path d="M181 143L190 149" stroke="#fffed5" stroke-width="2.2" opacity=".75"/>',
+ '<path d="M184 166L190 167" stroke="#f5ff93" stroke-width="3"/>',
+ '<path d="M94 202L141 218" stroke="#f4fdff" stroke-width="2" opacity=".38"/>',
+ '<text x="106" y="194" fill="#d1ffff" font-size="10" font-weight="900" transform="rotate(-11 106 194)">FZ-7</text>',
+ '<circle cx="65" cy="118" r="3.8" fill="#d2ffe5"/><circle cx="87" cy="214" r="3" fill="#b4e7ff"/>',
  '<path d="M92 112L117 105" stroke="#eefcff" stroke-width="3" opacity=".7"/>',
  '</g></svg><div class="gun-name">JUICE <b>BLASTER MK II</b> <span>∞</span></div>'
  ].join('');
