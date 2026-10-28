@@ -1,0 +1,41 @@
+/* CIVIDOM — competitive chibi edition
+   Rayo/Nova art direction. Same skinned 3D models in cards, showroom and VS. */
+#home{background:radial-gradient(circle at 50% -8%,#244b88 0%,#10254f 45%,#07122e 100%)}
+#home .panel{width:min(100%,510px);max-width:510px;padding-inline:13px}
+#home .brand{font-size:10px;letter-spacing:2.1px;color:#a7d6f7}
+#home .cvdomLogo{font-weight:1000;font-size:clamp(44px,12vw,74px);letter-spacing:-2.5px;color:#fff6d8;text-shadow:0 3px 0 #bd7223,0 6px 10px #000a2c7b}
+#home .cvdomLogo em{color:#ffd66a}
+#home .lobbyTag{font-size:10px;letter-spacing:1.9px;color:#e6ebff}
+#home .description{font-size:12px;color:#d0e3ff;line-height:1.4}
+#home .heroRosterHead{color:#e7d286!important;font-size:10px;letter-spacing:1.45px;margin-block:10px 6px!important}
+#home .heroRoster{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+#home .heroChoice.chibiHero{position:relative;display:flex;align-items:center;flex-direction:column;min-height:132px;padding:5px 2px 7px;overflow:hidden;border:1.6px solid #6490d0!important;border-radius:15px;color:#f1f7ff;background:radial-gradient(ellipse at 50% 31%,#3969ad,#162d61 74%,#0c1c42)!important;box-shadow:inset 0 1px #d4e6ff40,0 3px #061330;transition:transform .16s,border-color .16s}
+#home .heroChoice.chibiHero::before{content:"";position:absolute;width:78%;height:37%;border-radius:50%;left:11%;top:17%;background:var(--heroGlow,#55e7ff);opacity:.12;filter:blur(14px);pointer-events:none}
+#home .heroChoice.chibiHero.selected{border:2px solid #ffe27c!important;background:radial-gradient(ellipse at 50% 35%,#4a79b8,#213d79 70%,#142656)!important;box-shadow:0 0 0 1px #ffe48f85,0 4px #bd842a,0 0 22px #ffe18026;transform:translateY(-2px)}
+#home .heroChoice.chibiHero .hero3DThumbnail{width:100%;height:96px;object-fit:contain;z-index:1;filter:drop-shadow(0 5px 4px #020b2f80)}
+#home .heroChoice.chibiHero b{z-index:1;color:#fff;font-size:11px;font-weight:1000;letter-spacing:.6px}
+#home .heroChoice.chibiHero small{z-index:1;color:#bad6f8;font-size:8px;white-space:nowrap}
+#home #menuHeroStage{border:2px solid #8ab6e6;border-radius:22px;background:radial-gradient(ellipse at 50% 65%,#315b9d,#142a5f 72%,#0b193e);box-shadow:0 8px 22px #060d2966,inset 0 0 30px #4271b520}
+#home #menuHeroStage .menuHeroStamp strong{color:#fff7d1;text-shadow:0 2px #071945}
+#home #heroDetails{background:#132a55;border:1.5px solid #5d88bb;border-radius:13px}
+#home .storeButton{border-radius:15px}
+#versus{background:radial-gradient(ellipse at 50% 10%,#1d4484,#09143d 62%,#07112b)}
+#versus .vsGameTag{color:#ffd775}
+#versus .versusHeader h2{font-size:clamp(28px,7.1vw,43px);letter-spacing:-1.6px;color:#fff6e9;text-shadow:0 3px #315aa1}
+#versus .versusHeader p{font-size:11px;color:#c7dbff}
+#versus .versusStage{background:radial-gradient(ellipse at 40% 30%,#3561b1,#192f78 65%,#0d1b4d 100%);border:2px solid #789de2;border-radius:24px;box-shadow:0 10px 27px #030f3688,inset 0 1px #a3ccf555;isolation:isolate}
+#versus .vsNamePlate{border:1px solid #c1dcf67a;border-radius:13px;bottom:13px;padding:9px 11px;background:#153d86ce;backdrop-filter:blur(8px)}
+#versus .vsNameRight{background:#79336ace}
+#versus .vsNamePlate strong{font-size:clamp(19px,5vw,27px)}
+#versus .vsPlayNow{background:linear-gradient(160deg,#ffe58a,#ffbf52);border-radius:18px;min-height:57px;font-size:18px;box-shadow:0 3px 0 #b7831f}
+#versus .vsFestejo strong{color:#ffe17d}
+#versus .vsCountdown strong{color:#ffe17d}
+#shop .shopShowroomLegend b{font-size:13px}
+@media(max-width:390px){
+ #home .heroChoice.chibiHero{min-height:116px;padding:4px 1px 6px;border-radius:12px}
+ #home .heroChoice.chibiHero .hero3DThumbnail{height:78px}
+ #home .heroChoice.chibiHero b{font-size:10px}
+ #home .heroChoice.chibiHero small{font-size:7px}
+ #home .cvdomLogo{font-size:clamp(42px,11vw,54px)}
+}
+@media(prefers-reduced-motion:reduce){#home .heroChoice.chibiHero{transition:none}}
