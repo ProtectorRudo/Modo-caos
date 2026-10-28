@@ -140,7 +140,7 @@ function scoreView(){
  safeText('round',match.sudden?'MUERTE SÚBITA':'PENAL '+(Math.floor(match.turn/2)+1)+' DE 5');
 }
 function selectMode(value){
- mode=value;
+ mode=value==='friend'?'online':value;
  for(const m of ['cpu','friend','cup'])$(m==='cpu'?'cpuMode':m==='friend'?'friendMode':'cupMode').classList.toggle('selected',m===value);
  $('options').style.display=value==='friend'?'none':'block';$('onlineSetup').style.display=value==='friend'?'block':'none';
  if(value==='cup'){
@@ -293,7 +293,7 @@ async function enterRoom(id,code){
  safeText('roomCode',code);$('roomInvite').style.display='block';
  if(conn)await conn.close();
  conn=await rooms.connectRoom(id,{onStatus:(s)=>{safeText('onlineNote',s==='SUBSCRIBED'?'🟢 Conectado a la sala':'Sala: '+s);},
- onRefresh:()=>refreshRoom(),onPresence:()=>refreshRoom(),onGameEvent:receiveOnline});
+ onRefresh:()=>refreshRoom(),onPresence:()=>refreshRoom(),onGameEvent:payload=>{receiveOnline(payload).catch(e=>toast('No se pudo sincronizar: '+e.message));}});
  await refreshRoom();
  clearInterval(pollTimer);pollTimer=setInterval(()=>refreshRoom(),2200);
  if(stage==='home'&&params.get('room'))toast('¡Sala encontrada! Podés preparar tu cancha.');
