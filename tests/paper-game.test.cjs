@@ -643,7 +643,7 @@ test('APK longer storm pacing gives 45 seconds safe opening and seven phases thr
 
 test('compact Fortnite-inspired minimap uses square map, safe rings and one status strip',()=>{
  const css=fs.readFileSync(path.join(__dirname,'..','paper-mini-hud.css'),'utf8');
- assert.match(source,/paper-mini-hud\.css\?v=1/);
+ assert.match(source,/paper-mini-hud\.css\?v=2/);
  assert.match(source,/class="cvMiniMapFrame"/);
  assert.match(source,/id="miniTimeMetric"/);
  assert.match(source,/class="survivalStats" aria-label="Tiempo/);
@@ -667,4 +667,28 @@ test('zone countdown stays mm:ss, players and kills remain live in compact HUD',
  h.updateStorm(0);
  // The timer is presentation only; it never adjusts the storm's timeline.
  assert.deepEqual(h.getGame().storm.stages.map(x=>x.at),[45,75,105,135,165,195,225]);
+});
+
+test('R4 minimap is white, enemy positions have double-contrast markers and current territory remains real',()=>{
+ assert.match(source,/ctx\.fillStyle='#ffffff';ctx\.fillRect\(0,0,182,182\)/);
+ assert.doesNotMatch(source,/Deterministic low-detail foliage and topography/);
+ assert.doesNotMatch(source,/Cartographic river and winding landmarks/);
+ assert.match(source,/function cvMiniEnemyMarker\(x,y,color\)/);
+ assert.match(source,/mc\.arc\(x,y,4\.8,0,Math\.PI\*2\)/);
+ assert.match(source,/cvMiniEnemyMarker\(x,y,COLORS\[/);
+ assert.match(source,/mc\.drawImage\(terrainCanvas,pad,pad,extent,extent\)/);
+ assert.match(source,/mc\.fill\('evenodd'\)/);
+ assert.match(source,/cvMiniArrow\(mapX\(me\.x\),mapY\(me\.y\)/);
+});
+test('R4 storm, alive and kills use readable labels and bold counts under compact map',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'..','paper-mini-hud.css'),'utf8');
+ assert.match(source,/paper-mini-hud\.css\?v=2/);
+ assert.match(source,/class="miniMetricLabel">TORMENTA<\/small>/);
+ assert.match(source,/class="miniMetricLabel">VIVOS<\/small>/);
+ assert.match(source,/class="miniMetricLabel">BAJAS<\/small>/);
+ assert.match(css,/width:clamp\(145px,41vw,170px\)/);
+ assert.match(css,/align-self:flex-end!important/);
+ assert.match(css,/min-height:42px!important/);
+ assert.match(css,/font:950 14px\/1\.12/);
+ assert.match(css,/#hud #survivalPanel #mini\{background:#fff!important\}/);
 });
