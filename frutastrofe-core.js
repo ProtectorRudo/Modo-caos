@@ -30,11 +30,11 @@ function create(opts={}){
   // JUICE REACTOR: every fruit begins inside the same visible launcher, then flies
   // on a deterministic parabola. It never materializes at a random sky position.
   const x=(rng()-.5)*.28,z=-1.15+(rng()-.5)*.12,y=2.76;
-  const obj={id:g.nextId++,kind,x,y,z,baseY:y,r:.26+(rng()*.10),vx:(rng()-.5)*3.7,vy:2.1+rng()*.65,vz:.58+rng()*.4,gravity:4.7*cfg.speed,age:0,rot:rng()*Math.PI*2,spin:(rng()-.5)*2.3,dead:false};
+  const obj={id:g.nextId++,kind,x,y,z,baseY:y,r:.26+(rng()*.10),vx:(rng()-.5)*2.7,vy:2.42+rng()*.75,vz:.55+rng()*.42,gravity:3.9*cfg.speed,age:0,rot:rng()*Math.PI*2,spin:(rng()-.5)*2.3,dead:false};
   if(kind==='boss'){obj.x=0;obj.y=2.65;obj.z=-.35;obj.r=.82;obj.vx=0;obj.vy=0;obj.gravity=0;obj.hp=12;obj.spin=.35}
   g.objects.push(obj);emit('spawn',{id:obj.id,kind,x:obj.x,y:obj.y,z:obj.z});return obj;
  }
- function begin(){if(g.state==='ready'){g.state='playing';emit('start');if(g.level===10&&g.mode==='campaign')spawn('boss');else{const intro=pick(TYPES,rng);for(let j=0;j<3;j++){const f=spawn(intro);f.x=(j-1)*.07;f.vx=(j-1)*1.7;f.vy=2.6+.22*j;f.gravity=4.2}g.nextSpawn=1.05}}return g}
+ function begin(){if(g.state==='ready'){g.state='playing';emit('start');if(g.level===10&&g.mode==='campaign')spawn('boss');else{const intro=pick(TYPES,rng);for(let j=0;j<3;j++){const f=spawn(intro);f.x=(j-1)*.07;f.vx=(j-1)*1.2;f.vy=2.6+.22*j;f.gravity=3.8}g.nextSpawn=1.05}}return g}
  function remove(o){o.dead=true}
  function award(points,reason,x,y,z){const n=Math.round(points*g.multiplier*(g.fever?2:1));g.score+=n;emit('points',{points:n,reason,x,y,z});return n}
  function punish(o){g.errors++;g.combo=0;g.streakCount=0;g.streakType=null;g.multiplier=1;g.score=Math.max(0,g.score-(o.kind==='bomb'?85:40));emit('trap',{kind:o.kind,score:g.score,x:o.x,y:o.y,z:o.z});if(g.cfg.goal==='clean'&&g.errors>g.cfg.maxErrors)finish(false)}
@@ -95,7 +95,7 @@ function create(opts={}){
   dt=clamp(Number(dt)||0,0,.07);g.elapsed+=dt;g.fever=g.elapsed>=g.duration-12;
   if(g.elapsed>=g.duration){finish(g.goalsMet||g.mode==='arcade');return g;}
   const slow=g.elapsed<g.slowUntil ? 0.48 : 1;
-  if(g.elapsed>=g.nextCluster&&g.cfg.goal!=='boss'){const choice=pick(TYPES,rng),base=(rng()-.5)*1.1;for(let j=0;j<3;j++){const q=spawn(choice);q.vx=base+(j-1)*1.4;q.vy=2.7+.25*j;q.gravity=4.3}emit('opportunity',{kind:choice});g.nextCluster+=7.7}
+  if(g.elapsed>=g.nextCluster&&g.cfg.goal!=='boss'){const choice=pick(TYPES,rng),base=(rng()-.5)*.65;for(let j=0;j<3;j++){const q=spawn(choice);q.vx=base+(j-1)*1.08;q.vy=2.7+.25*j;q.gravity=3.9}emit('opportunity',{kind:choice});g.nextCluster+=7.7}
   if(g.elapsed>=g.nextSpawn){
    if(g.objects.length<26)spawn();
    const period=Math.max(.14,cfg.rate*.27*(g.fever ? 0.58 : 1));
