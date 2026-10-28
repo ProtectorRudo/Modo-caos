@@ -43,7 +43,7 @@ test('page has complete standalone territory game and licensed external characte
  assert.match(source,/function capture\(p\)/);
  assert.match(source,/function death\(p/);
  assert.match(source,/function stepBot\(p/);
- assert.match(source,/type="module" src="\.\/paper-3d\.mjs"/);
+ assert.match(source,/type="module" src="\.\/paper-3d\.mjs(?:\?[^"]*)?"/);
  assert.match(source,/function paintChibi\(p,hero,col\)/);
 });
 test('12 agents, territory HUD and pause controls initialize',()=>{
