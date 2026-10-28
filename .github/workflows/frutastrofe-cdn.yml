@@ -1,0 +1,33 @@
+name: Frutastrofe Public CDN
+on:
+  push:
+    branches: [feat/frutastrofe-premium]
+    paths:
+      - '.github/workflows/frutastrofe-cdn.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static-cdn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check publicly accessible version-locked playable HTML and dependencies
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          const base='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/'+process.env.SHA+'/';
+          let ok=true;
+          for(const name of ['frutastrofe.html','frutastrofe-core.js','frutastrofe-art.js','frutastrofe-runtime.js']){
+            const uri=base+name;
+            try{
+              const resp=await fetch(uri,{signal:AbortSignal.timeout(22000)});
+              const body=await resp.text();
+              const pass=resp.ok&&body.length>1000&&(name.endsWith('.html')?body.includes('FRUTÁSTROFE')&&body.includes('./frutastrofe-runtime.js'):body.includes('FRUT'));
+              console.log(JSON.stringify({uri,status:resp.status,type:resp.headers.get('content-type'),bytes:body.length,pass}));
+              ok&&=pass;
+            }catch(e){console.log(uri,String(e));ok=false}
+          }
+          if(!ok)process.exitCode=1;
+          NODE
