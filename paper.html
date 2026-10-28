@@ -1119,7 +1119,8 @@ function death(p,killer=-1){
  if(p.id===0){
   audio('death');vibrate([80,70,110]);
   if(cvRole==='host'&&cvRemoteConnected&&game.people[1]?.alive){
-   popup('¡TE ELIMINARON! MIRÁ CÓMO SIGUE TU AMIGO');
+   if(game.people.filter(q=>q.alive).length===1)end(false);
+   else popup('¡TE ELIMINARON! MIRÁ CÓMO SIGUE TU AMIGO');
   }else end(false);
  }else{
   p.respawn=Infinity;countAreas();
@@ -1314,7 +1315,7 @@ function step(dt){
  for(let i=1;i<game.people.length;i++){
   if(cvRole==='host'&&cvRemoteConnected&&i===1){
    const guest=game.people[i];
-   if(guest.alive){
+   if(guest.alive&&Number.isFinite(cvRemoteAim)&&performance.now()-cvLastInputAt<1800){
     if(Number.isFinite(cvRemoteAim)){
      const dif=angleDelta(guest.angle,cvRemoteAim);
      guest.angle+=clamp(dif,-guest.turn*dt,guest.turn*dt);
@@ -1576,7 +1577,9 @@ function render(){
  drawUnit(game.people[0]);drawStorm();c.restore();
 }
 function end(win,timedOut=false){
- if(mode!=='play')return;mode='result';countAreas();let p=cvLocalPlayer(),best=Math.max(readBest(),p.score);
+ if(mode!=='play')return;
+ if(cvRole==='host')cvNetWinner=timedOut?(game.ordered[0]?.id??-1):(game.people.find(q=>q.alive)?.id??(win?0:-1));
+ mode='result';countAreas();let p=cvLocalPlayer(),best=Math.max(readBest(),p.score);
  try{localStorage.setItem('territoryloop_best',String(best));}catch(e){}
  const reward=Math.min(80,Math.round(p.score*2)+(win?35:0));
  game.earnedCoins+=awardCoins(reward);$('matchCoins').textContent='🪙 Ganaste '+game.earnedCoins+' monedas en esta partida';
