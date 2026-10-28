@@ -207,7 +207,7 @@ test('arcade portraits and fallback chibi people are original vector and CSS geo
 
 test('original heroes each have a distinct identity and can be selected',()=>{
  const g=boot(419);
- for(const name of ['MOMO','ZURI','PLATY','PINGO','OTTO','KUMA','COCO','TORA'])assert.ok(source.includes("name:'"+name+"'"));
+ for(const name of ['CAPY','RUBY','AXI','PINGO','ROCKY','BRINCO','FÉNIX','OSO'])assert.ok(source.includes("name:'"+name+"'"));
  const h=g.win.__paperTest;
  assert.equal(h.setHero(2),true);
  assert.equal(h.wardrobe.hero,2);
@@ -293,18 +293,18 @@ test('fallback characters are humanoid and include distinct costumes',()=>{
  assert.match(source,/function drawOutfit/);
 });
 
-test('progressive 3D renderer uses genuine humanoid rigged models and safe fallback',()=>{
+test('3D renderer uses original eight locally generated animal champions',()=>{
  const module=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
- assert.match(module,/GLTFLoader/);
- assert.match(module,/SkeletonUtils\.clone/);
- for(const model of ['marmot.glb','fox.glb','platypus.glb','penguin.glb','seaotter.glb','koala.glb','corgi.glb','tiger.glb'])assert.ok(module.includes(model));
- assert.match(module,/const relative='\.\/assets\/mascots\/'/);
- assert.match(module,/RIG_HEIGHT=80/);
- assert.match(source,/function paintChibi\(p,hero,col\)/);
- assert.match(source,/window\.Paper3DReady/);
- assert.match(source,/paper-3d\.mjs/);
- assert.match(source,/id="characterStage"/);
+ const mascots=fs.readFileSync(path.join(__dirname,'..','paper-mascots.mjs'),'utf8');
+ assert.match(module,/from '\.\/paper-mascots\.mjs'/);
+ assert.match(module,/buildMascot\(THREE,hero\)/);
+ assert.match(module,/animateMascot\(actor/);
+ assert.match(mascots,/capybara/);
+ assert.match(mascots,/redpanda/);
+ assert.match(mascots,/axolotl/);
+ assert.match(mascots,/raccoon/);
 });
+
 test('wardrobe overlays remain assigned to humanoid heads and torsos',()=>{
  assert.match(source,/roundRect\(-15,-65,30,10,4\)/); // cap
  assert.match(source,/roundRect\(-14,-47,12,8,2\)/); // glasses
@@ -317,8 +317,8 @@ test('VS opens before a normal game and shows animated Six Seven performers',()=
  assert.equal(g.win.territoryQA.mode,'home');
  g.get('start').onclick();
  assert.equal(g.win.territoryQA.mode,'versus');
- assert.equal(g.get('vsPlayerName').textContent,'MOMO');
- assert.notEqual(g.get('vsRivalName').textContent,'MOMO');
+ assert.equal(g.get('vsPlayerName').textContent,'CAPY');
+ assert.notEqual(g.get('vsRivalName').textContent,'CAPY');
  g.tick(10); // canvas renderer must not throw
  assert.equal(g.win.territoryQA.mode,'versus');
  assert.match(source,/function versusActor\(/);
@@ -366,14 +366,15 @@ test('Six Seven is purchasable with earned in-game currency and equips normally'
  assert.equal(h.wardrobe.equipped.emote,'emote_sixseven');
 });
 
-test('verified CC0 animal sources mapped to eight different GLBs',()=>{
+test('no external GLB dependency for eight collectible CVDOM heroes',()=>{
  const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
- for(const name of ['marmot.glb','fox.glb','platypus.glb','penguin.glb','seaotter.glb','koala.glb','corgi.glb','tiger.glb'])
-   assert.match(renderer,new RegExp(name.replace('.','\\.')));
- assert.match(renderer,/const relative='\.\/assets\/mascots\/'/);
- assert.match(renderer,/backupModels/);
- assert.match(renderer,/sourceAssets\[index\]=gltf/);
+ const mascots=fs.readFileSync(path.join(__dirname,'..','paper-mascots.mjs'),'utf8');
+ assert.match(renderer,/sourceAssets\[i\]=\{procedural:true/);
+ assert.match(renderer,/const models=MASCOT_DATA\.map/);
+ assert.match(mascots,/export const MASCOT_DATA=/);
+ assert.match(mascots,/export function buildMascot/);
 });
+
 test('original Six-Seven dance drives genuine arm bones on two 3D showdown characters',()=>{
  const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
  assert.match(renderer,/function danceBones\(item,seconds,mirror\)/);
@@ -438,7 +439,7 @@ test('hero selection updates game character and the new menu name plate',()=>{
  assert.equal(g.get('menuCharacterTagline').textContent,'¡Sangre fría!');
  assert.equal(g.win.Paper3DState().menuHero,3);
  assert.equal(h.setHero(2),true);
- assert.equal(g.get('menuCharacterLabel').textContent,'PLATY');
+ assert.equal(g.get('menuCharacterLabel').textContent,'AXI');
 });
 test('3D stage is reparented between menu and versus without creating additional renderers',()=>{
  const module=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
@@ -469,12 +470,12 @@ test('changing selected mascot updates its original vector portrait before 3D lo
  assert.match(g.get('menuHeroPortrait').src,/^data:image\/svg\+xml/);
  h.setHero(3);
  assert.match(g.get('menuHeroPortrait').src,/^data:image\/svg\+xml/);
- assert.match(g.get('heroPicker').innerHTML,/TORA/);
+ assert.match(g.get('heroPicker').innerHTML,/OSO/);
 });
 
 test('eight playable animals have unique, commercial-safe model/portrait choices',()=>{
  const g=boot(419),h=g.win.__paperTest;
- const names=['MOMO','ZURI','PLATY','PINGO','OTTO','KUMA','COCO','TORA'];
+ const names=['CAPY','RUBY','AXI','PINGO','ROCKY','BRINCO','FÉNIX','OSO'];
  assert.equal((g.get('heroPicker').innerHTML.match(/data-hero=/g)||[]).length,8);
  for(let i=0;i<8;i++){
   assert.equal(h.setHero(i),true);
@@ -497,4 +498,24 @@ test('leaderboard shows species-matched original animal portraits',()=>{
  const html=g.get('rank').innerHTML;
  assert.match(html,/rankAnimal/);
  assert.match(html,/data:image\/svg\+xml/);
+});
+
+test('original eight animal species match the reference lineup in CVDOM',()=>{
+ const mascots=fs.readFileSync(path.join(__dirname,'..','paper-mascots.mjs'),'utf8');
+ for(const species of ['capybara','redpanda','axolotl','penguin','raccoon','frog','fox','bear'])
+  assert.ok(mascots.includes("species:'"+species+"'"));
+ assert.match(source,/<h1 class="cvdomLogo">CV<em>DOM<\/em>/);
+});
+test('Six-Seven can be evaluated twice at the same time without any limb drift',async()=>{
+ const {animateMascot}=await import(require('node:url').pathToFileURL(path.join(__dirname,'..','paper-mascots.mjs')).href);
+ function joint(){return {rotation:{x:0,z:0}};}
+ const rig={left:joint(),right:joint(),body:joint(),head:joint(),feet:[{node:joint(),side:-1},{node:joint(),side:1}]};
+ const actor={mascotRig:rig};
+ animateMascot(actor,1.25,'dance',false);
+ const before=JSON.stringify(rig);
+ animateMascot(actor,1.25,'dance',false);
+ assert.equal(JSON.stringify(rig),before);
+ for(let t=0;t<100;t++)animateMascot(actor,t/30,'dance',true);
+ assert.ok(Math.abs(rig.left.rotation.z)<2.2);
+ assert.ok(Math.abs(rig.right.rotation.z)<2.2);
 });
