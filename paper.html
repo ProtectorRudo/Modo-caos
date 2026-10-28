@@ -389,7 +389,7 @@ input[type=text]:focus{border-color:#42bcca}
    <div id="kills"><span class="killIcon">☠</span><b id="killCount">0</b></div>
  </div>
  <div id="rank"></div><div id="rewardToast" aria-live="polite"><span id="rewardIcon">✦</span><div><strong id="rewardTitle">RECOMPENSA</strong><small id="rewardDesc">¡Buen trabajo!</small></div></div><canvas id="mini" width="182" height="182"></canvas><button id="pause" aria-label="Pausar partida">Ⅱ</button><button id="emoteButton" aria-label="Hacer gesto de tu personaje">👋</button><div id="msg"></div>
- <div id="controls">ARRASTRÁ PARA DIRIGIR</div>
+ <div id="controls">ARRASTRÁ PARA DIRIGIR</div><div id="stormStatus" aria-live="off">⚡ TORMENTA EN 18s</div><div id="powerStatus" aria-live="polite">🎁 CAJAS CON PODERES</div>
 </div>
 <section id="versus" class="overlay hidden" aria-label="Presentación de rivales antes de la partida">
   <div class="versusPanel">
@@ -1022,21 +1022,29 @@ function vibrate(ms){if(navigator.vibrate)navigator.vibrate(ms);}
 function popup(s){if(!game)return;$('msg').textContent=s;$('msg').classList.add('show');msgTime=clock+1.1;}
 function base(p,rad=5){const gx=Math.floor(p.x/CELL),gy=Math.floor(p.y/CELL);for(let dy=-rad;dy<=rad;dy++)for(let dx=-rad;dx<=rad;dx++){let x=gx+dx,y=gy+dy;if(x<0||y<0||x>=N||y>=N||dx*dx+dy*dy>(rad+.15)**2)continue;let k=y*N+x;if(inArena[k])land[k]=p.id+1;}}
 function spawnPoint(){
- for(let i=0;i<100;i++){const x=random(CX-R*.73,CX+R*.73),y=random(CY-R*.73,CY+R*.73);
+ const a=arenaState();
+ for(let i=0;i<150;i++){const ang=random(-Math.PI,Math.PI),rad=Math.sqrt(Math.random())*a.radius*.69;
+ const x=a.x+Math.cos(ang)*rad,y=a.y+Math.sin(ang)*rad;
  if(inside(x,y)&&(!game||game.people.every(p=>!p.alive||Math.hypot(p.x-x,p.y-y)>215)))return{x,y};}
- return{x:CX+random(-250,250),y:CY+random(-250,250)};
+ return{x:a.x+random(-a.radius*.15,a.radius*.15),y:a.y+random(-a.radius*.15,a.radius*.15)};
 }
 function makePerson(id,pnt){
  return {id,name:id===0?($('nick').value.trim().slice(0,16)||'VOS'):id===1?HEROES[vsRival].name:NAMES[id],x:pnt.x,y:pnt.y,angle:random(-Math.PI,Math.PI),
  target:null,speed:id===0?156:random(117,137),turn:id===0?6.3:random(2.8,4.05),alive:true,outside:false,trailPoints:[],trailCells:[],trailSeen:new Map(),lastCell:-1,kills:0,score:0,area:0,respawn:0,
- stage:0,goal:null,goalAt:0,protectedUntil:clock+1.8,thinking:0,edgeCharge:0,boostUntil:0,style:id%3};
+ stage:0,goal:null,goalAt:0,protectedUntil:clock+1.8,thinking:0,edgeCharge:0,boostUntil:0,
+ powerKind:null,powerUntil:0,shieldUntil:0,style:id%3};
 }
 function countAreas(){
  if(!game)return;const counts=new Int32Array(12);for(let k=0;k<SIZE;k++)if(land[k])counts[land[k]-1]++;
  for(const p of game.people){p.area=counts[p.id];p.score=100*p.area/landCount;}game.ordered=game.people.filter(p=>p.alive).sort((a,b)=>b.area-a.area);
 }
 function reset(){
- clock=0;lastHud=-1;land.fill(0);trails.fill(0);game={people:[],ordered:[],kills:0,started:0,record:0,lastArea:0,defeated:new Set(),rewards:new Set(),epicTrail:false,crowned:false};particles=[];bursts=[];rewardToastUntil=0;$('rewardToast').classList.remove('visible');for(let i=0;i<REWARDS.length;i++)$('milestone'+i).classList.remove('unlocked');let player={x:CX,y:CY};
+ clock=0;lastHud=-1;land.fill(0);trails.fill(0);
+ for(let k=0;k<SIZE;k++){const x=(k%N+.5)*CELL,y=((k/N|0)+.5)*CELL;inArena[k]=(x-CX)**2+(y-CY)**2<(R-5)**2?1:0;}
+ landCount=inArena.reduce((n,v)=>n+v,0);
+ game={people:[],ordered:[],kills:0,started:0,record:0,lastArea:0,defeated:new Set(),rewards:new Set(),
+ epicTrail:false,crowned:false,storm:{x:CX,y:CY,radius:R,remaining:163,nextMaskAt:0,lastWarning:-99},
+ boxes:[],boxSerial:0,nextBoxAt:9,lastPower:null,lastBarrierSound:-9};particles=[];bursts=[];rewardToastUntil=0;$('rewardToast').classList.remove('visible');for(let i=0;i<REWARDS.length;i++)$('milestone'+i).classList.remove('unlocked');let player={x:CX,y:CY};
  game.people.push(makePerson(0,player));game.people[0].angle=-Math.PI/2;game.earnedCoins=0;emoteUntil=0;celebrationBursts=[];base(game.people[0],6);
  for(let i=1;i<12;i++){const pos=spawnPoint();const p=makePerson(i,pos);game.people.push(p);base(p,random(3.5,5)|0);}
  countAreas();game.lastArea=game.people[0].area;updateMap();camX=CX;camY=CY;desiredAngle=null;pointer=null;keys={};mode='play';
@@ -1048,14 +1056,14 @@ function clearTrail(p){
  p.trailCells=[];p.trailPoints=[];p.trailSeen.clear();p.lastCell=-1;p.outside=false;
 }
 function death(p,killer=-1){
- if(!p.alive||(killer>=0&&killer!==p.id&&clock<p.protectedUntil))return;
+ if(!p.alive||(killer>=0&&killer!==p.id&&(clock<p.protectedUntil||clock<p.shieldUntil)))return;
  clearTrail(p);p.alive=false;
  if(p.id!==0){for(let k=0;k<SIZE;k++)if(land[k]===p.id+1)land[k]=0;}
- burstAt(p.x,p.y,COLORS[(p.id+settingColor)%12],28,100);updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;game.defeated.add(p.id);game.earnedCoins+=awardCoins(25);celebrateAt(attacker,'kill');popup('¡ELIMINACIÓN! +25 🪙');audio('kill');vibrate(30);}}
+ burstAt(p.x,p.y,COLORS[(p.id+settingColor)%12],28,100);dropMystery(p);updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;game.defeated.add(p.id);game.earnedCoins+=awardCoins(25);celebrateAt(attacker,'kill');popup('¡ELIMINACIÓN! +25 🪙');audio('kill');vibrate(30);}}
  if(p.id===0){audio('death');vibrate([80,70,110]);end(false);}else{p.respawn=clock+random(1.8,3.8);countAreas();if(game.defeated.size===11)end(true);}
 }
 function respawn(p){
- const pos=spawnPoint();p.x=pos.x;p.y=pos.y;p.angle=random(-Math.PI,Math.PI);p.speed=random(117,138);p.turn=random(2.65,3.6);p.alive=true;p.stage=0;p.goal=null;p.thinking=0;p.protectedUntil=clock+1.8;
+ const pos=spawnPoint();p.x=pos.x;p.y=pos.y;p.angle=random(-Math.PI,Math.PI);p.speed=random(117,138);p.turn=random(2.65,3.6);p.alive=true;p.stage=0;p.goal=null;p.thinking=0;p.protectedUntil=clock+1.8;p.powerKind=null;p.powerUntil=0;p.shieldUntil=0;
  base(p,4);updateMap();countAreas();
 }
 function grantRewards(p){
@@ -1080,7 +1088,14 @@ function grantRewards(p){
 function capture(p){
  if(!p.trailCells.length){clearTrail(p);return;}
  countAreas();const beforeArea=p.area;const outline=p.trailPoints.map(q=>({x:q.x,y:q.y}));
- for(const k of p.trailCells)if(inArena[k])land[k]=p.id+1;
+ for(const k of p.trailCells)if(inArena[k]){
+ land[k]=p.id+1;
+ if(p.powerKind==='BIG'&&clock<p.powerUntil){
+  // BIG expands the captured corridor, not merely the cosmetic scale.
+  if(k%N>0&&inArena[k-1])land[k-1]=p.id+1;
+  if(k%N<N-1&&inArena[k+1])land[k+1]=p.id+1;
+ }
+}
  // Flood fill from every reachable boundary cell. Only fully enclosed pockets change owner.
  const seen=new Uint8Array(SIZE),queue=new Int32Array(SIZE);let tail=0,head=0;
  function add(k){if(k<0||k>=SIZE||seen[k]||land[k]===p.id+1)return;seen[k]=1;queue[tail++]=k;}
@@ -1127,7 +1142,7 @@ function move(p,dt){
    if(!p.outside){p.outside=true;p.trailPoints.push({x:prevX,y:prevY});}
    markTrail(p,k);if(!p.alive)return;
    let last=p.trailPoints[p.trailPoints.length-1];if(!last||Math.hypot(px-last.x,py-last.y)>CELL*.45)p.trailPoints.push({x:px,y:py});
-   if(p.trailCells.length>380){death(p);return;}
+   if(p.trailCells.length>(p.powerKind==='SMOLL'&&clock<p.powerUntil?448:380)){death(p);return;}
   }
  }
  p.x=x;p.y=y;
@@ -1135,7 +1150,7 @@ function move(p,dt){
 function nearestHome(p){
  let best=null,bd=Infinity;const gx=(p.x/CELL)|0,gy=(p.y/CELL)|0;
  for(let y=0;y<N;y+=2)for(let x=0;x<N;x+=2){const k=y*N+x;if(land[k]!==p.id+1)continue;const dx=x-gx,dy=y-gy,d=dx*dx+dy*dy;if(d<bd){bd=d;best={x:(x+.5)*CELL,y:(y+.5)*CELL};}}
- return best||{x:p.x+Math.cos(p.angle)*(-120),y:p.y+Math.sin(p.angle)*(-120)};
+ return best||{x:arenaState().x,y:arenaState().y};
 }
 function chooseBotGoal(p){
  if(!p.alive)return;const home=nearestHome(p),far=p.trailCells.length>random(18,36);
@@ -1146,7 +1161,7 @@ function chooseBotGoal(p){
  }else if(p.stage===1){
   const a=p.angle+(Math.random()<.5?-1:1)*random(.8,1.4),d=random(95,155);p.goal={x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d};p.stage=2;
  }else{p.goal=home;p.stage=3;}
- if(!inside(p.goal.x,p.goal.y))p.goal=home;
+ if(!inside(p.goal.x,p.goal.y))p.goal=inside(home.x,home.y)?home:{x:arenaState().x,y:arenaState().y};
  p.goalAt=clock;
 }
 function stepBot(p,dt){
@@ -1165,7 +1180,7 @@ function stepBot(p,dt){
  move(p,dt);
 }
 function step(dt){
- clock+=dt;tickEffects(dt);drawCelebrations(dt);if(rewardToastUntil&&clock>=rewardToastUntil){$('rewardToast').classList.remove('visible');rewardToastUntil=0;}const p=game.people[0];if(p.alive){
+ clock+=dt;tickEffects(dt);drawCelebrations(dt);updateStorm(dt);tickBoxes();if(rewardToastUntil&&clock>=rewardToastUntil){$('rewardToast').classList.remove('visible');rewardToastUntil=0;}const p=game.people[0];if(p.alive){
  let aim=desiredAngle;
  if(keys.ArrowUp||keys.KeyW)aim=-Math.PI/2;
  if(keys.ArrowDown||keys.KeyS)aim=Math.PI/2;
@@ -1195,6 +1210,7 @@ function showHud(){
  const p=game.people[0],v=p.score.toFixed(1);
  $('bestCurrent').textContent=Math.max(readBest(),game.record,p.score).toFixed(1)+'%';
  $('percent').textContent=v+'%';$('railPercent').textContent=v+'%';$('railFill').style.width=clamp(p.score/25*100,0,100)+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('killCount').textContent=game.kills;$('emoteButton').textContent=SHOP_ITEMS.find(x=>x.id===wardrobe.equipped.emote)?.icon||'👋';
+ refreshBattleHud();
  const boost=Math.round(100*(clock<p.boostUntil?1:p.edgeCharge));
  $('boostfill').style.width=boost+'%';$('boostnumber').textContent=boost+'%';
  if(boost>80)$('boostline').classList.add('active');else $('boostline').classList.remove('active');
