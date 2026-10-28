@@ -209,10 +209,15 @@ function snapshotChibiPortraits(){
  }catch(error){console.warn('3D avatar portraits unavailable; game 3D remains playable',error);}
  finally{if(preview){preview.dispose();preview.forceContextLoss();}}
 }
+let gameSurfaceWidth=0,gameSurfaceHeight=0,gameSurfaceResizes=0;
 function adjustSize(width,height){
- if(canvas.width!==Math.round(width*Math.min(devicePixelRatio||1,1.5))||canvas.height!==Math.round(height*Math.min(devicePixelRatio||1,1.5))){
-  renderer.setSize(width,height,false);
- }
+ // Crucial: NEVER compare against a different DPR than renderer.setPixelRatio.
+ // On high-DPI Android the previous mismatch recreated the WebGL buffer
+ // every frame (1.5 expected versus 1.15 actual), stalling the entire game.
+ const w=Math.max(1,Math.round(width)),h=Math.max(1,Math.round(height));
+ if(gameSurfaceWidth===w&&gameSurfaceHeight===h)return;
+ gameSurfaceWidth=w;gameSurfaceHeight=h;gameSurfaceResizes++;
+ renderer.setSize(w,h,false);
 }
 let lastActorRender=-1e5,portraitsAttempted=false;
 function sync(dt,ms){
@@ -284,6 +289,13 @@ function sync(dt,ms){
    by custom bone animation layered over the included idle cycle. */
 const vsCanvas=document.getElementById('versus3dCanvas');
 let vsRenderer=null,vsScene=null,vsCamera=null,vsCharacters=[],vsFailure=false,vsLastFrame=-1;
+let vsSurfaceWidth=0,vsSurfaceHeight=0,vsSurfaceResizes=0;
+function sizeVS(width,height){
+ const w=Math.max(1,Math.round(width)),h=Math.max(1,Math.round(height));
+ if(w===vsSurfaceWidth&&h===vsSurfaceHeight)return;
+ vsSurfaceWidth=w;vsSurfaceHeight=h;vsSurfaceResizes++;
+ vsRenderer.setSize(w,h,false);
+}
 function vsCreate(){
  if(vsRenderer||vsFailure||!vsCanvas)return;
  try{
@@ -382,9 +394,7 @@ function syncMenu(state,dt){
   const actor=vsCharacters[0];
   if(!actor){window.PaperMenuReady=false;return;}
   const width=Math.max(1,vsCanvas.clientWidth||360),height=Math.max(1,vsCanvas.clientHeight||240);
-  const dpr=Math.min(devicePixelRatio||1,1.25);
-  if(vsCanvas.width!==Math.round(width*dpr)||vsCanvas.height!==Math.round(height*dpr))
-   vsRenderer.setSize(width,height,false);
+  sizeVS(width,height);
   vsCamera.left=-width/2;vsCamera.right=width/2;
   vsCamera.top=height/2;vsCamera.bottom=-height/2;vsCamera.updateProjectionMatrix();
   const t=performance.now()/1000;
@@ -425,8 +435,7 @@ function syncVS(state,dt){
   }
   if(vsCharacters.some(a=>!a)){window.PaperVSReady=false;vsCanvas.style.opacity='0';return;}
   const width=Math.max(1,vsCanvas.clientWidth||350),height=Math.max(1,vsCanvas.clientHeight||480);
-  const dpr=Math.min(devicePixelRatio||1,1.25);
-  if(vsCanvas.width!==Math.round(width*dpr)||vsCanvas.height!==Math.round(height*dpr))vsRenderer.setSize(width,height,false);
+  sizeVS(width,height);
   vsCamera.left=-width/2;vsCamera.right=width/2;vsCamera.top=height/2;vsCamera.bottom=-height/2;
   vsCamera.updateProjectionMatrix();
   // Keep each animal inside its half, regardless of the model's proportions.
@@ -482,6 +491,8 @@ if(new URLSearchParams(location.search).has('qa')){
   vsReady:window.PaperVSReady,
   versus:vsCharacters.map(x=>x?.mascotRig?{hero:x.hero,left:x.mascotRig.left.rotation.z,right:x.mascotRig.right.rotation.z}:null),
   gameCharacters:instances.size,
+  gameBufferResizes:gameSurfaceResizes,showcaseBufferResizes:vsSurfaceResizes,
+  gameBuffer:[gameSurfaceWidth,gameSurfaceHeight],showcaseBuffer:[vsSurfaceWidth,vsSurfaceHeight],
   showroomFashion:vsCharacters[0]?.fashionKey||'',
   showroomRig:!!vsCharacters[0]?.mascotRig
  });
