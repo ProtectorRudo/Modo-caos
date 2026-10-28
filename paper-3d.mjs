@@ -8,7 +8,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {buildMascot,animateMascot,MASCOT_DATA} from './paper-mascots.mjs';
 import {setFashion} from './paper-fashion.mjs';
-import {setHumanFashion,animateHuman,initializeHumanRig,HUMAN_HEROES} from './paper-quaternius.mjs';
+import {setHumanFashion,animateHuman,initializeHumanRig,disposeHumanActor,HUMAN_HEROES} from './paper-quaternius.mjs';
 
 const canvas=document.getElementById('characterStage');
 const getState=()=>typeof window.Paper3DState==='function'?window.Paper3DState():null;
@@ -45,6 +45,7 @@ const addMesh=(group,geometry,mat,x,y,z=0)=>{const m=new THREE.Mesh(geometry,mat
 function destroyInstance(id){
  const item=instances.get(id);if(!item)return;
  if(item.mixer)item.mixer.stopAllAction();
+ disposeHumanActor(item);
  scene.remove(item.root);instances.delete(id);delete window.Paper3DReady[id];
 }
 function chooseAnimation(gltf,kind){
@@ -231,7 +232,7 @@ function vsActor(hero){
  return actor;
 }
 function clearVSActors(){
- for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();vsScene?.remove(item.root);}
+ for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();disposeHumanActor(item);vsScene?.remove(item.root);}
  vsCharacters=[];
 }
 // Store a bind/rest orientation once per model. Never multiply incremental angles
