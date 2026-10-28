@@ -124,36 +124,49 @@ function loadModel(index){
 function startLoading(){
  if(started||failed)return;
  started=true;
+ const root='https://cdn.jsdelivr.net/gh/binyoun-cberi/kidscade@a68ea8ac843db770e24172d3319ac6cd07bec97a/assets/game/chibi/ChibiCharactersV1.2/ChibiCharacters/glb/';
+ const secondary='https://rawcdn.githack.com/binyoun-cberi/kidscade/a68ea8ac843db770e24172d3319ac6cd07bec97a/assets/game/chibi/ChibiCharactersV1.2/ChibiCharacters/glb/';
  const getGLB=name=>new Promise((resolve,reject)=>{
-  const local='./assets/styloo/'+name+'.glb';
-  const root='https://cdn.jsdelivr.net/gh/binyoun-cberi/kidscade@a68ea8ac843db770e24172d3319ac6cd07bec97a/assets/game/chibi/ChibiCharactersV1.2/ChibiCharacters/glb/';
-  const remote=root+name+'pr.glb';
-  gltfLoader.load(local,resolve,undefined,()=>{
-   // Immutable upstream CC0 mirror: fallback while the official files are being vendored locally.
-   gltfLoader.load(remote,resolve,undefined,reject);
+  // Prefer the local vendored file; use immutable licensed mirrors if missing.
+  gltfLoader.load('./assets/styloo/'+name+'.glb',resolve,undefined,()=>{
+   gltfLoader.load(root+name+'pr.glb',resolve,undefined,()=>{
+    gltfLoader.load(secondary+name+'pr.glb',resolve,undefined,reject);
+   });
   });
  });
  const unique=[...new Set(CHIBI_ROSTER.map(x=>x.model))];
- Promise.all(unique.map(name=>getGLB(name).then(asset=>({name,asset})))).then(loaded=>{
-  const lib=Object.fromEntries(loaded.map(x=>[x.name,x.asset]));
-  for(let i=0;i<CHIBI_ROSTER.length;i++){
-   const model=CHIBI_ROSTER[i].model;
-   if(!lib[model]?.scene)throw new Error('Missing licensed chibi '+model);
-   sourceAssets[i]={...lib[model],chibi:true,model};
-  }
-  window.PaperChibiStatus='ready';
-  setTimeout(snapshotChibiPortraits,160);
- }).catch(error=>{
-  console.error('Styloo Chibi models not loaded; gameplay uses fallback:',error);
-  for(let i=0;i<TOTAL_HEROES;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
-  window.PaperChibiStatus='fallback';
+ const state=getState();
+ const first=CHIBI_ROSTER[state?.menuHero||0]?.model||'ninja';
+ const rival=CHIBI_ROSTER[state?.vsRival||1]?.model||'archer';
+ const priority=[...new Set([first,rival,...unique])];
+ let complete=0,success=0;
+ window.PaperChibiStatus='loading';
+ priority.forEach((name,index)=>{
+  // Rayo/selected champion and VS opponent load first; other five async.
+  const delay=index<2?0:850+(index-2)*350;
+  setTimeout(()=>{
+   getGLB(name).then(asset=>{
+    if(!asset?.scene)throw new Error('Invalid GLB scene');
+    const available=CHIBI_ROSTER.map((h,i)=>h.model===name?i:-1).filter(i=>i>=0);
+    for(const i of available)sourceAssets[i]={...asset,chibi:true,model:name};
+    success++;window.PaperChibiStatus='partial';
+    // Photo portraits update progressively with each rigged GLB load.
+    setTimeout(snapshotChibiPortraits,60);
+   }).catch(error=>{
+    console.warn('Chibi model could not load, retaining gameplay fallback:',name,error);
+    for(let i=0;i<CHIBI_ROSTER.length;i++)if(CHIBI_ROSTER[i].model===name)
+     sourceAssets[i]={procedural:true,animations:[],scene:null};
+   }).finally(()=>{
+    complete++;
+    if(complete===priority.length)window.PaperChibiStatus=success?'ready':'fallback';
+   });
+  },delay);
  });
 }
-
 // A true 3D portrait from the exact same GLB, for selector, ranking and VS.
 // One temporary lightweight WebGL context, released immediately after capture.
 function snapshotChibiPortraits(){
- if(window.PaperChibiStatus!=='ready'||window.PaperPortraits?.filter(Boolean).length===TOTAL_HEROES)return;
+ if(window.PaperChibiStatus==='fallback'||window.PaperPortraits?.filter(Boolean).length===TOTAL_HEROES)return;
  let preview=null;
  try{
   preview=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power',preserveDrawingBuffer:true});
@@ -167,7 +180,7 @@ function snapshotChibiPortraits(){
   const cam=new THREE.OrthographicCamera(-62,62,76,-76,.1,900);
   cam.position.set(0,0,420);cam.lookAt(0,0,0);
   for(let i=0;i<TOTAL_HEROES;i++){
-   const asset=sourceAssets[i];if(!asset?.chibi)continue;
+   const asset=sourceAssets[i];if(!asset?.chibi||window.PaperPortraits[i])continue;
    const model=SkeletonUtils.clone(asset.scene);
    const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3());
    if(!Number.isFinite(size.y)||size.y<=0)continue;
