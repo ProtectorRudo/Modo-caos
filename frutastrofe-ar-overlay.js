@@ -104,59 +104,55 @@ function draw(view,origin,scale,objects,mode='playing'){
   for(const q of ring){if(q){path+=(prev?'L':'M')+n(q[0])+','+n(q[1])+' ';prev=true}else prev=false}
   html+='<path d="'+path+'" fill="none" stroke="url(#fp-rim)" stroke-width="5" opacity=".95"/>';
  }
- // MACHINE: physical emitter standing on the back of the stage. Silhouette + glowing throat.
- const left=pos(-1.38,.18,-1.55),right=pos(1.38,.18,-1.55);
- const lTop=pos(-1.3,2.42,-1.55),rTop=pos(1.3,2.42,-1.55),lBack=pos(-1.3,.14,-1.9),rBack=pos(1.3,.14,-1.9);
- if(left&&right&&lTop&&rTop){
-  html+=poly([lTop,rTop,right,left],'url(#fp-steel)','#86c3e4',2);
-  if(rBack)html+=poly([rTop,right,rBack,pos(1.3,2.12,-1.9)],'#0c1c31','#3beadf',1.4,'opacity=".85"');
-  // plate, luminous power lines, custom badge
-  const panel=pos(0,1.0,-1.55),screen=pos(0,2.04,-1.55);
-  if(panel){const ww=Math.max(27,Math.abs(right.x-left.x)*.34);
-   html+='<rect x="'+n(panel.x-ww)+'" y="'+n(panel.y-17)+'" width="'+n(2*ww)+'" height="31" rx="6" fill="#0b1634" stroke="#7bfcf0" stroke-width="1.5"/>';
-   html+='<text x="'+n(panel.x)+'" y="'+n(panel.y-2)+'" text-anchor="middle" font-size="'+n(clamp(ww*.23,8,12))+'" font-weight="1000" letter-spacing="1.5" fill="#e6fff2">JUICE</text><text x="'+n(panel.x)+'" y="'+n(panel.y+9)+'" text-anchor="middle" font-size="'+n(clamp(ww*.18,7,10))+'" fill="#92fdaf" font-weight="900">REACTOR</text>'}
-  if(screen){html+='<circle cx="'+n(screen.x)+'" cy="'+n(screen.y)+'" r="7" fill="#0c1223" stroke="#7bffde" stroke-width="2"/><circle cx="'+n(screen.x)+'" cy="'+n(screen.y)+'" r="3.5" fill="#f2ff6c"/>'}
+ // THE SKY RIFT: a luminous floating dispenser roughly 1.8 m above the anchored floor.
+ // This portal, its lightning and every fruit share real-world XR coordinates.
+ const portalY=9.46,portalZ=-.32;
+ const ringPoints=[];
+ for(let i=0;i<=48;i++){
+  const a=i*Math.PI/24;
+  ringPoints.push(pos(Math.cos(a)*2.8,portalY+.13*Math.sin(a*3),portalZ+Math.sin(a)*.67));
  }
-
- // Armored lateral fruit tanks, thick hydraulic braces and an upper feed hopper.
- for(const side of [-1,1]){
-  const x=side*1.42;
-  const shell=[pos(x-.26,.43,-1.44),pos(x+.26,.43,-1.44),pos(x+.26,2.5,-1.44),pos(x-.26,2.5,-1.44)];
-  if(shell.every(Boolean)){
-   html+=poly(shell,'url(#fp-steel)','#8bcbdd',2.0);
-   const middle=pos(x,1.52,-1.44),bar=pos(x,2.33,-1.44),base=pos(x,.65,-1.44);
-   if(middle&&bar&&base){
-    html+='<path d="M'+n(bar.x)+' '+n(bar.y)+'L'+n(base.x)+' '+n(base.y)+'" stroke="'+(side===-1?'#43f2f2':'#f48bd3')+'" stroke-width="6" opacity=".78"/>';
-    html+='<circle cx="'+n(middle.x)+'" cy="'+n(middle.y)+'" r="6" fill="#ddffe4" stroke="#48f5c9" stroke-width="3"/>';
-   }
-  }
+ let ringPath='',pen=false;
+ for(const p of ringPoints){if(p){ringPath+=(pen?'L':'M')+n(p.x)+' '+n(p.y)+' ';pen=true}else pen=false}
+ const centerPortal=pos(0,portalY,portalZ);
+ if(ringPath){
+  html+='<path d="'+ringPath+'" fill="none" stroke="#48eaf7" stroke-width="13" opacity=".18" filter="url(#fp-glow)"/>';
+  html+='<path d="'+ringPath+'" fill="none" stroke="url(#fp-rim)" stroke-width="5" opacity=".90" stroke-linecap="round"/>';
+  html+='<path d="'+ringPath+'" fill="none" stroke="#f9ffe8" stroke-dasharray="5 22" stroke-dashoffset="'+n(t*50)+'" stroke-width="2.5" opacity=".78"/>';
  }
- const funnel=[pos(-1.65,2.55,-1.65),pos(1.65,2.55,-1.65),pos(.86,3.38,-1.65),pos(-.86,3.38,-1.65)];
- if(funnel.every(Boolean)){
-  html+=poly(funnel,'url(#fp-steel)','#4cebf4',3);
-  const header=pos(0,2.95,-1.65);
-  if(header){html+='<text x="'+n(header.x)+'" y="'+n(header.y)+'" text-anchor="middle" font-size="10" letter-spacing="1" fill="#f7ffba" font-weight="1000">FRUIT FEEDER</text>'}
+ if(centerPortal&&centerPortal.y>-180&&centerPortal.y<h+90){
+  const px=n(centerPortal.x),py=n(centerPortal.y),pulse=.7+.3*Math.sin(t*5);
+  html+='<ellipse cx="'+px+'" cy="'+py+'" rx="110" ry="26" fill="url(#fp-halo)" opacity="'+n(pulse)+'"/>';
+  html+='<circle cx="'+px+'" cy="'+py+'" r="'+n(8+3*pulse)+'" fill="url(#fp-bloom)" opacity=".85"/>';
+  html+='<text x="'+px+'" y="'+n(py-24)+'" text-anchor="middle" font-size="12" font-weight="1000" stroke="#0e1438" stroke-width="4" paint-order="stroke" letter-spacing="2.2" fill="#ddfff8">SKY JUICE PORTAL</text>';
  }
-
- // Telegraphed feed pipe and cannon nozzle at the actual world spawn position.
- const nozzle=pos(0,2.76,-1.15),pipe=pos(0,2.1,-1.55),port=pos(0,2.76,-1.3);
- if(nozzle){
-  const R=clamp((w/460)*17,11,27);
-  if(pipe&&port)html+='<path d="M'+n(pipe.x)+' '+n(pipe.y)+'Q'+n(nozzle.x+22)+' '+n(nozzle.y-26)+' '+n(port.x)+' '+n(port.y)+'" stroke="#172647" stroke-width="23" fill="none"/><path d="M'+n(pipe.x)+' '+n(pipe.y)+'Q'+n(nozzle.x+22)+' '+n(nozzle.y-26)+' '+n(port.x)+' '+n(port.y)+'" stroke="#9ecdf1" stroke-width="8" fill="none"/>';
-  html+='<circle cx="'+n(nozzle.x)+'" cy="'+n(nozzle.y)+'" r="'+n(R*2.9)+'" fill="url(#fp-halo)" opacity=".85"/>';
-  html+='<circle cx="'+n(nozzle.x)+'" cy="'+n(nozzle.y)+'" r="'+n(R*1.32)+'" fill="#142645" stroke="#97deed" stroke-width="5"/>';
-  html+='<circle cx="'+n(nozzle.x)+'" cy="'+n(nozzle.y)+'" r="'+n(R)+'" fill="url(#fp-nozzle)" stroke="#e7fff2" stroke-width="2"/>';
-  html+='<circle cx="'+n(nozzle.x)+'" cy="'+n(nozzle.y)+'" r="'+n(R*(.60+.10*Math.sin(t*8)))+'" fill="#e7ff9c" opacity=".27"/>';
+ // Atmospheric sparkles are also located in world coordinates, not stuck to the HUD.
+ for(let i=0;i<14;i++){
+  const x=Math.sin(i*2.4+t*.16)*2.4,z=-.32+Math.cos(i*2.4+t*.16)*.59,
+    y=8.90+.32*Math.sin(i*3.2+t*1.3);
+  const p=pos(x,y,z);if(!p)continue;
+  const alpha=.25+.4*Math.sin(i*1.7+t*1.6)**2;
+  html+='<path d="M'+n(p.x-3)+' '+n(p.y)+'L'+n(p.x+3)+' '+n(p.y)+' M'+n(p.x)+' '+n(p.y-3)+'L'+n(p.x)+' '+n(p.y+3)+'" stroke="'+(i%3?'#7feeff':'#faffac')+'" opacity="'+n(alpha)+'" stroke-width="1.5"/>';
  }
- // Trajectories: a short trail links every just-ejected fruit to the reactor.
+ // A quiet receiving pad on the floor: there is no physical floor launcher.
+ const pad=pos(0,.0,-.5),padL=pos(-1.12,.02,-.54),padR=pos(1.12,.02,-.54);
+ if(pad&&padL&&padR){
+  html+='<path d="M'+n(padL.x)+' '+n(padL.y)+'L'+n(padR.x)+' '+n(padR.y)+'" stroke="#81ffcd" stroke-width="3" opacity=".75"/>';
+  html+='<text x="'+n(pad.x)+'" y="'+n(pad.y-8)+'" text-anchor="middle" font-size="11" font-weight="900" letter-spacing="1" fill="#cffff7" stroke="#0b1832" stroke-width="3" paint-order="stroke">JUICE LANDING ZONE</text>';
+ }
  seen.length=0;
  if(mode==='playing'){
   const all=P.targets(view,origin,scale,objects,w,h).sort((a,b)=>b.depth-a.depth);
   const objs=new Map((objects||[]).map(x=>[x.id,x]));
+  // Faint vertical fall trails emphasize gravity. Only new, recently-emerged fruits.
   for(const q of all){
-   const o=objs.get(q.id);if(q.y<-130||q.y>h+130)continue;
-   if(o?.age<.65&&nozzle){const a=clamp(1-o.age/.65,0,1),x0=n(nozzle.x),y0=n(nozzle.y);
-    html+='<path d="M'+x0+' '+y0+' Q'+n((x0+q.x)/2)+' '+n(Math.min(y0,q.y)-20)+' '+n(q.x)+' '+n(q.y)+'" stroke="'+(skins[q.kind]?.[1]||'#79fff0')+'" stroke-width="'+n(2+5*a)+'" stroke-linecap="round" opacity="'+n(a*.5)+'" fill="none"/>'}
+   const o=objs.get(q.id);
+   if(!o||o.age>.72||q.y<-160||q.y>h+160)continue;
+   const from=pos(o.x,o.baseY,o.z);
+   if(from){
+    const alpha=n(Math.max(0,1-o.age/.72)*.3);
+    html+='<path d="M'+n(from.x)+' '+n(from.y)+' Q'+n((from.x+q.x)/2)+' '+n((from.y+q.y)/2)+' '+n(q.x)+' '+n(q.y)+'" stroke="'+(skins[q.kind]?.[1]||'#a1e9ff')+'" stroke-width="3" fill="none" opacity="'+alpha+'"/>';
+   }
   }
   for(const q of all){
    const o=objs.get(q.id);if(q.y<72||q.y>h-85)continue;
@@ -206,5 +202,5 @@ function draw(view,origin,scale,objects,mode='playing'){
  svg.innerHTML=html;state=mode;lastView=view;lastOrigin=origin;lastScale=scale;lastTs=t;return seen.slice();
 }
 function clear(){const svg=$('arWorld');if(svg){svg.innerHTML='';svg.style.display='none'}seen.length=0;particles.length=0;shots.length=0;puddles.length=0;splashes.length=0;numbers.length=0;state='idle';lastView=null}
-root.FrutaAROverlay={draw,clear,impact,shot,popup,get targets(){return seen},get state(){return state},get diagnostics(){return {visible:seen.length,particles:particles.length,shots:shots.length,splashes:splashes.length,hasNozzle:!!lastView}}};
+root.FrutaAROverlay={draw,clear,impact,shot,popup,get targets(){return seen},get state(){return state},get diagnostics(){return {visible:seen.length,particles:particles.length,shots:shots.length,splashes:splashes.length,hasSkyPortal:!!lastView}}};
 })(typeof window!=='undefined'?window:globalThis);
