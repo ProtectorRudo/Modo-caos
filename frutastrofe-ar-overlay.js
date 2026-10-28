@@ -73,29 +73,29 @@ function fruitArt(kind,spin=0){
  s+='<ellipse cx="-18" cy="-17" rx="10" ry="4" transform="rotate(-32 -18 -17)" fill="#fff" opacity=".20"/>';
  return s;
 }
-const seen=[],particles=[],shots=[],puddles=[],splashes=[],numbers=[];let state='idle',lastView=null,lastOrigin=null,lastScale=null,lastTs=0;
+const seen=[],particles=[],shots=[],puddles=[],splashes=[],numbers=[];let state='idle',lastView=null,lastOrigin=null,lastScale=null,lastTs=0,stageNode=null,svgRoot=null,paintCount=0;
 function addBurst(obj,kind='apple',count=22,boost=1){
  if(!obj||!Number.isFinite(obj.x))return;
  const t=performance.now()/1000,colors=(skins[kind]||skins.apple);
- for(let i=0;i<Math.min(65,count);i++){const a=i*2.399963+Math.random()*.27,spd=(.8+Math.random()*2.4)*boost;
+ for(let i=0;i<Math.min(17,count);i++){const a=i*2.399963+Math.random()*.27,spd=(.8+Math.random()*2.4)*boost;
   particles.push({x:obj.x,y:obj.y,z:obj.z,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd*.86+1.1,vz:(Math.random()-.5)*1.3,life:.45+Math.random()*.45,start:t,r:.025+Math.random()*.05,col:colors[(i%3)+1],shape:i%4===0?'star':'drop'})}
- if(particles.length>130)particles.splice(0,particles.length-130);
+ if(particles.length>42)particles.splice(0,particles.length-42);
 }
-function impact(obj,kind,combo=false){addBurst(obj,kind,combo?48:24,combo?1.3:1);splashes.push({...obj,kind,combo,t:performance.now()/1000});if(splashes.length>7)splashes.shift();
- if(obj&&kind!=='bomb'&&kind!=='rotten'){puddles.push({...obj,t:performance.now()/1000,col:skins[kind]?.[1]||'#f35a8b'});if(puddles.length>12)puddles.shift()}
+function impact(obj,kind,combo=false){addBurst(obj,kind,combo?18:12,combo?1.3:1);splashes.push({...obj,kind,combo,t:performance.now()/1000});if(splashes.length>3)splashes.shift();
+ if(obj&&kind!=='bomb'&&kind!=='rotten'){puddles.push({...obj,t:performance.now()/1000,col:skins[kind]?.[1]||'#f35a8b'});if(puddles.length>9)puddles.shift()}
 }
-function emerge(obj){if(obj)addBurst(obj,obj.kind,6,.55)}
+function emerge(obj){/* World-space portal is itself the spawn feedback. */}
 function land(obj){
  if(!obj)return;
  const t=performance.now()/1000,col=skins[obj.kind]?.[1]||'#69dfff';
- puddles.push({...obj,t,col});if(puddles.length>16)puddles.shift();
- addBurst({...obj,y:.3},obj.kind,8,.65);
+ puddles.push({...obj,t,col});if(puddles.length>9)puddles.shift();
+ // Landings are shown by a single puddle; no heavy particle burst.
 }
-function popup(obj,points){if(obj&&Number.isFinite(obj.x)){numbers.push({...obj,text:'+'+Math.round(points),t:performance.now()/1000});if(numbers.length>12)numbers.shift()}}
+function popup(obj,points){if(obj&&Number.isFinite(obj.x)){numbers.push({...obj,text:'+'+Math.round(points),t:performance.now()/1000});if(numbers.length>6)numbers.shift()}}
 function shot(x,y,hit=true,kind='apple'){
  const t=performance.now()/1000;shots.push({x:x??innerWidth*.5,y:y??innerHeight*.48,t,hit,kind});
- if(shots.length>6)shots.shift();
- const gun=$('weapon');if(gun){gun.classList.remove('firing');void gun.offsetWidth;gun.classList.add('firing')}
+ if(shots.length>2)shots.shift();
+ const gun=$('weapon');if(gun){gun.classList.add('firing')}
 }
 function poly(points,fill,stroke,strokeWidth=1,attrs=''){
  if(points.some(p=>!p))return '';
@@ -104,10 +104,12 @@ function poly(points,fill,stroke,strokeWidth=1,attrs=''){
 function draw(view,origin,scale,objects,mode='playing'){
  const svg=$('arWorld');if(!svg||!view||!origin)return [];
  const w=innerWidth,h=innerHeight,t=performance.now()/1000;
+ if(svgRoot!==svg){svgRoot=svg;stageNode=null}
+ if(!stageNode){svg.innerHTML=defs+'<g id="fx-scene"></g>';stageNode=svg.querySelector('#fx-scene')}
  svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.style.display='block';
  const pos=(x,y,z)=>P.projection(view,origin,scale,{x,y,z},w,h);
  const wide=.23; // world size in core game units; actual physical scale supplied by engine
- let html=defs;
+ let html='';
  // 3D extruded, lit deck: never just an empty outline.
  const quad=[pos(-3.0,-.08,-2.35),pos(3.0,-.08,-2.35),pos(3.0,-.08,2.35),pos(-3.0,-.08,2.35)];
  const bottom=[pos(-3.0,-.38,-2.35),pos(3.0,-.38,-2.35),pos(3.0,-.38,2.35),pos(-3.0,-.38,2.35)];
@@ -147,7 +149,7 @@ function draw(view,origin,scale,objects,mode='playing'){
   html+='<text x="'+px+'" y="'+n(py-24)+'" text-anchor="middle" font-size="12" font-weight="1000" stroke="#0e1438" stroke-width="4" paint-order="stroke" letter-spacing="2.2" fill="#ddfff8">SKY JUICE PORTAL</text>';
  }
  // Atmospheric sparkles are also located in world coordinates, not stuck to the HUD.
- for(let i=0;i<14;i++){
+ for(let i=0;i<6;i++){
   const x=Math.sin(i*2.4+t*.16)*2.4,z=-.32+Math.cos(i*2.4+t*.16)*.59,
     y=8.90+.32*Math.sin(i*3.2+t*1.3);
   const p=pos(x,y,z);if(!p)continue;
@@ -216,7 +218,7 @@ function draw(view,origin,scale,objects,mode='playing'){
    html+='<g transform="translate('+n(q.x+move)+' '+n(q.y-age*75)+') rotate('+n(age*220)+') scale('+scales+')" clip-path="url(#'+id+'b)" opacity="'+pieceAlpha+'">'+fruitArt(b.kind)+'</g>';
   }
   // Radial spurts with tapered highlight and chunky juice beads
-  for(let k=0;k<12;k++){
+  for(let k=0;k<7;k++){
    const a=k*Math.PI/6+.3+b.x*.45,r2=rad*(.77+.2*Math.sin(k*2.4));
    const x1=q.x+Math.cos(a)*rad*.27,y1=q.y+Math.sin(a)*rad*.27,
      x2=q.x+Math.cos(a)*r2,y2=q.y+Math.sin(a)*r2;
@@ -255,13 +257,13 @@ function draw(view,origin,scale,objects,mode='playing'){
   // Muzzle detonation: an energetic sunburst attached to the actual blaster muzzle.
   html+='<circle cx="'+n(sx)+'" cy="'+n(sy)+'" r="'+flare+'" fill="url(#fp-bloom)" opacity="'+n(alpha*.95)+'"/>';
   html+='<circle cx="'+n(sx)+'" cy="'+n(sy)+'" r="'+n(6+age*75)+'" fill="none" stroke="#efffa3" stroke-width="'+n(4*alpha)+'" opacity="'+a+'"/>';
-  for(let k=0;k<8;k++){const angle=k*Math.PI/4+t*16,rr=(15+age*70)*(k%2?.7:1);
+  for(let k=0;k<5;k++){const angle=k*Math.PI/4+t*16,rr=(15+age*70)*(k%2?.7:1);
    html+='<path d="M'+n(sx+Math.cos(angle)*9)+' '+n(sy+Math.sin(angle)*9)+'L'+n(sx+Math.cos(angle)*rr)+' '+n(sy+Math.sin(angle)*rr)+'" stroke="'+(k%2?'#a3fffa':'#fcff9d')+'" stroke-width="'+n(2.2*alpha)+'" stroke-linecap="round" opacity="'+a+'"/>';
   }
   html+='<circle cx="'+tx+'" cy="'+ty+'" r="'+n(13+age*80)+'" stroke="'+(sh.hit?'#fbff98':'#68ffff')+'" stroke-width="'+n(4*alpha)+'" fill="none" opacity="'+a+'"/>';
  }
- svg.innerHTML=html;state=mode;lastView=view;lastOrigin=origin;lastScale=scale;lastTs=t;return seen.slice();
+ stageNode.innerHTML=html;paintCount++;state=mode;lastView=view;lastOrigin=origin;lastScale=scale;lastTs=t;return seen.slice();
 }
-function clear(){const svg=$('arWorld');if(svg){svg.innerHTML='';svg.style.display='none'}seen.length=0;particles.length=0;shots.length=0;puddles.length=0;splashes.length=0;numbers.length=0;state='idle';lastView=null}
-root.FrutaAROverlay={draw,clear,impact,shot,popup,emerge,land,get targets(){return seen},get state(){return state},get diagnostics(){return {visible:seen.length,particles:particles.length,shots:shots.length,splashes:splashes.length,hasSkyPortal:!!lastView}}};
+function clear(){const svg=$('arWorld');if(svg){svg.innerHTML='';svg.style.display='none'}stageNode=null;svgRoot=null;seen.length=0;particles.length=0;shots.length=0;puddles.length=0;splashes.length=0;numbers.length=0;state='idle';lastView=null}
+root.FrutaAROverlay={draw,clear,impact,shot,popup,emerge,land,get targets(){return seen},get state(){return state},get diagnostics(){return {visible:seen.length,particles:particles.length,shots:shots.length,splashes:splashes.length,paintCount,svgNodes:stageNode?.childElementCount||0,hasSkyPortal:!!lastView}}};
 })(typeof window!=='undefined'?window:globalThis);
