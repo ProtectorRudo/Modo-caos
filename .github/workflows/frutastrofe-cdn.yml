@@ -7,6 +7,9 @@ on:
       - 'frutastrofe.html'
       - 'docs/FRUTASTROFE.md'
       - 'frutastrofe-*.js'
+      - 'mc-config.js'
+      - 'mc-rooms-client.js'
+      - 'supabase/migrations/20261028_frutastrofe_duel_v1.sql'
       - 'tests/frutastrofe-browser.cjs'
   workflow_dispatch:
 permissions:
@@ -27,12 +30,12 @@ jobs:
           node --input-type=module <<'NODE'
           const base='https://rawcdn.githack.com/ProtectorRudo/Modo-caos/'+process.env.SHA+'/';
           let ok=true;
-          for(const name of ['frutastrofe.html','frutastrofe-core.js','frutastrofe-art.js','frutastrofe-runtime.js']){
+          for(const name of ['frutastrofe.html','frutastrofe-core.js','frutastrofe-art.js','frutastrofe-runtime.js','frutastrofe-online.js','mc-config.js','mc-rooms-client.js']){
             const uri=base+name;
             try{
               const resp=await fetch(uri,{signal:AbortSignal.timeout(22000)});
               const body=await resp.text();
-              const pass=resp.ok&&body.length>1000&&(name.endsWith('.html')?body.includes('FRUTÁSTROFE')&&body.includes('./frutastrofe-runtime.js'):body.includes('FRUT'));
+              const pass=resp.ok&&body.length>1000&&(name.endsWith('.html')?body.includes('FRUTÁSTROFE')&&body.includes('./frutastrofe-runtime.js'):(body.includes('FRUT')||body.includes('ModoCaos')));
               console.log(JSON.stringify({uri,status:resp.status,type:resp.headers.get('content-type'),bytes:body.length,pass}));
               ok&&=pass;
             }catch(e){console.log(uri,String(e));ok=false}
