@@ -29,6 +29,16 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   await page.screenshot({path:'frutastrofe-online-lobby-mobile.png',animations:'disabled'});
   await page.locator('#onlineBack').click();
   assert(await page.locator('#home').isVisible(),'closing online setup returns to regular AR home');
+  const invite=await browser.newPage({viewport:{width:393,height:852},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+  try{
+   await invite.goto(url+'/frutastrofe.html?qa=1&duel=A7B8C9D0',{waitUntil:'domcontentloaded',timeout:40000});
+   if((await invite.title()).includes('External Content Notice'))await invite.getByText('Open the page',{exact:true}).click({timeout:12000});
+   await invite.locator('#onlineJoinCode').waitFor({state:'visible',timeout:19000});
+   assert.equal(await invite.locator('#onlineJoinCode').inputValue(),'A7B8C9D0','shared invite URL must prefill the real lobby');
+   assert(await invite.locator('#onlineJoin').isVisible());
+   console.log('PASS online invite deep link opens real join form');
+  }finally{await invite.close()}
+
   await page.locator('#campaign').click();
   assert(await page.locator('#selector').isVisible());assert.equal(await page.locator('.lvl:enabled').count(),1);
   assert((await page.locator('#levelPlay').innerText()).includes('CÁMARA'));
