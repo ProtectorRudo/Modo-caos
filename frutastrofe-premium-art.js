@@ -231,45 +231,45 @@ function drawPortal(c,pos,t,phase=1,fever=false){
  c.restore();
 }
 function installGun(){
- const el=document.getElementById('weapon');if(!el||el.dataset.v3)return;
- el.dataset.v3='1';
+ // Preserve the existing DOM handle and single composite layer for WebXR HUD.
+ // The weapon is now a premium JUICE SABER: diagonal blade, real guard, full grip,
+ // no gun barrel, muzzle or projectile-related SVG.
+ const el=document.getElementById('weapon');if(!el||el.dataset.saber==='1')return;
+ el.dataset.saber='1';el.dataset.v3='1';
+ el.setAttribute('aria-label','Sable energético para cortar frutas');
  el.innerHTML=[
- '<svg viewBox="0 0 240 335" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>',
- '<linearGradient id="jbx" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#cde5f0"/><stop offset=".17" stop-color="#708eaa"/><stop offset=".43" stop-color="#203f61"/><stop offset=".71" stop-color="#11253f"/><stop offset="1" stop-color="#071426"/></linearGradient>',
- '<linearGradient id="jbc" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#faffeb"/><stop offset=".30" stop-color="#91fff0"/><stop offset=".61" stop-color="#25d2d4"/><stop offset="1" stop-color="#237bb7"/></linearGradient>',
- '<linearGradient id="jbg" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#e6ffa4"/><stop offset=".4" stop-color="#b3f65a"/><stop offset="1" stop-color="#668e36"/></linearGradient>',
- '<radialGradient id="jbm"><stop stop-color="#ffffff"/><stop offset=".2" stop-color="#f2ff9d"/><stop offset=".58" stop-color="#46f7db"/><stop offset="1" stop-color="#235d95"/></radialGradient>',
- '<radialGradient id="jbf"><stop stop-color="#ffffff" stop-opacity=".99"/><stop offset=".25" stop-color="#a0ffe8" stop-opacity=".85"/><stop offset=".6" stop-color="#4deaff" stop-opacity=".28"/><stop offset="1" stop-color="#19baf9" stop-opacity="0"/></radialGradient>',
- '</defs><g class="jb-body">',
- '<path d="M103 156L171 165L204 277Q197 320 154 331L127 298L97 222Z" fill="#091529" stroke="#7a9bb1" stroke-width="3"/>',
- '<path d="M122 194L158 190L184 285Q172 312 153 310L130 284L107 227Z" fill="url(#jbx)" stroke="#aacdd5" stroke-width="2"/>',
- '<path d="M130 229L175 218M135 249L179 241M144 266L187 260M150 285L189 277" stroke="#0c223c" stroke-width="5" opacity=".75"/>',
- '<path d="M77 88L159 69L203 112L199 190L162 235L95 228L50 182L54 124Z" fill="url(#jbx)" stroke="#b1d4df" stroke-width="3"/>',
- '<path d="M81 119L155 100L181 127L175 184L151 206L86 193L75 159Z" fill="#0a2948" stroke="#4f7c9a" stroke-width="2"/>',
- '<path d="M91 128L161 114L171 149L91 166Z" fill="url(#jbc)" stroke="#c8ffe5" stroke-width="2"/>',
- '<path d="M95 171L160 157L169 176L99 191Z" fill="url(#jbg)" stroke="#efffd5" stroke-width="2"/>',
- '<path d="M102 134L151 122M110 144L158 130" stroke="#fafff0" stroke-width="2" opacity=".60"/>',
- '<path d="M49 123L73 104L95 116L103 180L79 197L46 165Z" fill="url(#jbx)" stroke="#88b3d1" stroke-width="3"/>',
- '<circle cx="72" cy="145" r="17" fill="#0c2941" stroke="#75fff1" stroke-width="3"/><circle cx="72" cy="145" r="7" fill="url(#jbm)"/>',
- '<path d="M145 207L180 196L175 225L148 229Z" fill="#0e4c63" stroke="#7ef4de" stroke-width="2"/>',
- '<path d="M159 206L154 218L168 215L157 228" stroke="#f0ffa2" stroke-width="4" fill="none"/>',
- '<path d="M99 40L158 36L172 103L91 113Z" fill="url(#jbx)" stroke="#c2e4ee" stroke-width="4"/>',
- '<path d="M106 49L149 47L156 96L100 100Z" fill="#0f2947"/><path d="M109 58L145 56M111 75L149 72M113 90L152 87" stroke="url(#jbc)" stroke-width="4"/>',
- '<ellipse cx="129" cy="39" rx="37" ry="17" fill="#091e34" stroke="#b8d9eb" stroke-width="5"/>',
- '<ellipse cx="129" cy="38" rx="28" ry="13" fill="#174f6c" stroke="#52f1d9" stroke-width="3"/>',
- '<ellipse cx="129" cy="37" rx="17" ry="9" fill="url(#jbm)"/>',
- '<ellipse id="gunFlash" cx="129" cy="34" rx="56" ry="59" fill="url(#jbf)" opacity="0"/>',
- '<path d="M61 196L85 188L94 230L78 243L58 228Z" fill="#10283f" stroke="#5ad2e1" stroke-width="3"/>',
- '<path d="M69 206L83 202L85 226L72 231Z" fill="#b8ff8b" stroke="#dfffca" stroke-width="1.5"/>',
- '<path d="M180 129L195 139L190 186L177 195Z" fill="#06253b" stroke="#a3d3dd" stroke-width="2"/>',
- '<path d="M182 140L192 146L188 180L179 187Z" fill="url(#jbc)" opacity=".84"/>',
- '<path d="M181 143L190 149" stroke="#fffed5" stroke-width="2.2" opacity=".75"/>',
- '<path d="M184 166L190 167" stroke="#f5ff93" stroke-width="3"/>',
- '<path d="M94 202L141 218" stroke="#f4fdff" stroke-width="2" opacity=".38"/>',
- '<text x="106" y="194" fill="#d1ffff" font-size="10" font-weight="900" transform="rotate(-11 106 194)">FZ-7</text>',
- '<circle cx="65" cy="118" r="3.8" fill="#d2ffe5"/><circle cx="87" cy="214" r="3" fill="#b4e7ff"/>',
- '<path d="M92 112L117 105" stroke="#eefcff" stroke-width="3" opacity=".7"/>',
- '</g></svg><div class="gun-name">JUICE <b>BLASTER MK II</b> <span>∞</span></div>'
+ '<svg viewBox="0 0 240 335" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">',
+ '<defs>',
+ '<linearGradient id="js-metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f2f8ff"/><stop offset=".24" stop-color="#7ba9c3"/><stop offset=".48" stop-color="#2e4a64"/><stop offset=".76" stop-color="#09182c"/><stop offset="1" stop-color="#91c2d5"/></linearGradient>',
+ '<linearGradient id="js-blade" x1="0" y1="0" x2="1" y2=".75"><stop stop-color="#f6ffff"/><stop offset=".2" stop-color="#d7ffe2"/><stop offset=".48" stop-color="#70ffe1"/><stop offset=".84" stop-color="#23bfe4"/><stop offset="1" stop-color="#0a5186"/></linearGradient>',
+ '<linearGradient id="js-rubber" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#364d69"/><stop offset=".45" stop-color="#111f35"/><stop offset="1" stop-color="#040d1f"/></linearGradient>',
+ '<radialGradient id="js-glow"><stop stop-color="#fff" stop-opacity=".86"/><stop offset=".3" stop-color="#9dffdb" stop-opacity=".64"/><stop offset="1" stop-color="#46ddfb" stop-opacity="0"/></radialGradient>',
+ '</defs>',
+ '<g class="js-saber">',
+ // Blade angled up-right, a clear silhouette separated from the grip.
+ '<path d="M97 234Q141 141 190 26Q197 13 195 38L136 239Z" fill="#46e8eb" opacity=".20" stroke="#63f6df" stroke-width="9"/>',
+ '<path d="M104 229L192 27L168 111L129 233Z" fill="url(#js-blade)" stroke="#d2fff1" stroke-width="2.5"/>',
+ '<path d="M113 222L188 37L164 122L123 225Z" fill="#eafffa" opacity=".68"/>',
+ '<path d="M119 218L178 74L153 147L127 223Z" fill="#e8fff8" opacity=".79"/>',
+ '<path d="M189 31L196 17L189 57" fill="none" stroke="#f4fff4" stroke-width="3" stroke-linecap="round"/>',
+ '<path d="M110 205L150 144M104 220L139 164" stroke="#a2ffdf" stroke-width="2" opacity=".67"/>',
+ // Reinforced blade socket plus double claw hilt: chrome material, teal studs.
+ '<path d="M92 219L132 220L141 244L112 267L82 243Z" fill="url(#js-metal)" stroke="#b0e1ea" stroke-width="3"/>',
+ '<path d="M87 230L59 226L44 244L60 252L92 245" fill="url(#js-metal)" stroke="#a8d4dd" stroke-width="3"/>',
+ '<path d="M135 229L162 215L174 226L150 248L134 249" fill="url(#js-metal)" stroke="#a6dfec" stroke-width="3"/>',
+ '<path d="M88 233L136 232L129 246L99 251Z" fill="#102b43" stroke="#7dfbdf" stroke-width="2"/>',
+ '<path d="M95 242L118 241L126 252L111 271L89 253Z" fill="#1b4860" stroke="#68f0d2" stroke-width="2"/>',
+ '<circle cx="104" cy="241" r="6" fill="#dcff98"/><circle cx="146" cy="234" r="4" fill="#bfffee"/>',
+ // Full-width textured grip at the bottom: no gun, no floating hilt.
+ '<path d="M105 257L132 262L104 324L74 322Z" fill="url(#js-rubber)" stroke="#92b9d1" stroke-width="3"/>',
+ '<path d="M108 262L124 265L99 317L83 316Z" fill="#1b344d"/>',
+ '<path d="M91 269L119 274M84 286L111 291M77 304L104 309" stroke="#0c1529" stroke-width="5"/>',
+ '<path d="M91 270L117 275M85 288L110 293M79 304L102 310" stroke="#7ef2df" stroke-width="1.7" opacity=".65"/>',
+ '<path d="M75 317L103 320L98 331L68 330Z" fill="url(#js-metal)" stroke="#a9d4e0" stroke-width="3"/>',
+ // Tracking point belongs to the tip of the *blade*, not the old blaster muzzle.
+ '<circle id="saberTip" cx="190" cy="26" r="3" fill="#eaffeb" opacity=".15"/>',
+ '<circle id="saberPulse" cx="134" cy="176" r="46" fill="url(#js-glow)" opacity="0"/>',
+ '</g></svg>'
  ].join('');
 }
 root.FrutaPremiumArt={sprite,slicedHalf,prime,drawDeck,drawPortal,installGun,stats:()=>({spriteCount:cache.size,cutSprites:cutCache.size,portal:'juice-apocalypse-5-chamber'})};
