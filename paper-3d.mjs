@@ -9,7 +9,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {buildMascot,animateMascot,MASCOT_DATA} from './paper-mascots.mjs';
 import {setFashion} from './paper-fashion.mjs';
-import {setHumanFashion,animateHuman,initializeHumanRig,disposeHumanActor,HUMAN_HEROES} from './paper-quaternius.mjs';
+import {setHumanFashion,animateHuman,initializeHumanRig,disposeHumanActor,HUMAN_HEROES,transplantQuaterniusHead,syncQuaterniusHead} from './paper-quaternius.mjs';
 
 const canvas=document.getElementById('characterStage');
 const getState=()=>typeof window.Paper3DState==='function'?window.Paper3DState():null;
@@ -79,6 +79,10 @@ function instantiate(person){
  const root=new THREE.Group();root.name='Hero_'+person.id;
  const kit=asset.procedural?buildMascot(THREE,hero<HUMAN_COUNT?hero:hero-HUMAN_COUNT):null;
  const base=kit?kit.root:SkeletonUtils.clone(asset.scene);
+ const human=asset.human?initializeHumanRig(base,hero,!!asset.nativeOutfit):null;
+ const headOverlay=asset.nativeOutfit&&asset.referenceHead?
+  transplantQuaterniusHead(THREE,asset.referenceHead,base,scene=>SkeletonUtils.clone(scene)):null;
+ const face=headOverlay?initializeHumanRig(headOverlay,hero,false):null;
  const bounds=new THREE.Box3().setFromObject(base),size=bounds.getSize(new THREE.Vector3());
  if(!size.y||!Number.isFinite(size.y))return null;
  const factor=RIG_HEIGHT/size.y;
@@ -91,9 +95,9 @@ function instantiate(person){
  const actions={};
  if(mixer)for(const [key,clip] of [['run',run],['idle',idle],['emote',emote]])if(clip){actions[key]=mixer.clipAction(clip);actions[key].setLoop(THREE.LoopRepeat);}
  const rig=findArmRig(base);
- const human=asset.human?initializeHumanRig(base,hero):null;
  const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,
- restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null,...(human||{})};
+ restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null,...(human||{}),
+ nativeOutfit:!!asset.nativeOutfit,headOverlay,headBones:face?.humanBones,headRest:face?.humanRest};
  if(instance.humanBones)updateOutfit(instance,{});
  scene.add(root);instances.set(person.id,instance);
  window.Paper3DReady[person.id]=true;
@@ -120,19 +124,23 @@ function startLoading(){
  // champions are genuinely skinned Quaternius humanoids, not primitives.
  for(let i=HUMAN_COUNT;i<TOTAL_HEROES;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
  window.PaperQuaterniusStatus='loading';
- gltfLoader.load('./assets/cividom-quaternius/ubc-superhero-male.glb',gltf=>{
-  let rigged=false;
-  gltf?.scene?.traverse(n=>{if(n.isSkinnedMesh)rigged=true;});
-  if(!rigged){
-   console.warn('Quaternius GLB loaded without its skeleton; using legacy fallback');
-   for(let i=0;i<HUMAN_COUNT;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
-   window.PaperQuaterniusStatus='fallback';
-   return;
-  }
-  for(let i=0;i<HUMAN_COUNT;i++)sourceAssets[i]={...gltf,human:true};
-  window.PaperQuaterniusStatus='ready';
- },undefined,error=>{
-  console.warn('Quaternius GLB unavailable; retaining original fallback',error);
+ const getGLTF=(url)=>new Promise((resolve,reject)=>gltfLoader.load(url,resolve,undefined,reject));
+ const root='./assets/cividom-quaternius/';
+ Promise.all([
+   getGLTF(root+'ubc-superhero-male.glb'),
+   getGLTF(root+'outfits/Male_Peasant.gltf'),
+   getGLTF(root+'outfits/Female_Peasant.gltf')
+ ]).then(([base,male,female])=>{
+   for(const asset of [base,male,female]){
+    let skinned=false;asset.scene.traverse(n=>{if(n.isSkinnedMesh)skinned=true;});
+    if(!skinned)throw new Error('Quaternius source missing skinned meshes');
+   }
+   const outfits=[male,female,male,female];
+   for(let i=0;i<HUMAN_COUNT;i++)
+     sourceAssets[i]={...outfits[i],human:true,nativeOutfit:true,referenceHead:base.scene};
+   window.PaperQuaterniusStatus='native-outfits-ready';
+ }).catch(error=>{
+  console.error('Authentic Quaternius outfit load failed; legacy fallback available',error);
   for(let i=0;i<HUMAN_COUNT;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
   window.PaperQuaterniusStatus='fallback';
  });
@@ -183,6 +191,7 @@ function sync(dt){
   }else{item.root.position.y+=Math.sin(state.clock*9+item.phase)*1.8;}
   if(item.mascotRig)animateMascot(item,state.clock,p.emoting?p.emoteId:'run');
    else if(item.humanBones)animateHuman(THREE,item,state.clock,p.emoting?p.emoteId:'run');
+   if(item.headOverlay)syncQuaterniusHead(THREE,item);
   if(p.id===0){updateOutfit(item,state.equipment);}
  }
  for(const id of instances.keys())if(!all.has(id))destroyInstance(id);
@@ -215,6 +224,10 @@ function vsActor(hero){
  const asset=sourceAssets[hero],root=new THREE.Group();
  const kit=asset.procedural?buildMascot(THREE,hero<HUMAN_COUNT?hero:hero-HUMAN_COUNT):null;
  const mesh=kit?kit.root:SkeletonUtils.clone(asset.scene);
+ const human=asset.human?initializeHumanRig(mesh,hero,!!asset.nativeOutfit):null;
+ const headOverlay=asset.nativeOutfit&&asset.referenceHead?
+   transplantQuaterniusHead(THREE,asset.referenceHead,mesh,scene=>SkeletonUtils.clone(scene)):null;
+ const face=headOverlay?initializeHumanRig(headOverlay,hero,false):null;
  const box=new THREE.Box3().setFromObject(mesh),size=box.getSize(new THREE.Vector3());
  if(size.y<=0||!Number.isFinite(size.y))return null;
  const factor=RIG_HEIGHT/size.y;mesh.scale.setScalar(factor);
@@ -225,10 +238,10 @@ function vsActor(hero){
  const action=mixer&&clip?mixer.clipAction(clip):null;
  if(action)action.play();
  const {arms,forearms}=findArmRig(mesh);
- const human=asset.human?initializeHumanRig(mesh,hero):null;
  const actor={hero,root,mesh,base:mesh,mixer,action,arms,forearms,
  dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6,
- mascotRig:kit?.rig||null,...(human||{})};
+ mascotRig:kit?.rig||null,...(human||{}),nativeOutfit:!!asset.nativeOutfit,
+ headOverlay,headBones:face?.humanBones,headRest:face?.humanRest};
  if(actor.humanBones)updateOutfit(actor,{});
  return actor;
 }
@@ -302,6 +315,7 @@ function syncMenu(state,dt){
   if(actor.mixer)actor.mixer.update(Math.min(dt,.04));
   if(actor.mascotRig)animateMascot(actor,t,inShop?(state.previewEmote||'idle'):'idle');
    else if(actor.humanBones)animateHuman(THREE,actor,t,inShop?(state.previewEmote||'idle'):'idle');
+   if(actor.headOverlay)syncQuaterniusHead(THREE,actor);
   updateOutfit(actor,inShop?(state.previewEquipment||state.equipment):state.equipment);
   vsRenderer.render(vsScene,vsCamera);
   window.PaperMenuReady=true;
@@ -349,6 +363,7 @@ function syncVS(state,dt){
    if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
    if(actor.mascotRig)animateMascot(actor,state.vsSeconds,i===0?(state.vsEmote||'emote_sixseven'):'emote_sixseven',i===1);
     else if(actor.humanBones)animateHuman(THREE,actor,state.vsSeconds,i===0?(state.vsEmote||'emote_sixseven'):'emote_sixseven',i===1);
+    if(actor.headOverlay)syncQuaterniusHead(THREE,actor);
    else if(!actor.humanBones)danceBones(actor,state.vsSeconds,i===1);
    if(i===0)updateOutfit(actor,state.equipment);
   }
