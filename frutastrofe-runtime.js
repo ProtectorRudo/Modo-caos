@@ -183,9 +183,9 @@ function arFrame(frame){
  }else{glHit=false;$('arLock').disabled=true;$('arTitle').textContent='BUSCÁ EL PISO'}
 }
 function onFrame(t,frame){
- const sec=t/1000,dt=clamp(lastTime?sec-lastTime:0,0,.06);lastTime=sec;
+ const sec=t/1000,dt=clamp(lastTime?sec-lastTime:0,0,.35);lastTime=sec;
  if(isAR)arFrame(frame);
- if(g&&view==='hud'&&g.state==='playing'&&!paused){g.update(dt);events();if(t-lastHud>95){hudUpdate();lastHud=t}moodMusic(sec)}
+ if(g&&view==='hud'&&g.state==='playing'&&!paused){let simulationRemaining=dt;while(simulationRemaining>.0001&&g.state==='playing'){const step=Math.min(.05,simulationRemaining);g.update(step);simulationRemaining-=step}events();if(t-lastHud>95){hudUpdate();lastHud=t}moodMusic(sec)}
  if(!g&&view==='home'&&!isAR){
   const kinds=['strawberry','orange','watermelon','apple','lemon','gold','ice','rainbow','strawberry','orange','apple','lemon'];
   const mock=kinds.map((kind,i)=>({id:10000+i,kind,x:Math.sin(i*2.4)*2.65,y:1.1+(i%4)*.82+Math.sin(sec*.9+i)*.28,z:Math.cos(i*2.3)*.35,rot:sec*(.42+(i%3)*.14),dead:false}));
@@ -193,7 +193,7 @@ function onFrame(t,frame){
  }else if(g){art.sync(g.objects,g.elapsed)}
  if(!isAR&&view!=='home'&&!g)art.sync([],sec);
  if(view==='hud'&&g?.fever&&Math.floor(g.elapsed)===g.duration-12&&t-lastHud<110)alertTxt('⚡ ¡JUICE FEVER!',1250);
- art.updateFx(dt,sec);
+ art.updateFx(Math.min(dt,.08),sec);
  if(toastUntil&&performance.now()>toastUntil){$('toast').classList.remove('show');toastUntil=0}
  if(view==='home'&&!isAR)art.camera.position.x=Math.sin(sec*.18)*.45;
  renderer.render(art.scene,art.camera);
@@ -202,4 +202,5 @@ renderer.setAnimationLoop(onFrame);
 function resize(){const w=innerWidth,h=innerHeight;art.camera.aspect=w/h;art.camera.fov=h>w?52:48;art.camera.updateProjectionMatrix();renderer.setSize(w,h);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7))}
 addEventListener('resize',resize);resize();
 progressUI();show('home');
+if(params.has('qa'))window.__frutaQA={state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,frames:renderer.info.render.frame}),finish:()=>g?.finish(true)};
 if(params.has('seed')){const l=clamp(Number(params.get('level')||1),1,10),m=params.get('mode')==='arcade'?'arcade':'campaign';if(m==='arcade'||l<=progress.unlocked){duel=null;play(m,l,getSeed())}}
