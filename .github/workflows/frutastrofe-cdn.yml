@@ -4,6 +4,9 @@ on:
     branches: [feat/frutastrofe-premium]
     paths:
       - '.github/workflows/frutastrofe-cdn.yml'
+      - 'frutastrofe.html'
+      - 'frutastrofe-*.js'
+      - 'tests/frutastrofe-browser.cjs'
   workflow_dispatch:
 permissions:
   contents: read
