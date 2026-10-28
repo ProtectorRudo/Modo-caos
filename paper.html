@@ -474,6 +474,12 @@ const angleTo=(a,b)=>Math.atan2(b.y-a.y,b.x-a.x),dist=(a,b)=>Math.hypot(a.x-b.x,
 const angleDelta=(a,b)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
 const colorToRGB=hex=>[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
 let screenW=innerWidth, screenH=innerHeight, dpr=1,game=null,mode='home',clock=0,camX=CX,camY=CY,zoom=1,desiredAngle=null,keys={},pointer=null,lastHud=-1,msgTime=0,muted=false,ac=null,settingColor=0,selectedSkin=0,particles=[],bursts=[],rewardToastUntil=0;
+// Solo mode has no networking overhead. In a room, the host simulates all 25
+// combatants and the friend controls id 1, replacing exactly one AI rival.
+let cvRole='solo',cvRemoteConnected=false,cvRemoteAim=null,cvGuestName='INVITADO',cvLastInputAt=0;
+let cvMapRevision=0,cvGuestMapRevision=-1,cvSnapshotSeq=0,cvLastApplied=-1,cvNetWinner=-1,cvLastRemotePacket=0;
+const cvLocalId=()=>cvRole==='guest'?1:0;
+const cvLocalPlayer=()=>game?.people?.[cvLocalId()]||game?.people?.[0];
 
 const CHIBI_HEROES=8;
 const HEROES=[
@@ -978,6 +984,7 @@ function contourPath(ctx,loops,ox=0,oy=0){
  }
 }
 function updateMap(){
+ if(cvRole==='host')cvMapRevision++;
  // Capture physics keeps the accurate occupancy grid. Presentation uses smooth
  // connected vector contours rather than thousands of low-res circular stamps.
  const data=terrainCtx.createImageData(N,N),buf=data.data,active=new Uint8Array(MATCH_PLAYERS);
@@ -1085,6 +1092,7 @@ function countAreas(){
  for(const p of game.people){p.area=counts[p.id];p.score=100*p.area/landCount;}game.ordered=game.people.filter(p=>p.alive).sort((a,b)=>b.area-a.area);
 }
 function reset(){
+ cvLastApplied=-1;cvNetWinner=-1;cvMapRevision=0;cvGuestMapRevision=-1;cvSnapshotSeq=0;
  clock=0;lastHud=-1;land.fill(0);trails.fill(0);
  for(let k=0;k<SIZE;k++){const x=(k%N+.5)*CELL,y=((k/N|0)+.5)*CELL;inArena[k]=(x-CX)**2+(y-CY)**2<(R-5)**2?1:0;}
  landCount=inArena.reduce((n,v)=>n+v,0);
@@ -1093,6 +1101,8 @@ function reset(){
  boxes:[],boxSerial:0,nextBoxAt:9,lastPower:null,lastBarrierSound:-9};particles=[];bursts=[];rewardToastUntil=0;$('rewardToast').classList.remove('visible');for(let i=0;i<REWARDS.length;i++)$('milestone'+i).classList.remove('unlocked');let player={x:CX,y:CY};
  game.people.push(makePerson(0,player));game.people[0].angle=-Math.PI/2;game.earnedCoins=0;emoteUntil=0;celebrationBursts=[];base(game.people[0],6);
  for(let i=1;i<MATCH_PLAYERS;i++){const pos=spawnPoint();const p=makePerson(i,pos);game.people.push(p);base(p,random(3.5,5)|0);}
+ if(cvRole==='host'&&cvRemoteConnected)game.people[1].name=cvGuestName;
+ if(cvRole==='guest')game.people[1].name=cvGuestName;
  countAreas();game.lastArea=game.people[0].area;updateMap();camX=CX;camY=CY;desiredAngle=null;pointer=null;keys={};mode='play';
  $('home').classList.add('hidden');$('result').classList.add('hidden');$('paused').classList.add('hidden');$('hud').style.display='block';$('controls').style.opacity='1';$('msg').classList.remove('show');game.started=clock;
  showHud();setTimeout(()=>{$('controls').style.opacity='.5'},2400);
@@ -1106,7 +1116,15 @@ function death(p,killer=-1){
  clearTrail(p);p.alive=false;
  if(p.id!==0){for(let k=0;k<SIZE;k++)if(land[k]===p.id+1)land[k]=0;}
  burstAt(p.x,p.y,COLORS[(p.id+settingColor)%COLORS.length],28,100);dropMystery(p);updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;game.defeated.add(p.id);game.earnedCoins+=awardCoins(25);celebrateAt(attacker,'kill');popup('¡ELIMINACIÓN! +25 🪙');audio('kill');vibrate(30);}}
- if(p.id===0){audio('death');vibrate([80,70,110]);end(false);}else{p.respawn=Infinity;countAreas();if(game.people.filter(q=>q.alive).length===1&&game.people[0].alive)end(true);}
+ if(p.id===0){
+  audio('death');vibrate([80,70,110]);
+  if(cvRole==='host'&&cvRemoteConnected&&game.people[1]?.alive){
+   popup('¡TE ELIMINARON! MIRÁ CÓMO SIGUE TU AMIGO');
+  }else end(false);
+ }else{
+  p.respawn=Infinity;countAreas();
+  if(game.people.filter(q=>q.alive).length===1)end(game.people[0].alive);
+ }
 }
 function respawn(p){
  const pos=spawnPoint();p.x=pos.x;p.y=pos.y;p.angle=random(-Math.PI,Math.PI);p.speed=random(117,138);p.turn=random(2.65,3.6);p.alive=true;p.stage=0;p.goal=null;p.thinking=0;p.protectedUntil=clock+1.8;p.powerKind=null;p.powerUntil=0;p.shieldUntil=0;
@@ -1293,20 +1311,33 @@ function step(dt){
   end(!!survivor&&survivor.id===0,true);
   return;
  }
- for(let i=1;i<game.people.length;i++){stepBot(game.people[i],dt);if(mode!=='play')return;}
- camX+=(p.x-camX)*Math.min(1,dt*7.6);camY+=(p.y-camY)*Math.min(1,dt*7.6);
+ for(let i=1;i<game.people.length;i++){
+  if(cvRole==='host'&&cvRemoteConnected&&i===1){
+   const guest=game.people[i];
+   if(guest.alive){
+    if(Number.isFinite(cvRemoteAim)){
+     const dif=angleDelta(guest.angle,cvRemoteAim);
+     guest.angle+=clamp(dif,-guest.turn*dt,guest.turn*dt);
+    }
+    move(guest,dt);
+   }
+  }else stepBot(game.people[i],dt);
+  if(mode!=='play')return;
+ }
+ const focus=p.alive?p:(cvRole==='host'&&cvRemoteConnected&&game.people[1].alive?game.people[1]:p);
+ camX+=(focus.x-camX)*Math.min(1,dt*7.6);camY+=(focus.y-camY)*Math.min(1,dt*7.6);
  if(msgTime&&clock>msgTime){$('msg').classList.remove('show');msgTime=0;}
  if(clock-lastHud>.28){countAreas();showHud();lastHud=clock;}
 }
 function showHud(){
- const p=game.people[0],v=p.score.toFixed(1);
+ const p=cvLocalPlayer(),v=p.score.toFixed(1);
  $('bestCurrent').textContent=Math.max(readBest(),game.record,p.score).toFixed(1)+'%';
- $('percent').textContent=v+'%';$('railPercent').textContent=v+'%';$('railFill').style.width=clamp(p.score/25*100,0,100)+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('killCount').textContent=game.kills;$('emoteButton').textContent=SHOP_ITEMS.find(x=>x.id===wardrobe.equipped.emote)?.icon||'👋';
+ $('percent').textContent=v+'%';$('railPercent').textContent=v+'%';$('railFill').style.width=clamp(p.score/25*100,0,100)+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('killCount').textContent=cvRole==='guest'?p.kills:game.kills;$('emoteButton').textContent=SHOP_ITEMS.find(x=>x.id===wardrobe.equipped.emote)?.icon||'👋';
  refreshBattleHud();
  const boost=Math.round(100*(clock<p.boostUntil?1:p.edgeCharge));
  $('boostfill').style.width=boost+'%';$('boostnumber').textContent=boost+'%';
  if(boost>80)$('boostline').classList.add('active');else $('boostline').classList.remove('active');
- $('survivalKills').textContent=game.kills;
+ $('survivalKills').textContent=cvRole==='guest'?p.kills:game.kills;
  $('survivorsCount').textContent=game.people.filter(q=>q.alive).length;
  const zone=stormZoneState();
  $('nextZoneLabel').textContent=zone.active?'⚡ CERRANDO · '+Math.ceil(zone.remaining)+'s':zone.next?'SIGUIENTE ZONA · '+Math.ceil(zone.remaining)+'s':'⚡ ZONA FINAL';
@@ -1337,7 +1368,7 @@ function drawMini(){
   mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();mc.setLineDash([]);
   mc.strokeStyle='#163577';mc.lineWidth=1;mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();
   mc.fillStyle='#ffe77c';mc.beginPath();mc.arc(nx,ny,3.8,0,7);mc.fill();
-  const me=game.people[0],out=Math.hypot(me.x-next.x,me.y-next.y)>next.radius-22;
+  const me=cvLocalPlayer(),out=Math.hypot(me.x-next.x,me.y-next.y)>next.radius-22;
   if(out&&me.alive){
    mc.save();mc.setLineDash([4,4]);mc.strokeStyle='#ffef86';mc.lineWidth=1.8;
    mc.beginPath();mc.moveTo(mapX(me.x),mapY(me.y));mc.lineTo(nx,ny);mc.stroke();mc.restore();
@@ -1350,13 +1381,13 @@ function drawMini(){
   mc.fillRect(x-2.2,y-2.2,4.4,4.4);mc.strokeRect(x-2.2,y-2.2,4.4,4.4);
  }
  for(const p of game.people){
-  if(!p.alive||p.id===0)continue;
+  if(!p.alive||p.id===cvLocalId())continue;
   const x=mapX(p.x),y=mapY(p.y);
   mc.fillStyle=COLORS[(p.id+settingColor)%COLORS.length];
   mc.strokeStyle='#142e76';mc.lineWidth=1.15;
   mc.beginPath();mc.arc(x,y,3.2,0,7);mc.fill();mc.stroke();
  }
- const player=game.people[0];
+ const player=cvLocalPlayer();
  mc.save();mc.translate(mapX(player.x),mapY(player.y));mc.rotate(player.angle+Math.PI/2);
  mc.fillStyle='#fff';mc.strokeStyle='#113da5';mc.lineWidth=2.5;
  mc.beginPath();mc.moveTo(0,-9);mc.lineTo(6.3,7);mc.lineTo(-6.3,7);mc.closePath();mc.fill();mc.stroke();mc.restore();
@@ -1497,7 +1528,7 @@ function drawUnit(p){
  }
  // Actual 3D actors take over when their GLB has loaded. Otherwise use
  // anatomically legible, animated original chibi people — never robot cubes.
- const hero=p.id===0?selectedSkin:p.id===1?vsRival:p.id%CHIBI_HEROES;
+ const hero=p.id===cvLocalId()?selectedSkin:p.id===1?vsRival:p.id%CHIBI_HEROES;
  const has3D=!!(window.Paper3DReady&&window.Paper3DReady[p.id]);
  // Render the original 2D fallback ONLY when WebGL has not loaded a mascot.
  // The previous 72% overlap made old avatars appear underneath the new 3D actors.
@@ -1545,14 +1576,14 @@ function render(){
  drawUnit(game.people[0]);drawStorm();c.restore();
 }
 function end(win,timedOut=false){
- if(mode!=='play')return;mode='result';countAreas();let p=game.people[0],best=Math.max(readBest(),p.score);
+ if(mode!=='play')return;mode='result';countAreas();let p=cvLocalPlayer(),best=Math.max(readBest(),p.score);
  try{localStorage.setItem('territoryloop_best',String(best));}catch(e){}
  const reward=Math.min(80,Math.round(p.score*2)+(win?35:0));
  game.earnedCoins+=awardCoins(reward);$('matchCoins').textContent='🪙 Ganaste '+game.earnedCoins+' monedas en esta partida';
  refreshWallet();
  $('finaltitle').textContent=timedOut?(win?'¡VICTORIA POR DOMINIO!':'¡TIEMPO AGOTADO!'):(win?'¡ÚLTIMO SUPERVIVIENTE!':'¡QUEDASTE ELIMINADO!');
  $('finalscore').textContent=p.score.toFixed(1)+'%';$('finaldesc').textContent=timedOut?'Se terminó el tiempo: gana quien tenga más territorio.':(win?'¡Sobreviviste a todos los rivales!':'Gana el último que sigue con vida. ¡Volvé por la revancha!');
- $('finalkills').textContent=game.kills;$('finalbest').textContent=best.toFixed(1)+'%';$('finalrank').textContent=win?'#1':'#'+(1+game.people.filter(q=>q.alive).length);
+ $('finalkills').textContent=cvRole==='guest'?p.kills:game.kills;$('finalbest').textContent=best.toFixed(1)+'%';$('finalrank').textContent=win?'#1':'#'+(1+game.people.filter(q=>q.alive).length);
  $('result').classList.remove('hidden');$('hud').style.display='none';
 }
 function readBest(){try{return Number(localStorage.getItem('territoryloop_best'))||0;}catch(e){return 0;}}
@@ -1773,7 +1804,15 @@ COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.s
 $('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';
 fit();window.addEventListener('resize',fit);
 let last=performance.now(),acc=0;
-function frame(t){const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;if(mode==='versus')drawVersus(t);else if(mode==='home')drawMenuHeroFallback(t);if(mode==='play'&&game){acc=Math.min(acc+dt,.13);let loops=0;while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}}else acc=0;render();requestAnimationFrame(frame);}
+function frame(t){const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;if(mode==='versus')drawVersus(t);else if(mode==='home')drawMenuHeroFallback(t);if(mode==='play'&&game){
+ if(cvRole==='guest'){
+  acc=0;cvSmoothGuest(dt);
+ }else{
+  acc=Math.min(acc+dt,.13);let loops=0;
+  while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}
+ }
+ }else acc=0;
+ render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 // The 3D renderer is a separate, optional visual layer. Expose only the
 // lightweight read-only coordinates it needs; all gameplay stays unchanged.
@@ -1787,9 +1826,118 @@ window.Paper3DState=()=>({
  vsEmote:wardrobe.equipped.emote==='emote_hello'?'emote_sixseven':wardrobe.equipped.emote,
  people:game?game.people.map(p=>({
   id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,scale:powerScale(p),shielded:clock<p.shieldUntil,
-  hero:p.id===0?wardrobe.hero:p.id===1?vsRival:p.id%CHIBI_HEROES,
+  hero:p.id===cvLocalId()?wardrobe.hero:p.id===1?vsRival:p.id%CHIBI_HEROES,
   emoting:p.id===0&&clock<emoteUntil,emoteId:p.id===0?wardrobe.equipped.emote:''
  })):[]
+});
+// Host-authoritative 2-person room protocol. Invitee is always actor #1.
+function cvRound(n){return Math.round(n*10)/10}
+function cvCompressLand(){
+ const bytes=[];
+ for(let i=0;i<SIZE;){
+  const value=land[i];let count=1;
+  while(i+count<SIZE&&land[i+count]===value&&count<255)count++;
+  bytes.push(count,value);i+=count;
+ }
+ let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.slice(i,i+8192));
+ return btoa(binary);
+}
+function cvDecompressLand(b64){
+ if(typeof b64!=='string'||b64.length>80000)return false;
+ try{
+  const raw=atob(b64);let n=0;
+  for(let i=0;i<raw.length;i+=2){
+   const count=raw.charCodeAt(i),v=raw.charCodeAt(i+1);
+   if(!count||v>MATCH_PLAYERS||!Number.isFinite(v)||n+count>SIZE)return false;
+   land.fill(v,n,n+count);n+=count;
+  }
+  return n===SIZE;
+ }catch(e){return false}
+}
+function cvPackSnapshot(includeMap=false){
+ if(cvRole!=='host'||!game)return null;
+ return {
+  kind:'cividom-state',seq:++cvSnapshotSeq,t:cvRound(clock),rev:cvMapRevision,
+  complete:mode==='result',winner:mode==='result'?cvNetWinner:-1,
+  storm:{x:cvRound(game.storm.x),y:cvRound(game.storm.y),r:cvRound(game.storm.radius),
+   phase:game.storm.phase,remaining:cvRound(game.storm.remaining),closing:game.storm.closing,
+   stages:game.storm.stages},
+  players:game.people.map(p=>({
+   id:p.id,x:cvRound(p.x),y:cvRound(p.y),a:cvRound(p.angle*100)/100,
+   alive:p.alive?1:0,out:p.outside?1:0,
+   trail:p.trailPoints.map(q=>[Math.round(q.x),Math.round(q.y)]),
+   kills:p.kills,area:p.area,score:cvRound(p.score),power:p.powerKind,until:cvRound(p.powerUntil),
+   shield:cvRound(p.shieldUntil)
+  })),
+  boxes:game.boxes.filter(b=>b.active).map(b=>({x:cvRound(b.x),y:cvRound(b.y),
+   type:b.type,spawnAt:b.spawnAt,collectAt:b.collectAt,expiresAt:b.expiresAt})),
+  map:includeMap?cvCompressLand():null
+ };
+}
+function cvApplySnapshot(data){
+ if(cvRole!=='guest'||!game||!data||data.kind!=='cividom-state')return false;
+ if(!Number.isInteger(data.seq)||data.seq<=cvLastApplied||!Array.isArray(data.players)||data.players.length!==MATCH_PLAYERS)return false;
+ cvLastApplied=data.seq;clock=Number(data.t)||clock;
+ const st=data.storm;
+ if(st&&Number.isFinite(st.r)){
+  Object.assign(game.storm,{x:st.x,y:st.y,radius:st.r,phase:st.phase,
+    remaining:st.remaining,closing:st.closing,stages:st.stages});
+  for(let i=0;i<SIZE;i++){
+   const x=(i%N+.5)*CELL,y=((i/N|0)+.5)*CELL;
+   inArena[i]=(x-st.x)**2+(y-st.y)**2<(st.r-5)**2?1:0;
+  }
+ }
+ for(const p of data.players){
+  const local=game.people[p.id];if(!local)continue;
+  if(!Number.isFinite(p.x)||!Number.isFinite(p.y))continue;
+  if(!local.netSeen){local.x=p.x;local.y=p.y;local.netSeen=true}
+  local.netX=p.x;local.netY=p.y;
+  local.angle=p.a;local.alive=!!p.alive;local.outside=!!p.out;
+  local.trailPoints=Array.isArray(p.trail)?p.trail.slice(-420).map(q=>({x:q[0],y:q[1]})):[];
+  local.kills=p.kills;local.area=p.area;local.score=p.score;
+  local.powerKind=p.power;local.powerUntil=p.until;local.shieldUntil=p.shield;
+ }
+ game.boxes=Array.isArray(data.boxes)?data.boxes.map(b=>({...b,active:true})).slice(0,65):[];
+ if(data.map&&data.rev!==cvGuestMapRevision&&cvDecompressLand(data.map)){
+  cvGuestMapRevision=data.rev;updateMap();
+ }
+ const me=cvLocalPlayer();
+ camX+=(me.x-camX)*.35;camY+=(me.y-camY)*.35;
+ showHud();
+ if(data.complete&&mode==='play'){cvNetWinner=data.winner;end(data.winner===1);}
+ else if(!me.alive&&mode==='play'){end(false);}
+ return true;
+}
+function cvSmoothGuest(dt){
+ if(cvRole!=='guest'||!game)return;
+ const k=Math.min(1,dt*13);
+ for(const p of game.people)if(p.netSeen){
+  p.x+=(p.netX-p.x)*k;p.y+=(p.netY-p.y)*k;
+ }
+ const p=cvLocalPlayer();
+ camX+=(p.x-camX)*Math.min(1,dt*8);
+ camY+=(p.y-camY)*Math.min(1,dt*8);
+}
+window.CividomOnlineBridge=Object.freeze({
+ begin(role,name='Invitado'){
+  if(role!=='host'&&role!=='guest')throw Error('Modo de sala inválido');
+  cvRole=role;cvRemoteConnected=true;cvGuestName=String(name).slice(0,24);
+  selectedSkin=wardrobe.hero;reset();return true;
+ },
+ role:()=>cvRole,
+ localId:cvLocalId,
+ snapshot:cvPackSnapshot,
+ apply:cvApplySnapshot,
+ getAim:()=>desiredAngle,
+ setGuestAim(v){
+  if(cvRole!=='host'||typeof v!=='number'||!Number.isFinite(v))return;
+  cvRemoteAim=Math.atan2(Math.sin(v),Math.cos(v));cvLastInputAt=performance.now();
+ },
+ endOnline(){
+  cvRole='solo';cvRemoteConnected=false;cvRemoteAim=null;
+ },
+ state:()=>({role:cvRole,clock,alive:cvLocalPlayer()?.alive??false,rev:cvMapRevision,
+  guestConnected:cvRemoteConnected,seq:cvLastApplied})
 });
 // Read-only diagnostics: ?qa=1 exposes counters to automated smoke tests.
 if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'territoryQA',{get:()=>game?{mode,area:game.people[0].score,alive:game.people[0].alive,players:game.people.filter(p=>p.alive).length,clock:clock,kills:game.kills,tiles:game.people[0].area,x:game.people[0].x,y:game.people[0].y,angle:game.people[0].angle,outside:game.people[0].outside,trail:game.people[0].trailCells.length,botTerritory:game.people.slice(1).reduce((n,p)=>n+p.area,0),defeated:game.defeated.size,rewards:game.rewards.size,epicTrail:game.epicTrail,crowned:game.crowned,edgeCharge:game.people[0].edgeCharge,boosting:clock<game.people[0].boostUntil,particleCount:particles.length,
@@ -1801,6 +1949,9 @@ if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'
 </script>
 <!-- Pinned ES modules: if CDN is blocked the original chibi canvas game still plays. -->
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script src="./mc-config.js"></script>
+<script src="./mc-rooms-client.js"></script>
+<script type="module" src="./paper-online.mjs"></script>
 <script type="module" src="./paper-3d.mjs"></script>
 </body>
 </html>
