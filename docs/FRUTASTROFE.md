@@ -81,3 +81,12 @@ Tras probar el reactor terrestre en Android, se detectó: las frutas salían del
 - FPS adaptativo para el overlay: entre aproximadamente 12 y 18 actualizaciones por segundo según costo medido de render; el framebuffer XR conserva los cuadros de la cámara. Se omite raycast contra mallas ocultas en AR, sombras WebGL, actualización de partículas 3D ocultas y se usa pixel ratio 1 en AR.
 - Disparo continuo: mantiene ~8 disparos/segundo, audio reducido a un solo tono de disparo y retroceso/flash con una única animación CSS en bucle mientras esté presionado; ya no se fuerza `offsetWidth` por cada tiro.
 - Verificación: `tests/frutastrofe-timed.test.cjs`, Core QA, smoke de Chromium móvil y smoke del CDN; sigue pendiente prueba física Android ARCore y medición FPS con herramientas del dispositivo para afirmar que está solucionado en todas las gamas.
+
+## 28/10/2026 · Hotfix mayor de rendimiento: compositor AR Canvas
+- **Síntoma en Android real**: cada tiro generaba ralentización, incluso después de reducir elementos del SVG.
+- **Causa probable identificada en código**: el compositor anterior montaba/desechaba cientos de nodos SVG por fotograma y fabricaba nuevos filtros/definiciones de recorte durante las explosiones. Además había lecturas de rectángulos DOM en el trazado de cada disparo.
+- **Cambio de arquitectura**: `frutastrofe-ar-overlay.js` ahora implementa un compositor único Canvas 2D, con sprites prerenderizados y caché (frutas, bombas y podridas), 2 disparos visuales máximos y efectos limitados (24 gotas, 3 ondas). No crea árboles de DOM por fotograma.
+- La cámara física, detección de piso y anclaje no se modifican. El Canvas dibuja cada fruta, el portal y la plataforma mediante `FrutaARProjection` y matrices del observador XR. El arma permanece en el HUD.
+- **Se eliminan consultas a `getBoundingClientRect` durante trazado de cada disparo**. La boca del arma se aproxima por la geometría fija del HUD. La animación de arma y sonido siguen sin bloqueo.
+- **Verificación de navegador real**: Playwright móvil comprueba canvas, frutas proyectadas, pausa, 60 segundos, múltiples disparos y una ráfaga de 1,8 segundos con proyección espacial actualizada a 20 fps. Se registran tiempos de dibujo en milisegundos y el avance del reloj durante el disparo.
+- **Límite importante**: las pruebas Chrome automatizadas usan WebXR simulado (no un dispositivo Android ARCore). No se debe garantizar que desapareció la ralentización física hasta recibir una prueba del teléfono real.
