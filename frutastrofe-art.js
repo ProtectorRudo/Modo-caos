@@ -3,7 +3,7 @@
 function createArt(T,renderer){
  const scene=new T.Scene(),world=new T.Group(),bodies=new Map(),effects=[],clock=new T.Clock();
  scene.add(world);scene.background=new T.Color(0x070b23);scene.fog=new T.FogExp2(0x090d25,.021);
- const camera=new T.PerspectiveCamera(48,1,.05,140);camera.position.set(0,2.55,10.7);camera.lookAt(0,1.68,0);
+ const camera=new T.PerspectiveCamera(48,1,.05,140);camera.position.set(0,2.5,10.1);camera.lookAt(0,1.83,0);
  const hemi=new T.HemisphereLight(0xc4f7ff,0x211025,2.0);scene.add(hemi);
  const key=new T.DirectionalLight(0xffffff,3.15);key.position.set(-3,8,5);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.camera.left=-7;key.shadow.camera.right=7;key.shadow.camera.top=7;key.shadow.camera.bottom=-7;key.shadow.bias=-.0005;world.add(key);
  const pink=new T.PointLight(0xfe4fb5,23,13);pink.position.set(-4,2,-2);world.add(pink);
@@ -54,7 +54,7 @@ function createArt(T,renderer){
  function boss(g){melon(g,skin.boss);const brow=mesh(new T.BoxGeometry(.35,.09,.065),mat(0x202234),g);brow.position.set(0,.15,.32);const eye1=sphere(g,.07,white,12);eye1.position.set(-.14,.06,.33);const eye2=sphere(g,.07,white,12);eye2.position.set(.14,.06,.33);const pupil1=sphere(g,.027,black,8);pupil1.position.set(-.14,.06,.39);const pupil2=sphere(g,.027,black,8);pupil2.position.set(.14,.06,.39);const crown=mesh(new T.ConeGeometry(.22,.36,5),mat(0xfed455,.2,.45),g);crown.position.y=.58}
  function fruit(kind){const g=new T.Group(),m=skin[kind]||skin.apple;g.userData.kind=kind;
  switch(kind){case 'strawberry':berry(g,m);break;case 'orange':orange(g,m);break;case 'apple':apple(g,m);break;case 'watermelon':melon(g,m);break;case 'lemon':lemon(g,m);break;case 'bomb':bomb(g);break;case 'rotten':rotten(g);break;case 'boss':boss(g);break;default:special(g,kind);}
- if(kind==='boss')g.scale.setScalar(2.0);
+ g.scale.setScalar(kind==='boss'?2.05:['gold','ice','rainbow'].includes(kind)?1.44:1.35);
  if(['gold','ice','rainbow'].includes(kind)){const sprite=new T.Sprite(new T.SpriteMaterial({map:kind==='gold'?goldGlow:kind==='ice'?halo:pinkGlow,transparent:true,depthWrite:false,blending:T.AdditiveBlending}));sprite.scale.set(1.8,1.8,1);g.add(sprite)}
  return g;
  }
@@ -62,14 +62,14 @@ function createArt(T,renderer){
   const ids=new Set();
   for(const obj of objects){ids.add(obj.id);let mesh=bodies.get(obj.id);if(!mesh){mesh=fruit(obj.kind);mesh.userData.targetId=obj.id;mesh.traverse(child=>{child.userData.targetId=obj.id});world.add(mesh);bodies.set(obj.id,mesh)}
    mesh.position.set(obj.x,obj.y,obj.z);mesh.rotation.set(Math.sin(elapsed*.9+obj.id)*.12,obj.rot,Math.cos(elapsed*.8+obj.id)*.09);
-   if(obj.kind==='boss')mesh.scale.setScalar(2+Math.sin(elapsed*2)*.085);
+   if(obj.kind==='boss')mesh.scale.setScalar(2.05+Math.sin(elapsed*2)*.085);
    if(mesh.userData.wire)mesh.userData.wire.rotation.y=elapsed*.5;
   }
   for(const [id,mesh] of bodies)if(!ids.has(id)){world.remove(mesh);bodies.delete(id)}
  }
  function burst(x,y,z,kind='strawberry',amount=18){
    const colors={strawberry:0xf03462,orange:0xffa42b,apple:0xff3866,watermelon:0x55f0ac,lemon:0xffe965,gold:0xffd065,ice:0x78ebff,rainbow:0xe598ff,bomb:0xff4670,rotten:0x9aab51,boss:0xb4f55a};const c=colors[kind]||colors.strawberry;
-   for(let i=0;i<amount;i++){const p=mesh(new T.IcosahedronGeometry(.025+Math.random()*.055,0),new T.MeshBasicMaterial({color:c,transparent:true,opacity:1,depthWrite:false}));
+   for(let i=0;i<amount;i++){const p=mesh(new T.IcosahedronGeometry(.035+Math.random()*.075,0),new T.MeshBasicMaterial({color:c,transparent:true,opacity:1,depthWrite:false}));
    p.position.set(x,y,z);const v=new T.Vector3((Math.random()-.5)*3.4,(Math.random()-.5)*3.9,(Math.random()-.5)*2.3);effects.push({mesh:p,v,life:.68+Math.random()*.38,max:1.1})}
    const s=new T.Sprite(new T.SpriteMaterial({map:kind==='gold'?goldGlow:kind==='ice'?halo:pinkGlow,transparent:true,depthWrite:false,blending:T.AdditiveBlending}));world.add(s);s.position.set(x,y,z);effects.push({mesh:s,glow:true,life:.32,max:.32});
  }
