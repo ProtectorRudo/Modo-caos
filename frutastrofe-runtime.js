@@ -228,6 +228,6 @@ if(params.has('qa'))window.__frutaQA={
  state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,frames:renderer.info.render.frame,arOnly:isAR,projectedSprites:arTargets.length}),
  finish:()=>g?.finish(true),
  simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.setScalar(.23);art.world.position.set(0,.09,-2.5);art.world.visible=true;createGame('campaign',1);return true},
- previewWorld:(dx=0)=>{const I=[1,0,0,0,0,1,0,0,0,0,-1.002,-1,0,0,-.2,0],V=[1,0,0,0,0,1,0,0,0,0,1,0,-dx,0,0,1];const v={projectionMatrix:[1.4,0,0,0,0,2.1,0,0,0,0,-1.002,-1,0,0,-.2,0],transform:{inverse:{matrix:V}}};arTargets=O.draw(v,art.world.position,art.world.scale.x,g?.objects||[],'playing');return arTargets}
+ previewWorld:(dx=0)=>{const I=[1,0,0,0,0,1,0,0,0,0,-1.002,-1,0,0,-.2,0],V=[1,0,0,0,0,1,0,0,0,0,1,0,-dx,-1.2,0,1];const v={projectionMatrix:[1.4,0,0,0,0,2.1,0,0,0,0,-1.002,-1,0,0,-.2,0],transform:{inverse:{matrix:V}}};arTargets=O.draw(v,art.world.position,art.world.scale.x,g?.objects||[],'playing');return arTargets}
 };
 if(params.has('seed')){const l=clamp(Number(params.get('level')||1),1,10),m=params.get('mode')==='arcade'?'arcade':'campaign';if(m==='arcade'||l<=progress.unlocked){duel=null;selected=l;window.__frutaSharedChallenge={mode:m,level:l,seed:getSeed()};if(m==='campaign'){progressUI();show('selector')}else alertTxt('RETO DISPONIBLE · ABRÍ AR PARA JUGAR',2000)}}
