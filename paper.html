@@ -372,7 +372,7 @@ input[type=text]:focus{border-color:#42bcca}
 #menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
 #menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
-<link rel="stylesheet" href="./paper-animals.css?v=1"></head>
+<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"></head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <canvas id="characterStage" aria-hidden="true"></canvas>
@@ -440,6 +440,7 @@ input[type=text]:focus{border-color:#42bcca}
 <section id="shop" class="overlay hidden"><div class="panel">
  <div class="shopHead"><div><div class="brand">CVDOM</div><h2>LA TIENDA ✦</h2></div><button class="shopClose" id="closeShop" aria-label="Cerrar tienda">×</button></div>
  <div class="walletBar"><span>🪙 TUS MONEDAS</span><b id="shopCoins">0</b></div>
+ <div id="shopHeroStage" class="shopHeroStage" aria-label="Vista 3D: arrastrá para girar"><div class="shopShowroomGlow"></div><div class="shopShowroomLegend"><b id="shopPreviewName">CAPY</b><span>ARRASTRÁ PARA GIRAR · PREVIEW 3D</span></div></div>
  <div class="shopTabs" id="shopTabs"></div>
  <div class="shopGrid" id="shopGrid"></div>
  <p id="shopNotice">Todo se consigue jugando.</p>
@@ -474,9 +475,9 @@ const HEROES=[
  {id:'axi',name:'AXI',species:'AJOLOTE',role:'Caos adorable',bio:'La más simpática del mapa, experta en festejos gigantes.',motto:'¡Sorpresa!',color:'#f69bc6',model:'axolotl'},
  {id:'pingo',name:'PINGO',species:'PINGÜINO',role:'Competidor implacable',bio:'Serio antes de jugar y absolutamente imparable al ganar.',motto:'¡Sangre fría!',color:'#4b99f1',model:'penguin'},
  {id:'rocky',name:'ROCKY',species:'MAPACHE',role:'Pícaro ingenioso',bio:'Siempre se las ingenia para robar territorio en el último segundo.',motto:'Me lo llevo.',color:'#948caf',model:'raccoon'},
- {id:'brinco',name:'BRINCO',species:'RANA',role:'Alegre y saltarín',bio:'Una sonrisa contagiosa y un baile para cada victoria.',motto:'¡No pares!',color:'#83ce4f',model:'frog'},
- {id:'fenix',name:'FÉNIX',species:'ZORRO',role:'Líder audaz',bio:'Rápido, seguro y competitivo. Siempre va un paso adelante.',motto:'¡Voy por todo!',color:'#ec8338',model:'fox'},
- {id:'oso',name:'OSO',species:'OSITO',role:'Fuerte y leal',bio:'Parece una mascota de peluche. En el campo es un gigante.',motto:'¡Eso es equipo!',color:'#b18a55',model:'bear'}
+ {id:'banani',name:'BANANI',species:'BANANA',role:'Rey de los memes',bio:'Nunca se toma nada en serio. Imposible olvidarlo.',motto:'¡Banana power!',color:'#ffe04c',model:'banana'},
+ {id:'pixo',name:'PIXO',species:'PANTALLA VIVA',role:'El glitch',bio:'Una cara digital con más expresiones que palabras.',motto:'ERROR: perdiste.',color:'#6de8f4',model:'screen'},
+ {id:'toro',name:'TORO',species:'TORITO',role:'El provocador',bio:'El más fuerte de la pasarela y el más ruidoso del VS.',motto:'¿Quién sigue?',color:'#bf7b53',model:'bull'}
 ];
 const SHOP_ITEMS=[
  {id:'outfit_base',category:'outfit',name:'Look original',icon:'◈',price:0,desc:'El traje con el que nace cada personaje'},
@@ -500,18 +501,36 @@ const SHOP_ITEMS=[
  {id:'trail_bubbles',category:'trail',name:'Burbujeante',icon:'🫧',price:145,desc:'Burbujas brillantes detrás de vos'},
  {id:'trail_rainbow',category:'trail',name:'Arcoíris',icon:'🌈',price:250,desc:'Reflejos multicolor sobre la estela'}
 ];
-const DEFAULT_EQUIPMENT={outfit:'outfit_base',emote:'emote_hello',celebration:'celebration_spark',trail:'trail_normal'};
+const DEFAULT_EQUIPMENT={outfit:'outfit_base',headwear:'head_none',eyewear:'eyes_none',shoes:'shoes_base',emote:'emote_hello',celebration:'celebration_spark',trail:'trail_normal'};
+SHOP_ITEMS.push(
+ {id:'outfit_street',category:'outfit',name:'Street Legend',icon:'🧥',price:240,desc:'Campera urbana 3D'},
+ {id:'outfit_racer',category:'outfit',name:'Turbo Racer',icon:'🏁',price:340,desc:'Franjas de velocidad'},
+ {id:'outfit_neon',category:'outfit',name:'Neon Club',icon:'⚡',price:430,desc:'Moda del futuro'},
+ {id:'outfit_royal',category:'outfit',name:'Royal Gold',icon:'✨',price:650,desc:'Look dorado de campeón'},
+ {id:'head_none',category:'headwear',name:'Sin sombrero',icon:'◯',price:0,desc:'Tu cabeza original'},
+ {id:'head_cap',category:'headwear',name:'Gorra City',icon:'🧢',price:140,desc:'Gorra 3D con visera'},
+ {id:'head_beanie',category:'headwear',name:'Beanie Pop',icon:'🧶',price:230,desc:'Gorro y pompón'},
+ {id:'head_headphones',category:'headwear',name:'DJ Neon',icon:'🎧',price:360,desc:'Auriculares luminosos'},
+ {id:'head_crown',category:'headwear',name:'Corona oro',icon:'👑',price:680,desc:'Siete puntas'},
+ {id:'eyes_none',category:'eyewear',name:'Sin lentes',icon:'◯',price:0,desc:'Rostro original'},
+ {id:'eyes_shades',category:'eyewear',name:'Lentes VIP',icon:'🕶️',price:180,desc:'Cristales reflejantes'},
+ {id:'eyes_star',category:'eyewear',name:'Estrellas pop',icon:'🌟',price:290,desc:'Gafas de estrella'},
+ {id:'shoes_base',category:'shoes',name:'Calzado original',icon:'👟',price:0,desc:'Tus zapatillas'},
+ {id:'shoes_sneakers',category:'shoes',name:'Fresh Kicks',icon:'👟',price:195,desc:'Cordones de color'},
+ {id:'shoes_gold',category:'shoes',name:'Golden Steps',icon:'🥇',price:390,desc:'Zapatillas doradas'},
+ {id:'shoes_rollers',category:'shoes',name:'Roller Pop',icon:'🛼',price:440,desc:'Rueditas animadas'}
+);
 const STORE_KEY='territoryloop_wardrobe_v1';
 function loadWardrobe(){
  let raw={};try{raw=JSON.parse(localStorage.getItem(STORE_KEY)||'{}')||{};}catch(e){}
- const owned=new Set(['outfit_base','emote_hello','celebration_spark','trail_normal']);
+ const owned=new Set(['outfit_base','head_none','eyes_none','shoes_base','emote_hello','celebration_spark','trail_normal']);
  if(Array.isArray(raw.owned))for(const id of raw.owned)if(SHOP_ITEMS.some(it=>it.id===id))owned.add(id);
  const equipped={...DEFAULT_EQUIPMENT};
  for(const k of Object.keys(equipped)){const item=SHOP_ITEMS.find(it=>it.id===raw.equipped?.[k]);if(item&&item.category===k&&owned.has(item.id))equipped[k]=item.id;}
  const hero=Number.isInteger(raw.hero)&&raw.hero>=0&&raw.hero<HEROES.length?raw.hero:0;
  return{coins:Number.isFinite(raw.coins)?Math.max(0,Math.min(999999,Math.floor(raw.coins))):0,owned,equipped,hero};
 }
-let wardrobe=loadWardrobe(),shopCategory='outfit',shopReturn='home',emoteUntil=0,emoteLabel='',celebrationBursts=[];
+let wardrobe=loadWardrobe(),shopCategory='outfit',shopReturn='home',shopPreviewId=null,shopPreviewYaw=0,emoteUntil=0,emoteLabel='',celebrationBursts=[];
 selectedSkin=wardrobe.hero;settingColor=[5,4,2,3,7,9,1,11][wardrobe.hero];
 function saveWardrobe(){try{localStorage.setItem(STORE_KEY,JSON.stringify({coins:wardrobe.coins,owned:[...wardrobe.owned],equipped:wardrobe.equipped,hero:wardrobe.hero}));}catch(e){}}
 function awardCoins(amount){
@@ -520,6 +539,7 @@ function awardCoins(amount){
 }
 function buyOrEquip(id){
  const item=SHOP_ITEMS.find(x=>x.id===id);if(!item)return false;
+ shopPreviewId=id;
  if(!wardrobe.owned.has(id)){
   if(wardrobe.coins<item.price){$('shopNotice').textContent='Te faltan '+(item.price-wardrobe.coins)+' monedas. Conquistá territorio para conseguirlas.';return false;}
   wardrobe.coins-=item.price;wardrobe.owned.add(id);$('shopNotice').textContent='¡Compraste '+item.name+'!';
