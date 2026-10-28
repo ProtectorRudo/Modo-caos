@@ -60,7 +60,7 @@ function fruitArt(kind,spin=0){
  s+='<ellipse cx="-18" cy="-17" rx="10" ry="4" transform="rotate(-32 -18 -17)" fill="#fff" opacity=".20"/>';
  return s;
 }
-const seen=[],particles=[],shots=[],puddles=[];let state='idle',lastView=null,lastOrigin=null,lastScale=null,lastTs=0;
+const seen=[],particles=[],shots=[],puddles=[],splashes=[],numbers=[];let state='idle',lastView=null,lastOrigin=null,lastScale=null,lastTs=0;
 function addBurst(obj,kind='apple',count=22,boost=1){
  if(!obj||!Number.isFinite(obj.x))return;
  const t=performance.now()/1000,colors=(skins[kind]||skins.apple);
@@ -68,9 +68,10 @@ function addBurst(obj,kind='apple',count=22,boost=1){
   particles.push({x:obj.x,y:obj.y,z:obj.z,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd*.86+1.1,vz:(Math.random()-.5)*1.3,life:.45+Math.random()*.45,start:t,r:.025+Math.random()*.05,col:colors[(i%3)+1],shape:i%4===0?'star':'drop'})}
  if(particles.length>130)particles.splice(0,particles.length-130);
 }
-function impact(obj,kind,combo=false){addBurst(obj,kind,combo?48:24,combo?1.3:1);
+function impact(obj,kind,combo=false){addBurst(obj,kind,combo?48:24,combo?1.3:1);splashes.push({...obj,kind,combo,t:performance.now()/1000});if(splashes.length>9)splashes.shift();
  if(obj&&kind!=='bomb'&&kind!=='rotten'){puddles.push({...obj,t:performance.now()/1000,col:skins[kind]?.[1]||'#f35a8b'});if(puddles.length>12)puddles.shift()}
 }
+function popup(obj,points){if(obj&&Number.isFinite(obj.x)){numbers.push({...obj,text:'+'+Math.round(points),t:performance.now()/1000});if(numbers.length>12)numbers.shift()}}
 function shot(x,y,hit=true,kind='apple'){
  const t=performance.now()/1000;shots.push({x:x??innerWidth*.5,y:y??innerHeight*.48,t,hit,kind});
  if(shots.length>6)shots.shift();
@@ -168,6 +169,21 @@ function draw(view,origin,scale,objects,mode='playing'){
    html+='</g>';
   }
  }
+ // Explosive juice bloom: a world-locked splash ring, staggered liquid droplets and hit value.
+ for(let i=splashes.length-1;i>=0;i--){
+  const b=splashes[i],age=t-b.t;if(age>.65){splashes.splice(i,1);continue}
+  const q=pos(b.x,b.y,b.z);if(!q)continue;
+  const alpha=clamp(1-age/.65,0,1),rad=8+age*(b.combo?125:78),hue=skins[b.kind]?.[1]||'#f58aff';
+  html+='<circle cx="'+n(q.x)+'" cy="'+n(q.y)+'" r="'+n(rad*1.5)+'" fill="url(#fp-bloom)" opacity="'+n(alpha*.46)+'"/>';
+  html+='<circle cx="'+n(q.x)+'" cy="'+n(q.y)+'" r="'+n(rad)+'" fill="none" stroke="'+hue+'" stroke-width="'+n(4*alpha)+'" opacity="'+n(alpha)+'"/>';
+  for(let k=0;k<9;k++){
+   const a=k*2.39996+b.x*2,rr=rad*(.65+.19*Math.sin(k*1.34)),xx=q.x+Math.cos(a)*rr,yy=q.y+Math.sin(a)*rr*.83;
+   html+='<ellipse cx="'+n(xx)+'" cy="'+n(yy)+'" rx="'+n(6*alpha+1)+'" ry="'+n(10*alpha+1)+'" transform="rotate('+n(a*57.29+90)+' '+n(xx)+' '+n(yy)+')" fill="'+hue+'" stroke="#ffffff" stroke-width=".75" opacity="'+n(alpha)+'"/>';
+  }
+ }
+ for(let i=numbers.length-1;i>=0;i--){const m=numbers[i],age=t-m.t;if(age>.85){numbers.splice(i,1);continue}
+  const p=pos(m.x,m.y+age*1.2,m.z);if(p)html+='<text x="'+n(p.x)+'" y="'+n(p.y-22)+'" text-anchor="middle" font-size="'+n(17+age*12)+'" font-weight="1000" stroke="#09112c" stroke-width="5" paint-order="stroke" fill="#f4ff7c" opacity="'+n(1-age/.85)+'">'+m.text+'</text>';
+ }
  // Puddles left by impacts (world-locked)
  for(let i=puddles.length-1;i>=0;i--){const q=puddles[i],age=t-q.t;if(age>2.4){puddles.splice(i,1);continue}
   const p=pos(q.x,-.06,q.z);if(p){const a=clamp((1-age/2.4)*.47,0,.46);html+='<ellipse cx="'+n(p.x)+'" cy="'+n(p.y)+'" rx="'+n(22+age*12)+'" ry="'+n(6+age*3)+'" fill="'+q.col+'" opacity="'+n(a)+'"/>'}}
@@ -189,6 +205,6 @@ function draw(view,origin,scale,objects,mode='playing'){
  }
  svg.innerHTML=html;state=mode;lastView=view;lastOrigin=origin;lastScale=scale;lastTs=t;return seen.slice();
 }
-function clear(){const svg=$('arWorld');if(svg){svg.innerHTML='';svg.style.display='none'}seen.length=0;particles.length=0;shots.length=0;puddles.length=0;state='idle';lastView=null}
-root.FrutaAROverlay={draw,clear,impact,shot,get targets(){return seen},get state(){return state},get diagnostics(){return {visible:seen.length,particles:particles.length,shots:shots.length,hasNozzle:!!lastView}}};
+function clear(){const svg=$('arWorld');if(svg){svg.innerHTML='';svg.style.display='none'}seen.length=0;particles.length=0;shots.length=0;puddles.length=0;splashes.length=0;numbers.length=0;state='idle';lastView=null}
+root.FrutaAROverlay={draw,clear,impact,shot,popup,get targets(){return seen},get state(){return state},get diagnostics(){return {visible:seen.length,particles:particles.length,shots:shots.length,splashes:splashes.length,hasNozzle:!!lastView}}};
 })(typeof window!=='undefined'?window:globalThis);
