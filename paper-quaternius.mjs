@@ -77,9 +77,12 @@ export function initializeNativeFashion(THREE,actor,config={}){
   const color=new THREE.Color(cols);
   const copies=materials.map(m=>{
    const n=m.clone();
-   n.color.copy(color);
-   n.roughness=.5;
-   n.metalness=Math.min(.14,n.metalness||0);
+   // Skin textures are NEVER multiplied by the costume colour.
+   // In Male_Peasant, Arms contains a second material for visible human skin.
+   const isHumanSkin=/Regular_Male|Regular_Female|Skin|Face/i.test(m.name||'');
+   if(n.color)n.color.copy(isHumanSkin?new THREE.Color('#ffffff'):color);
+   n.roughness=.53;
+   n.metalness=Math.min(.12,n.metalness||0);
    actor.nativeMaterialCopies.push(n);
    return n;
   });
