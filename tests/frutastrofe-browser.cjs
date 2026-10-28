@@ -76,6 +76,17 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   assert.deepEqual(apoc.halfSize,[128,128]);assert.deepEqual(apoc.otherSize,[128,128]);
   assert(apoc.gun&&apoc.gunSize==='0 0 240 335','MK II must render as a real layered weapon');
   assert(apoc.cardHeights.every(h=>h<82)&&apoc.gunWidth<=166,'HUD and blaster must be compact and clear the scene '+JSON.stringify(apoc));
+  const visual=await page.evaluate(()=>{
+   const gun=document.querySelector('#weapon').getBoundingClientRect(),
+     toast=document.querySelector('#toast').getBoundingClientRect(),
+     goal=document.querySelector('#hud .hudGoal').getBoundingClientRect(),
+     v=window.__frutaQA.diagnostics();
+   return {gunTop:gun.top,gunBottom:gun.bottom,toastTop:toast.top,toastWidth:toast.width,goalBottom:goal.bottom,boltMs:v.boltDurationMs,maxTrail:v.boltMaxStreakPx};
+  });
+  assert(visual.gunTop>0&&visual.gunBottom<=852,'weapon should fit inside physical phone viewport '+JSON.stringify(visual));
+  assert(visual.toastWidth<300&&visual.toastTop>=visual.goalBottom-10,'compact status toast must avoid huge text over fruit '+JSON.stringify(visual));
+  assert(visual.boltMs<=100&&visual.maxTrail<=50,'no sustained beam across the whole game space '+JSON.stringify(visual));
+  console.log('JUICE APOCALYPSE UI AUDIT',JSON.stringify(visual));
   console.log('JUICE APOCALYPSE QA',JSON.stringify(apoc));
 
   assert.equal(await page.locator('#arWorld #fx-scene').count(),0,'no rebuilt SVG scene remains');
