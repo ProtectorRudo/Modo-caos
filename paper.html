@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eafff6">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2327c7d7'/%3E%3Ccircle cx='23' cy='26' r='6' fill='white'/%3E%3Ccircle cx='43' cy='26' r='6' fill='white'/%3E%3Cpath d='M21 43 Q32 52 43 43' stroke='white' stroke-width='5' fill='none'/%3E%3C/svg%3E">
-<title>CVDOM · Modo Caos</title>
+<title>CIVIDOM · Modo Caos</title>
 <style>
 :root{font-family:system-ui,-apple-system,Arial,sans-serif;color:#21455a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -393,11 +393,11 @@ input[type=text]:focus{border-color:#42bcca}
 </div>
 <section id="versus" class="overlay hidden" aria-label="Presentación de rivales antes de la partida">
   <div class="versusPanel">
-    <div class="vsTopline"><span class="vsGameTag">CVDOM <b>SHOWDOWN</b></span><span class="vsFightTag">ANTES DEL COMBATE</span></div>
+    <div class="vsTopline"><span class="vsGameTag">CIVIDOM <b>SHOWDOWN</b></span><span class="vsFightTag">ANTES DEL COMBATE</span></div>
     <div class="versusHeader"><h2>¡DOS CAMPEONES, UN TERRITORIO!</h2><p>Tu personaje frente a su próximo rival. ¡Que empiece el show!</p></div>
     <div id="versusStage" class="versusStage">
       <canvas id="versusCanvas" width="760" height="790" aria-label="Presentación animada Six Seven"></canvas>
- <div id="vsPortraits" class="vsPortraits" aria-label="Personajes originales CVDOM">
+ <div id="vsPortraits" class="vsPortraits" aria-label="Personajes originales CIVIDOM">
   <img id="vsPortraitPlayer" src="" alt="Tu mascota campeona" width="230" height="300">
   <img id="vsPortraitOpponent" src="" alt="Mascota rival" width="230" height="300">
  </div><canvas id="versus3dCanvas" aria-hidden="true"></canvas>
@@ -415,7 +415,7 @@ input[type=text]:focus{border-color:#42bcca}
 </section>
 <section id="home" class="overlay"><div class="panel">
  <div class="brand">♛ MODO CAOS · NUEVA GENERACIÓN ♛</div><h1 class="cvdomLogo">CV<em>DOM</em><span class="logoCrown">♛</span></h1><div class="lobbyTag">CLAIM. CONQUER. DOMINATE.</div>
- <p class="description">Nueva colección 3D con ropa, festejos y personalidad · 🎁 poderes · ⚡ tormenta circular.</p>
+ <p class="description">Rayo, Nova y seis campeones únicos. Conquistá, vestilos y festejá. 🎁 Cajas · ⚡ Tormenta.</p>
  <div id="menuHeroStage" class="menuHeroStage">
  <div class="menuSparks" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>
  <canvas id="menuFallbackCanvas" width="500" height="390" aria-label="Vista previa del personaje seleccionado"></canvas>
@@ -426,7 +426,7 @@ input[type=text]:focus{border-color:#42bcca}
  <span id="menu3dStatus" class="menuStatus">VISTA PREVIA ANIMADA</span>
 </div>
  <input id="nick" maxlength="16" type="text" placeholder="Tu nombre" value="VOS" aria-label="Nombre de jugador">
- <div class="colors" id="colors"></div><div class="heroRosterHead">NUEVO · CAMPEONES QUATERNIUS CON ESQUELETO 3D · ELEGÍ TU CAMPEÓN</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
+ <div class="colors" id="colors"></div><div class="heroRosterHead">CIVIDOM CHIBI · ELEGÍ TU CAMPEÓN</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
  <button class="primary" id="start">▶ JUGAR AHORA</button>
  <div class="best" id="best"></div><div class="mini-label">PERSONAJE SELECCIONADO: <b id="heroName">NOVA</b></div><div class="subline">Vos contra 11 rivales IA · movimiento continuo · móvil y PC · sin descargas</div>
  <div class="rowbtn"><button class="secondary" id="mutebtn">🔊 Sonido activado</button><button class="secondary" id="homeback">↩ Modo Caos</button></div>
@@ -438,7 +438,7 @@ input[type=text]:focus{border-color:#42bcca}
  <p class="coinMessage" id="matchCoins">🪙 Ganaste 0 monedas</p><button class="primary" id="again">↻ VOLVER A JUGAR</button><div class="rowbtn"><button class="secondary" id="share">COMPARTIR</button><button class="secondary" id="tohome">MENÚ</button></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="endCoins">0</b></div><button class="storeButton" id="openShopResult">🛍️ COMPRAR ROPA Y FESTEJOS</button>
 </div></section>
 <section id="shop" class="overlay hidden"><div class="panel">
- <div class="shopHead"><div><div class="brand">CVDOM</div><h2>LA TIENDA ✦</h2></div><button class="shopClose" id="closeShop" aria-label="Cerrar tienda">×</button></div>
+ <div class="shopHead"><div><div class="brand">CIVIDOM</div><h2>LA TIENDA ✦</h2></div><button class="shopClose" id="closeShop" aria-label="Cerrar tienda">×</button></div>
  <div class="walletBar"><span>🪙 TUS MONEDAS</span><b id="shopCoins">0</b></div>
  <div id="shopHeroStage" class="shopHeroStage" aria-label="Vista 3D: arrastrá para girar"><div class="shopShowroomGlow"></div><div class="shopShowroomLegend"><b id="shopPreviewName">CAPY</b><span>ARRASTRÁ PARA GIRAR · PREVIEW 3D</span></div></div>
  <div class="shopTabs" id="shopTabs"></div>
@@ -447,7 +447,7 @@ input[type=text]:focus{border-color:#42bcca}
  <button class="secondary" id="backFromShop">VOLVER AL JUEGO</button>
 </div></section>
 <section id="paused" class="overlay hidden"><div class="panel">
- <div class="brand">CVDOM</div><h2>EN PAUSA</h2><p class="description">Tu territorio está a salvo mientras la partida está pausada.</p><button class="primary" id="resume">▶ CONTINUAR</button><div class="rowbtn"><button class="secondary" id="restart">REINICIAR</button><button class="secondary" id="leave">SALIR</button></div>
+ <div class="brand">CIVIDOM</div><h2>EN PAUSA</h2><p class="description">Tu territorio está a salvo mientras la partida está pausada.</p><button class="primary" id="resume">▶ CONTINUAR</button><div class="rowbtn"><button class="secondary" id="restart">REINICIAR</button><button class="secondary" id="leave">SALIR</button></div>
 </div></section>
 <script>
 (function(){
@@ -469,21 +469,16 @@ const angleDelta=(a,b)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
 const colorToRGB=hex=>[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
 let screenW=innerWidth, screenH=innerHeight, dpr=1,game=null,mode='home',clock=0,camX=CX,camY=CY,zoom=1,desiredAngle=null,keys={},pointer=null,lastHud=-1,msgTime=0,muted=false,ac=null,settingColor=0,selectedSkin=0,particles=[],bursts=[],rewardToastUntil=0;
 
-const QUATERNIUS_HEROES=4;
+const CHIBI_HEROES=8;
 const HEROES=[
- // Quaternius Universal Base rig / CIVIDOM original styled personalities.
- {id:'vex',name:'VEX',species:'PILOTO URBANO',role:'El competitivo',bio:'Corre por el territorio como si estuviera en la final del mundo.',motto:'¡Vení a buscarme!',color:'#23d9df',model:'humanoid'},
- {id:'lux',name:'LUX',species:'REY DE LA ARENA',role:'El provocador elegante',bio:'Una corona, mil festejos y cero humildad.',motto:'¿Revancha o rendición?',color:'#9561e8',model:'humanoid'},
- {id:'byte',name:'BYTE',species:'HACKER DIGITAL',role:'El genio del caos',bio:'Su visor neon anuncia problemas para todos.',motto:'GAME OVER.',color:'#3defcb',model:'humanoid'},
- {id:'rex',name:'REX',species:'REBELDE',role:'El que nunca afloja',bio:'Cuernos, zapatillas y una actitud imposible de parar.',motto:'¡No me alcanzás!',color:'#f76a7d',model:'humanoid'},
- {id:'capy',name:'CAPY',species:'CAPIBARA',role:'Estratega tranquilo',bio:'Nunca pierde la calma, ni cuando le cortan la estela.',motto:'Todo bajo control.',color:'#b78c60',model:'capybara'},
- {id:'ruby',name:'RUBY',species:'PANDA ROJO',role:'Rápida y astuta',bio:'Parece tierna, pero siempre te sorprende con una jugada inesperada.',motto:'¡Te vi venir!',color:'#df7947',model:'redpanda'},
- {id:'axi',name:'AXI',species:'AJOLOTE',role:'Caos adorable',bio:'La más simpática del mapa, experta en festejos gigantes.',motto:'¡Sorpresa!',color:'#f69bc6',model:'axolotl'},
- {id:'pingo',name:'PINGO',species:'PINGÜINO',role:'Competidor implacable',bio:'Serio antes de jugar y absolutamente imparable al ganar.',motto:'¡Sangre fría!',color:'#4b99f1',model:'penguin'},
- {id:'rocky',name:'ROCKY',species:'MAPACHE',role:'Pícaro ingenioso',bio:'Siempre se las ingenia para robar territorio en el último segundo.',motto:'Me lo llevo.',color:'#948caf',model:'raccoon'},
- {id:'banani',name:'BANANI',species:'BANANA',role:'Rey de los memes',bio:'Nunca se toma nada en serio. Imposible olvidarlo.',motto:'¡Banana power!',color:'#ffe04c',model:'banana'},
- {id:'pixo',name:'PIXO',species:'PANTALLA VIVA',role:'El glitch',bio:'Una cara digital con más expresiones que palabras.',motto:'ERROR: perdiste.',color:'#6de8f4',model:'screen'},
- {id:'toro',name:'TORO',species:'TORITO',role:'El provocador',bio:'El más fuerte de la pasarela y el más ruidoso del VS.',motto:'¿Quién sigue?',color:'#bf7b53',model:'bull'}
+ {id:'rayo',name:'RAYO',species:'NINJA TECH',role:'El hiperactivo',bio:'Corre, provoca y nunca deja de moverse. Su máscara es su sello.',motto:'¡No me alcanzás!',color:'#fe687b',model:'chibi'},
+ {id:'nova',name:'NOVA',species:'ARQUERA HEROICA',role:'La audaz',bio:'Valiente, decidida y siempre lista para ir por más.',motto:'¡Vamos a hacer historia!',color:'#b6ee84',model:'chibi'},
+ {id:'glitch',name:'GLITCH',species:'ALUMNO CYBER',role:'El digital',bio:'Parece tranquilo hasta que el mapa se llena de errores.',motto:'ERROR: perdiste.',color:'#62e5f0',model:'chibi'},
+ {id:'luna',name:'LUNA',species:'ESTRELLA MÍSTICA',role:'La elegante',bio:'Misteriosa, refinada y con un festejo inolvidable.',motto:'Siempre un paso adelante.',color:'#a991ff',model:'chibi'},
+ {id:'kiro',name:'KIRO',species:'CABALLERO URBANO',role:'El provocador',bio:'Tiene más actitud que paciencia. No sabe perder.',motto:'¿Eso era todo?',color:'#ffb05d',model:'chibi'},
+ {id:'mimo',name:'MIMO',species:'MASCOTA VIRAL',role:'El adorable meme',bio:'La criatura más inocente... hasta que te roba el territorio.',motto:'¡Sorpresa!',color:'#fdaed9',model:'chibi'},
+ {id:'volt',name:'VOLT',species:'CORREDOR ÉLITE',role:'El competitivo',bio:'Cada partida es una final. Siempre quiere otra.',motto:'¡Una más!',color:'#ffe46c',model:'chibi'},
+ {id:'nix',name:'NIX',species:'ARQUERA REBELDE',role:'La desafiante',bio:'Nunca sigue las reglas. Le encanta demostrarlo.',motto:'¡Atrapame!',color:'#ff68ca',model:'chibi'}
 ];
 const SHOP_ITEMS=[
  {id:'outfit_base',category:'outfit',name:'Look original',icon:'◈',price:0,desc:'El traje con el que nace cada personaje'},
@@ -509,10 +504,10 @@ const SHOP_ITEMS=[
 ];
 const DEFAULT_EQUIPMENT={outfit:'outfit_base',headwear:'head_none',eyewear:'eyes_none',shoes:'shoes_base',emote:'emote_hello',celebration:'celebration_spark',trail:'trail_normal'};
 SHOP_ITEMS.push(
- {id:'outfit_street',category:'outfit',name:'Street Legend',icon:'🧥',price:240,desc:'Campera urbana 3D'},
- {id:'outfit_racer',category:'outfit',name:'Turbo Racer',icon:'🏁',price:340,desc:'Franjas de velocidad'},
- {id:'outfit_neon',category:'outfit',name:'Neon Club',icon:'⚡',price:430,desc:'Moda del futuro'},
- {id:'outfit_royal',category:'outfit',name:'Royal Gold',icon:'✨',price:650,desc:'Look dorado de campeón'},
+ {id:'outfit_street',category:'outfit',name:'Street Legend',icon:'🧥',price:240,desc:'Paleta violeta urbana y detalles exclusivos'},
+ {id:'outfit_racer',category:'outfit',name:'Turbo Racer',icon:'🏁',price:340,desc:'Tonos de carreras y emblema de velocidad'},
+ {id:'outfit_neon',category:'outfit',name:'Neon Club',icon:'⚡',price:430,desc:'Paleta brillante y distintivo luminoso'},
+ {id:'outfit_royal',category:'outfit',name:'Royal Gold',icon:'✨',price:650,desc:'Tonos dorados y detalles de campeón'},
  {id:'head_none',category:'headwear',name:'Sin sombrero',icon:'◯',price:0,desc:'Tu cabeza original'},
  {id:'head_cap',category:'headwear',name:'Gorra City',icon:'🧢',price:140,desc:'Gorra 3D con visera'},
  {id:'head_beanie',category:'headwear',name:'Beanie Pop',icon:'🧶',price:230,desc:'Gorro y pompón'},
@@ -543,13 +538,13 @@ function loadWardrobe(){
   if(equipped.outfit==='outfit_ears'){equipped.outfit='outfit_base';equipped.headwear='head_beanie';}
  // First Quaternius launch highlights the NEW rigged collection.
  // Equipment and coins are migrated unchanged, legacy mascots remain selectable.
- const migrated=raw.rosterVersion==='quaternius-v1';
+ const migrated=raw.rosterVersion==='chibi-v3';
  const hero=migrated&&Number.isInteger(raw.hero)&&raw.hero>=0&&raw.hero<HEROES.length?raw.hero:0;
  return{coins:Number.isFinite(raw.coins)?Math.max(0,Math.min(999999,Math.floor(raw.coins))):0,owned,equipped,hero};
 }
 let wardrobe=loadWardrobe(),shopCategory='outfit',shopReturn='home',shopPreviewId=null,shopPreviewYaw=0,emoteUntil=0,emoteLabel='',celebrationBursts=[];
-selectedSkin=wardrobe.hero;settingColor=[1,10,6,8,5,4,2,3,7,9,1,11][wardrobe.hero]||1;
-function saveWardrobe(){try{localStorage.setItem(STORE_KEY,JSON.stringify({coins:wardrobe.coins,owned:[...wardrobe.owned],equipped:wardrobe.equipped,hero:wardrobe.hero,rosterVersion:'quaternius-v1'}));}catch(e){}}
+selectedSkin=wardrobe.hero;settingColor=[5,4,2,3,7,9,1,11][wardrobe.hero]??5;
+function saveWardrobe(){try{localStorage.setItem(STORE_KEY,JSON.stringify({coins:wardrobe.coins,owned:[...wardrobe.owned],equipped:wardrobe.equipped,hero:wardrobe.hero,rosterVersion:'chibi-v3'}));}catch(e){}}
 function awardCoins(amount){
  const n=Math.max(0,Math.min(400,Math.floor(Number(amount)||0)));if(!n)return 0;
  wardrobe.coins=Math.min(999999,wardrobe.coins+n);saveWardrobe();refreshWallet();return n;
@@ -565,7 +560,7 @@ function buyOrEquip(id){
 }
 function setHero(i){
  if(!Number.isInteger(i)||i<0||i>=HEROES.length)return false;
- selectedSkin=i;wardrobe.hero=i;settingColor=[1,10,6,8,5,4,2,3,7,9,1,11][i]||1;
+ selectedSkin=i;wardrobe.hero=i;settingColor=[5,4,2,3,7,9,1,11][i]??5;
  const swatches=document.querySelectorAll('#colors button');
  swatches.forEach((el,j)=>{if(j===settingColor)el.classList.add('active');else el.classList.remove('active');});
  saveWardrobe();renderHeroPicker();
@@ -590,7 +585,8 @@ function humanoidPortrait(i){
 function portraitURL(i){
  // Locally generated SVG thumbnails: each represents the SAME species as the live 3D model.
  const h=HEROES[i]||HEROES[0],kind=h.model,c=h.color;
- if(kind==='humanoid')return humanoidPortrait(i);
+ if(window.PaperPortraits?.[i])return window.PaperPortraits[i];
+ if(kind==='chibi')return humanoidPortrait(i);
  const roundEars=['capybara','raccoon','bear'].includes(kind);
  const triangleEars=['redpanda','fox'].includes(kind);
  let ears=roundEars?'<circle cx="30" cy="53" r="19" fill="'+c+'" stroke="#3b435e" stroke-width="3"/><circle cx="102" cy="53" r="19" fill="'+c+'" stroke="#3b435e" stroke-width="3"/>':triangleEars?'<path d="M29 66L14 8Q43 19 54 43H78Q98 8 121 8L105 67Z" fill="'+c+'" stroke="#3d435c" stroke-width="3"/>':'';
@@ -613,7 +609,7 @@ function portraitURL(i){
 }
 function renderHeroPicker(){
  const h=HEROES[wardrobe.hero];
- $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+(i<4?' quaterniusHero':'')+'" data-hero="'+i+'" aria-label="Elegir '+x.name+'"><img class="hero3DThumbnail" src="'+portraitURL(i)+'" alt="'+x.species+' · '+x.name+'" width="100" height="115"><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
+ $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+' chibiHero" data-hero="'+i+'" aria-label="Elegir '+x.name+'"><img class="hero3DThumbnail" src="'+portraitURL(i)+'" alt="'+x.species+' · '+x.name+'" width="100" height="115"><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
  $('heroDetails').innerHTML='<strong>'+h.name+' · '+h.role+'</strong><span>'+h.bio+'</span><i>“'+h.motto+'”</i>';
  $('heroName').textContent=h.name;
  $('menuCharacterLabel').textContent=h.name;
@@ -1248,7 +1244,7 @@ function showHud(){
  const ownRank=game.ordered.findIndex(q=>q.id===0);
  const arr=ownRank>=3?[...game.ordered.slice(0,3),game.people[0]]:game.ordered.slice(0,4);
  // CSS-drawn original character portraits; avoid arbitrary unicode placeholders.
- $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="rankAnimalHolder"><img class="rankAnimal" src="'+portraitURL(q.id===0?wardrobe.hero:q.id===1?vsRival:wardrobe.hero<QUATERNIUS_HEROES?(q.id*5+1)%QUATERNIUS_HEROES:q.id%HEROES.length)+'" alt=""></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
+ $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="rankAnimalHolder"><img class="rankAnimal" src="'+portraitURL(q.id===0?wardrobe.hero:q.id===1?vsRival:q.id%CHIBI_HEROES)+'" alt=""></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
  const best=Math.max(readBest(),game.record,p.score);
  $('recordPointer').style.left=clamp(best/25*100,8,92)+'%';
  drawMini();
@@ -1410,7 +1406,7 @@ function drawUnit(p){
  }
  // Actual 3D actors take over when their GLB has loaded. Otherwise use
  // anatomically legible, animated original chibi people — never robot cubes.
- const hero=p.id===0?selectedSkin:p.id===1?vsRival:wardrobe.hero<QUATERNIUS_HEROES?(p.id*5+1)%QUATERNIUS_HEROES:p.id%HEROES.length;
+ const hero=p.id===0?selectedSkin:p.id===1?vsRival:p.id%CHIBI_HEROES;
  const has3D=!!(window.Paper3DReady&&window.Paper3DReady[p.id]);
  // Render the original 2D fallback ONLY when WebGL has not loaded a mascot.
  // The previous 72% overlap made old avatars appear underneath the new 3D actors.
@@ -1481,8 +1477,7 @@ function showVS(){
  const player=wardrobe.hero;
  // Keep high-fidelity fights visually coherent. Legacy animals stay available
  // via the character picker but are never mixed into new Quaternius VS pairs.
- if(player<QUATERNIUS_HEROES)vsRival=(player+1+Math.floor(Math.random()*(QUATERNIUS_HEROES-1)))%QUATERNIUS_HEROES;
- else vsRival=QUATERNIUS_HEROES+(player-QUATERNIUS_HEROES+1+Math.floor(Math.random()*(HEROES.length-QUATERNIUS_HEROES-1)))%(HEROES.length-QUATERNIUS_HEROES);
+ vsRival=(player+1+Math.floor(Math.random()*(CHIBI_HEROES-1)))%CHIBI_HEROES;
  vsStartedAt=performance.now();vsLastBeat=-1;vsLastElapsed=0;
  const you=vsHeroPreview(player),rival=vsHeroPreview(vsRival);
  $('vsPlayerName').textContent=you.name;
@@ -1654,7 +1649,7 @@ $('pause').onclick=pause;$('resume').onclick=resume;
 $('emoteButton').onclick=()=>{if(mode!=='play'||!game||!game.people[0].alive)return;if(clock<emoteUntil)return;emoteFor(game.people[0],'manual');};
 $('leave').onclick=goHome;$('tohome').onclick=goHome;
 $('homeback').onclick=()=>{location.href='/';};
-$('share').onclick=()=>{const text='¡Conquisté '+game.people[0].score.toFixed(1)+'% en Territory Loop! ¿Me superás? '+location.href;if(navigator.share)navigator.share({title:'Territory Loop',text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>popup('ENLACE COPIADO')).catch(()=>{});};
+$('share').onclick=()=>{const text='¡Conquisté '+game.people[0].score.toFixed(1)+'% en CIVIDOM! ¿Me superás? '+location.href;if(navigator.share)navigator.share({title:'Territory Loop',text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>popup('ENLACE COPIADO')).catch(()=>{});};
 $('mutebtn').onclick=()=>{muted=!muted;$('mutebtn').textContent=muted?'🔇 Sin sonido':'🔊 Sonido activado';};
 $('heroPicker').onclick=e=>{const node=e.target.closest('[data-hero]');if(node)setHero(Number(node.dataset.hero));};
 $('openShopHome').onclick=()=>openShop('home');
@@ -1672,6 +1667,16 @@ $('shopHeroStage').addEventListener('pointermove',e=>{if(!showroomPointer||showr
 $('shopHeroStage').addEventListener('pointerup',()=>{showroomPointer=null;});
 $('shopHeroStage').addEventListener('pointercancel',()=>{showroomPointer=null;});
 renderHeroPicker();refreshWallet();
+ window.addEventListener('cividom:portrait',e=>{
+  const {hero,url}=e.detail||{};if(!Number.isInteger(hero)||!url)return;
+  const card=document.querySelector('[data-hero="'+hero+'"] .hero3DThumbnail');
+  if(card)card.src=url;
+  if(wardrobe.hero===hero&&$('menuHeroPortrait'))$('menuHeroPortrait').src=url;
+  if(mode==='versus'){
+   if(hero===wardrobe.hero)$('vsPortraitPlayer').src=url;
+   if(hero===vsRival)$('vsPortraitOpponent').src=url;
+  }
+ });
 
 COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Color '+(i+1));b.style.background=col;b.className=i===settingColor?'active':'';b.onclick=()=>{settingColor=i;document.querySelectorAll('#colors button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('colors').append(b);});
 $('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';
@@ -1691,7 +1696,7 @@ window.Paper3DState=()=>({
  vsEmote:wardrobe.equipped.emote==='emote_hello'?'emote_sixseven':wardrobe.equipped.emote,
  people:game?game.people.map(p=>({
   id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,scale:powerScale(p),shielded:clock<p.shieldUntil,
-  hero:p.id===0?wardrobe.hero:p.id===1?vsRival:wardrobe.hero<QUATERNIUS_HEROES?(p.id*5+1)%QUATERNIUS_HEROES:p.id%HEROES.length,
+  hero:p.id===0?wardrobe.hero:p.id===1?vsRival:p.id%CHIBI_HEROES,
   emoting:p.id===0&&clock<emoteUntil,emoteId:p.id===0?wardrobe.equipped.emote:''
  })):[]
 });
