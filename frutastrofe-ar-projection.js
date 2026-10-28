@@ -43,7 +43,7 @@ function floorOutline(view,origin,scale,radius,width,height){
  const points=[];for(let i=0;i<48;i++){
   const a=i*Math.PI/24;
   const p=projection(view,origin,scale,{x:Math.sin(a)*radius,y:-.15,z:Math.cos(a)*radius},width,height);
-  if(!p)return [];points.push([p.x,p.y]);
+  points.push(p?[p.x,p.y]:null);
  }return points;
 }
 return Object.freeze({projection,diameter,targets,floorOutline,transform});
