@@ -2,8 +2,8 @@
   Territory Loop: humanoid 3D characters (progressive enhancement only).
   CC0 original model author: Kay Lousberg — KayKit Adventurers.
   Source: https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0
-  Model files are embedded GLB and loaded through public GitHub; original screenshots
-  and third-party branded characters are not used.
+  Primary models: Styloo Chibi Characters, CC0 1.0; locally hosted official GLB files.
+  Fallback models: KayKit Adventurers, CC0 1.0; original screenshots not reused.
   If WebGL, 3D assets, or the CDN fail, the game keeps its custom chibi canvas sprites.
 */
 import * as THREE from 'three';
@@ -12,8 +12,10 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const canvas=document.getElementById('characterStage');
 const getState=()=>typeof window.Paper3DState==='function'?window.Paper3DState():null;
-const relative='https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/main/addons/kaykit_character_pack_adventures/Characters/gltf/';
-const models=['Knight.glb','Barbarian.glb','Mage.glb','Rogue.glb'];
+const relative='./assets/styloo/';
+const models=['archer.glb','merchant.glb','student.glb','ninja.glb'];
+const backupBase='https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/main/addons/kaykit_character_pack_adventures/Characters/gltf/';
+const backupModels=['Knight.glb','Barbarian.glb','Mage.glb','Rogue.glb'];
 const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
 const RIG_HEIGHT=80;
 const gltfLoader=new GLTFLoader();
@@ -68,7 +70,7 @@ function makeOutfit(itemId){
 function destroyInstance(id){
  const item=instances.get(id);if(!item)return;
  if(item.mixer)item.mixer.stopAllAction();
- scene.remove(item.root);instances.delete(id);
+ scene.remove(item.root);instances.delete(id);delete window.Paper3DReady[id];
 }
 function chooseAnimation(gltf,kind){
  const candidates=gltf.animations||[];
@@ -94,7 +96,7 @@ function instantiate(person){
  if(mixer)for(const [key,clip] of [['run',run],['idle',idle],['emote',emote]])if(clip){actions[key]=mixer.clipAction(clip);actions[key].setLoop(THREE.LoopRepeat);}
  const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6};
  scene.add(root);instances.set(person.id,instance);
- window.Paper3DReady[hero]=true;
+ window.Paper3DReady[person.id]=true;
  return instance;
 }
 function updateOutfit(instance,itemId){
@@ -107,7 +109,11 @@ function updateOutfit(instance,itemId){
 function loadModel(index){
  return new Promise(resolve=>{
   gltfLoader.load(relative+models[index],gltf=>{sourceAssets[index]=gltf;resolve(true);},
-   undefined,error=>{console.warn('KayKit asset not available:',models[index]);resolve(false)});
+   undefined,err=>{
+    console.warn('Styloo GLB unavailable; checking KayKit CC0 fallback:',models[index]);
+    gltfLoader.load(backupBase+backupModels[index],gltf=>{sourceAssets[index]=gltf;resolve(true);},
+     undefined,error=>{console.warn('3D failed; canvas chibi stays available',index);resolve(false);});
+   });
  });
 }
 function startLoading(){
@@ -123,11 +129,11 @@ function adjustSize(width,height){
 function sync(dt){
  if(failed)return;
  const state=getState();
+ if(state&&(state.playing||state.previewing))startLoading();
  if(!state||!state.playing){
   for(const p of instances.values())p.root.visible=false;
   renderer.clear();return;
  }
- startLoading();
  const w=state.screenW,h=state.screenH,zoom=Math.max(.5,state.zoom);
  adjustSize(w,h);
  camera.left=-w/(2*zoom);camera.right=w/(2*zoom);
