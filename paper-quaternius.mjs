@@ -194,9 +194,24 @@ export function initializeHumanRig(base,heroIndex=0){
  base.traverse(n=>{
   if(!n.isSkinnedMesh)return;
   const original=n.material;
-  const tint=(m)=>{const c=m.clone();if(c.color)c.color.set(palette.skin);return c;};
+  const tint=(m)=>{const c=m.clone();if(c.color)c.color.set(palette.skin);c.userData={...(c.userData||{}),cvdomRigInstance:true};return c;};
   n.material=Array.isArray(original)?original.map(tint):tint(original);
-  n.frustumCulled=false; // animated limbs must not disappear at the camera edge.
+  // Retain Three.js frustum culling on mobile: offscreen bots are not rendered.
  });
  return{humanBones:bones,humanRest:rest};
+}
+
+export function disposeHumanActor(actor){
+ if(!actor?.humanBones)return;
+ for(const node of actor.quaterniusWear||[]){
+  node.parent?.remove(node);
+  node.traverse(n=>{if(n.isMesh){n.geometry?.dispose();n.material?.dispose();}});
+ }
+ actor.quaterniusWear=[];
+ actor.base?.traverse(n=>{
+  if(!n.isSkinnedMesh)return;
+  for(const m of Array.isArray(n.material)?n.material:[n.material]){
+   if(m?.userData?.cvdomRigInstance)m.dispose();
+  }
+ });
 }
