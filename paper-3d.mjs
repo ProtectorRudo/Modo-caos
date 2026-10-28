@@ -142,6 +142,50 @@ function startLoading(){
  });
 }
 
+// A true 3D portrait from the exact same GLB, for selector, ranking and VS.
+// One temporary lightweight WebGL context, released immediately after capture.
+function snapshotChibiPortraits(){
+ if(window.PaperChibiStatus!=='ready'||window.PaperPortraits?.filter(Boolean).length===TOTAL_HEROES)return;
+ let preview=null;
+ try{
+  preview=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power',preserveDrawingBuffer:true});
+  preview.setPixelRatio(1);preview.setSize(144,176,false);
+  preview.outputColorSpace=THREE.SRGBColorSpace;
+  preview.toneMapping=THREE.ACESFilmicToneMapping;preview.toneMappingExposure=1.43;
+  preview.setClearColor(0,0,0,0);
+  const scenePreview=new THREE.Scene();
+  scenePreview.add(new THREE.HemisphereLight(0xffffff,0x717ca5,3));
+  const light=new THREE.DirectionalLight(0xfff5da,3.4);light.position.set(-100,200,300);scenePreview.add(light);
+  const cam=new THREE.OrthographicCamera(-62,62,76,-76,.1,900);
+  cam.position.set(0,0,420);cam.lookAt(0,0,0);
+  for(let i=0;i<TOTAL_HEROES;i++){
+   const asset=sourceAssets[i];if(!asset?.chibi)continue;
+   const model=SkeletonUtils.clone(asset.scene);
+   const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3());
+   if(!Number.isFinite(size.y)||size.y<=0)continue;
+   const factor=113/size.y;
+   model.scale.setScalar(factor);
+   model.position.set(-(box.min.x+size.x*.5)*factor,-(box.min.y+size.y*.51)*factor,0);
+   scenePreview.add(model);
+   const actor={hero:i,chibi:true,base:model,chibiSourceHeight:size.y};
+   applyChibiFashion(THREE,actor,{});
+   preview.render(scenePreview,cam);
+   const data=preview.domElement.toDataURL('image/webp',.88);
+   if(data&&data.length>800){
+    window.PaperPortraits[i]=data;
+    const img=document.querySelector('[data-hero="'+i+'"] .hero3DThumbnail');
+    if(img)img.src=data;
+    if(getState()?.menuHero===i){
+     const fallback=document.getElementById('menuHeroPortrait');if(fallback)fallback.src=data;
+    }
+    window.dispatchEvent(new CustomEvent('cividom:portrait',{detail:{hero:i,url:data}}));
+   }
+   disposeChibi(actor);
+   scenePreview.remove(model);
+  }
+ }catch(error){console.warn('3D avatar portraits unavailable; game 3D remains playable',error);}
+ finally{if(preview){preview.dispose();preview.forceContextLoss();}}
+}
 function adjustSize(width,height){
  if(canvas.width!==Math.round(width*Math.min(devicePixelRatio||1,1.5))||canvas.height!==Math.round(height*Math.min(devicePixelRatio||1,1.5))){
   renderer.setSize(width,height,false);
