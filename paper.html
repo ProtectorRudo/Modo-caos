@@ -230,6 +230,24 @@ input[type=text]:focus{border-color:#42bcca}
 #hud{z-index:5}
 .overlay{z-index:10}
 #shop{z-index:13}
+
+/* Human-like body previews, four distinctive large-headed doll silhouettes. */
+.heroMini{width:52px;height:65px;position:relative;display:block;margin:-2px auto 0}
+.heroMini .miniFace{position:absolute;z-index:3;top:12px;left:7px;width:38px;height:36px;border-radius:48% 48% 45% 45%;border:1.8px solid #345ba7;background:radial-gradient(circle at 32% 20%,#fff,#edf5fc 67%,#c4d8f2);box-shadow:inset 2px 3px 5px #fff,1px 3px 3px #587ca555}
+.heroMini .miniEyes:before,.heroMini .miniEyes:after{content:"";position:absolute;top:16px;width:6px;height:9px;background:#29395c;border-radius:50%}
+.heroMini .miniEyes:before{left:9px}.heroMini .miniEyes:after{right:9px}
+.heroMini .miniTorso{position:absolute;z-index:2;left:12px;top:39px;width:28px;height:22px;background:linear-gradient(120deg,#fff9,var(--hero) 35%,#265db5);border:1.5px solid #2856a9;border-radius:9px}
+.heroMini .miniTorso:before,.heroMini .miniTorso:after{content:"";position:absolute;top:2px;width:7px;height:16px;background:var(--hero);border:1px solid #3670aa;border-radius:7px}
+.heroMini .miniTorso:before{left:-6px;transform:rotate(12deg)}.heroMini .miniTorso:after{right:-6px;transform:rotate(-12deg)}
+.heroMini .miniFeet{position:absolute;left:16px;bottom:1px;width:8px;height:9px;border-radius:3px;background:#31578e;box-shadow:13px 0 #31578e}
+.heroMini .miniHat{position:absolute;z-index:4;top:7px;left:10px;width:32px;height:10px;background:var(--hero);border:1.5px solid #2059ae;border-radius:12px 12px 3px 3px}
+.heroMini1 .miniHat{top:8px;height:13px;border-radius:50% 50% 25% 25%;background:#f8ad47}
+.heroMini2 .miniHat{top:-7px;left:16px;width:20px;height:30px;clip-path:polygon(50% 0,100% 100%,0 100%);background:#683aac;border-radius:0}
+.heroMini2:before{content:"";position:absolute;z-index:5;top:18px;left:3px;width:46px;height:7px;border-radius:50%;background:#7136b7;border:1px solid #d8b1fb}
+.heroMini3 .miniHat{background:#2c684c;height:16px;border-radius:50% 50% 20% 20%}
+.heroMini3 .miniFace{background:radial-gradient(circle at 35% 20%,#e9ffe3,#c1f8dc 70%,#60bb8e)}
+.heroMini3 .miniEyes:before,.heroMini3 .miniEyes:after{background:#79ffb9;border:1px solid #2b635a}
+@media(max-height:740px){.heroMini{height:50px;transform:scale(.75);transform-origin:center top;margin-bottom:-13px}}
 </style>
 </head>
 <body>
@@ -364,7 +382,7 @@ function refreshWallet(){
 }
 function renderHeroPicker(){
  const h=HEROES[wardrobe.hero];
- $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+'" data-hero="'+i+'" aria-label="Seleccionar '+x.name+'"><span class="heroGlyph" style="--hero:'+x.color+'">'+x.face+'</span><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
+ $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+'" data-hero="'+i+'" aria-label="Seleccionar '+x.name+'"><span class="heroMini heroMini'+i+'" style="--hero:'+x.color+'"><i class="miniHat"></i><i class="miniFace"><em class="miniEyes"></em></i><i class="miniTorso"></i><i class="miniFeet"></i></span><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
  $('heroDetails').innerHTML='<strong>'+h.name+' · '+h.role+'</strong><span>'+h.bio+'</span><i>“'+h.motto+'”</i>';
  $('heroName').textContent=h.name;
 }
