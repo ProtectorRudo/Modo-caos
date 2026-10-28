@@ -11,11 +11,12 @@ renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');
 $('view').append(renderer.domElement);
 const art=A.create(THREE,renderer),ray=new THREE.Raycaster(),point=new THREE.Vector2(),look=new THREE.Vector3();
+const arMarker=new THREE.Mesh(new THREE.RingGeometry(.11,.16,48),new THREE.MeshBasicMaterial({color:0xd9ff62,side:THREE.DoubleSide,transparent:true,opacity:.95,depthWrite:false}));arMarker.rotation.x=-Math.PI/2;arMarker.visible=false;art.scene.add(arMarker);
 const params=new URLSearchParams(location.search);
 let progress={unlocked:1,stars:{},coins:0,best:0,scores:{}};
 try{const o=JSON.parse(localStorage.getItem('mc-frutastrofe-save-v1')||'{}');if(o&&typeof o==='object')progress={...progress,...o,stars:o.stars||{},scores:o.scores||{}}}catch(e){}
 const save=()=>{try{localStorage.setItem('mc-frutastrofe-save-v1',JSON.stringify(progress))}catch(e){}};
-let g=null,view='home',selected=1,preferAR=false,isAR=false,arSession=null,hitSource=null,anchor=null,placement=null,reticle=null,glHit=false;
+let g=null,view='home',selected=1,preferAR=false,isAR=false,arSession=null,hitSource=null,anchor=null,placement=null,reticle=null,glHit=false,arHitResult=null,arViewerSpace=null;
 let lastTime=0,lastHud=0,toastUntil=0,pulseUntil=0,paused=false,musicEnabled=true,lastMusic=0,wasLost=false;
 let duel=null,musicCtx=null,touchAim=new THREE.Vector2(0,0),lastPointer=null;
 const show=name=>{view=name;for(const n of ['home','selector','hud','readyOverlay','pausePanel','results','arPanel'])$(n).style.display=n===name?(n==='hud'||n==='home'?'flex':'flex'):'none';};
@@ -58,7 +59,7 @@ function createGame(mode='campaign',level=selected,seed){
  $('readyEyebrow').textContent=mode==='arcade'?'DESAFÍO ARCADE':'NIVEL '+String(level).padStart(2,'0');
  $('readyTitle').textContent=duel?'JUGADOR '+duel.turn+' · '+g.cfg.name:g.cfg.name;
  $('readyDescription').textContent=g.cfg.goal==='boss'?'La Sandía Gigante tiene 12 puntos débiles. ¡Apuntá con precisión!':g.cfg.goal==='combos'?'¡Conseguí '+g.cfg.target+' cadenas de tres frutas iguales!':'Dispará a las frutas, encadená tres iguales y evitá las bombas. ¡Completá el objetivo antes de que acabe el tiempo!';
- $('playTip').textContent=isAR?'APUNTÁ CON EL TELÉFONO · TOCÁ ¡PUM!':'TOCÁ FRUTAS O APUNTÁ Y TOCÁ ¡PUM!';
+ $('playTip').textContent=isAR?'APUNTÁ CON EL TELÉFONO · TOCÁ ¡PUM!':'TOCÁ FRUTAS O APUNTÁ Y TOCÁ ¡PUM!';$('recenterBtn').style.display=isAR?'inline-block':'none';
  $('hudBest').textContent=number(progress.best);
  show('readyOverlay');
 }
@@ -90,7 +91,7 @@ function handleFinish(ev){
  if(duel&&duel.turn===1)$('nextBtn').textContent='▶ TURNO JUGADOR 2';else $('nextBtn').textContent='▶ SIGUIENTE NIVEL';
  show('results');progressUI();
 }
-function resetToMenu(){if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
+function resetToMenu(){arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
 function matchFromResults(){
  if(duel&&duel.turn===1){duel.turn=2;play('arcade',1,duel.seed);return}
  if(!duel&&g?.mode==='campaign'&&g.level<10){selected=g.level+1;play('campaign',selected);return}
@@ -151,13 +152,13 @@ async function startAR(mode,level){
  try{
   if(!await navigator.xr.isSessionSupported('immersive-ar'))throw Error('Este dispositivo no es compatible con AR inmersiva.');
   art.reset();art.world.visible=false;renderer.setClearColor(0,0);art.scene.background=null;art.scene.fog=null;
-  const opts={requiredFeatures:['hit-test','local-floor'],optionalFeatures:['dom-overlay','anchors'],domOverlay:{root:document.body}};
+  const opts={requiredFeatures:['hit-test','local-floor','dom-overlay'],optionalFeatures:['anchors'],domOverlay:{root:document.body}};
   arSession=await navigator.xr.requestSession('immersive-ar',opts);
   isAR=true;await renderer.xr.setSession(arSession);
   renderer.xr.getReferenceSpace();
-  const viewerSpace=await arSession.requestReferenceSpace('viewer');
+  const viewerSpace=await arSession.requestReferenceSpace('viewer');arViewerSpace=viewerSpace;
   hitSource=await arSession.requestHitTestSource({space:viewerSpace});
-  placement=null;glHit=false;art.world.scale.setScalar(.43);
+  placement=null;glHit=false;anchor=null;arHitResult=null;arMarker.visible=false;art.world.scale.setScalar(.43);
   show('arPanel');$('arLock').disabled=true;
   $('arTitle').textContent='BUSCÁ EL PISO';$('arMessage').textContent='Apuntá a un suelo despejado. Cuando aparezca LISTO PARA FIJAR, tocá el botón.';
   Object.assign($('arPanel').style,{background:'transparent',alignItems:'flex-end',backdropFilter:'none'});
@@ -167,20 +168,30 @@ async function startAR(mode,level){
 }
 $('arLock').onclick=async()=>{
  if(!glHit||!reticle||!arSession)return;
- placement=reticle.clone();art.world.position.copy(placement.position);art.world.quaternion.identity();art.world.visible=true;
+ placement=reticle.clone();art.world.position.copy(placement.position);art.world.quaternion.identity();art.world.visible=true;arMarker.visible=false;
+ if(arHitResult&&typeof arHitResult.createAnchor==='function'){try{anchor=await arHitResult.createAnchor()}catch(e){console.warn('Ancla no disponible, usando pose fija del piso:',e.message)}}
  $('arLock').disabled=true;hitSource?.cancel?.();hitSource=null;
  // The scene is fixed in local-floor coordinates; moving the device NEVER rewrites the anchor transform.
- createGame(nextAR.mode,nextAR.level);
+ if(g&&paused){paused=false;show('hud');}else createGame(nextAR.mode,nextAR.level);
 };
 $('arCancel').onclick=resetToMenu;
+$('recenterBtn').onclick=async()=>{
+ if(!arSession||!isAR)return;
+ paused=true;anchor?.delete?.();anchor=null;placement=null;arHitResult=null;art.world.visible=false;arMarker.visible=false;glHit=false;
+ try{hitSource=await arSession.requestHitTestSource({space:arViewerSpace})}catch(e){alertTxt('NO SE PUDO RECENTRAR');paused=false;show('hud');return}
+ $('arLock').disabled=true;$('arTitle').textContent='RECENTRANDO PISTA';
+ $('arMessage').textContent='Apuntá a un nuevo sector despejado y fijá otra vez. La puntuación y el reloj se conservan.';show('arPanel');
+};
 function arFrame(frame){
- if(!isAR||!frame||!hitSource||placement)return;
+ if(!isAR||!frame)return;
  const ref=renderer.xr.getReferenceSpace();if(!ref)return;
+ if(anchor){const pose=frame.getPose(anchor.anchorSpace,ref);if(pose&&placement)art.world.position.set(pose.transform.position.x,pose.transform.position.y,pose.transform.position.z)}
+ if(!hitSource||placement)return;
  const hits=frame.getHitTestResults(hitSource);
  if(hits.length){
   const p=hits[0].getPose(ref);
-  if(p){reticle=new THREE.Object3D();reticle.position.set(p.transform.position.x,p.transform.position.y,p.transform.position.z);glHit=true;$('arLock').disabled=false;$('arTitle').textContent='LISTO PARA FIJAR';$('arMessage').textContent='Fijá la arena delante tuyo. El escenario quedará anclado al piso; jugá sin caminar.'}
- }else{glHit=false;$('arLock').disabled=true;$('arTitle').textContent='BUSCÁ EL PISO'}
+  if(p){arHitResult=hits[0];reticle=new THREE.Object3D();reticle.position.set(p.transform.position.x,p.transform.position.y,p.transform.position.z);arMarker.position.copy(reticle.position);arMarker.position.y+=.025;arMarker.visible=true;glHit=true;$('arLock').disabled=false;$('arTitle').textContent='LISTO PARA FIJAR';$('arMessage').textContent='Fijá la arena delante tuyo. El escenario quedará anclado al piso; jugá sin caminar.'}
+ }else{glHit=false;arHitResult=null;arMarker.visible=false;$('arLock').disabled=true;$('arTitle').textContent='BUSCÁ EL PISO'}
 }
 function onFrame(t,frame){
  const sec=t/1000,dt=clamp(lastTime?sec-lastTime:0,0,.35);lastTime=sec;
