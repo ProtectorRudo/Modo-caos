@@ -543,3 +543,19 @@ test('Six Seven shoulder motion is frame-to-frame smooth and palms reset',async(
  assert.equal(rig.leftPalm.rotation.z,0);assert.equal(rig.rightPalm.rotation.z,0);
  assert.ok(Math.abs(rig.left.rotation.z)<.2);
 });
+
+test('Six Seven entrance never snaps on slow 270ms mobile frames',async()=>{
+ const {animateMascot}=await import(require('node:url').pathToFileURL(path.join(__dirname,'..','paper-mascots.mjs')).href);
+ const n=()=>({rotation:{x:0,z:0}});
+ const rig={left:n(),right:n(),leftPalm:n(),rightPalm:n(),head:n(),body:n(),feet:[{node:n(),side:-1},{node:n(),side:1}]};
+ const actor={mascotRig:rig};
+ for(const opposing of [false,true]){
+  let previous=null;
+  for(let t=0;t<3.2;t+=.27){
+   animateMascot(actor,t,'dance',opposing);
+   const current=[rig.left.rotation.z,rig.right.rotation.z];
+   if(previous)assert.ok(Math.max(...current.map((v,i)=>Math.abs(v-previous[i])))<.9,'instant shoulder snap at t='+t);
+   previous=current;
+  }
+ }
+});
