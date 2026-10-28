@@ -13,7 +13,7 @@ function measureMuzzle(){
  // Measure the actual transformed SVG muzzle once at round start/orientation change,
  // never during a rapid-fire draw. A fixed HUD coordinate cannot stay correct
  // across phone aspect ratios and animated gun transforms.
- const g=$('weapon'),ring=g?.querySelector('#gunFlash');
+ const g=$('weapon'),ring=g?.querySelector('#saberTip');
  if(!g||!ring)return null;
  const q=ring.getBoundingClientRect();
  if(!(q.width>0&&q.height>0))return null;
@@ -23,8 +23,8 @@ function measureMuzzle(){
 }
 function getMuzzle(){
  if(weaponMuzzle&&weaponMuzzle.y>=0&&weaponMuzzle.y<=height+20)return weaponMuzzle;
- const gunWidth=clamp(width*.35,119,144);
- return {x:width*.43,y:height-14-gunWidth*301/240};
+ const saberWidth=clamp(width*.44,155,184);
+ return {x:width*.54+saberWidth*.29,y:height-16-saberWidth*1.22};
 }
 function getAim(){
  let nearest=null,best=Infinity;
@@ -220,32 +220,35 @@ function draw(view,origin,scale,objects,kind='playing'){
  }
  for(let i=shots.length-1;i>=0;i--){
   const p=shots[i],age=t-p.at;
-  // High-speed juice plasma bolts: short LOCAL streaks moving toward the real target,
-  // never a full-screen vertical line obscuring the player's room.
-  if(age>.095){shots.splice(i,1);continue}
-  const k=clamp(age/.095,0,1),alpha=1-k,gunWidth=clamp(width*.35,119,144);
-  // CSS weapon uses viewport width 35%, left 43% and bottom 2px.
-  // This projected muzzle stays at exactly the same virtual geometry,
-  // without invoking getBoundingClientRect during every WebXR frame.
-  const muzzle=getMuzzle(),sx=muzzle.x,sy=muzzle.y;
-  const dx=p.x-sx,dy=p.y-sy,d=Math.hypot(dx,dy)||1;
-  const head=clamp(k*1.45,0,1);
-  const px=sx+dx*head,py=sy+dy*head;
-  const unitX=dx/d,unitY=dy/d;
-  const streak=Math.min(48,d*.24);
-  const tailX=px-unitX*streak,tailY=py-unitY*streak;
+  if(age>.19){shots.splice(i,1);continue}
+  const k=clamp(age/.19,0,1),a=1-k,muzzle=getMuzzle();
+  const x=p.x,y=p.y,r=clamp(width*.19,56,93),direction=p.at*10%2<1?1:-1;
+  // One premium crescent swipe through the targeted fruit. There is NO
+  // projectile traveling from the hilt, nor any permanent screen-wide beam.
+  // The slash path is strictly bounded and ephemeral even at 6 slashes/s.
   c.save();c.lineCap='round';
-  c.globalAlpha=alpha*.50;line(c,tailX,tailY,px,py,'#24d8ec',9);c.globalAlpha=alpha;
-  line(c,tailX,tailY,px,py,'#f5fff0',3.1);
-  const light=c.createRadialGradient(px,py,0,px,py,13);
-  light.addColorStop(0,'rgba(255,255,245,.94)');light.addColorStop(.44,'rgba(131,255,217,.54)');light.addColorStop(1,'rgba(25,184,222,0)');
-  circle(c,px,py,13,light);
-  // The muzzle flashes for the initial 30ms; no disembodied light beam to the floor.
-  if(k<.37){const flare=c.createRadialGradient(sx,sy,0,sx,sy,19);
-   flare.addColorStop(0,'rgba(255,255,231,.95)');flare.addColorStop(.33,'rgba(122,255,224,.46)');flare.addColorStop(1,'rgba(18,180,232,0)');
-   c.globalAlpha=(.37-k)/.37;circle(c,sx,sy,19,flare);
+  const u=-.92+k*1.84,swing=direction*(u*1.05);
+  const endpointX=x+Math.sin(swing)*r;
+  const endpointY=y+Math.cos(swing)*r*.28;
+  const startX=x-Math.sin(swing+.73)*r*.87;
+  const startY=y-Math.cos(swing+.73)*r*.30;
+  c.globalAlpha=a*.38;
+  c.strokeStyle=p.hit?'#d9ffc2':'#75eaff';c.lineWidth=16*a+2;
+  c.beginPath();c.moveTo(startX,startY);c.quadraticCurveTo(x,y-r*.56,endpointX,endpointY);c.stroke();
+  c.globalAlpha=a*.92;
+  c.strokeStyle=p.hit?'#eaffbe':'#b9fff4';c.lineWidth=3.7*a+1.2;
+  c.beginPath();c.moveTo(startX,startY);c.quadraticCurveTo(x,y-r*.56,endpointX,endpointY);c.stroke();
+  // Short kinetic gleam at the real sword tip—not a beam emitted from a gun.
+  if(k<.36){
+    const flash=c.createRadialGradient(muzzle.x,muzzle.y,0,muzzle.x,muzzle.y,20);
+    flash.addColorStop(0,'rgba(255,255,233,.79)');
+    flash.addColorStop(.45,'rgba(104,249,214,.42)');
+    flash.addColorStop(1,'rgba(49,203,236,0)');
+    c.globalAlpha=(.36-k)*1.55;circle(c,muzzle.x,muzzle.y,20,flash);
   }
-  if(p.hit&&head>.91){c.globalAlpha=alpha*.8;strokeCircle(c,p.x,p.y,5+(head-.91)*90,'#dfff93',2.7)}
+  if(p.hit&&k>.40){
+    c.globalAlpha=a*.55;strokeCircle(c,x,y,8+k*16,'#f0ffb1',2.1);
+  }
   c.restore();
  }
  for(let i=scores.length-1;i>=0;i--){
@@ -295,5 +298,5 @@ function clear(){
 root.FrutaAROverlay={draw,clear,impact,shot,popup,land,emerge,measureMuzzle,getAim,
  setStage(phase,isFever){stage=clamp(Number(phase)||1,1,6);fever=!!isFever},
  get targets(){return targets},get state(){return mode},
- get diagnostics(){return {engine:'canvas2d',boltDurationMs:95,boltMaxStreakPx:48,premium:true,sprites:root.FrutaPremiumArt?.stats().spriteCount||Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,muzzle:weaponMuzzle,aim:aimAssist,launchBursts:launchBursts.length,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
+ get diagnostics(){return {engine:'canvas2d',weapon:'energy-saber',slashDurationMs:190,slashRadiusPx:93,premium:true,sprites:root.FrutaPremiumArt?.stats().spriteCount||Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,muzzle:weaponMuzzle,aim:aimAssist,launchBursts:launchBursts.length,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
 })(typeof window!=='undefined'?window:globalThis);
