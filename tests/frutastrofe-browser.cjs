@@ -52,6 +52,16 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   const fx=await page.evaluate(()=>window.__frutaQA.diagnostics());
   assert(fx.particles>=16&&fx.shots>=1,'juice particles and shot beams must actually exist '+JSON.stringify(fx));
   await page.screenshot({path:'frutastrofe-ar-impact-mobile.png',animations:'disabled'});
+  // Real pointer hold on the actual button, not a simulated direct core call.
+  const beforeShots=await page.evaluate(()=>window.__frutaQA.state().shots);
+  const fireRect=await page.locator('#fireBtn').boundingBox();
+  assert(fireRect,'fire trigger must be in viewport');
+  await page.mouse.move(fireRect.x+fireRect.width*.5,fireRect.y+fireRect.height*.5);
+  await page.mouse.down();await page.waitForTimeout(540);await page.mouse.up();
+  const afterShots=await page.evaluate(()=>window.__frutaQA.state().shots);
+  assert(afterShots-beforeShots>=3,'holding the trigger should emit a real rapid barrage: '+(afterShots-beforeShots));
+  await page.waitForTimeout(200);
+  assert(!await page.locator('#fireBtn').evaluate(el=>el.classList.contains('is-firing')),'auto fire must stop after release');
   await page.locator('#pauseBtn').click();
   assert(await page.locator('#pausePanel').isVisible());
   const paused=await page.locator('#hudTime').textContent();await page.waitForTimeout(250);assert.equal(await page.locator('#hudTime').textContent(),paused);
