@@ -17,7 +17,7 @@ let progress={unlocked:1,stars:{},coins:0,best:0,scores:{}};
 try{const o=JSON.parse(localStorage.getItem('mc-frutastrofe-save-v1')||'{}');if(o&&typeof o==='object')progress={...progress,...o,stars:o.stars||{},scores:o.scores||{}}}catch(e){}
 const save=()=>{try{localStorage.setItem('mc-frutastrofe-save-v1',JSON.stringify(progress))}catch(e){}};
 let g=null,view='home',selected=1,isAR=false,arSession=null,hitSource=null,anchor=null,placement=null,reticle=null,glHit=false,arHitResult=null,arViewerSpace=null,arTargets=[],lastOverlay=0,arFrameCount=0;
-let lastTime=0,lastHud=0,toastUntil=0,pulseUntil=0,paused=false,musicEnabled=true,lastMusic=0,wasLost=false;
+let lastTime=0,lastHud=0,toastUntil=0,pulseUntil=0,paused=false,musicEnabled=true,lastMusic=0,wasLost=false,autoFireTimer=null,lastFireAt=-9999;
 let duel=null,musicCtx=null,touchAim=new THREE.Vector2(0,0),lastPointer=null;
 const show=name=>{view=name;for(const n of ['home','selector','hud','readyOverlay','pausePanel','results','arPanel'])$(n).style.display=n===name?'flex':'none';$('weapon').style.display=name==='hud'&&isAR?'block':'none';};
 function progressUI(){
@@ -48,7 +48,7 @@ function juicePop(){
   src.connect(filter);filter.connect(gain);gain.connect(musicCtx.destination);src.start(t);src.stop(t+.15);
  }catch(e){}
 }
-function fxSound(type){if(type==='shot')tone(280,.085,'triangle',.07);if(type==='hit'){tone(440,.095,'sine',.075);juicePop();navigator.vibrate?.(9)}if(type==='trap'){tone(160,.3,'sawtooth',.1);navigator.vibrate?.([45,40,45])}if(type==='chain'){tone(600,.16,'sine',.11);tone(800,.14,'sine',.08,.09);tone(1040,.18,'sine',.10,.18);navigator.vibrate?.([18,26,28])}if(type==='boss'){tone(180,.25,'sawtooth',.12);tone(440,.32,'triangle',.12,.11)}}
+function fxSound(type){if(type==='shot'){tone(470,.055,'sawtooth',.052);tone(970,.065,'triangle',.035,.008)}if(type==='hit'){tone(440,.095,'sine',.075);juicePop();navigator.vibrate?.(9)}if(type==='trap'){tone(160,.3,'sawtooth',.1);navigator.vibrate?.([45,40,45])}if(type==='chain'){tone(600,.16,'sine',.11);tone(800,.14,'sine',.08,.09);tone(1040,.18,'sine',.10,.18);navigator.vibrate?.([18,26,28])}if(type==='boss'){tone(180,.25,'sawtooth',.12);tone(440,.32,'triangle',.12,.11)}}
 function moodMusic(t){if(!musicEnabled||!g||g.state!=='playing'||t-lastMusic<.34)return;lastMusic=t;const beat=Math.floor(g.elapsed*3);if(beat%2===0)tone([220,247,277,330][Math.floor(beat/2)%4],.07,'triangle',.018)}
 function events(){
  if(!g)return;for(const ev of g.events.splice(0)){
@@ -74,7 +74,7 @@ function createGame(mode='campaign',level=selected,seed){
  $('readyEyebrow').textContent=mode==='arcade'?'DESAFÍO ARCADE':'NIVEL '+String(level).padStart(2,'0');
  $('readyTitle').textContent=duel?'JUGADOR '+duel.turn+' · '+g.cfg.name:g.cfg.name;
  $('readyDescription').textContent=g.cfg.goal==='boss'?'La Sandía Gigante flota sobre la arena. Levantá la mira y acertale 12 disparos.':g.cfg.goal==='combos'?'¡Conseguí '+g.cfg.target+' cadenas de tres frutas iguales!':'¡Las frutas caen desde un portal EN EL CIELO! Apuntá hacia arriba, seguí su caída y dispará antes de que toquen la plataforma. Encadená tres iguales.';
- $('playTip').textContent='MIRÁ ARRIBA: LAS FRUTAS CAEN DEL CIELO · ¡PUM!';$('recenterBtn').style.display=isAR?'inline-block':'none';
+ $('playTip').textContent='MANTENÉ ¡PUM! PARA DISPARAR RÁFAGAS · EVITÁ BOMBAS ROJAS';$('recenterBtn').style.display=isAR?'inline-block':'none';
  $('hudBest').textContent=number(progress.best);
  show('readyOverlay');
 }
@@ -90,7 +90,7 @@ function hudUpdate(){
  $('hudBest').textContent=number(Math.max(progress.best,g.score));
 }
 function handleFinish(ev){
- paused=false;
+ stopAutoFire();paused=false;
  if(!duel){
   progress.best=Math.max(progress.best,g.score);
   if(g.mode==='campaign'){const prev=progress.stars[g.level]||0;if(ev.win){progress.stars[g.level]=Math.max(prev,g.stars);progress.unlocked=Math.max(progress.unlocked,Math.min(10,g.level+1))}}
@@ -106,7 +106,7 @@ function handleFinish(ev){
  if(duel&&duel.turn===1)$('nextBtn').textContent='▶ TURNO JUGADOR 2';else $('nextBtn').textContent='▶ SIGUIENTE NIVEL';
  show('results');progressUI();
 }
-function resetToMenu(){arTargets=[];O.clear();$('weapon').style.display='none';arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
+function resetToMenu(){stopAutoFire();arTargets=[];O.clear();$('weapon').style.display='none';arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
 function matchFromResults(){
  if(duel&&duel.turn===1){duel.turn=2;createGame('arcade',1,duel.seed);return}
  if(!duel&&g?.mode==='campaign'&&g.level<10){selected=g.level+1;createGame('campaign',selected);return}
@@ -120,6 +120,7 @@ function shareChallenge(){
 function startPlay(){if(!g)return;if(isAR&&!placement){alertTxt('FIJÁ LA ARENA ANTES DE JUGAR');return}g.begin();show('hud');hudUpdate();tone(610,.16,'triangle',.1);tone(850,.16,'triangle',.08,.12)}
 function fireAt(x,y){
  if(!g||g.state!=='playing'||paused||view!=='hud')return;
+ const now=performance.now();if(now-lastFireAt<104)return;lastFireAt=now;
  point.set(x,y);const cam=isAR&&renderer.xr.isPresenting?renderer.xr.getCamera(art.camera):art.camera;
  ray.setFromCamera(point,cam);
  const targets=[...art.bodies.values()];const hits=ray.intersectObjects(targets,true);
@@ -134,15 +135,27 @@ function fireAt(x,y){
    const dist=Math.hypot(p.x-x,p.y-y);if(dist<best){best=dist;id=k}
   }
  }
- const target=arTargets.find(q=>q.id===id);const result=g.shoot(id);if(isAR)O.shot(target?.x??innerWidth*.5,target?.y??innerHeight*.45,!!result?.ok,target?.kind||'apple');fxSound('shot');pulseUntil=performance.now()+80;const ret=$('crosshair');ret.style.transform='translate(-50%,-50%) scale(.8)';setTimeout(()=>{ret.style.transform='translate(-50%,-50%)'},80);
+ const target=arTargets.find(q=>q.id===id);const result=g.shoot(id);if(isAR)O.shot(target?.x??innerWidth*.5,target?.y??innerHeight*.45,!!result?.ok,target?.kind||'apple');fxSound('shot');pulseUntil=performance.now()+100;const ret=$('crosshair');ret.classList.remove('shoot-hit','shoot-miss');void ret.offsetWidth;ret.classList.add(result?.ok&&!result?.trap?'shoot-hit':'shoot-miss');
  events();hudUpdate();return result;
 }
 function cursorShoot(e){if(view!=='hud'||isAR)return;const rect=renderer.domElement.getBoundingClientRect();const nx=((e.clientX-rect.left)/rect.width)*2-1,ny=-((e.clientY-rect.top)/rect.height)*2+1;touchAim.set(nx,ny);fireAt(nx,ny)}
 renderer.domElement.addEventListener('pointerdown',cursorShoot);
 renderer.domElement.addEventListener('pointermove',e=>{if(isAR||view!=='hud')return;const rect=renderer.domElement.getBoundingClientRect();touchAim.set((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));const h=$('crosshair');h.style.left=e.clientX+'px';h.style.top=e.clientY+'px'});
-$('fireBtn').onpointerdown=e=>{e.preventDefault();fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y)};
+// Tap = a precise single shot; hold = responsive auto-blaster, 8 rounds per second.
+function stopAutoFire(){if(autoFireTimer!==null){clearInterval(autoFireTimer);autoFireTimer=null}$('fireBtn').classList.remove('is-firing')}
+function startAutoFire(e){
+ if(e){e.preventDefault();$('fireBtn').setPointerCapture?.(e.pointerId)}
+ stopAutoFire();if(view!=='hud'||!g||g.state!=='playing')return;
+ $('fireBtn').classList.add('is-firing');
+ fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y);
+ autoFireTimer=setInterval(()=>{if(view!=='hud'||paused||g?.state!=='playing'){stopAutoFire();return}fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y)},120);
+}
+$('fireBtn').addEventListener('pointerdown',startAutoFire);
+for(const type of ['pointerup','pointercancel','lostpointercapture','pointerleave'])$('fireBtn').addEventListener(type,stopAutoFire);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoFire()});
+window.addEventListener('blur',stopAutoFire);
 window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y)}if(e.code==='Escape'&&view==='hud')pauseGame()});
-function pauseGame(){if(!g||g.state!=='playing')return;paused=true;show('pausePanel')}
+function pauseGame(){if(!g||g.state!=='playing')return;stopAutoFire();paused=true;show('pausePanel')}
 $('pauseBtn').onclick=pauseGame;
 $('resumeBtn').onclick=()=>{paused=false;show('hud')};
 $('quitBtn').onclick=resetToMenu;
@@ -224,7 +237,7 @@ function onFrame(t,frame){
     if(origin){
      const overlayMode=placement&&g?.state==='playing'?'playing':'search';
      arTargets=O.draw(vr,origin,art.world.scale.x,overlayMode==='playing'?g.objects:[],overlayMode);
-     if(view==='hud'&&t-lastHud<130)$('playTip').textContent=arTargets.length?'SEGUÍ LA LLUVIA Y DISPARÁ · ¡PUM!':'LAS FRUTAS CAEN DESDE ARRIBA · LEVANTÁ LA MIRA';
+     if(view==='hud'&&t-lastHud<130)$('playTip').textContent=arTargets.length?'MANTENÉ ¡PUM! PARA RÁFAGAS · EVITÁ PELIGROS':'MIRÁ ARRIBA · LAS FRUTAS CAEN DEL PORTAL';
     }
    }
   }catch(error){console.warn('AR overlay:',error.message)}
