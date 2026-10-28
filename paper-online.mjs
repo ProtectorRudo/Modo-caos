@@ -111,6 +111,7 @@ function onHello(p){
  }
  guestId=p.id;
  const named=p.name.trim().slice(0,24)||'Invitado';
+ if(Number.isInteger(p.hero))game.setGuestHero(p.hero);
  if(room.players.length===1)room.players.push({id:guestId,name:named,slot:2,ready:false});
  announce();showRoom();
  msg('¡Llegó '+named+'! Marquen LISTO para empezar.');
@@ -163,7 +164,7 @@ function startChannel(){
 }
 function hello(){
  if(role==='guest'&&connected&&room?.status!=='playing')
-  send('cv-hello',{id:clientId,name:name()}).catch(()=>{});
+  send('cv-hello',{id:clientId,name:name(),hero:game.hero()}).catch(()=>{});
 }
 $('cv-action').onclick=()=>{
  if(busy||channel)return;
