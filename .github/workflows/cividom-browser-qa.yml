@@ -22,6 +22,9 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Run CIVIDOM mobile simulation
         run: |
+          python3 scripts/vendor-power-crates.py
+          test -s assets/powercrates/pickup-ammo.glb
+          test -s assets/powercrates/elite-locked.glb
           python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/cividom-local.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT

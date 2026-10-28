@@ -87,6 +87,27 @@ try{
  for(let i=0;i<2;i++)assert.ok(compactHUD.metrics[i].right<=compactHUD.metrics[i+1].left+1,'HUD metrics must not overlap');
  assert.match(compactHUD.text||'',/^\d+:\d{2}$/,'the zone countdown must fit mm:ss');
  console.log('CIVIDOM_COMPACT_HUD='+JSON.stringify(compactHUD));
+ let licensedCrates=null;
+ if(!twoDOnly){
+  licensedCrates=await page.evaluate(async()=>{
+   const urls=['/assets/powercrates/pickup-ammo.glb','/assets/powercrates/elite-locked.glb'];
+   const checks=[];
+   for(const u of urls){
+    const response=await fetch(u);
+    const bytes=await response.arrayBuffer();
+    checks.push({url:u,status:response.status,bytes:bytes.byteLength,
+      gltfMagic:Array.from(new Uint8Array(bytes.slice(0,4))).map(n=>String.fromCharCode(n)).join('')});
+   }
+   return checks;
+  });
+  assert.ok(licensedCrates.every(x=>x.status===200&&x.bytes>10000&&x.gltfMagic==='glTF'),
+   'both licensed 3D crate models must be fetched and valid from the local asset bundle');
+  await page.waitForFunction(()=>['ready','partial','fallback'].includes(window.PaperCrate3DStatus),
+   {timeout:22000});
+  const crateStatus=await page.evaluate(()=>window.PaperCrate3DStatus);
+  console.log('CIVIDOM_CRATE_GLBS='+JSON.stringify({status:crateStatus,assets:licensedCrates}));
+  assert.equal(crateStatus,'ready','both CC0 GLB crates must parse inside the same Three.js scene');
+ }
  const elapsed=(Date.now()-started)/1000;
  const frames=await page.evaluate(async()=>new Promise(resolve=>{
   let n=0,first=performance.now();
@@ -97,7 +118,7 @@ try{
  estimatedFps=Math.round(frames.fps*10)/10;
  await mkdir('artifacts',{recursive:true});
  await page.screenshot({path:'artifacts/cividom-mobile-'+(twoDOnly?'2d':'3d')+'.png'});
- const diagnostic={version:'rollback-before-visual-v2',mode:twoDOnly?'2D_ONLY':'2D_PLUS_3D',samples,errors,maxTrail,everOutside,dead,gameClock:lastClock,estimatedFps,elapsed,compactHUD};
+ const diagnostic={version:'rollback-before-visual-v2',mode:twoDOnly?'2D_ONLY':'2D_PLUS_3D',samples,errors,maxTrail,everOutside,dead,gameClock:lastClock,estimatedFps,elapsed,compactHUD,licensedCrates};
  await writeFile('artifacts/cividom-browser-audit-'+(twoDOnly?'2d':'3d')+'.json',JSON.stringify(diagnostic,null,2));
  console.log('CIVIDOM_BROWSER_AUDIT='+JSON.stringify({mode:twoDOnly?'2D_ONLY':'2D_PLUS_3D',maxTrail,everOutside,gameClock:lastClock,estimatedFps,elapsed,errors:errors.slice(0,6),samples:samples.length,dead}));
  assert.ok(lastClock>=.6,'gameplay must advance past initial island exit even under software GPU emulation');
