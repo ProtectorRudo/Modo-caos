@@ -29,7 +29,7 @@ const defs=(()=>{
  s+='<filter id="fp-shadow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4"/></filter>';
  s+='<filter id="fp-glow" x="-90%" y="-90%" width="280%" height="280%"><feGaussianBlur stdDeviation="3"/></filter>';
  s+='<filter id="fp-deep" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="6" stdDeviation="3" flood-color="#060817" flood-opacity=".75"/></filter>';
- s+='</defs>';return s
+ s+='<clipPath id="fp-melon-clip"><circle cx="0" cy="0" r="39"/></clipPath>';s+='</defs>';return s
 })();
 function fruitArt(kind,spin=0){
  const k=skins[kind]?kind:'apple',g='url(#fp-'+k+')';
@@ -40,15 +40,28 @@ function fruitArt(kind,spin=0){
   for(let i=0;i<31;i++){const x=Math.sin(i*2.399)*24,y=-18+(i%6)*9+(i%3)*2;if(Math.abs(x)+Math.abs(y*.36)<43)s+='<ellipse cx="'+n(x)+'" cy="'+n(y)+'" rx="1.9" ry="3.6" fill="#ffefa0" opacity=".82" transform="rotate('+n(x/5)+' '+n(x)+' '+n(y)+')"/>'}
  }else if(k==='watermelon'||k==='boss'){
   s+='<circle r="40" fill="'+g+'" stroke="#b5ffcc" stroke-width="2"/>';
-  for(let i=-3;i<=3;i++)s+='<path d="M'+(i*11)+' -39Q'+(i*11+10)+' 2 '+(i*11)+' 39" stroke="#126748" stroke-width="'+(i%2?6:4)+'" opacity=".78" fill="none"/>';
+  s+='<g clip-path="url(#fp-melon-clip)">';for(let i=-3;i<=3;i++)s+='<path d="M'+(i*11)+' -39Q'+(i*11+10)+' 2 '+(i*11)+' 39" stroke="#126748" stroke-width="'+(i%2?6:4)+'" opacity=".78" fill="none"/>';s+='</g>';
   if(k==='boss')s+='<path d="M-25 -38L-30 -61 -12 -51 0 -70 11 -51 31 -60 25 -38Z" fill="#ffdb63" stroke="#fff3b0" stroke-width="3"/><path d="M-24 -9L-8 -12M7 -12L23 -10" stroke="#092439" stroke-width="5"/><ellipse cx="-13" cy="0" rx="5" ry="8" fill="#091b33"/><ellipse cx="14" cy="0" rx="5" ry="8" fill="#091b33"/><path d="M-10 19Q0 27 12 16" stroke="#123044" stroke-width="4" fill="none"/>';
  }else if(k==='bomb'){
-  s+='<circle r="40" fill="'+g+'" stroke="#ff7582" stroke-width="3"/><ellipse cx="-14" cy="-18" rx="21" ry="11" fill="url(#fp-shine)"/><path d="M-14 -34Q-14 -55 0 -55L9 -55" fill="none" stroke="#6c7794" stroke-width="7"/><path d="M6 -55L15 -65" stroke="#f8aa4b" stroke-width="6"/><path d="M0 -25L25 20H-25Z" fill="#ffca52" stroke="#fee6a6" stroke-width="3"/><text y="13" text-anchor="middle" font-size="28" font-weight="1000" fill="#291f2c">!</text>';
+  s+='<circle r="43" fill="#140d25" stroke="#ff536b" stroke-width="5"/>';
+  s+='<circle r="38" fill="url(#fp-bomb)" stroke="#717c9b" stroke-width="2"/>';
+  s+='<path d="M-16 -36Q-13 -58 5 -56L12 -52" fill="none" stroke="#adb9cb" stroke-width="8"/>';
+  s+='<circle cx="14" cy="-59" r="7" fill="#faffa2"/><path d="M14 -64L21 -79M19 -61L34 -61M10 -65L3 -77" stroke="#ff8f50" stroke-width="3"/>';
+  s+='<path d="M-36 -4Q-3 -44 33 -4" stroke="#ffe377" stroke-width="6" stroke-dasharray="9 6" fill="none"/>';
+  s+='<path d="M-22 4L0 -23L22 4L0 29Z" fill="#fff1a2" stroke="#ff983f" stroke-width="3"/>';
+  s+='<path d="M0 -14V11" stroke="#251529" stroke-width="6"/><circle cy="20" r="4" fill="#251529"/>';
+  s+='<path d="M-26 29Q0 42 25 28" fill="none" stroke="#ff627d" stroke-width="4"/>';
  }else if(k==='lemon'){
   s+='<path d="M-47 0Q-35 -13 -35 -25Q-2 -46 30 -26Q32 -8 48 0Q32 8 33 27Q0 47 -34 26Q-35 14 -47 0Z" fill="'+g+'" stroke="#fff6a3" stroke-width="1.8"/>';
  }else if(k==='apple'||k==='rotten'){
   s+='<path d="M0 -29C-12 -42 -37 -36 -40 -9C-43 19 -25 42 -8 43Q0 40 9 43C28 43 43 16 40 -9C37 -35 14 -45 0 -29Z" fill="'+g+'" stroke="#ffcdcd" stroke-width="1.4"/><path d="M0 -33Q1 -48 9 -53" stroke="#6e5131" stroke-width="6" fill="none"/><path d="M4 -42Q19 -60 36 -43Q21 -29 4 -42Z" fill="#53bf69" stroke="#29804e" stroke-width="1.5"/>';
-  if(k==='rotten')s+='<ellipse cx="13" cy="18" rx="20" ry="12" fill="#4b3155" opacity=".78"/><ellipse cx="-21" cy="-8" rx="12" ry="11" fill="#3e4169" opacity=".69"/>';
+  if(k==='rotten'){
+   s+='<ellipse cx="14" cy="16" rx="24" ry="19" fill="#41304c" stroke="#c1e65c" stroke-width="2" opacity=".92"/>';
+   s+='<ellipse cx="-20" cy="-9" rx="15" ry="14" fill="#54405d" opacity=".93"/>';
+   for(let i=0;i<13;i++){const a=i*2.399,r=10+(i%3)*9;s+='<circle cx="'+n(Math.cos(a)*r)+'" cy="'+n(Math.sin(a)*r)+'" r="'+(2+i%4)+'" fill="'+(i%2?'#b2fc55':'#261d42')+'" opacity=".75"/>'}
+   s+='<path d="M-10 -8L-3 0L-9 9M9 -8L3 0L10 9" stroke="#eaff8b" stroke-width="3" fill="none"/><path d="M-12 22Q0 13 12 22" stroke="#d9fc98" stroke-width="3.8" fill="none"/>';
+   s+='<ellipse cx="-23" cy="20" rx="10" ry="7" fill="#83e668" opacity=".6"/>';
+  }
  }else{
   s+='<circle r="40" fill="'+g+'" stroke="'+(k==='gold'?'#ffe79a':'#fbf6cc')+'" stroke-width="'+(['gold','ice','rainbow'].includes(k)?3:1.8)+'"/>';
   if(k==='orange')s+='<circle r="6" cx="1" cy="-37" fill="#b85a23"/><path d="M-3 -36Q16 -60 30 -40Q15 -28 -3 -36Z" fill="#4caa6c" stroke="#24734d" stroke-width="2"/>';
@@ -166,10 +179,20 @@ function draw(view,origin,scale,objects,mode='playing'){
    seen.push(q);
    const r=clamp(q.r*(o?.kind==='boss'?1.1:1),20,87);
    // fake contact shadow with perspective size, fruit has dimensional bevel + reflections
+   if(q.kind==='bomb'||q.kind==='rotten'){
+    const danger=q.kind==='bomb',pulse=.70+.25*Math.sin(t*(danger?16:6)+q.id),col=danger?'#ff566a':'#cbff43';
+    html+='<circle cx="'+n(q.x)+'" cy="'+n(q.y)+'" r="'+n(r*(1.31+.075*pulse))+'" fill="none" stroke="'+col+'" stroke-width="'+n(3.8*pulse)+'" stroke-dasharray="'+(danger?'11 6':'3 7')+'" opacity="'+n(pulse)+'"/>';
+    html+='<circle cx="'+n(q.x)+'" cy="'+n(q.y)+'" r="'+n(r*1.58)+'" fill="url(#fp-halo)" opacity="'+n(pulse*.18)+'"/>';
+   }
    html+='<g transform="translate('+n(q.x)+' '+n(q.y)+') scale('+n(r/40)+') rotate('+n((o?.rot||0)*10)+')">';
    html+='<circle r="62" fill="url(#fp-halo)" opacity=".45"/>';
    html+=fruitArt(q.kind);
    html+='</g>';
+   if(q.kind==='bomb'||q.kind==='rotten'){
+    const warning=q.kind==='bomb'?'BOMBA':'PODRIDA',bg=q.kind==='bomb'?'#df264a':'#4d5e2c';
+    const tx=n(q.x),ty=n(q.y+r+15),ww=warning==='BOMBA'?53:67;
+    html+='<rect x="'+n(tx-ww/2)+'" y="'+n(ty-11)+'" width="'+ww+'" height="18" rx="8" fill="'+bg+'" stroke="#fff4c8" stroke-width="1.5"/><text x="'+tx+'" y="'+n(ty+2)+'" text-anchor="middle" font-size="10" font-weight="1000" fill="#ffffff" letter-spacing=".7">'+warning+'</text>';
+   }
   }
  }
  // POLISHED EXPLOSIONS: light flash, sliced halves, chromatic shockwave and juicy arcs.
