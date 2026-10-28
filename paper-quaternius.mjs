@@ -186,8 +186,17 @@ export function animateHuman(T,actor,t,mode='idle',mirror=false){
   turn('head',0,Math.sin(phase*.27)*.03,0);
  }
 }
-export function initializeHumanRig(base){
+export function initializeHumanRig(base,heroIndex=0){
  const bones=findBones(base),rest={};
  for(const [name,bone] of Object.entries(bones))rest[name]=bone.quaternion.clone();
+ // Each clone owns its material; a recolour never affects another player's rig.
+ const palette=HUMAN_HEROES[Math.max(0,Math.min(HUMAN_HEROES.length-1,heroIndex|0))];
+ base.traverse(n=>{
+  if(!n.isSkinnedMesh)return;
+  const original=n.material;
+  const tint=(m)=>{const c=m.clone();if(c.color)c.color.set(palette.skin);return c;};
+  n.material=Array.isArray(original)?original.map(tint):tint(original);
+  n.frustumCulled=false; // animated limbs must not disappear at the camera edge.
+ });
  return{humanBones:bones,humanRest:rest};
 }
