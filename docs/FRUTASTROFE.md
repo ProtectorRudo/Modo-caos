@@ -90,3 +90,27 @@ Tras probar el reactor terrestre en Android, se detectó: las frutas salían del
 - **Se eliminan consultas a `getBoundingClientRect` durante trazado de cada disparo**. La boca del arma se aproxima por la geometría fija del HUD. La animación de arma y sonido siguen sin bloqueo.
 - **Verificación de navegador real**: Playwright móvil comprueba canvas, frutas proyectadas, pausa, 60 segundos, múltiples disparos y una ráfaga de 1,8 segundos con proyección espacial actualizada a 20 fps. Se registran tiempos de dibujo en milisegundos y el avance del reloj durante el disparo.
 - **Límite importante**: las pruebas Chrome automatizadas usan WebXR simulado (no un dispositivo Android ARCore). No se debe garantizar que desapareció la ralentización física hasta recibir una prueba del teléfono real.
+
+## Auditoría visual JUICEVERSE v3 · 28/10/2026
+
+Motivación: las capturas reales mostraban frutas planas con contornos gruesos, una plataforma enorme tipo rectángulo y un bláster parcialmente oculto por la arena. Los efectos ya gustaban al jugador, de modo que el objetivo fue aumentar calidad visual **sin arriesgar los FPS de Android**.
+
+### Nuevo arte
+- Nuevo módulo `frutastrofe-premium-art.js` con **11 sprites de alta resolución 256×256**, prerenderizados/cached en Canvas: frutilla con semillas y hojas, naranja con piel porosa, manzana, limón, sandía con vetas, dorada, hielo, arcoíris, bomba blindada con pantalla de advertencia, fruta podrida con marcas de toxicidad y jefe con corona/expresión.
+- Simulación de iluminación volumétrica, specular, sombra suave y oclusión ambiental precalculadas en los sprites; nada de filtros caros o geometría GLB durante cada fotograma. Mejora estética sin afirmar que sea fotogrametría o render PBR en tiempo real.
+- Arena AR compacta hexagonal con volumen lateral, acero sombreado, grabados discretos, bordes de energía y puntos LED. Sombras de contacto calculadas desde coordenadas del mundo al pie de cada fruta.
+- Portal flotante ahora tiene aro energético, placas luminosas segmentadas, núcleo iluminado y movimiento orbital. Permanece en coordenadas del mundo AR, nunca en el HUD.
+- Nuevo Juice Blaster MK II original: cromado, carcasa blindada, cañón iluminado y depósito de energía; ubicado delante del Canvas AR, debajo del HUD. La boca sigue sirviendo de origen al haz.
+- HUD reducido y reformateado con cristales translúcidos, tipografía pequeña, barras finas, retícula legible y disparador con mejor contraste.
+- No se cambió el core de 60 segundos, las seis oleadas, puntería, score, anclaje de Hit Test ni modo exclusivo AR.
+- Costo aproximado de dibujo en una prueba automatizada de Chromium: alrededor de 0,43 ms por fotograma antes del pulido final. Los resultados proceden de software/QA simulado, no de un celular físico. Medir dispositivo real.
+
+### Investigación de assets gratuitos
+Se revisaron Kenney Food Kit (CC0: https://kenney.nl/assets/food-kit), Quaternius Ultimate Food Pack (CC0: https://quaternius.com/packs/ultimatefood.html), Poly Haven (CC0: https://polyhaven.com/). No se importaron GLB externos: el motor de Frutástrofe usa Canvas 2D sobre la cámara real; cargar modelos 3D en tiempo real habría reabierto el problema de objetos AR invisibles y costo de GPU, y las siluetas entre packs no tenían una identidad lo bastante homogénea. El arte incluido es original y generado por código sin descargas de usuario.
+
+### Validación antes de entrega
+- Node: reglas y regresiones, sprites premium con sintaxis JS válida.
+- Chromium móvil: 11 sprites de 256px, disparos y explosiones, cámara AR simulada con traslación comprobada, menú AR-only, pausa, HUD y más de 1,8 s de ráfaga continua.
+- CDN público: mismas rutas/archivos reproducidos desde un commit Git inmutable.
+- Pendiente **prueba real con ARCore físico**: encuadre del portal, tamaño de plataforma, saturación de color al aire libre, FPS y estabilidad de sombras.
+- No modificar producción original, repositorio main ni Supabase hasta validar un preview.
