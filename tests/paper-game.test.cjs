@@ -379,7 +379,7 @@ test('original Six-Seven dance drives genuine arm bones on two 3D showdown chara
  const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
  assert.match(renderer,/function danceBones\(item,seconds,mirror\)/);
  assert.match(renderer,/upperarm/);
- assert.match(renderer,/bone\.quaternion\.multiply\(swing\)/);
+ assert.match(renderer,/bone\.quaternion\.premultiply\(/);
  assert.match(renderer,/function syncVS\(state,dt\)/);
  assert.match(renderer,/window\.PaperVSReady=true/);
  assert.match(source,/id="versus3dCanvas"/);
@@ -390,4 +390,16 @@ test('showdown preloads GLBs while the countdown is running',()=>{
  assert.match(source,/previewing:mode==='versus'/);
  assert.match(renderer,/state\.playing\|\|state\.previewing/);
  assert.match(source,/function launchMatch\(\)/);
+});
+
+test('leaderboard portraits and scores stay visible on compact mobile',()=>{
+ assert.doesNotMatch(source,/#rank \.rankrow span:not\(\.rankAvatar\)\{display:none\}/);
+ assert.match(source,/#rank \.rankrow \.rankName\{display:block!important/);
+ assert.match(source,/#rank \.rankrow b\{display:block/);
+});
+test('in-game purchased Six Seven forwards emote choice to live 3D arm bones',()=>{
+ const mod=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ assert.match(source,/emoteId:p\.id===0\?wardrobe\.equipped\.emote/);
+ assert.match(mod,/p\.emoteId==='emote_sixseven'/);
+ assert.match(mod,/findArmRig\(base\)/);
 });
