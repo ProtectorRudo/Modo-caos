@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/frutastrofe-cdn.yml'
       - 'frutastrofe.html'
+      - 'docs/FRUTASTROFE.md'
       - 'frutastrofe-*.js'
       - 'tests/frutastrofe-browser.cjs'
   workflow_dispatch:
