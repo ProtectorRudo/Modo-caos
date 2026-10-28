@@ -79,6 +79,23 @@ function chooseAnimation(gltf,kind){
  const pattern=kind==='run'?/run|walk|move|sprint/i:kind==='emote'?/dance|cheer|wave|celebrat|push|jump/i:/idle|iddle|breath|stand/i;
  return candidates.find(a=>pattern.test(a.name))||candidates[0];
 }
+function findArmRig(mesh){
+ const arms={left:null,right:null},forearms={left:null,right:null};
+ mesh.traverse(n=>{
+  if(!n.isBone)return;
+  const name=n.name.toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(/upperarm/.test(name)){
+   if(/l$/.test(name)&&!arms.left)arms.left=n;
+   if(/r$/.test(name)&&!arms.right)arms.right=n;
+  }
+  if(/forearm/.test(name)){
+   if(/l$/.test(name)&&!forearms.left)forearms.left=n;
+   if(/r$/.test(name)&&!forearms.right)forearms.right=n;
+  }
+ });
+ return{arms,forearms};
+}
+
 function instantiate(person){
  const hero=person.hero;
  const asset=sourceAssets[hero];if(!asset)return null;
@@ -95,7 +112,7 @@ function instantiate(person){
  const run=chooseAnimation(asset,'run'),idle=chooseAnimation(asset,'idle'),emote=chooseAnimation(asset,'emote');
  const actions={};
  if(mixer)for(const [key,clip] of [['run',run],['idle',idle],['emote',emote]])if(clip){actions[key]=mixer.clipAction(clip);actions[key].setLoop(THREE.LoopRepeat);}
- const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6};
+ const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...findArmRig(base)};
  scene.add(root);instances.set(person.id,instance);
  window.Paper3DReady[person.id]=true;
  return instance;
@@ -160,7 +177,7 @@ function sync(dt){
     else if(action.isRunning())action.stop();
    }
   }else{item.root.position.y+=Math.sin(state.clock*9+item.phase)*1.8;}
-  if(p.id===0)updateOutfit(item,state.outfit);
+  if(p.id===0){updateOutfit(item,state.outfit);if(p.emoting&&p.emoteId==='emote_sixseven')danceBones(item,state.clock,false);}
  }
  for(const id of instances.keys())if(!all.has(id))destroyInstance(id);
  renderer.render(scene,camera);
@@ -199,18 +216,7 @@ function vsActor(hero){
  const clip=chooseAnimation(asset,'idle');
  const action=mixer&&clip?mixer.clipAction(clip):null;
  if(action)action.play();
- const arms={left:null,right:null},forearms={left:null,right:null};mesh.traverse(n=>{
-  if(!n.isBone)return;
-  const name=n.name.toLowerCase().replace(/[^a-z0-9]/g,'');
-  if(/upperarm/.test(name)){
-    if(/l$/.test(name)&&!arms.left)arms.left=n;
-    if(/r$/.test(name)&&!arms.right)arms.right=n;
-  }
-  if(/forearm/.test(name)){
-    if(/l$/.test(name)&&!forearms.left)forearms.left=n;
-    if(/r$/.test(name)&&!forearms.right)forearms.right=n;
-  }
- });
+ const {arms,forearms}=findArmRig(mesh);
  return {hero,root,mesh,mixer,action,arms,forearms,phase:Math.random()*6};
 }
 function clearVSActors(){
