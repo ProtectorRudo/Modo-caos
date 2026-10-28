@@ -20,13 +20,10 @@ jobs:
           persist-credentials: false
       - name: Fetch and verify original Styloo 3D characters
         run: python3 scripts/vendor-styloo.py
-        continue-on-error: true # Other Modo Caos games must still publish if upstream is temporarily down
       - name: Build GitHub Pages path-safe copy
         run: python3 scripts/build-pages.py
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
+      - name: Verify all CIVIDOM licensed assets before publishing
+        run: python3 -c 'import json; d=json.load(open("_site/cividom-health.json")); assert d["ready_assets"], d'
       - name: Upload arcade artifacts
         uses: actions/upload-pages-artifact@v4
         with:
