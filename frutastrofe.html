@@ -29,6 +29,18 @@
 #hud .hudGoal{background:#06162bdc;border-color:#7bf5e244;}
 #hud .fire{width:95px;height:95px;font-size:16px;box-shadow:inset 0 5px 15px #fff6,0 0 0 5px #ff427648,0 8px 0 #771a4c,0 15px 35px #ff447e77;}
 @media(max-width:760px){#weapon{bottom:-22px;left:48%;width:clamp(140px,43vw,180px)}#hud .fire{width:86px;height:86px}}
+
+/* JUICE BLASTER MK II — bright, quick tactile feedback */
+#weapon{filter:drop-shadow(0 11px 15px #03091eaa) drop-shadow(0 0 11px #46dcffd9);bottom:-9px;left:46%;width:clamp(150px,42vw,196px)}
+#weapon.firing{animation:juice-recoil .115s cubic-bezier(.15,.85,.2,1)}
+#weapon.firing #gunFlash{animation:juice-flash .105s ease-out}
+@keyframes juice-recoil{0%{transform:translateX(-50%) rotate(-6deg)}22%{transform:translateX(-50%) translateY(9px) rotate(-3deg) scale(.985)}100%{transform:translateX(-50%) rotate(-6deg)}}
+#hud .fire.is-firing{background:radial-gradient(circle at 45% 30%,#fff8b8 0%,#f0ff60 29%,#14dcd9 60%,#146cba 100%);border-color:#edffbd;box-shadow:0 0 0 6px #91edfc66,0 0 34px #50e8ff99,0 7px 0 #104070;transform:translateY(3px) scale(.96)}
+#crosshair.shoot-hit:before{animation:ret-hit .17s ease-out;border-color:#beff6d}
+#crosshair.shoot-miss:before{animation:ret-miss .15s ease-out;border-color:#6feaff}
+@keyframes ret-hit{0%{transform:scale(1.6);box-shadow:0 0 19px 8px #b4ff5b99}100%{transform:scale(1);box-shadow:none}}
+@keyframes ret-miss{0%{transform:scale(.66)}100%{transform:scale(1)}}
+@media(max-width:760px){#weapon{bottom:-19px;left:45%;width:clamp(153px,46vw,195px)}}
 </style></head><body>
 <div id="view" aria-label="Escena tridimensional de frutas"></div><svg id="arWorld" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;overflow:visible"></svg>
 <div id="home" class="shell">
@@ -78,7 +90,7 @@
 </svg>
 <div class="gun-name">JUICE BLASTER <b>∞</b></div>
 </div>
-<div id="hud" class="shell"><div><div class="hudTop"><div class="hudCard"><small>PUNTOS</small><strong class="yellow" id="hudScore">0</strong></div><div class="hudCard"><small>COMBO</small><strong id="hudCombo">×1</strong></div><div class="hudCard"><small>TIEMPO</small><strong id="hudTime">60</strong></div><div class="hudCard"><small>RÉCORD</small><strong id="hudBest">0</strong></div></div><div class="hudGoal"><div class="goalLabel"><span id="goalName">OBJETIVO</span><span id="goalNums">0 / 0</span></div><div class="meter"><i id="goalBar"></i></div></div></div><div id="crosshair"></div><div id="floating"></div><div class="bottomHud"><div><button id="pauseBtn" class="quietBtn">Ⅱ PAUSA</button><button id="recenterBtn" class="quietBtn" style="display:none;margin-left:6px">⌖ RECENTRAR</button><div class="infoBox" id="playTip">TOCÁ UNA FRUTA PARA DISPARAR · EVITÁ LAS BOMBAS</div></div><button id="fireBtn" class="fire" aria-label="Disparar">¡PUM!</button></div></div>
+<div id="hud" class="shell"><div><div class="hudTop"><div class="hudCard"><small>PUNTOS</small><strong class="yellow" id="hudScore">0</strong></div><div class="hudCard"><small>COMBO</small><strong id="hudCombo">×1</strong></div><div class="hudCard"><small>TIEMPO</small><strong id="hudTime">60</strong></div><div class="hudCard"><small>RÉCORD</small><strong id="hudBest">0</strong></div></div><div class="hudGoal"><div class="goalLabel"><span id="goalName">OBJETIVO</span><span id="goalNums">0 / 0</span></div><div class="meter"><i id="goalBar"></i></div></div></div><div id="crosshair"></div><div id="floating"></div><div class="bottomHud"><div><button id="pauseBtn" class="quietBtn">Ⅱ PAUSA</button><button id="recenterBtn" class="quietBtn" style="display:none;margin-left:6px">⌖ RECENTRAR</button><div class="infoBox" id="playTip">TOCÁ UNA FRUTA PARA DISPARAR · EVITÁ LAS BOMBAS</div></div><button id="fireBtn" class="fire" aria-label="Disparar; mantené presionado para ráfaga">¡PUM!</button></div></div>
 <div id="readyOverlay" class="shell"><div class="modal"><div class="eyebrow" id="readyEyebrow">NIVEL 01</div><h2 id="readyTitle">PRIMER CHORRO</h2><p id="readyDescription">Apuntá y dispará. ¡Tres frutas iguales hacen un combo!</p><button id="goBtn" class="cta">▶ ¡VAMOS!</button><button id="readyBack" class="cta alt">‹ VOLVER AL MENÚ</button></div></div>
 <div id="pausePanel" class="shell"><div class="modal"><div class="eyebrow">DESCANSO TÉCNICO</div><h2>EN PAUSA</h2><p>Respirá, elegí tu próxima combinación y volvé por más jugo.</p><button id="resumeBtn" class="cta">▶ CONTINUAR</button><button id="quitBtn" class="cta alt">SALIR AL MENÚ</button></div></div>
 <div id="results" class="shell"><div class="modal"><div class="eyebrow" id="resultTop">RONDA FINALIZADA</div><div class="stars" id="resultStars">★★★</div><h2 id="resultTitle">¡QUÉ JUGADA!</h2><div id="resultScore" class="resultScore">0</div><div class="awardRow"><div>PRECISIÓN<b id="resultAccuracy">0%</b></div><div>CADENAS<b id="resultChains">0</b></div><div>MONEDAS<b id="resultCoins">+0</b></div></div><button id="nextBtn" class="cta">▶ SIGUIENTE NIVEL</button><button id="replayBtn" class="cta secondary">↻ REVANCHA</button><button id="shareBtn" class="cta alt">↗ COMPARTIR RETO</button><button id="menuBtn" class="cta alt">VOLVER AL MENÚ</button></div></div>
