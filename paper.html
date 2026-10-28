@@ -921,9 +921,8 @@ function refreshBattleHud(){
  const p=game.people[0],active=p&&p.powerUntil>clock;
  $('powerStatus').textContent=active?'✦ '+p.powerKind+' '+Math.ceil(p.powerUntil-clock)+'s':'🎁 CAJAS CON PODERES';
  $('powerStatus').classList.toggle('active',!!active);
- const sec=Math.max(0,Math.ceil(18-clock));
- $('stormStatus').textContent=clock<18?'⚡ TORMENTA EN '+sec+'s':
-  game.storm.remaining>0?'⚡ CÍRCULO '+Math.round(game.storm.radius/R*100)+'%':'⚡ CÍRCULO FINAL';
+ const zone=stormZoneState();
+ $('stormStatus').textContent=zone.active?'⚡ CERRANDO '+Math.ceil(zone.remaining)+'s':zone.next?'⚡ PRÓXIMA ZONA '+Math.ceil(zone.remaining)+'s':'⚡ ZONA FINAL';
 }
 
 function territoryLoops(v){
@@ -1088,11 +1087,11 @@ function clearTrail(p){
  p.trailCells=[];p.trailPoints=[];p.trailSeen.clear();p.lastCell=-1;p.outside=false;
 }
 function death(p,killer=-1){
- if(!p.alive||(killer>=0&&killer!==p.id&&(clock<p.protectedUntil||clock<p.shieldUntil)))return;
+ if(!p.alive||(killer>=0&&killer!==p.id&&clock<p.shieldUntil))return; // Only active SHIELD blocks trail kills.
  clearTrail(p);p.alive=false;
  if(p.id!==0){for(let k=0;k<SIZE;k++)if(land[k]===p.id+1)land[k]=0;}
  burstAt(p.x,p.y,COLORS[(p.id+settingColor)%12],28,100);dropMystery(p);updateMap();if(killer>=0&&killer!==p.id){const attacker=game.people[killer];attacker.kills++;if(killer===0){game.kills++;game.defeated.add(p.id);game.earnedCoins+=awardCoins(25);celebrateAt(attacker,'kill');popup('¡ELIMINACIÓN! +25 🪙');audio('kill');vibrate(30);}}
- if(p.id===0){audio('death');vibrate([80,70,110]);end(false);}else{p.respawn=clock+random(1.8,3.8);countAreas();if(game.defeated.size===11)end(true);}
+ if(p.id===0){audio('death');vibrate([80,70,110]);end(false);}else{p.respawn=Infinity;countAreas();if(game.people.filter(q=>q.alive).length===1&&game.people[0].alive)end(true);}
 }
 function respawn(p){
  const pos=spawnPoint();p.x=pos.x;p.y=pos.y;p.angle=random(-Math.PI,Math.PI);p.speed=random(117,138);p.turn=random(2.65,3.6);p.alive=true;p.stage=0;p.goal=null;p.thinking=0;p.protectedUntil=clock+1.8;p.powerKind=null;p.powerUntil=0;p.shieldUntil=0;
@@ -1141,7 +1140,7 @@ function capture(p){
  if(bonus>0&&increase>0)celebrateAt(p,'capture');
  const points=Math.round(increase*100/landCount*10)/10;game.lastArea=p.area;
  if(points>=.15){popup('+'+points.toFixed(1)+'%');audio('capture');vibrate(25);}if(game.people[0].score>game.record)game.record=game.people[0].score;
- if(game.people[0].score>=99.8){end(true);return;}}
+ /* No win based on conquered area. */}
 }
 function markTrail(p,k){
  if(p.lastCell===k)return;
@@ -1204,7 +1203,7 @@ function chooseBotGoal(p){
  p.goalAt=clock;
 }
 function stepBot(p,dt){
- if(!p.alive){if(clock>=p.respawn&&game.people[0].score<85)respawn(p);return;}
+ if(!p.alive)return; // Battle Royale: defeated bots never respawn.
  p.thinking-=dt;
  if(!p.goal||dist(p,p.goal)<27||p.thinking< -6.5){chooseBotGoal(p);p.thinking=0;}
  if(p.outside&&p.trailCells.length>(p.style===1?20:31)&&p.stage!==3){p.stage=3;p.goal=nearestHome(p);p.goalAt=clock;}
@@ -1243,7 +1242,7 @@ function step(dt){
  }
  }
  if(mode!=='play')return;
- for(let i=1;i<12;i++)stepBot(game.people[i],dt);
+ for(let i=1;i<12;i++){stepBot(game.people[i],dt);if(mode!=='play')return;}
  camX+=(p.x-camX)*Math.min(1,dt*7.6);camY+=(p.y-camY)*Math.min(1,dt*7.6);
  if(msgTime&&clock>msgTime){$('msg').classList.remove('show');msgTime=0;}
  if(clock-lastHud>.28){countAreas();showHud();lastHud=clock;}
@@ -1474,9 +1473,9 @@ function end(win){
  const reward=Math.min(80,Math.round(p.score*2)+(win?35:0));
  game.earnedCoins+=awardCoins(reward);$('matchCoins').textContent='🪙 Ganaste '+game.earnedCoins+' monedas en esta partida';
  refreshWallet();
- $('finaltitle').textContent=win?(game.defeated.size===11?'¡DERROTASTE A TODOS!':'¡DOMINASTE EL MAPA!'):'TE CORTARON LA ESTELA';
- $('finalscore').textContent=p.score.toFixed(1)+'%';$('finaldesc').textContent=win?(game.defeated.size===11?'¡Eliminaste a los once rivales al menos una vez!':'¡Conquistaste casi todo el mapa!'):'Una estela descubierta es una invitación para tus rivales. ¡Volvé por la revancha!';
- $('finalkills').textContent=game.kills;$('finalbest').textContent=best.toFixed(1)+'%';$('finalrank').textContent='#'+(1+game.people.filter(q=>q.id!==0&&q.area>p.area).length);
+ $('finaltitle').textContent=win?'¡ÚLTIMO SUPERVIVIENTE!':'¡QUEDASTE ELIMINADO!';
+ $('finalscore').textContent=p.score.toFixed(1)+'%';$('finaldesc').textContent=win?'¡Sobreviviste a todos los rivales!':'Gana el último que sigue con vida. ¡Volvé por la revancha!';
+ $('finalkills').textContent=game.kills;$('finalbest').textContent=best.toFixed(1)+'%';$('finalrank').textContent=win?'#1':'#'+(1+game.people.filter(q=>q.alive).length);
  $('result').classList.remove('hidden');$('hud').style.display='none';
 }
 function readBest(){try{return Number(localStorage.getItem('territoryloop_best'))||0;}catch(e){return 0;}}
