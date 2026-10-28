@@ -328,18 +328,18 @@ function syncVS(state,dt){
   vsCamera.left=-width/2;vsCamera.right=width/2;vsCamera.top=height/2;vsCamera.bottom=-height/2;
   vsCamera.updateProjectionMatrix();
   // Keep each animal inside its half, regardless of the model's proportions.
-  const maxVisualWidth=width*.34,maxVisualHeight=height*.43;
+  const maxVisualWidth=width*.42,maxVisualHeight=height*.66;
   const arrival=Math.max(0,1-state.vsSeconds/.6);
   for(let i=0;i<2;i++){
    const actor=vsCharacters[i];
    const side=i===0?-1:1;
-   const sizeFactor=Math.min(2.1,maxVisualWidth/Math.max(32,actor.dimensions.x),maxVisualHeight/Math.max(45,actor.dimensions.y));
+   const sizeFactor=Math.min(3.4,maxVisualWidth/Math.max(32,actor.dimensions.x),maxVisualHeight/Math.max(45,actor.dimensions.y));
    actor.root.scale.setScalar(sizeFactor);
-   actor.root.position.set(side*(width*.245+arrival*width*.37),-height*.22+Math.sin(state.vsSeconds*6+i)*2.2,0);
+   actor.root.position.set(side*(width*.245+arrival*width*.37),-height*.22+Math.sin(state.vsSeconds*3.4+i)*1.6,0);
    actor.root.rotation.y=(i===0?-.13:.13)+Math.sin(state.vsSeconds*3.5+i)*.12;
    // Gentle whole-body six-seven sway; never accumulate limb rotations.
-   actor.root.rotation.z=Math.sin(state.vsSeconds*4.6+i*Math.PI)*.10;
-   actor.root.rotation.x=Math.sin(state.vsSeconds*3.4+i)*.045;
+   actor.root.rotation.z=Math.sin(state.vsSeconds*2.1+i*Math.PI)*.045;
+   actor.root.rotation.x=Math.sin(state.vsSeconds*1.9+i)*.025;
    if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
    if(actor.mascotRig)animateMascot(actor,state.vsSeconds,'dance',i===1);
    else danceBones(actor,state.vsSeconds,i===1);
