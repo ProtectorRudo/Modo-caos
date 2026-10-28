@@ -260,7 +260,7 @@ if(params.has('qa'))window.__frutaQA={
  shootTest:()=>{
    // Browser QA fixture only: when the sky is between waves, introduce a known
    // visible apple rather than treating natural absence as an AR render failure.
-   let t=arTargets.find(x=>x.y>120&&x.y<innerHeight-100&&!['bomb','rotten'].includes(x.kind));
+   let t=arTargets.find(x=>x.y>120&&x.y<innerHeight-100&&!['bomb','rotten'].includes(x.kind)&&g.objects.some(o=>o.id===x.id&&!o.dead));
    if(!t){
      const q=g.spawn('apple');
      const visible=arTargets.find(x=>x.y>120&&x.y<innerHeight-100);
