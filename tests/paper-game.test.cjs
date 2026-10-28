@@ -186,7 +186,7 @@ test('survival HUD shows eliminations and players alive, never a ranking by area
  assert.equal(g.get('rank').innerHTML,'');
  assert.equal(String(g.get('survivorsCount').textContent),'25');
  assert.equal(String(g.get('survivalKills').textContent),'0');
- assert.match(g.get('nextZoneLabel').textContent,/SIGUIENTE ZONA/);
+ assert.match(g.get('nextZoneLabel').textContent,/^\d+:\d{2}$/);
  assert.match(source,/id="survivalPanel"/);
 });
 test('connected territory is converted to coherent vector boundary loops',()=>{
@@ -545,7 +545,7 @@ test('the survivor count remains valid even before the GLB assets load',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(7);
  assert.equal(g.get('rank').innerHTML,'');
  assert.equal(g.get('survivorsCount').textContent,25);
- assert.match(g.get('nextZoneLabel').textContent,/ZONA/);
+ assert.match(g.get('nextZoneLabel').textContent,/^\d+:\d{2}$/);
 });
 test('original fallbacks remain available while the official CIVIDOM Chibi collection is featured',()=>{
  const mascots=fs.readFileSync(path.join(__dirname,'..','paper-mascots.mjs'),'utf8');
@@ -639,4 +639,32 @@ test('APK longer storm pacing gives 45 seconds safe opening and seven phases thr
  assert.ok(h.getGame().storm.radius<h.R);
  h.setClock(55.1);h.updateStorm(0);
  assert.equal(h.getGame().storm.stages[0].radius,h.getGame().storm.radius);
+});
+
+test('compact Fortnite-inspired minimap uses square map, safe rings and one status strip',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'..','paper-mini-hud.css'),'utf8');
+ assert.match(source,/paper-mini-hud\.css\?v=1/);
+ assert.match(source,/class="cvMiniMapFrame"/);
+ assert.match(source,/id="miniTimeMetric"/);
+ assert.match(source,/class="survivalStats" aria-label="Tiempo/);
+ assert.match(source,/id="survivorsCount"/);
+ assert.match(source,/id="survivalKills"/);
+ assert.match(css,/width:clamp\(108px,30vw,132px\)/);
+ assert.match(css,/grid-template-columns:1\.2fr 1fr 1fr/);
+ assert.match(css,/#hud #survivalPanel #mini/);
+ assert.match(css,/border-radius:0!important/);
+ assert.match(source,/mc\.fill\('evenodd'\)/);
+ assert.match(source,/cvMiniArrow\(/);
+ assert.match(source,/cvPrepareMiniBackground\(\)/);
+});
+test('zone countdown stays mm:ss, players and kills remain live in compact HUD',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const h=g.win.__paperTest;
+ assert.equal(g.get('nextZoneLabel').textContent,'0:45');
+ assert.equal(g.get('survivorsCount').textContent,25);
+ assert.equal(g.get('survivalKills').textContent,0);
+ h.setClock(40);
+ h.updateStorm(0);
+ // The timer is presentation only; it never adjusts the storm's timeline.
+ assert.deepEqual(h.getGame().storm.stages.map(x=>x.at),[45,75,105,135,165,195,225]);
 });
