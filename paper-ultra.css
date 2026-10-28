@@ -99,3 +99,57 @@
 @media(prefers-reduced-motion:reduce){
  #hud #survivalPanel,#hud #emoteButton,#hud #pause{transition:none!important;animation:none!important}
 }
+
+/* CIVIDOM visual audit V2 — Android-first clarity pass. */
+html,body{background:#102640!important;overflow:hidden!important}
+#game{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;z-index:0!important}
+#characterStage{width:100vw!important;height:100dvh!important}
+#hud #survivalPanel{
+ width:105px!important;max-width:29vw!important;top:max(7px,env(safe-area-inset-top) + 6px)!important;
+ right:7px!important;border:1px solid rgba(164,220,255,.5)!important;border-radius:16px!important;
+ padding:5px!important;gap:3px!important;
+ background:linear-gradient(150deg,rgba(11,27,55,.9),rgba(19,42,71,.94))!important;
+ box-shadow:0 4px 14px #04102a55,inset 0 1px #ffffff2b!important
+}
+#hud #survivalPanel #mini{
+ width:100%!important;border-radius:50%!important;
+ border:1px solid #9fdbec!important;box-shadow:0 0 0 1px #123a62!important
+}
+#hud #survivalPanel .survivalNext{
+ padding:3px 0 0!important;color:#f6df9a!important;
+ font:850 8px/1.12 system-ui,-apple-system,Arial,sans-serif!important;
+ letter-spacing:0!important;white-space:normal!important
+}
+#hud #survivalPanel .survivalPhase{
+ font-size:8px!important;color:#c0dcf4!important;letter-spacing:.5px!important
+}
+#hud #survivalPanel .survivalStats{
+ top:max(10px,env(safe-area-inset-top) + 8px)!important;left:8px!important;
+ gap:5px!important;width:auto!important
+}
+#hud #survivalPanel .survivalStats span{
+ padding:7px 7px!important;min-width:70px!important;
+ font-size:9px!important;background:linear-gradient(165deg,#1d395cdb,#0d2547ec)!important;
+ border:1px solid #7ea9d87d!important;border-radius:12px!important;
+ box-shadow:0 3px 9px #02122951!important
+}
+#hud #survivalPanel .survivalStats b{font-size:15px!important;color:#ffdc89!important}
+#hud #powerStatus:not(.active){display:none!important}
+#hud #powerStatus.active{bottom:max(71px,env(safe-area-inset-bottom) + 65px)!important}
+#hud #controls{
+ bottom:max(14px,env(safe-area-inset-bottom) + 9px)!important;
+ padding:7px 11px!important;background:rgba(18,43,68,.75)!important;
+ font-weight:800!important;letter-spacing:.45px!important;
+ border:1px solid #8ebdd258!important;box-shadow:0 2px 9px #06152944!important;
+ opacity:.83!important
+}
+#hud #emoteButton,#hud #pause{
+ box-shadow:0 2px 0 #0b2b47aa,0 3px 10px #06152c6e,inset 0 1px #ffffff74!important
+}
+#hud #rewardToast{max-width:48vw!important;min-width:120px!important}
+@media(max-width:370px){
+ #hud #survivalPanel{width:95px!important;max-width:28vw!important;right:5px!important}
+ #hud #survivalPanel .survivalStats span{min-width:64px!important;padding:6px 6px!important}
+ #hud #survivalPanel .survivalStats b{font-size:13px!important}
+ #hud #controls{font-size:8px!important;padding:6px 7px!important}
+}
