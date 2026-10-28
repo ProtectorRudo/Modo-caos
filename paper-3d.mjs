@@ -34,7 +34,7 @@ window.PaperMenuReady=false;
 let scene,camera,renderer,started=false,failed=false,last=0,activeHero=-1;
 try{
  renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'low-power',premultipliedAlpha:false});
- renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.15));
  renderer.setClearColor(0,0);
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -152,8 +152,8 @@ function startLoading(){
     const available=CHIBI_ROSTER.map((h,i)=>h.model===name?i:-1).filter(i=>i>=0);
     for(const i of available){sourceAssets[i]={...asset,chibi:true,model:name};assetVersions[i]++;}
     success++;window.PaperChibiStatus='partial';
-    // Photo portraits update progressively with each rigged GLB load.
-    setTimeout(snapshotChibiPortraits,60);
+    // Portraits are generated after loading, only when the battle is idle.
+
    }).catch(error=>{
     console.warn('Chibi model could not load, retaining gameplay fallback:',name,error);
     for(let i=0;i<CHIBI_ROSTER.length;i++)if(CHIBI_ROSTER[i].model===name)
@@ -214,18 +214,30 @@ function adjustSize(width,height){
   renderer.setSize(width,height,false);
  }
 }
-function sync(dt){
+let lastActorRender=-1e5,portraitsAttempted=false;
+function sync(dt,ms){
  if(failed)return;
  const state=getState();
  if(state&&(state.playing||state.previewing||state.menuing||state.shopping))startLoading();
  if(!state||!state.playing){
+  // Generate portraits at most once, after all rigged models load, off the battlefield.
+  if(!portraitsAttempted&&window.PaperChibiStatus==='ready'){
+   portraitsAttempted=true;
+   setTimeout(()=>{
+    if(!getState()?.playing)snapshotChibiPortraits();
+    else portraitsAttempted=false;
+   },0);
+  }
   // Avoid a second full-screen WebGL clear every VS frame on mobile devices.
   // One clear is enough when leaving the match, freeing GPU for smooth dancing.
   if(mainGameVisible){for(const p of instances.values())p.root.visible=false;renderer.clear();mainGameVisible=false;}
   return;
  }
+ if(ms-lastActorRender<38)return;
+ lastActorRender=ms;
  mainGameVisible=true;
  const w=state.screenW,h=state.screenH,zoom=Math.max(.5,state.zoom);
+ const viewX=w/(2*zoom)+105,viewY=h/(2*zoom)+135;
  adjustSize(w,h);
  camera.left=-w/(2*zoom);camera.right=w/(2*zoom);
  camera.top=h/(2*zoom);camera.bottom=-h/(2*zoom);
@@ -235,10 +247,15 @@ function sync(dt){
  const all=new Set();
  for(const p of state.people){
   all.add(p.id);let item=instances.get(p.id);
-  if(!item||item.hero!==p.hero||item.assetVersion!==assetVersions[p.hero]){if(item)destroyInstance(p.id);item=instantiate(p);}
+  // Don't skin or instantiate invisible bots: distance culling changes rendering only.
+  const inView=p.id===0||(p.alive&&Math.abs(p.x-state.camX)<viewX&&Math.abs(p.y-state.camY)<viewY);
+  if(!p.alive||!inView){if(item)item.root.visible=false;continue;}
+  if(!item||item.hero!==p.hero||item.assetVersion!==assetVersions[p.hero]){
+   if(item)destroyInstance(p.id);
+   item=instantiate(p);
+  }
   if(!item)continue;
-  item.root.visible=!!p.alive;
-  if(!p.alive)continue;
+  item.root.visible=true;
   item.root.position.set(p.x,-p.y+7,0);
   // BIG / SMOLL use the same gameplay modifier in 2D and in the WebGL actors.
   item.root.scale.setScalar(Math.max(.65,Math.min(1.7,p.scale||1))); // visual scale only
@@ -271,7 +288,7 @@ function vsCreate(){
  if(vsRenderer||vsFailure||!vsCanvas)return;
  try{
   vsRenderer=new THREE.WebGLRenderer({canvas:vsCanvas,alpha:true,antialias:true,powerPreference:'low-power',premultipliedAlpha:false});
-  vsRenderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));
+  vsRenderer.setPixelRatio(Math.min(devicePixelRatio||1,1.0));
   vsRenderer.setClearColor(0,0,0);
   vsRenderer.outputColorSpace=THREE.SRGBColorSpace;
   vsRenderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -445,7 +462,7 @@ function syncVS(state,dt){
 function frame(ms){
  requestAnimationFrame(frame);
  const dt=Math.min(.06,(ms-last)/1000||0);last=ms;
- if(!failed)try{const state=getState();sync(dt);if(state?.menuing||state?.shopping)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';document.getElementById('versusStage')?.classList.remove('is-3d');}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
+ if(!failed)try{const state=getState();sync(dt,ms);if(state?.menuing||state?.shopping)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';document.getElementById('versusStage')?.classList.remove('is-3d');}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
   for(const k of Object.keys(window.Paper3DReady))delete window.Paper3DReady[k];
   canvas.style.display='none';}
 }
