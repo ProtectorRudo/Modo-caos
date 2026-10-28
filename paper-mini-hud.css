@@ -97,3 +97,71 @@
  #hud #survivalPanel{width:105px!important;right:6px!important;top:5px!important}
  #hud #survivalPanel .survivalStats{min-height:22px!important;padding:2px!important}
 }
+
+/* CIVIDOM R4 / Pure white cartography and readable labeled battle counters.
+ * Map stays tiny; the status ribbon extends LEFT, not over more playfield height.
+ * All gameplay and Realtime layers are untouched. */
+#hud #survivalPanel .cvMiniMapFrame{background:#fff!important}
+#hud #survivalPanel #mini{background:#fff!important}
+#hud #survivalPanel .survivalStats{
+ align-self:flex-end!important;position:relative!important;
+ width:clamp(145px,41vw,170px)!important;max-width:48vw!important;
+ flex:none!important;min-width:0!important;
+ grid-template-columns:1.42fr 1fr 1fr!important;
+ min-height:42px!important;gap:0!important;
+ padding:4px 3px!important;
+ border:1px solid #9dcaeaad!important;border-radius:8px!important;
+ background:rgba(8,30,58,.96)!important;
+ box-shadow:0 3px 11px #07152782!important;
+}
+#hud #survivalPanel .survivalStats .miniMetric{
+ display:flex!important;flex-direction:column!important;
+ align-items:center!important;justify-content:center!important;
+ gap:2px!important;min-width:0!important;
+ padding:0 2px!important;
+}
+#hud #survivalPanel .survivalStats .miniMetricLabel{
+ display:block!important;position:static!important;
+ font:900 8px/1 system-ui,-apple-system,Arial,sans-serif!important;
+ color:#ccdeee!important;letter-spacing:.35px!important;
+ white-space:nowrap!important;text-shadow:0 1px #041325!important;
+}
+#hud #survivalPanel .survivalStats .miniMetricValue{
+ display:flex!important;align-items:center!important;
+ justify-content:center!important;gap:3px!important;
+ min-height:18px!important;
+}
+#hud #survivalPanel .survivalStats .miniMetricIcon{
+ font:900 11px/1 system-ui,-apple-system,Arial,sans-serif!important;
+ color:#f7fafc!important;
+}
+#hud #survivalPanel .survivalStats .miniMetricTimer .miniMetricIcon{
+ color:#f1d3ff!important;
+}
+#hud #survivalPanel .survivalStats .miniMetric b,
+#hud #survivalPanel .survivalStats #nextZoneLabel{
+ color:#fff!important;
+ font:950 14px/1.12 system-ui,-apple-system,Arial,sans-serif!important;
+ font-variant-numeric:tabular-nums!important;
+ letter-spacing:.1px!important;white-space:nowrap!important;
+}
+#hud #survivalPanel .survivalStats .miniMetricTimer #nextZoneLabel{
+ color:#e6dcff!important;
+}
+#hud #survivalPanel .survivalStats .miniMetricTimer.closing #nextZoneLabel{
+ color:#ffe36c!important;
+}
+@media(max-width:375px){
+ #hud #survivalPanel .survivalStats{
+  width:clamp(144px,44vw,160px)!important;max-width:48vw!important;
+  min-height:40px!important;padding:3px 2px!important;
+ }
+ #hud #survivalPanel .survivalStats .miniMetric{gap:2px!important;padding:0 1px!important}
+ #hud #survivalPanel .survivalStats .miniMetricLabel{font-size:7.6px!important}
+ #hud #survivalPanel .survivalStats .miniMetricIcon{font-size:10px!important}
+ #hud #survivalPanel .survivalStats .miniMetric b,
+ #hud #survivalPanel .survivalStats #nextZoneLabel{font-size:13px!important}
+}
+@media(max-height:660px) and (orientation:landscape){
+ #hud #survivalPanel .survivalStats{min-height:36px!important;padding:2px!important}
+}
