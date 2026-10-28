@@ -1836,6 +1836,15 @@ renderHeroPicker();refreshWallet();
 COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Color '+(i+1));b.style.background=col;b.className=i===settingColor?'active':'';b.onclick=()=>{settingColor=i;document.querySelectorAll('#colors button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('colors').append(b);});
 $('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';
 fit();window.addEventListener('resize',fit);
+// An optional diagnostic HUD helps audit real Android performance without altering gameplay.
+const cvDebug=new URLSearchParams(location.search).has('debug');
+let cvDebugNode=null,cvDebugAt=0,cvDebugFrames=0;
+if(cvDebug&&document.body){
+ cvDebugNode=document.createElement('div');
+ cvDebugNode.id='cividom-debug-overlay';
+ cvDebugNode.style.cssText='position:fixed;z-index:9999;top:max(65px,env(safe-area-inset-top) + 55px);left:6px;max-width:52vw;padding:7px 9px;border-radius:8px;background:#0a183de6;color:#f9edac;font:700 11px/1.4 monospace;pointer-events:none;white-space:pre-line';
+ document.body.appendChild(cvDebugNode);
+}
 let last=performance.now(),acc=0,lastVisualFrame=-1e5,loopErrorCount=0,drawErrorCount=0;
 let frameCount=0,lastFrameCost=0;
 function frame(t){
@@ -1868,6 +1877,14 @@ function frame(t){
   }
  }
  lastFrameCost=performance.now()-started;frameCount++;
+ if(cvDebugNode&&(t-cvDebugAt>850)){
+  const fps=Math.round((frameCount-cvDebugFrames)*1000/Math.max(1,t-cvDebugAt));
+  const me=game?.people?.[0];
+  const perf=window.PaperMascotQA?.();
+  cvDebugNode.textContent='FPS '+fps+' / 60\nRastro '+(me?.trailPoints?.length||0)+' · fuera '+!!me?.outside+
+   '\nMotor '+loopErrorCount+' · dibujo '+drawErrorCount+'\nZona '+Math.floor(clock)+'s · GLB '+(window.PaperChibiStatus||'?');
+  cvDebugAt=t;cvDebugFrames=frameCount;
+ }
 }
 requestAnimationFrame(frame);
 window.CividomPerformance=()=>({
