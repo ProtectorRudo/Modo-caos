@@ -1,36 +1,173 @@
-/* FRUTÁSTROFE · AR world-projected SVG graphics independent of WebGL compositor. */
+/* FRUTÁSTROFE REACTOR 2 · AR spatial vector renderer
+   Everything in the arena is projected from a fixed WebXR floor origin.
+   The visible blaster is a first-person HUD device, never confused with floor geometry. */
 (function(root){'use strict';
-const P=root.FrutaARProjection,$=id=>document.getElementById(id),round=n=>Math.round(n*10)/10;
-const colors={strawberry:['#ff93a5','#f52c56','#9b173f'],apple:['#ffb4a9','#f84250','#ac153e'],orange:['#ffe19a','#ff9a29','#ca4b19'],watermelon:['#acffd8','#21c883','#087553'],lemon:['#ffffb4','#ffe450','#b78b10'],gold:['#fffad0','#ffc735','#c8841c'],ice:['#eaffff','#6dcaff','#2370ae'],rainbow:['#ffb1fa','#a273ff','#5e35ba'],bomb:['#7d83a3','#30334e','#111328'],rotten:['#a1b771','#65823b','#3b4e1a'],boss:['#afffd0','#25b67a','#076843']};
-const defs='<defs><radialGradient id="fx-glow"><stop stop-color="#b6ffee" stop-opacity=".5"/><stop offset="1" stop-color="#48ddf2" stop-opacity="0"/></radialGradient><linearGradient id="fx-floor" x1="0%" y1="0%" x2="100%" y2="0%"><stop stop-color="#54effb"/><stop offset=".5" stop-color="#aaff68"/><stop offset="1" stop-color="#fd73bd"/></linearGradient>'+Object.entries(colors).map(([key,p])=>'<radialGradient id="fx-'+key+'" cx="29%" cy="20%" r="88%"><stop stop-color="'+p[0]+'"/><stop offset=".53" stop-color="'+p[1]+'"/><stop offset="1" stop-color="'+p[2]+'"/></radialGradient>').join('')+'</defs>';
-function shape(k){
- if(k==='bomb')return '<circle r="40" fill="url(#fx-bomb)" stroke="#ff8793" stroke-width="3"/><path d="M-13 -37l13 -12 13 12M0 -49L9 -61" fill="none" stroke="#ffdc74" stroke-width="5"/><path d="M0 -24L23 19H-23Z" fill="#ffbe44" stroke="#22172b" stroke-width="2"/><text text-anchor="middle" y="12" font-size="22" font-weight="1000" fill="#241826">!</text>';
- if(k==='boss'||k==='watermelon')return '<circle r="40" fill="url(#fx-'+k+')" stroke="#c8ffe1" stroke-width="2.5"/><path d="M-26 -30Q-14 -5 -25 27M-8 -37Q4 1 -8 37M12 -36Q26 0 12 35M28 -25Q38 0 29 25" fill="none" stroke="#126f46" stroke-width="6" opacity=".76"/><ellipse cx="-15" cy="-18" rx="13" ry="7" fill="#fff" opacity=".32"/>'+(k==='boss'?'<path d="M-19 -44L-25 -69 -8 -57 1 -70 12 -55 25 -66 20 -42Z" fill="#ffdd62" stroke="#fff3b4" stroke-width="3"/>':'');
- if(k==='strawberry')return '<path d="M0 41C-13 26 -43 5 -39 -19C-35 -48 -9 -37 0 -35C19 -49 45 -37 38 -12C35 8 17 30 0 41Z" fill="url(#fx-strawberry)" stroke="#ffd0d6" stroke-width="2"/><path d="M-28 -34L-13 -42L0 -33L13 -43L29 -35L16 -29L8 -23L0 -31L-10 -24Z" fill="#42c46f"/><path d="M0 -35L3 -52" stroke="#76db84" stroke-width="5"/><g fill="#ffe5a5" opacity=".95"><ellipse cx="-17" cy="-9" rx="2" ry="4"/><ellipse cx="12" cy="-12" rx="2" ry="4"/><ellipse cx="1" cy="10" rx="2" ry="4"/><ellipse cx="-12" cy="19" rx="2" ry="4"/><ellipse cx="19" cy="9" rx="2" ry="4"/></g>';
- if(k==='lemon')return '<path d="M-42 0Q-31 -9 -31 -21C-12 -39 13 -39 31 -19Q31 -6 42 0Q31 7 31 20C12 39 -13 39 -31 19Q-31 7 -42 0Z" fill="url(#fx-lemon)" stroke="#fff4ac" stroke-width="3"/><ellipse cx="-14" cy="-16" rx="12" ry="7" fill="#fff" opacity=".28"/>';
- if(k==='rotten')return '<circle r="39" fill="url(#fx-rotten)" stroke="#bfd07a" stroke-width="2"/><ellipse cx="12" cy="14" rx="17" ry="12" fill="#422c59" opacity=".82"/><ellipse cx="-17" cy="-10" rx="11" ry="9" fill="#3f3954" opacity=".6"/><path d="M0 -37L5 -52" stroke="#68492e" stroke-width="6"/>';
- const spec=k==='gold'?'#fff6b1':k==='ice'?'#ccf7ff':'#efffcd',leaf=k==='apple'||k==='orange'?'<path d="M0 -36Q17 -59 30 -41Q16 -31 0 -36Z" fill="#53bd6b" stroke="#206b43" stroke-width="2"/><path d="M0 -35L3 -51" stroke="#5c3b25" stroke-width="5"/>':'';
- return '<circle r="40" fill="url(#fx-'+k+')" stroke="'+spec+'" stroke-width="3"/>'+leaf+'<ellipse cx="-14" cy="-16" rx="13" ry="8" fill="#fff" opacity=".35"/>';
+const P=root.FrutaARProjection,$=id=>document.getElementById(id);
+const n=v=>Math.round(v*10)/10,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const skins={
+ strawberry:['#ffbbc5','#fe3860','#9b0c41','#e7ffbf'],apple:['#ffced0','#ed304e','#81082e','#65ce5f'],
+ orange:['#ffe5a5','#ff9b24','#b83d06','#45ce70'],watermelon:['#b6ffe5','#2ecb81','#08764d','#b2ffdf'],
+ lemon:['#ffffd9','#ffe84a','#a88909','#b7f591'],gold:['#fff7c8','#ffca3d','#95511e','#fff4a3'],
+ ice:['#faffff','#8adeff','#2273b5','#ecffff'],rainbow:['#fff1ff','#b38aff','#6035a8','#ff8fdc'],
+ bomb:['#8288ab','#252941','#090b1e','#ff5d68'],rotten:['#c0ca73','#6a8f43','#37451c','#482d66'],
+ boss:['#c5ffe7','#34d88d','#056840','#f9cf59']
+};
+const defs=(()=>{
+ let s='<defs><linearGradient id="fp-deck" x1="0" y1="0" x2=".84" y2="1"><stop stop-color="#283f64" stop-opacity=".92"/><stop offset=".45" stop-color="#152846" stop-opacity=".83"/><stop offset="1" stop-color="#091127" stop-opacity=".85"/></linearGradient>';
+ s+='<linearGradient id="fp-side" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#13213a"/><stop offset="1" stop-color="#030b19"/></linearGradient>';
+ s+='<linearGradient id="fp-rim" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#36ebfb"/><stop offset=".5" stop-color="#e1ff6a"/><stop offset="1" stop-color="#ff5cb2"/></linearGradient>';
+ s+='<linearGradient id="fp-steel" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#8cadd3"/><stop offset=".22" stop-color="#3b5275"/><stop offset=".7" stop-color="#1a2846"/><stop offset="1" stop-color="#0c172e"/></linearGradient>';
+ s+='<linearGradient id="fp-bright" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0ffff"/><stop offset=".25" stop-color="#80eff2"/><stop offset=".6" stop-color="#24bfe6"/><stop offset="1" stop-color="#1557ab"/></linearGradient>';
+ s+='<radialGradient id="fp-nozzle"><stop stop-color="#ffffff"/><stop offset=".2" stop-color="#e9ff9e"/><stop offset=".48" stop-color="#49f5d8"/><stop offset=".85" stop-color="#2466bb"/><stop offset="1" stop-color="#090e2c"/></radialGradient>';
+ s+='<radialGradient id="fp-halo"><stop stop-color="#a6fff6" stop-opacity=".70"/><stop offset=".42" stop-color="#4ff3d2" stop-opacity=".25"/><stop offset="1" stop-color="#26a9f6" stop-opacity="0"/></radialGradient>';
+ s+='<radialGradient id="fp-bloom"><stop stop-color="#fff" stop-opacity="1"/><stop offset=".15" stop-color="#fffbaf" stop-opacity=".93"/><stop offset=".5" stop-color="#54e9ef" stop-opacity=".32"/><stop offset="1" stop-color="#58d8f0" stop-opacity="0"/></radialGradient>';
+ s+='<linearGradient id="fp-shot" x1="0" y1="1" x2=".5" y2="0"><stop stop-color="#27d9ff" stop-opacity="0"/><stop offset=".35" stop-color="#9dfbff"/><stop offset="1" stop-color="#ffffff"/></linearGradient>';
+ for(const [k,p] of Object.entries(skins)){
+  s+='<radialGradient id="fp-'+k+'" cx=".28" cy=".18" r=".94"><stop stop-color="'+p[0]+'"/><stop offset=".29" stop-color="'+p[1]+'"/><stop offset=".76" stop-color="'+p[1]+'"/><stop offset="1" stop-color="'+p[2]+'"/></radialGradient>';
+ }
+ s+='<radialGradient id="fp-shine"><stop stop-color="#ffffff" stop-opacity=".55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>';
+ s+='<filter id="fp-shadow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4"/></filter>';
+ s+='<filter id="fp-glow" x="-90%" y="-90%" width="280%" height="280%"><feGaussianBlur stdDeviation="3"/></filter>';
+ s+='<filter id="fp-deep" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="6" stdDeviation="3" flood-color="#060817" flood-opacity=".75"/></filter>';
+ s+='</defs>';return s
+})();
+function fruitArt(kind,spin=0){
+ const k=skins[kind]?kind:'apple',g='url(#fp-'+k+')';
+ let s='<ellipse cx="8" cy="11" rx="45" ry="42" fill="#070c21" opacity=".56" filter="url(#fp-shadow)"/>';
+ if(k==='strawberry'){
+  s+='<path d="M0 46C-5 37 -36 12 -39 -10C-44 -43 -20 -42 -2 -38C13 -52 43 -39 39 -13C36 14 10 36 0 46Z" fill="'+g+'" stroke="#ffb4c9" stroke-width="1.4"/>';
+  s+='<path d="M-32 -35L-18 -48 -4 -34 12 -49 31 -37 15 -33 6 -23 -4 -30 -18 -25Z" fill="#36b75f" stroke="#198a42" stroke-width="1.4"/><path d="M-2 -38Q-1 -54 4 -61" fill="none" stroke="#6b6b32" stroke-width="5"/>';
+  for(let i=0;i<31;i++){const x=Math.sin(i*2.399)*24,y=-18+(i%6)*9+(i%3)*2;if(Math.abs(x)+Math.abs(y*.36)<43)s+='<ellipse cx="'+n(x)+'" cy="'+n(y)+'" rx="1.9" ry="3.6" fill="#ffefa0" opacity=".82" transform="rotate('+n(x/5)+' '+n(x)+' '+n(y)+')"/>'}
+ }else if(k==='watermelon'||k==='boss'){
+  s+='<circle r="40" fill="'+g+'" stroke="#b5ffcc" stroke-width="2"/>';
+  for(let i=-3;i<=3;i++)s+='<path d="M'+(i*11)+' -39Q'+(i*11+10)+' 2 '+(i*11)+' 39" stroke="#126748" stroke-width="'+(i%2?6:4)+'" opacity=".78" fill="none"/>';
+  if(k==='boss')s+='<path d="M-25 -38L-30 -61 -12 -51 0 -70 11 -51 31 -60 25 -38Z" fill="#ffdb63" stroke="#fff3b0" stroke-width="3"/><path d="M-24 -9L-8 -12M7 -12L23 -10" stroke="#092439" stroke-width="5"/><ellipse cx="-13" cy="0" rx="5" ry="8" fill="#091b33"/><ellipse cx="14" cy="0" rx="5" ry="8" fill="#091b33"/><path d="M-10 19Q0 27 12 16" stroke="#123044" stroke-width="4" fill="none"/>';
+ }else if(k==='bomb'){
+  s+='<circle r="40" fill="'+g+'" stroke="#ff7582" stroke-width="3"/><ellipse cx="-14" cy="-18" rx="21" ry="11" fill="url(#fp-shine)"/><path d="M-14 -34Q-14 -55 0 -55L9 -55" fill="none" stroke="#6c7794" stroke-width="7"/><path d="M6 -55L15 -65" stroke="#f8aa4b" stroke-width="6"/><path d="M0 -25L25 20H-25Z" fill="#ffca52" stroke="#fee6a6" stroke-width="3"/><text y="13" text-anchor="middle" font-size="28" font-weight="1000" fill="#291f2c">!</text>';
+ }else if(k==='lemon'){
+  s+='<path d="M-47 0Q-35 -13 -35 -25Q-2 -46 30 -26Q32 -8 48 0Q32 8 33 27Q0 47 -34 26Q-35 14 -47 0Z" fill="'+g+'" stroke="#fff6a3" stroke-width="1.8"/>';
+ }else if(k==='apple'||k==='rotten'){
+  s+='<path d="M0 -29C-12 -42 -37 -36 -40 -9C-43 19 -25 42 -8 43Q0 40 9 43C28 43 43 16 40 -9C37 -35 14 -45 0 -29Z" fill="'+g+'" stroke="#ffcdcd" stroke-width="1.4"/><path d="M0 -33Q1 -48 9 -53" stroke="#6e5131" stroke-width="6" fill="none"/><path d="M4 -42Q19 -60 36 -43Q21 -29 4 -42Z" fill="#53bf69" stroke="#29804e" stroke-width="1.5"/>';
+  if(k==='rotten')s+='<ellipse cx="13" cy="18" rx="20" ry="12" fill="#4b3155" opacity=".78"/><ellipse cx="-21" cy="-8" rx="12" ry="11" fill="#3e4169" opacity=".69"/>';
+ }else{
+  s+='<circle r="40" fill="'+g+'" stroke="'+(k==='gold'?'#ffe79a':'#fbf6cc')+'" stroke-width="'+(['gold','ice','rainbow'].includes(k)?3:1.8)+'"/>';
+  if(k==='orange')s+='<circle r="6" cx="1" cy="-37" fill="#b85a23"/><path d="M-3 -36Q16 -60 30 -40Q15 -28 -3 -36Z" fill="#4caa6c" stroke="#24734d" stroke-width="2"/>';
+  if(k==='gold'||k==='rainbow'||k==='ice')s+='<circle r="49" fill="none" stroke="'+(k==='gold'?'#ffda64':'#c6ffff')+'" stroke-dasharray="4 8" stroke-width="3" opacity=".8"/>';
+ }
+ if(k!=='bomb'){
+  s+='<ellipse cx="-14" cy="-20" rx="20" ry="13" transform="rotate(-27 -14 -20)" fill="url(#fp-shine)" opacity=".84"/><path d="M25 15Q17 37 -5 39" fill="none" stroke="#211437" stroke-width="4" opacity=".13"/>';
+ }
+ s+='<ellipse cx="-18" cy="-17" rx="10" ry="4" transform="rotate(-32 -18 -17)" fill="#fff" opacity=".20"/>';
+ return s;
 }
-let visible=[],state='idle';
+const seen=[],particles=[],shots=[],puddles=[];let state='idle',lastView=null,lastOrigin=null,lastScale=null,lastTs=0;
+function addBurst(obj,kind='apple',count=22,boost=1){
+ if(!obj||!Number.isFinite(obj.x))return;
+ const t=performance.now()/1000,colors=(skins[kind]||skins.apple);
+ for(let i=0;i<Math.min(65,count);i++){const a=i*2.399963+Math.random()*.27,spd=(.8+Math.random()*2.4)*boost;
+  particles.push({x:obj.x,y:obj.y,z:obj.z,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd*.86+1.1,vz:(Math.random()-.5)*1.3,life:.45+Math.random()*.45,start:t,r:.025+Math.random()*.05,col:colors[(i%3)+1],shape:i%4===0?'star':'drop'})}
+ if(particles.length>130)particles.splice(0,particles.length-130);
+}
+function impact(obj,kind,combo=false){addBurst(obj,kind,combo?48:24,combo?1.3:1);
+ if(obj&&kind!=='bomb'&&kind!=='rotten'){puddles.push({...obj,t:performance.now()/1000,col:skins[kind]?.[1]||'#f35a8b'});if(puddles.length>12)puddles.shift()}
+}
+function shot(x,y,hit=true,kind='apple'){
+ const t=performance.now()/1000;shots.push({x:x??innerWidth*.5,y:y??innerHeight*.48,t,hit,kind});
+ if(shots.length>6)shots.shift();
+ const gun=$('weapon');if(gun){gun.classList.remove('firing');void gun.offsetWidth;gun.classList.add('firing')}
+}
+function poly(points,fill,stroke,strokeWidth=1,attrs=''){
+ if(points.some(p=>!p))return '';
+ return '<polygon points="'+points.map(p=>n(p.x)+','+n(p.y)).join(' ')+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+strokeWidth+'" '+attrs+'/>';
+}
 function draw(view,origin,scale,objects,mode='playing'){
  const svg=$('arWorld');if(!svg||!view||!origin)return [];
- const w=innerWidth,h=innerHeight;svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.style.display='block';
- const ring=P.floorOutline(view,origin,scale,3.35,w,h),center=P.projection(view,origin,scale,{x:0,y:.03,z:0},w,h);
+ const w=innerWidth,h=innerHeight,t=performance.now()/1000;
+ svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.style.display='block';
+ const pos=(x,y,z)=>P.projection(view,origin,scale,{x,y,z},w,h);
+ const wide=.23; // world size in core game units; actual physical scale supplied by engine
  let html=defs;
- if(ring.length===48){let path='',last=false;for(let j=0;j<=48;j++){const p=ring[j%48];if(p){path+=(last?'L':'M')+round(p[0])+','+round(p[1])+' ';last=true}else last=false}html+='<path d="'+path+'" fill="none" stroke="url(#fx-floor)" stroke-width="4" stroke-linecap="round" opacity=".96"/>';for(let j=0;j<8;j++){const q=ring[j*6],p=ring[(j*6+1)%48];if(q&&p)html+='<line x1="'+round(q[0])+'" y1="'+round(q[1])+'" x2="'+round(p[0])+'" y2="'+round(p[1])+'" stroke="#e6ffe7" stroke-width="6" opacity=".5"/>'}}
- if(center)html+='<circle cx="'+round(center.x)+'" cy="'+round(center.y)+'" r="'+(mode==='search'?23:12)+'" fill="none" stroke="#ccff79" stroke-width="3"/><circle cx="'+round(center.x)+'" cy="'+round(center.y)+'" r="4" fill="#f7ffe5"/>';
- visible=[];
+ // 3D extruded, lit deck: never just an empty outline.
+ const quad=[pos(-3.0,-.08,-2.35),pos(3.0,-.08,-2.35),pos(3.0,-.08,2.35),pos(-3.0,-.08,2.35)];
+ const bottom=[pos(-3.0,-.38,-2.35),pos(3.0,-.38,-2.35),pos(3.0,-.38,2.35),pos(-3.0,-.38,2.35)];
+ if(quad.every(Boolean)){
+  html+=poly([quad[3],quad[2],bottom[2],bottom[3]],'url(#fp-side)','#1db0d6',2,'opacity=".93"');
+  html+=poly(quad,'url(#fp-deck)','url(#fp-rim)',4,'opacity=".97"');
+  for(let x=-2;x<=2;x++){const a=pos(x,-.075,-2.25),b=pos(x,-.075,2.25);if(a&&b)html+='<path d="M'+n(a.x)+' '+n(a.y)+'L'+n(b.x)+' '+n(b.y)+'" stroke="#4ee1f0" stroke-width="1.1" opacity=".33"/>'}
+  for(let z=-2;z<=2;z++){const a=pos(-2.9,-.075,z),b=pos(2.9,-.075,z);if(a&&b)html+='<path d="M'+n(a.x)+' '+n(a.y)+'L'+n(b.x)+' '+n(b.y)+'" stroke="#80f0ee" stroke-width="1.1" opacity=".29"/>'}
+  for(const x of [-2.75,2.75])for(const z of [-2.1,2.1]){const p=pos(x,-.055,z);if(p)html+='<circle cx="'+n(p.x)+'" cy="'+n(p.y)+'" r="3.5" fill="#fcfbab" opacity=".84"/>'}
+ }
+ else {
+  // Partial view: remain visible instead of silently disappearing.
+  const ring=P.floorOutline(view,origin,scale,3.0,w,h);let path='',prev=false;
+  for(const q of ring){if(q){path+=(prev?'L':'M')+n(q[0])+','+n(q[1])+' ';prev=true}else prev=false}
+  html+='<path d="'+path+'" fill="none" stroke="url(#fp-rim)" stroke-width="5" opacity=".95"/>';
+ }
+ // MACHINE: physical emitter standing on the back of the stage. Silhouette + glowing throat.
+ const left=pos(-1.0,.18,-1.55),right=pos(1.0,.18,-1.55);
+ const lTop=pos(-.96,2.0,-1.55),rTop=pos(.96,2.0,-1.55),lBack=pos(-.95,.14,-1.9),rBack=pos(.95,.14,-1.9);
+ if(left&&right&&lTop&&rTop){
+  html+=poly([lTop,rTop,right,left],'url(#fp-steel)','#86c3e4',2);
+  if(rBack)html+=poly([rTop,right,rBack,pos(.9,1.7,-1.9)],'#0c1c31','#3beadf',1.4,'opacity=".85"');
+  // plate, luminous power lines, custom badge
+  const panel=pos(0,1.1,-1.55),screen=pos(0,1.52,-1.55);
+  if(panel){const ww=Math.max(27,Math.abs(right.x-left.x)*.34);
+   html+='<rect x="'+n(panel.x-ww)+'" y="'+n(panel.y-17)+'" width="'+n(2*ww)+'" height="31" rx="6" fill="#0b1634" stroke="#7bfcf0" stroke-width="1.5"/>';
+   html+='<text x="'+n(panel.x)+'" y="'+n(panel.y-2)+'" text-anchor="middle" font-size="'+n(clamp(ww*.23,8,12))+'" font-weight="1000" letter-spacing="1.5" fill="#e6fff2">JUICE</text><text x="'+n(panel.x)+'" y="'+n(panel.y+9)+'" text-anchor="middle" font-size="'+n(clamp(ww*.18,7,10))+'" fill="#92fdaf" font-weight="900">REACTOR</text>'}
+  if(screen){html+='<circle cx="'+n(screen.x)+'" cy="'+n(screen.y)+'" r="7" fill="#0c1223" stroke="#7bffde" stroke-width="2"/><circle cx="'+n(screen.x)+'" cy="'+n(screen.y)+'" r="3.5" fill="#f2ff6c"/>'}
+ }
+ // Telegraphed feed pipe and cannon nozzle at the actual world spawn position.
+ const nozzle=pos(0,2.76,-1.15),pipe=pos(0,2.1,-1.55),port=pos(0,2.76,-1.3);
+ if(nozzle){
+  const R=clamp((w/460)*17,11,27);
+  if(pipe&&port)html+='<path d="M'+n(pipe.x)+' '+n(pipe.y)+'Q'+n(nozzle.x+22)+' '+n(nozzle.y-26)+' '+n(port.x)+' '+n(port.y)+'" stroke="#172647" stroke-width="23" fill="none"/><path d="M'+n(pipe.x)+' '+n(pipe.y)+'Q'+n(nozzle.x+22)+' '+n(nozzle.y-26)+' '+n(port.x)+' '+n(port.y)+'" stroke="#9ecdf1" stroke-width="8" fill="none"/>';
+  html+='<circle cx="'+n(nozzle.x)+'" cy="'+n(nozzle.y)+'" r="'+n(R*2.9)+'" fill="url(#fp-halo)" opacity=".85"/>';
+  html+='<circle cx="'+n(nozzle.x)+'" cy="'+n(nozzle.y)+'" r="'+n(R*1.32)+'" fill="#142645" stroke="#97deed" stroke-width="5"/>';
+  html+='<circle cx="'+n(nozzle.x)+'" cy="'+n(nozzle.y)+'" r="'+n(R)+'" fill="url(#fp-nozzle)" stroke="#e7fff2" stroke-width="2"/>';
+  html+='<circle cx="'+n(nozzle.x)+'" cy="'+n(nozzle.y)+'" r="'+n(R*(.60+.10*Math.sin(t*8)))+'" fill="#e7ff9c" opacity=".27"/>';
+ }
+ // Trajectories: a short trail links every just-ejected fruit to the reactor.
+ seen.length=0;
  if(mode==='playing'){
-  const list=P.targets(view,origin,scale,objects,w,h).sort((a,b)=>b.depth-a.depth);
-  for(const q of list){
-   if(q.y<50||q.y>h-100)continue;
-   visible.push(q);
-   html+='<g transform="translate('+round(q.x)+' '+round(q.y)+') scale('+round(q.r/40)+')"><circle r="52" fill="url(#fx-glow)" opacity=".7"/>'+shape(q.kind)+'</g>';
+  const all=P.targets(view,origin,scale,objects,w,h).sort((a,b)=>b.depth-a.depth);
+  const objs=new Map((objects||[]).map(x=>[x.id,x]));
+  for(const q of all){
+   const o=objs.get(q.id);if(q.y<-130||q.y>h+130)continue;
+   if(o?.age<.65&&nozzle){const a=clamp(1-o.age/.65,0,1),x0=n(nozzle.x),y0=n(nozzle.y);
+    html+='<path d="M'+x0+' '+y0+' Q'+n((x0+q.x)/2)+' '+n(Math.min(y0,q.y)-20)+' '+n(q.x)+' '+n(q.y)+'" stroke="'+(skins[q.kind]?.[1]||'#79fff0')+'" stroke-width="'+n(2+5*a)+'" stroke-linecap="round" opacity="'+n(a*.5)+'" fill="none"/>'}
+  }
+  for(const q of all){
+   const o=objs.get(q.id);if(q.y<72||q.y>h-85)continue;
+   seen.push(q);
+   const r=clamp(q.r*(o?.kind==='boss'?1.1:1),20,87);
+   // fake contact shadow with perspective size, fruit has dimensional bevel + reflections
+   html+='<g transform="translate('+n(q.x)+' '+n(q.y)+') scale('+n(r/40)+') rotate('+n((o?.rot||0)*10)+')">';
+   html+='<circle r="62" fill="url(#fp-halo)" opacity=".45"/>';
+   html+=fruitArt(q.kind);
+   html+='</g>';
   }
  }
- svg.innerHTML=html;state=mode;return visible;
+ // Puddles left by impacts (world-locked)
+ for(let i=puddles.length-1;i>=0;i--){const q=puddles[i],age=t-q.t;if(age>2.4){puddles.splice(i,1);continue}
+  const p=pos(q.x,-.06,q.z);if(p){const a=clamp((1-age/2.4)*.47,0,.46);html+='<ellipse cx="'+n(p.x)+'" cy="'+n(p.y)+'" rx="'+n(22+age*12)+'" ry="'+n(6+age*3)+'" fill="'+q.col+'" opacity="'+n(a)+'"/>'}}
+ // Ejected juice: world particles with gravity, projected through the same XR pose.
+ for(let i=particles.length-1;i>=0;i--){
+  const p=particles[i],age=t-p.start;
+  if(age>p.life){particles.splice(i,1);continue}
+  const q=pos(p.x+p.vx*age,p.y+p.vy*age-3.2*age*age,p.z+p.vz*age);
+  if(!q)continue;
+  const alpha=clamp((1-age/p.life),0,1),r=clamp(1.5+p.r*68*alpha,1.8,6.5);
+  html+='<ellipse cx="'+n(q.x)+'" cy="'+n(q.y)+'" rx="'+n(r)+'" ry="'+n(r*(p.shape==='star'?.8:1.45))+'" transform="rotate('+n(age*260)+' '+n(q.x)+' '+n(q.y)+')" fill="'+p.col+'" stroke="#ffffff" stroke-width=".4" opacity="'+n(alpha)+'"/>';
+ }
+ for(let i=shots.length-1;i>=0;i--){
+  const sh=shots[i],age=t-sh.t;if(age>.23){shots.splice(i,1);continue}
+  const alpha=clamp(1-age/.23,0,1),sx=w*.52,sy=h*.89,tx=n(sh.x),ty=n(sh.y);
+  html+='<path d="M'+n(sx)+' '+n(sy)+'L'+tx+' '+ty+'" fill="none" stroke="#19dff5" stroke-width="'+n(16*alpha)+'" opacity="'+n(alpha*.4)+'"/>';
+  html+='<path d="M'+n(sx)+' '+n(sy)+'L'+tx+' '+ty+'" fill="none" stroke="#edffff" stroke-width="'+n(4*alpha)+'" opacity="'+n(alpha)+'"/>';
+  html+='<circle cx="'+tx+'" cy="'+ty+'" r="'+n(22+age*120)+'" stroke="'+(sh.hit?'#fcff98':'#47ffff')+'" stroke-width="'+n(5*alpha)+'" fill="none" opacity="'+n(alpha)+'"/>';
+ }
+ svg.innerHTML=html;state=mode;lastView=view;lastOrigin=origin;lastScale=scale;lastTs=t;return seen.slice();
 }
-function clear(){const svg=$('arWorld');if(svg){svg.innerHTML='';svg.style.display='none'}visible=[];state='idle'}
-root.FrutaAROverlay={draw,clear,get targets(){return visible},get state(){return state}};
+function clear(){const svg=$('arWorld');if(svg){svg.innerHTML='';svg.style.display='none'}seen.length=0;particles.length=0;shots.length=0;puddles.length=0;state='idle';lastView=null}
+root.FrutaAROverlay={draw,clear,impact,shot,get targets(){return seen},get state(){return state},get diagnostics(){return {visible:seen.length,particles:particles.length,shots:shots.length,hasNozzle:!!lastView}}};
 })(typeof window!=='undefined'?window:globalThis);
