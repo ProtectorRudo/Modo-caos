@@ -50,8 +50,131 @@ function makeTools(T,actor){
  const torus=(group,c,r,t,pos,rx=0)=>mesh(group,new T.TorusGeometry(r,t,7,22),c,pos,[rx,0,0]);
  return{attachment,box,sph,cyl,torus,mesh};
 }
+// Authentic Quaternius skinned garment meshes: no geometry boxes for clothing.
+// The original Peasant outfit has independently skinned Arms, Body, Feet, Legs.
+// Clothing colour varies through a cloned, textured standard material.
+export function initializeNativeFashion(THREE,actor,config={}){
+ if(!actor?.nativeOutfit)return false;
+ const hero=HUMAN_HEROES[Math.max(0,Math.min(3,actor.hero|0))];
+ const id=config.outfit||'outfit_base';
+ const pal=palettes[id]||[hero.main,hero.secondary,hero.accent];
+ const key=[actor.hero,id,config.headwear||'head_none',config.eyewear||'eyes_none',config.shoes||'shoes_base'].join(':');
+ if(actor.fashionKey===key)return true;
+ const old=actor.nativeMaterialCopies||[];
+ for(const item of old)item.dispose?.();
+ actor.nativeMaterialCopies=[];
+ if(!actor.nativeOriginals){
+  actor.nativeOriginals=[];
+  actor.base.traverse(o=>{
+   if(o.isSkinnedMesh&&!o.userData?.cvdomHeadMesh)
+    actor.nativeOriginals.push({mesh:o,materials:Array.isArray(o.material)?o.material:[o.material]});
+  });
+ }
+ const originals=actor.nativeOriginals;
+ for(const {mesh:body,materials} of originals){
+  const isArms=/Arms/i.test(body.name),isFeet=/Feet/i.test(body.name),isLegs=/Legs/i.test(body.name);
+  const cols=isArms?pal[0]:isFeet?pal[1]:isLegs?pal[1]:pal[0];
+  const color=new THREE.Color(cols);
+  const copies=materials.map(m=>{
+   const n=m.clone();
+   n.color.copy(color);
+   n.roughness=.5;
+   n.metalness=Math.min(.14,n.metalness||0);
+   actor.nativeMaterialCopies.push(n);
+   return n;
+  });
+  body.material=Array.isArray(body.material)?copies:copies[0];
+ }
+ // A few tasteful hard accessories, firmly attached to real animated bones.
+ for(const node of actor.nativeWear||[]){
+  node.parent?.remove(node);
+  node.traverse(o=>{if(o.isMesh){o.geometry?.dispose();o.material?.dispose();}});
+ }
+ actor.nativeWear=[];
+ const mesh=(boneName,geo,color,x=0,y=0,z=0)=>{
+  const bone=actor.humanBones?.[boneName];
+  if(!bone){geo.dispose();return null;}
+  const mat=new THREE.MeshStandardMaterial({color,roughness:.35,metalness:.24});
+  const node=new THREE.Mesh(geo,mat);node.position.set(x,y,z);
+  const root=new THREE.Group();root.name='CVIDOM_Native_Accessory';
+  root.add(node);bone.add(root);actor.nativeWear.push(root);return node;
+ };
+ const hat=config.headwear||'head_none';
+ if(hat==='head_cap'){
+  mesh('head',new THREE.SphereGeometry(.187,22,14,0,Math.PI*2,0,Math.PI*.45),pal[1],0,.17,0);
+  mesh('head',new THREE.BoxGeometry(.35,.026,.11),pal[2],0,.155,.16);
+ }else if(hat==='head_crown'){
+  const ring=mesh('head',new THREE.CylinderGeometry(.18,.18,.058,10,1,true),pal[2],0,.25,0);
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;mesh('head',new THREE.ConeGeometry(.046,.112,6),pal[2],Math.cos(a)*.16,.32,Math.sin(a)*.16);}
+ }else if(hat==='head_beanie'){
+  mesh('head',new THREE.SphereGeometry(.194,20,12,0,Math.PI*2,0,Math.PI*.47),pal[0],0,.17,0);
+  mesh('head',new THREE.SphereGeometry(.058,12,8),pal[2],0,.32,0);
+ }else if(hat==='head_headphones'){
+  const band=mesh('head',new THREE.TorusGeometry(.225,.023,8,26,Math.PI),pal[1],0,.045,0);
+  if(band)band.rotation.z=Math.PI/2;
+  for(const side of [-1,1])mesh('head',new THREE.BoxGeometry(.07,.15,.12),pal[2],side*.2,0,0);
+ }
+ if((config.eyewear||'')==='eyes_shades'||config.eyewear==='eyes_star'){
+  const m=config.eyewear==='eyes_star'?pal[2]:'#182e40';
+  for(const side of [-1,1])mesh('head',new THREE.BoxGeometry(.12,.065,.018),m,side*.075,.03,.173);
+  mesh('head',new THREE.BoxGeometry(.035,.015,.016),pal[2],0,.033,.18);
+ }
+ if(config.shoes==='shoes_gold'||config.shoes==='shoes_rollers'||config.shoes==='shoes_sneakers'){
+  const c=config.shoes==='shoes_gold'?'#ffd878':pal[2];
+  for(const side of ['l','r']){
+   mesh('foot_'+side,new THREE.BoxGeometry(.15,.035,.21),c,0,.01,.08);
+  }
+ }
+ actor.fashionKey=key;
+ return true;
+}
+
+// Clip the authentic UBC head/neck out of its full-body mesh.
+// We keep the original skinned head, eyes and brows, discard nude torso/limbs.
+export function transplantQuaterniusHead(THREE,fromBaseScene,outfitScene,cloneFn){
+ if(!fromBaseScene||!outfitScene)return null;
+ const overlay=cloneFn(fromBaseScene);
+ let count=0;
+ overlay.traverse(mesh=>{
+  if(!mesh.isSkinnedMesh)return;
+  const full=/SuperHero_Male/i.test(mesh.name);
+  if(!full){mesh.userData.cvdomHeadMesh=true;return;}
+  const geometry=mesh.geometry,idx=geometry.index,si=geometry.attributes.skinIndex,sw=geometry.attributes.skinWeight;
+  const headIds=new Set(mesh.skeleton.bones.map((b,i)=>['head','neck_01'].includes(b.name.toLowerCase())?i:-1).filter(v=>v>=0));
+  if(!si||!sw||!headIds.size){mesh.visible=false;return;}
+  const mask=new Uint8Array(si.count);
+  for(let v=0;v<si.count;v++){
+   let w=0;
+   for(let k=0;k<4;k++)if(headIds.has(si.getComponent(v,k)))w+=sw.getComponent(v,k);
+   mask[v]=w>.45?1:0;
+  }
+  const indices=idx?idx.array:null,kept=[];
+  if(indices)for(let i=0;i<indices.length;i+=3){
+   const a=indices[i],b=indices[i+1],c=indices[i+2];
+   if(mask[a]+mask[b]+mask[c]>=2)kept.push(a,b,c);
+  }
+  if(!kept.length){mesh.visible=false;return;}
+  const g=geometry.clone();g.setIndex(kept);g.clearGroups();
+  mesh.geometry=g;mesh.userData.cvdomHeadMesh=true;mesh.userData.cvdomOwnGeometry=true;
+  count+=kept.length/3;
+ });
+ if(count<50)return null;
+ outfitScene.add(overlay);
+ return overlay;
+}
+export function syncQuaterniusHead(THREE,actor){
+ if(!actor?.headOverlay||!actor.headBones||!actor.humanBones)return;
+ for(const [name,dest] of Object.entries(actor.headBones)){
+  const source=actor.humanBones[name],sourceRest=actor.humanRest?.[name],headRest=actor.headRest?.[name];
+  if(!source||!sourceRest||!headRest)continue;
+  const delta=sourceRest.clone().invert().multiply(source.quaternion);
+  dest.quaternion.copy(headRest).multiply(delta);
+ }
+}
+
 export function setHumanFashion(T,actor,config={}){
  if(!actor?.humanBones)return;
+ if(actor.nativeOutfit){initializeNativeFashion(THREE,actor,config);return;}
  const index=Math.max(0,Math.min(HUMAN_HEROES.length-1,actor.hero|0));
  const preset=HUMAN_HEROES[index];
  const ids={outfit:config.outfit||'outfit_base',headwear:config.headwear||'head_none',
@@ -203,6 +326,17 @@ export function initializeHumanRig(base,heroIndex=0){
 
 export function disposeHumanActor(actor){
  if(!actor?.humanBones)return;
+ for(const node of actor.nativeWear||[]){
+  node.parent?.remove(node);
+  node.traverse(o=>{if(o.isMesh){o.geometry?.dispose();o.material?.dispose();}});
+ }
+ for(const material of actor.nativeMaterialCopies||[])material.dispose?.();
+ actor.headOverlay?.traverse(o=>{
+  if(o.isMesh&&o.userData.cvdomOwnGeometry)o.geometry?.dispose();
+  if(o.isSkinnedMesh&&o.userData.cvdomOwnMaterial){
+   for(const m of Array.isArray(o.material)?o.material:[o.material])m?.dispose();
+  }
+ });
  for(const node of actor.quaterniusWear||[]){
   node.parent?.remove(node);
   node.traverse(n=>{if(n.isMesh){n.geometry?.dispose();n.material?.dispose();}});
