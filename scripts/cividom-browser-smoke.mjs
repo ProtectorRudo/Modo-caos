@@ -47,6 +47,16 @@ try{
   lastClock=sample.clock||0;
   if(maxTrail>=4&&lastClock>1.25)break;
  }
+ // Solo/bot survival can eliminate the idle QA player before this visual probe.
+ // Restart a new round for HUD geometry; gameplay/loot tests cover real death.
+ await page.evaluate(()=>{
+  const hud=document.getElementById('hud');
+  if(hud&&getComputedStyle(hud).display==='none'){
+   document.getElementById('restart')?.click();
+  }
+ });
+ await page.waitForFunction(()=>document.querySelector('.cvMiniMapFrame')?.getBoundingClientRect().width>80,
+  {timeout:6000});
  const compactHUD=await page.evaluate(()=>{
   const panel=document.getElementById('survivalPanel')?.getBoundingClientRect();
   const map=document.querySelector('.cvMiniMapFrame')?.getBoundingClientRect();
