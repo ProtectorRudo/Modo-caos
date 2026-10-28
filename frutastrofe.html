@@ -117,7 +117,37 @@
 @media(max-width:760px){#onlineHud{top:152px;padding:6px 9px;max-width:150px}#onlineHud strong{font-size:20px}#onlinePanel.in-ar .onlineGlass{max-height:58svh}}
 #onlinePanel [hidden]{display:none!important}
 #onlineHud{top:255px!important}
-@media(max-width:760px){#onlineHud{top:250px!important}}</style></head><body>
+@media(max-width:760px){#onlineHud{top:250px!important}}
+/* JUICE APOCALYPSE — responsive pro HUD + compact first-person weapon */
+#hud .hudTop{max-width:610px;margin:0 auto;gap:5px!important;align-items:stretch!important}
+#hud .hudCard{border-radius:12px!important;min-height:53px!important;padding:5px 8px!important;box-shadow:inset 0 1px #ffffff1c,0 4px 10px #0005!important}
+#hud .hudCard small{font-size:9px!important;line-height:1.2!important;letter-spacing:.11em!important}
+#hud .hudCard strong{font-size:clamp(20px,5.6vw,27px)!important;line-height:1!important;margin-top:2px!important}
+#hud .hudGoal{max-width:610px!important;padding:6px 10px!important;margin:5px auto 0!important;min-height:0!important}
+#hud .goalLabel{font-size:9px!important}
+#hud .meter{height:4px!important;margin-top:4px!important}
+#hud .bottomHud{align-items:flex-end}
+#hud .infoBox{max-width:170px!important;transition:opacity .32s,transform .32s,max-height .32s,padding .32s!important;overflow:hidden;max-height:90px}
+#hud.apocalypse-guide-hidden .infoBox{opacity:0;transform:translateY(10px);max-height:0;padding-top:0!important;padding-bottom:0!important;border-width:0!important;pointer-events:none}
+#hud.apocalypse-fever .hudGoal{border-color:#ffe68b91!important;box-shadow:0 0 13px #eaff6e41!important}
+#hud.apocalypse-fever #hudCombo{color:#edff83!important;text-shadow:0 0 12px #e4ff7ea1}
+#hud.apocalypse-wave .meter{filter:drop-shadow(0 0 5px #fff69f)}
+#weapon{z-index:5!important;left:43%!important;bottom:-58px!important;width:clamp(116px,36vw,154px)!important;transform-origin:49% 80%;filter:drop-shadow(0 9px 12px #020c23bb) drop-shadow(0 0 6px #40deda55)!important}
+#weapon .gun-name{bottom:46px!important;font-size:8px!important;left:-6px!important;padding:3px 6px!important}
+#weapon .gun-name b{font-size:9px!important}
+#weapon svg{overflow:visible}
+#hud .fire{width:80px!important;height:80px!important;min-width:80px!important;font-size:14px!important}
+#crosshair{pointer-events:none!important}
+@media(max-width:760px){
+ #hud{padding-left:7px!important;padding-right:7px!important}
+ #hud .hudCard{padding:5px 6px!important;min-height:51px!important}
+ #hud .hudCard strong{font-size:21px!important}
+ #hud .hudGoal{padding:6px 8px!important}
+ #weapon{bottom:-62px!important;left:42%!important;width:clamp(120px,36vw,145px)!important}
+ #hud .quietBtn{font-size:10px!important}
+ #hud .fire{width:79px!important;height:79px!important}
+}
+</style></head><body>
 <div id="view" aria-label="Escena tridimensional de frutas"></div><svg id="arWorld" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;overflow:visible"></svg>
 <div id="home" class="shell">
  <header class="top"><a class="logo" href="./index.html">◈ MODO <b>CAOS</b></a><div class="top-links"><span class="chip coin" id="coinsHome">◉ 0</span><button id="soundHome" class="chip" aria-label="Activar o silenciar música">♫ SONIDO</button></div></header>
