@@ -147,6 +147,42 @@
  #hud .quietBtn{font-size:10px!important}
  #hud .fire{width:79px!important;height:79px!important}
 }
+
+/* Screenshot-derived AR clarity patch: unobstructed camera and legible direction */
+#weapon{
+ left:43%!important;
+ bottom:2px!important;
+ width:clamp(119px,35vw,144px)!important;
+ z-index:5!important;
+ filter:drop-shadow(0 9px 10px #020f25bb) drop-shadow(0 0 5px #3bdbc74e)!important
+}
+#weapon .gun-name{display:none!important}
+#hud .hudTop{max-width:570px!important}
+#hud .hudGoal{max-width:570px!important}
+#toast{
+ position:fixed!important;
+ top:clamp(130px,15.3vh,250px)!important;
+ left:50%!important;right:auto!important;
+ transform:translateX(-50%) translateY(-5px)!important;
+ width:max-content!important;max-width:min(72vw,300px)!important;
+ font-size:clamp(12px,3.2vw,17px)!important;line-height:1.2!important;
+ letter-spacing:.015em!important;text-align:center!important;
+ border-radius:999px!important;
+ padding:8px 13px!important;
+ color:#eaffab!important;
+ background:linear-gradient(110deg,#11233bd9,#1a2441d9)!important;
+ border:1px solid #a8efce70!important;
+ box-shadow:0 4px 12px #0007,inset 0 1px #ffffff23!important;
+ text-shadow:0 1px 4px #001321!important;
+ backdrop-filter:blur(5px);
+ transition:opacity .16s,transform .16s!important;
+}
+#toast.show{transform:translateX(-50%) translateY(0)!important}
+#hud.apocalypse-wave .meter{filter:drop-shadow(0 0 5px #fff69f)}
+@media(max-width:760px){
+ #weapon{left:43%!important;bottom:2px!important;width:clamp(119px,35vw,136px)!important}
+ #toast{max-width:74vw!important;padding:7px 11px!important}
+}
 </style></head><body>
 <div id="view" aria-label="Escena tridimensional de frutas"></div><svg id="arWorld" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;overflow:visible"></svg>
 <div id="home" class="shell">
