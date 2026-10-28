@@ -19,5 +19,7 @@
         }
       ]
     }
-  ]
+  ],
+  "buildCommand": "python3 scripts/vendor-styloo.py && python3 scripts/build-vercel.py",
+  "outputDirectory": "public"
 }
