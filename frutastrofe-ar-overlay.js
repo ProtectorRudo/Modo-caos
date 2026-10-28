@@ -188,13 +188,26 @@ function draw(view,origin,scale,objects,kind='playing'){
   c.globalAlpha=a*.65;softLight(c,q.x,q.y,r*1.4,co,.38*a);
   strokeCircle(c,q.x,q.y,r,co,4*a);strokeCircle(c,q.x,q.y,r*.76,'#fffbc4',2.5*a);
   c.globalAlpha=a;
+  // Six lightweight curved juice ribbons accompany the two visible fruit halves.
+  // Graphics are bounded and use no SVG masks, HTML nodes or postprocessing passes.
+  if(age<.29&&p.kind!=='bomb'){
+   for(let j=0;j<6;j++){
+    const theta=j*TAU/6+p.at*2.1,rr=8+age*148;
+    c.beginPath();c.moveTo(q.x,q.y);
+    c.quadraticCurveTo(q.x+Math.cos(theta+.36)*rr*.58,q.y+Math.sin(theta+.36)*rr*.58,
+      q.x+Math.cos(theta)*rr,q.y+Math.sin(theta)*rr);
+    c.strokeStyle=j%2?'#fff4b6':co;
+    c.lineWidth=(j%2?2.6:4.1)*a;c.lineCap='round';c.stroke();
+   }
+  }
   // Two fruit halves rendered from the same cached atlas, clipped once per half.
   if(age<.27&&!['bomb','rotten'].includes(p.kind)){
    for(const side of [-1,1]){
-    c.save();c.translate(q.x+side*age*100,q.y-age*43);c.rotate(side*age*3);
+    const size=clamp(p.radius*2.2,49,153);
+    c.save();c.translate(q.x+side*age*(80+size*.30),q.y-age*(35+size*.13));c.rotate(side*age*3.3);
     const piece=root.FrutaPremiumArt?.slicedHalf(p.kind,side);
-    if(piece)c.drawImage(piece,-44,-53,88,105);
-    else{c.beginPath();if(side<0)c.rect(-64,-64,64,128);else c.rect(0,-64,64,128);c.clip();c.drawImage(sprite(p.kind),-44,-53,88,105)}
+    if(piece)c.drawImage(piece,-size*.5,-size*.54,size,size*1.08);
+    else{c.beginPath();if(side<0)c.rect(-size*.5,-size*.54,size*.5,size*1.08);else c.rect(0,-size*.54,size*.5,size*1.08);c.clip();c.drawImage(sprite(p.kind),-size*.5,-size*.54,size,size*1.08)}
     c.restore();
    }
   }
@@ -251,7 +264,9 @@ function draw(view,origin,scale,objects,kind='playing'){
 }
 function impact(p,kind='apple',combo=false){
  if(!p)return;const at=now(),color=palette[kind]?.[1]||'#5ee2e9';
- splashes.push({x:p.x,y:p.y,z:p.z,kind,combo,at});if(splashes.length>3)splashes.shift();
+ const visible=targets.find(q=>q.id===p.id);
+ splashes.push({x:p.x,y:p.y,z:p.z,kind,combo,at,radius:visible?.r||32});
+ if(splashes.length>3)splashes.shift();
  for(let i=0;i<(combo?9:6);i++){
   const a=(i/9)*TAU,sp=1+Math.random()*2;
   particles.push({x:p.x,y:p.y,z:p.z,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp+1.1,vz:(Math.random()-.5)*1.6,at,life:.38+Math.random()*.25,color});
