@@ -71,7 +71,7 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   await page.locator('#levelPlay').click();
   await page.waitForTimeout(500);
   assert(!await page.locator('#hud').isVisible(),'unsupported XR must not start a hidden non-AR game');
-  const adHostError=x=>x.includes('server.ethicalads.io/')||x.includes('srv.carbonads.net/');
+  const adHostError=x=>x.includes('server.ethicalads.io/')||x.includes('srv.carbonads.net/')||x.includes('ad.doubleclick.net/ddm/trackimp/');
   const blockedAd=errors.some(adHostError);
   const appErrors=errors.filter(x=>!x.includes('No runtimes supported the requested configuration')&&!adHostError(x)&&!(Boolean(process.env.FRUTA_BROWSER_BASE)&&blockedAd&&x==='CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin'));
   assert.equal(appErrors.length,0,appErrors.join(' | '));
