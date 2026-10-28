@@ -293,3 +293,22 @@ test('fallback characters are humanoid and include distinct costumes',()=>{
  assert.match(source,/Rayo: determined ninja mask/);
  assert.match(source,/function drawOutfit/);
 });
+
+test('progressive 3D renderer uses genuine humanoid rigged models and safe fallback',()=>{
+ const module=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ assert.match(module,/GLTFLoader/);
+ assert.match(module,/SkeletonUtils\.clone/);
+ for(const model of ['Knight.glb','Barbarian.glb','Mage.glb','Rogue.glb'])assert.ok(module.includes(model));
+ assert.match(module,/KayKit Adventurers/);
+ assert.match(module,/Rigged|rigged/);
+ assert.match(source,/function paintChibi\(p,hero,col\)/);
+ assert.match(source,/window\.Paper3DReady/);
+ assert.match(source,/paper-3d\.mjs/);
+ assert.match(source,/id="characterStage"/);
+});
+test('wardrobe overlays remain assigned to humanoid heads and torsos',()=>{
+ assert.match(source,/roundRect\(-15,-65,30,10,4\)/); // cap
+ assert.match(source,/roundRect\(-14,-47,12,8,2\)/); // glasses
+ assert.match(source,/ellipse\(-10,-76,5,15/); // ears
+ assert.match(source,/roundRect\(-13,-28,26,24,5\)/); // armor
+});
