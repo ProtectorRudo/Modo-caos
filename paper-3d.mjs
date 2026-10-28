@@ -213,11 +213,142 @@ function adjustSize(width,height){
   renderer.setSize(width,height,false);
  }
 }
+/* CC0 3D crates. One shared renderer; at most five instances in view.
+   Same capture/box pickups as Canvas game. Missing GLB = authored 2.5D fallback.
+   Local assets are vendored at build time; their immutable CDN is the backup. */
+const cvCrateSources={
+ ammo:['./assets/powercrates/pickup-ammo.glb','https://cdn.3dassets.dev/assets/27680/v1/model.glb'],
+ elite:['./assets/powercrates/elite-locked.glb','https://cdn.3dassets.dev/assets/27451/v1/model.glb']
+};
+const cvCratePalette={FAST:0x16c9ff,SLOW:0x9c77ff,BIG:0xffc04e,
+ SMOLL:0x75ef99,SHIELD:0x4fe2e7,SORPRESA:0xff76dc};
+const cvCrateBase=new Map(),cvCrateInstances=new Map();
+let cvCrateLoadStarted=false;
+window.PaperCrate3DStatus='idle';
+const cvCrateReady=window.PaperCrate3DReady||new Set();
+window.PaperCrate3DReady=cvCrateReady;
+const cvCrateMaxActors=Math.max(3,Math.min(5,(navigator.hardwareConcurrency||6)-1));
+function cvLoadCrateAsset(name,urls){
+ return new Promise(resolve=>{
+  gltfLoader.load(urls[0],gltf=>resolve(gltf),undefined,()=>{
+   gltfLoader.load(urls[1],gltf=>resolve(gltf),undefined,()=>resolve(null));
+  });
+ });
+}
+function cvStartCrateLoading(){
+ if(cvCrateLoadStarted||failed)return;
+ cvCrateLoadStarted=true;
+ window.PaperCrate3DStatus='loading';
+ Promise.all(Object.entries(cvCrateSources).map(async([name,urls])=>{
+  const gltf=await cvLoadCrateAsset(name,urls);
+  if(gltf?.scene)cvCrateBase.set(name,gltf);
+ })).then(()=>{
+  window.PaperCrate3DStatus=cvCrateBase.size===2?'ready':cvCrateBase.size?'partial':'fallback';
+ }).catch(()=>{window.PaperCrate3DStatus='fallback';});
+}
+function cvDisposeCrate(key){
+ const i=cvCrateInstances.get(key);
+ if(!i)return;
+ i.mixer?.stopAllAction();
+ scene?.remove(i.root);
+ // Shared glTF geometry/textures are reused; do not dispose shared resources.
+ for(const mat of i.ownMaterials||[])mat.dispose();
+ cvCrateInstances.delete(key);cvCrateReady.delete(key);
+}
+function cvInstantiateCrate(b){
+ const model=b.type==='SORPRESA'?'elite':'ammo',source=cvCrateBase.get(model);
+ if(!source)return null;
+ const root=new THREE.Group();
+ const mesh=source.scene.clone(true);
+ // 3DAssets models use +Y up and roughly 1m dimensions. Scale to 42 world px,
+ // using a camera-facing orientation matching the existing chibi renderer.
+ const bb=new THREE.Box3().setFromObject(mesh);
+ const size=bb.getSize(new THREE.Vector3());
+ const magnitude=Math.max(size.x,size.y,size.z,0.001);
+ const scale=46/magnitude;
+ mesh.scale.setScalar(scale);
+ mesh.position.set(-(bb.min.x+size.x*.5)*scale,-bb.min.y*scale,0);
+ mesh.rotation.y=-.34;
+ root.add(mesh);
+ const ownMaterials=[];
+ // CIVIDOM-original luminous power badge on the shell, no new renderer/lights.
+ const col=cvCratePalette[b.type]||0xffedb1;
+ const glyph=new THREE.Mesh(new THREE.CircleGeometry(9,20),
+  new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.92,depthTest:false}));
+ glyph.position.set(0,15,27);glyph.renderOrder=12;root.add(glyph);
+ ownMaterials.push(glyph.material);
+ const core=new THREE.Mesh(new THREE.CircleGeometry(4,16),
+  new THREE.MeshBasicMaterial({color:0xffffff,depthTest:false}));
+ core.position.set(0,15,27.7);core.renderOrder=13;root.add(core);
+ ownMaterials.push(core.material);
+ const mixer=source.animations?.length?new THREE.AnimationMixer(mesh):null;
+ if(mixer&&model==='ammo'){
+  const spin=source.animations.find(x=>/spin/i.test(x.name))||source.animations[0];
+  if(spin)mixer.clipAction(spin).play();
+ }
+ scene.add(root);
+ const item={root,mesh,mixer,model,ownMaterials,opening:false,shown:true};
+ cvCrateInstances.set(b.key,item);
+ return item;
+}
+function cvSyncPowerCrates(state,dt){
+ if(failed||!state?.playing)return;
+ cvStartCrateLoading();
+ const boxes=state.powerBoxes||[];
+ const xlim=state.screenW/(2*Math.max(.5,state.zoom))+75;
+ const ylim=state.screenH/(2*Math.max(.5,state.zoom))+85;
+ const visible=boxes.filter(b=>Math.abs(b.x-state.camX)<xlim&&Math.abs(b.y-state.camY)<ylim)
+  .sort((a,b)=>{
+   const da=(a.x-state.camX)**2+(a.y-state.camY)**2;
+   const db=(b.x-state.camX)**2+(b.y-state.camY)**2;
+   return da-db;
+  }).slice(0,cvCrateMaxActors);
+ const active=new Set();
+ cvCrateReady.clear();
+ for(const b of visible){
+  const source=cvCrateBase.get(b.type==='SORPRESA'?'elite':'ammo');
+  if(!source||!b.key)continue;
+  active.add(b.key);
+  const item=cvCrateInstances.get(b.key)||cvInstantiateCrate(b);
+  if(!item)continue;
+  item.opening=false;item.root.visible=true;
+  item.root.position.set(b.x,-b.y+10+Math.sin(state.clock*3.1+b.x*.02)*3,12);
+  item.root.rotation.y=Math.sin(state.clock*1.7+b.y*.01)*.09;
+  item.root.scale.setScalar(1);
+  item.mixer?.update(Math.min(dt,.035));
+  cvCrateReady.add(b.key);
+ }
+ // Retain a collected elite crate for half a second to play its real lid clip.
+ for(const event of state.crateOpenings||[]){
+  if(!event?.key)continue;
+  const item=cvCrateInstances.get(event.key);
+  if(!item||!Number.isFinite(event.age)||event.age>.54)continue;
+  active.add(event.key);
+  item.opening=true;item.root.visible=true;
+  item.root.scale.setScalar(Math.max(.1,1-event.age/.65));
+  item.root.rotation.z=Math.sin(event.age*14)*.14;
+  if(item.model==='elite'&&!item.openAction&&item.mixer){
+   const source=cvCrateBase.get('elite');
+   const clip=source?.animations.find(x=>/open/i.test(x.name));
+   if(clip){
+    item.openAction=item.mixer.clipAction(clip);
+    item.openAction.setLoop(THREE.LoopOnce,1);
+    item.openAction.clampWhenFinished=true;
+    item.openAction.reset().play();
+   }
+  }
+  item.mixer?.update(Math.min(dt,.035));
+ }
+ for(const key of [...cvCrateInstances.keys()])if(!active.has(key))cvDisposeCrate(key);
+}
+
 function sync(dt){
  if(failed)return;
  const state=getState();
  if(state&&(state.playing||state.previewing||state.menuing||state.shopping))startLoading();
  if(!state||!state.playing){
+  for(const key of [...cvCrateInstances.keys()])cvDisposeCrate(key);
+  cvCrateReady.clear();
   // Avoid a second full-screen WebGL clear every VS frame on mobile devices.
   // One clear is enough when leaving the match, freeing GPU for smooth dancing.
   if(mainGameVisible){for(const p of instances.values())p.root.visible=false;renderer.clear();mainGameVisible=false;}
@@ -265,6 +396,7 @@ function sync(dt){
   if(p.id===0){updateOutfit(item,state.equipment);}
  }
  for(const id of instances.keys())if(!all.has(id))destroyInstance(id);
+ cvSyncPowerCrates(state,dt);
  renderer.render(scene,camera);
 }
 
@@ -453,6 +585,7 @@ function frame(ms){
  const dt=Math.min(.06,(ms-last)/1000||0);last=ms;
  if(!failed)try{const state=getState();sync(dt);if(state?.menuing||state?.shopping)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';document.getElementById('versusStage')?.classList.remove('is-3d');}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
   for(const k of Object.keys(window.Paper3DReady))delete window.Paper3DReady[k];
+  cvCrateReady.clear();window.PaperCrate3DStatus='fallback';
   canvas.style.display='none';}
 }
 if(new URLSearchParams(location.search).has('qa')){
@@ -471,6 +604,9 @@ if(new URLSearchParams(location.search).has('qa')){
   vsReady:window.PaperVSReady,
   versus:vsCharacters.map(x=>x?.mascotRig?{hero:x.hero,left:x.mascotRig.left.rotation.z,right:x.mascotRig.right.rotation.z}:null),
   gameCharacters:instances.size,
+  crateActors:cvCrateInstances.size,crateStatus:window.PaperCrate3DStatus,
+  crateMaxActors:cvCrateMaxActors,
+  crateModels:[...cvCrateBase.keys()],
   showroomFashion:vsCharacters[0]?.fashionKey||'',
   showroomRig:!!vsCharacters[0]?.mascotRig
  });
