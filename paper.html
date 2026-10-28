@@ -1123,16 +1123,18 @@ function markTrail(p,k){
 }
 function move(p,dt){
  const prevX=p.x,prevY=p.y;
- const radial=Math.atan2(prevY-CY,prevX-CX),edge=R-Math.hypot(prevX-CX,prevY-CY);
+ const arena=arenaState(),radial=Math.atan2(prevY-arena.y,prevX-arena.x);
+ const edge=arena.radius-Math.hypot(prevX-arena.x,prevY-arena.y);
  const tangent=Math.abs(Math.cos(p.angle-radial))<.45;
  if(p.id===0){p.edgeCharge=(edge<68&&tangent)?Math.min(1,p.edgeCharge+dt*2.4):Math.max(0,p.edgeCharge-dt*2.5);
  if(p.edgeCharge>=.7&&clock>=p.boostUntil){p.boostUntil=clock+1.1;burstAt(p.x,p.y,COLORS[settingColor],10,36);}}
  const boosting=p.id===0&&clock<p.boostUntil;
- const step=p.speed*(boosting?1.32:1)*dt;let x=prevX+Math.cos(p.angle)*step,y=prevY+Math.sin(p.angle)*step;
- if(!inside(x,y)){if(p.id===0){death(p);return;}p.angle=Math.atan2(CY-p.y,CX-p.x);p.goal={x:CX,y:CY};return;}
+ const step=p.speed*powerMultiplier(p)*(boosting?1.32:1)*dt;
+ let x=prevX+Math.cos(p.angle)*step,y=prevY+Math.sin(p.angle)*step;
+ const slid=slideStormWall(p,x,y,dt);x=slid.x;y=slid.y;
  const sections=Math.max(1,Math.ceil(step/(CELL*.3)));
  for(let i=1;i<=sections;i++){
-  const px=prevX+(x-prevX)*i/sections,py=prevY+(y-prevY)*i/sections,k=idx(px,py);if(k<0||!inArena[k]){death(p);return;}
+  const px=prevX+(x-prevX)*i/sections,py=prevY+(y-prevY)*i/sections,k=idx(px,py);if(k<0||!inArena[k])continue;
   const enemyMask=trails[k]&~(1<<p.id);
   if(enemyMask){for(let j=0;j<12;j++)if(enemyMask&(1<<j))death(game.people[j],p.id);}
   if(!p.alive)return;
@@ -1145,7 +1147,7 @@ function move(p,dt){
    if(p.trailCells.length>(p.powerKind==='SMOLL'&&clock<p.powerUntil?448:380)){death(p);return;}
   }
  }
- p.x=x;p.y=y;
+ p.x=x;p.y=y;checkBoxPickup(p);
 }
 function nearestHome(p){
  let best=null,bd=Infinity;const gx=(p.x/CELL)|0,gy=(p.y/CELL)|0;
@@ -1154,6 +1156,11 @@ function nearestHome(p){
 }
 function chooseBotGoal(p){
  if(!p.alive)return;const home=nearestHome(p),far=p.trailCells.length>random(18,36);
+ // Neutral AI can contest the same power crates as humans.
+ if(!p.outside&&clock>10&&Math.random()<.21){
+  const box=game.boxes.filter(b=>b.active&&clock>=b.collectAt&&dist(p,b)<210).sort((a,b)=>dist(p,a)-dist(p,b))[0];
+  if(box){p.goal={x:box.x,y:box.y};p.stage=2;p.goalAt=clock;return;}
+ }
  if(p.outside&&(far||p.stage>=2||clock-p.goalAt>7.2)){p.goal=home;p.stage=3;}
  else if(!p.outside&&p.stage===3){p.stage=0;p.goal=null;}
  if(p.stage===0){
@@ -1176,7 +1183,7 @@ function stepBot(p,dt){
  if(Math.random()<dt*.22){let target=null,best=155*155;
  for(let k=0;k<SIZE;k+=2){if(!trails[k]||trails[k]===(1<<p.id))continue;const x=(k%N+.5)*CELL,y=((k/N|0)+.5)*CELL,d=(x-p.x)**2+(y-p.y)**2;if(d<best){best=d;target={x,y};}}
  if(target&&Math.random()<.52){p.goal=target;p.goalAt=clock;p.stage=2;}}
- if(p.goal){const aim=angleTo(p,p.goal),d=angleDelta(p.angle,aim);p.angle+=clamp(d,-p.turn*dt,p.turn*dt);}
+ if(p.goal){const aim=angleTo(p,p.goal),d=angleDelta(p.angle,aim);p.angle+=clamp(d,-p.turn*dt*(p.powerKind==='SMOLL'&&clock<p.powerUntil?1.22:1),p.turn*dt*(p.powerKind==='SMOLL'&&clock<p.powerUntil?1.22:1));}
  move(p,dt);
 }
 function step(dt){
@@ -1190,7 +1197,10 @@ function step(dt){
  if((keys.ArrowDown||keys.KeyS)&&(keys.ArrowRight||keys.KeyD))aim=Math.PI/4;
  if((keys.ArrowDown||keys.KeyS)&&(keys.ArrowLeft||keys.KeyA))aim=3*Math.PI/4;
  if((keys.ArrowUp||keys.KeyW)&&(keys.ArrowLeft||keys.KeyA))aim=-3*Math.PI/4;
- if(aim!==null){let dif=angleDelta(p.angle,aim);p.angle+=clamp(dif,-p.turn*dt,p.turn*dt);}
+ if(aim!==null){
+   let dif=angleDelta(p.angle,aim),handling=p.powerKind==='SMOLL'&&clock<p.powerUntil?1.22:1;
+   p.angle+=clamp(dif,-p.turn*handling*dt,p.turn*handling*dt);
+  }
  move(p,dt);
  // Light cosmetics are spawned in fixed intervals, not every animation frame.
  if(p.outside&&Math.floor(clock*10)!==Math.floor((clock-dt)*10)){
