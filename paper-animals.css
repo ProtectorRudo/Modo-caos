@@ -56,7 +56,9 @@ canvas#characterStage{position:fixed!important;top:0!important;left:0!important;
 #home .heroChoice .hero3DThumbnail{flex:0 0 auto!important;display:block!important;height:73px!important;max-height:73px!important;max-width:100%!important;object-fit:contain!important;margin:0 auto 4px!important}
 #home .heroChoice b{position:relative!important;z-index:3!important;display:block!important;flex:none!important;line-height:1.25!important;padding-top:3px!important;font-size:11px!important}
 #home .heroChoice small{display:block!important;position:relative!important;z-index:3!important;line-height:1.25!important;max-width:95%!important;font-size:8px!important}
-#home #menuHeroPortrait{opacity:.24!important;pointer-events:none}
+#home #menuHeroPortrait{pointer-events:none}
+#home #menuHeroStage:not(.model-loaded) #menuHeroPortrait{opacity:1!important}
+#home #menuHeroStage.model-loaded #menuHeroPortrait{opacity:.12!important}
 #versus #vsPortraits{opacity:.82!important}
 #versus .vsPortraits img{object-fit:contain!important}
 @media(max-width:390px){
