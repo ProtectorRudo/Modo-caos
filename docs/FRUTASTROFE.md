@@ -71,3 +71,13 @@ Tras probar el reactor terrestre en Android, se detectó: las frutas salían del
 - Se recomienda levantar ligeramente la cámara para seguir la lluvia del cielo; se añadieron instrucciones en juego. Los gráficos AR usan vectores estilizados, NO se debe anunciar realismo 3D fotográfico todavía.
 - `tests/frutastrofe-sky.test.cjs`: validación de altura, cinco carriles, gravedad, límites de densidad y oleadas. Chromium verifica imágenes de la lluvia y un disparo con fruta realmente partida.
 - Las pruebas Chromium/CI y CDN aprobadas no equivalen a una prueba de ARCore físico. Mantener preview aislada de producción principal hasta aprobación y pruebas Android.
+
+## 28/10/2026 · Auditoría de rendimiento y rondas por tiempo
+- Informe de dispositivo: sostener disparo hacía trabar el AR; las partidas acababan antes del reloj si se alcanzaba el objetivo.
+- Cambio de reglas: **todos los niveles de campaña y arcade duran 60 segundos completos**. Los objetivos determinan la victoria sólo al acabar el reloj. Una bomba o error en un nivel limpio penaliza, pero no corta el tiempo. El jefe derrotado tampoco hace finalizar antes del segundo 60.
+- Dificultad gradual dentro de cada ronda: seis fases de diez segundos, identificadas en el HUD; la cadencia de generación aumenta un 7,5 % por fase aproximadamente y la aceleración de frutas nuevas aumenta gradualmente, con tope de 13 objetos simultáneos. La Fiebre final sigue presente en los últimos 12 segundos.
+- Causa de lentitud: el SVG AR se reconstruía íntegramente con definiciones de gradientes, numerosas salpicaduras y decenas de partículas por tiro; cada disparo forzaba una medición síncrona del layout para reiniciar animaciones CSS.
+- Mitigaciones: gradientes SVG persistentes, máximo 42 partículas activas, tres estallidos, dos rayos, seis textos y nueve charcos; 7 chorros por estallido y eliminación de partículas decorativas al aparecer y caer frutas.
+- FPS adaptativo para el overlay: entre aproximadamente 12 y 18 actualizaciones por segundo según costo medido de render; el framebuffer XR conserva los cuadros de la cámara. Se omite raycast contra mallas ocultas en AR, sombras WebGL, actualización de partículas 3D ocultas y se usa pixel ratio 1 en AR.
+- Disparo continuo: mantiene ~8 disparos/segundo, audio reducido a un solo tono de disparo y retroceso/flash con una única animación CSS en bucle mientras esté presionado; ya no se fuerza `offsetWidth` por cada tiro.
+- Verificación: `tests/frutastrofe-timed.test.cjs`, Core QA, smoke de Chromium móvil y smoke del CDN; sigue pendiente prueba física Android ARCore y medición FPS con herramientas del dispositivo para afirmar que está solucionado en todas las gamas.
