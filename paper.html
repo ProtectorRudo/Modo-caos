@@ -477,7 +477,7 @@ let screenW=innerWidth, screenH=innerHeight, dpr=1,game=null,mode='home',clock=0
 // Solo mode has no networking overhead. In a room, the host simulates all 25
 // combatants and the friend controls id 1, replacing exactly one AI rival.
 let cvRole='solo',cvRemoteConnected=false,cvRemoteAim=null,cvGuestName='INVITADO',cvLastInputAt=0;
-let cvMapRevision=0,cvGuestMapRevision=-1,cvSnapshotSeq=0,cvLastApplied=-1,cvNetWinner=-1,cvLastRemotePacket=0;
+let cvMapRevision=0,cvGuestMapRevision=-1,cvSnapshotSeq=0,cvLastApplied=-1,cvNetWinner=-1,cvLastRemotePacket=0,cvGuestHero=1;
 const cvLocalId=()=>cvRole==='guest'?1:0;
 const cvLocalPlayer=()=>game?.people?.[cvLocalId()]||game?.people?.[0];
 
@@ -1529,7 +1529,7 @@ function drawUnit(p){
  }
  // Actual 3D actors take over when their GLB has loaded. Otherwise use
  // anatomically legible, animated original chibi people — never robot cubes.
- const hero=p.id===cvLocalId()?selectedSkin:p.id===1?vsRival:p.id%CHIBI_HEROES;
+ const hero=p.id===cvLocalId()?selectedSkin:p.id===1&&cvRole==='host'?cvGuestHero:p.id===1?vsRival:p.id%CHIBI_HEROES;
  const has3D=!!(window.Paper3DReady&&window.Paper3DReady[p.id]);
  // Render the original 2D fallback ONLY when WebGL has not loaded a mascot.
  // The previous 72% overlap made old avatars appear underneath the new 3D actors.
@@ -1829,7 +1829,7 @@ window.Paper3DState=()=>({
  vsEmote:wardrobe.equipped.emote==='emote_hello'?'emote_sixseven':wardrobe.equipped.emote,
  people:game?game.people.map(p=>({
   id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,scale:powerScale(p),shielded:clock<p.shieldUntil,
-  hero:p.id===cvLocalId()?wardrobe.hero:p.id===1?vsRival:p.id%CHIBI_HEROES,
+  hero:p.id===cvLocalId()?wardrobe.hero:p.id===1&&cvRole==='host'?cvGuestHero:p.id===1?vsRival:p.id%CHIBI_HEROES,
   emoting:p.id===0&&clock<emoteUntil,emoteId:p.id===0?wardrobe.equipped.emote:''
  })):[]
 });
@@ -1932,6 +1932,8 @@ window.CividomOnlineBridge=Object.freeze({
  snapshot:cvPackSnapshot,
  apply:cvApplySnapshot,
  getAim:()=>desiredAngle,
+ hero:()=>wardrobe.hero,
+ setGuestHero(v){if(cvRole==='host'&&Number.isInteger(v)&&v>=0&&v<CHIBI_HEROES)cvGuestHero=v},
  setGuestAim(v){
   if(cvRole!=='host'||typeof v!=='number'||!Number.isFinite(v))return;
   cvRemoteAim=Math.atan2(Math.sin(v),Math.cos(v));cvLastInputAt=performance.now();
