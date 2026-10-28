@@ -130,3 +130,17 @@ Se revisaron Kenney Food Kit (CC0: https://kenney.nl/assets/food-kit), Quaterniu
 **Pruebas:** Node y Chromium móvil simulados + smoke de CDN inmutable, con verificación de las 11 frutas, mitades precalculadas, dimensiones del HUD/arma, arranque/pausa/reinicio, proyección a distinta pose, disparos rápidos durante 1,8 s y modo online sin regresiones. **No equivalen a una prueba física ARCore con dos celulares.**
 
 **Publicación:** el proyecto Vercel `modo-caos` devuelve error HTTP 402 `api-deployments-free-per-day` (límite gratuito diario). Se conserva la rama de prueba y el enlace CDN del commit exacto; producción `main` y proyecto original intactos. No se descargaron modelos externos: el arte programático original mantiene la licencia controlada y evita peso en datos móviles.
+
+## 28/10/2026 · JUICE APOCALYPSE v5: puntería calibrada, explosiones proporcionales y plataforma limpia
+
+**Diagnóstico después de la captura AR anterior:** el cañón del arma era HTML/SVG con rotaciones y escalados CSS, mientras la salida del rayo se calculaba con porcentajes de pantalla independientes. Al cambiar de resolución y rotar el teléfono podían separarse. Además las mitades de fruta explotaban siempre a tamaño fijo y los círculos de jugo opacos parecían simples manchas en la pista.
+
+**Cambios concretos:**
+- Calibración de cañón `FrutaAROverlay.measureMuzzle()`: mide una vez el rectángulo real del SVG `#gunFlash`, guarda su centro y desde ahí salen las trazas Canvas. Se recalibra en el inicio y al cambiar orientación; no se lee el layout por disparo.
+- Retícula predictiva visual en la posición del disparo real: borde verde cuando una fruta visible está dentro del alcance de la mira, rojo cuando es bomba/podrida. Solo una retícula, sin anillos adicionales.
+- Las explosiones conservan los sprites precalculados de mitades y pulpa, pero ajustan su tamaño al radio proyectado del objetivo (entre 49 y 153 px), añaden seis chorros curvos que duran menos de 290 ms y permanecen limitadas por el presupuesto de partículas.
+- Se reemplazaron las manchas opacas del suelo por ondas de jugo semitransparentes que se expanden y desaparecen antes de 1,15 s.
+- FPS: sin reconstrucciones SVG, efectos limitados, una sola medición de cañón fuera del bucle de disparos y compositor con frecuencia adaptativa.
+- Regresiones: sin alterar `frutastrofe-core.js`, `frutastrofe-online.js`, el estado de Supabase, las salas, el anclaje o el menú de otros juegos.
+
+**Límites de validación:** los tests GitHub Actions ejecutan el juego y el flujo de disparos bajo Chromium con una vista WebXR simulada, más smoke sobre CDN público. Eso no confirma FPS físico ni la experiencia completa en dos Android con ARCore.
