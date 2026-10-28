@@ -18,8 +18,9 @@ function boot(seed=419,query='?qa=1'){
    measureText:()=>({width:12})
  },{get:(o,k)=>k in o?o[k]:()=>{},set:(o,k,v)=>(o[k]=v,true)});}
  function get(id){if(!els.has(id)){
+   const classes=new Set(['shop','versus','result','pause'].includes(id)?['hidden']:[]);
    els.set(id,{value:id==='nick'?'VOS':'',style:{},textContent:'',innerHTML:'',onclick:null,
-    classList:{add(){},remove(){},toggle(){},contains(){return false;}},setAttribute(){},append(){},setPointerCapture(){},getContext(){return context()},
+    classList:{add(n){classes.add(n)},remove(n){classes.delete(n)},toggle(n,b){if(b===undefined)b=!classes.has(n);if(b)classes.add(n);else classes.delete(n);return b},contains(n){return classes.has(n)}},setAttribute(){},append(){},setPointerCapture(){},getContext(){return context()},
     addEventListener(n,fn){(listeners[id+':'+n]??=[]).push(fn);}
    });}return els.get(id);}
  const doc={getElementById:get,createElement:k=>get('node-'+Math.random()),
