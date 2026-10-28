@@ -339,7 +339,7 @@ function syncVS(state,dt){
  try{
   attachShowcase('versusStage','vsPosition');
   if(vsCharacters.length!==2||vsCharacters.some((a,i)=>!a||a.hero!==wanted[i])){
-   clearVSActors();vsCharacters=wanted.map(vsActor);
+   clearVSActors();vsCharacters=wanted.map(vsActor);vsLastFrame=-1;
   }
   if(vsCharacters.some(a=>!a)){window.PaperVSReady=false;vsCanvas.style.opacity='0';return;}
   const width=Math.max(1,vsCanvas.clientWidth||350),height=Math.max(1,vsCanvas.clientHeight||480);
@@ -353,7 +353,7 @@ function syncVS(state,dt){
   for(let i=0;i<2;i++){
    const actor=vsCharacters[i];
    const side=i===0?-1:1;
-   const sizeFactor=Math.min(3.4,maxVisualWidth/Math.max(32,actor.dimensions.x),maxVisualHeight/Math.max(45,actor.dimensions.y));
+   const sizeFactor=Math.min(actor.nativeOutfit?4.15:3.4,maxVisualWidth/Math.max(32,actor.dimensions.x),maxVisualHeight/Math.max(45,actor.dimensions.y));
    actor.root.scale.setScalar(sizeFactor);
    actor.root.position.set(side*(width*.245+arrival*width*.37),-height*.22+Math.sin(state.vsSeconds*3.4+i)*1.6,0);
    actor.root.rotation.y=(i===0?-.13:.13)+Math.sin(state.vsSeconds*3.5+i)*.12;
@@ -369,7 +369,7 @@ function syncVS(state,dt){
   }
   window.PaperVSReady=true;vsCanvas.style.opacity='1';document.getElementById('versusStage')?.classList.add('is-3d');
   // Skip frames where possible to avoid competing with the gameplay canvas on 4G devices.
-  if(vsLastFrame<0||state.vsSeconds-vsLastFrame>.028){
+  if(vsLastFrame<0||state.vsSeconds<vsLastFrame||state.vsSeconds-vsLastFrame>.028){
    vsRenderer.render(vsScene,vsCamera);
    vsLastFrame=state.vsSeconds;
   }
