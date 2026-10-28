@@ -148,7 +148,7 @@ async function startAR(mode,level){
  nextAR={mode,level};
  if(!navigator.xr||!window.isSecureContext){alert('Frutástrofe se juega exclusivamente en AR. Requiere HTTPS, Chrome Android y ARCore compatible.');return}
  try{
-  if(!await navigator.xr.isSessionSupported('immersive-ar'))throw Error('Este dispositivo no es compatible con AR inmersiva.');
+  // Request the native session directly inside the user activation; asynchronous feature probing can expire it.
   art.reset();art.world.visible=false;renderer.setClearColor(0,0);art.scene.background=null;art.scene.fog=null;renderer.toneMapping=THREE.NoToneMapping;
   const opts={requiredFeatures:['hit-test','local-floor','dom-overlay'],optionalFeatures:['anchors'],domOverlay:{root:document.body}};
   arSession=await navigator.xr.requestSession('immersive-ar',opts);
@@ -224,5 +224,10 @@ renderer.setAnimationLoop(onFrame);
 function resize(){const w=innerWidth,h=innerHeight;art.camera.aspect=w/h;art.camera.fov=h>w?52:48;art.camera.updateProjectionMatrix();renderer.setSize(w,h);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7))}
 addEventListener('resize',resize);resize();
 progressUI();show('home');
-if(params.has('qa'))window.__frutaQA={state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,frames:renderer.info.render.frame}),finish:()=>g?.finish(true)};
+if(params.has('qa'))window.__frutaQA={
+ state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,frames:renderer.info.render.frame,arOnly:isAR,projectedSprites:arTargets.length}),
+ finish:()=>g?.finish(true),
+ simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.setScalar(.23);art.world.position.set(0,.09,-2.5);art.world.visible=true;createGame('campaign',1);return true},
+ previewWorld:(dx=0)=>{const I=[1,0,0,0,0,1,0,0,0,0,-1.002,-1,0,0,-.2,0],V=[1,0,0,0,0,1,0,0,0,0,1,0,-dx,0,0,1];const v={projectionMatrix:[1.4,0,0,0,0,2.1,0,0,0,0,-1.002,-1,0,0,-.2,0],transform:{inverse:{matrix:V}}};arTargets=O.draw(v,art.world.position,art.world.scale.x,g?.objects||[],'playing');return arTargets}
+};
 if(params.has('seed')){const l=clamp(Number(params.get('level')||1),1,10),m=params.get('mode')==='arcade'?'arcade':'campaign';if(m==='arcade'||l<=progress.unlocked){duel=null;selected=l;window.__frutaSharedChallenge={mode:m,level:l,seed:getSeed()};if(m==='campaign'){progressUI();show('selector')}else alertTxt('RETO DISPONIBLE · ABRÍ AR PARA JUGAR',2000)}}
