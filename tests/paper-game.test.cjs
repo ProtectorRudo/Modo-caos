@@ -219,7 +219,7 @@ test('battle royale minimap previews the next safe area and displays live counts
 test('chibi characters retain fallback while energy trails and circular radar gain richer VFX',()=>{
  assert.match(source,/function paintChibi\(p,hero,col\)/);
  assert.match(source,/drawOutfit\(p\)/);
- assert.match(source,/c\.shadowColor=trailCol/);
+ assert.match(source,/if\(p\.trailPoints\.length\)/);
  assert.match(source,/c\.lineTo\(p.x,p.y\)/);
  assert.match(source,/mc\.arc\(91,91,80,0,Math.PI\*2\)/);
  assert.match(source,/function drawPowerBoxes\(\)/);
@@ -618,7 +618,7 @@ test('Six Seven entrance never snaps on slow 270ms mobile frames',async()=>{
 
 test('Android performance guardrails preserve gameplay physics and reduce GPU contention',()=>{
  assert.match(source,/while\(acc>=RUN&&loops<7\)/);
- assert.match(source,/if\(t-lastVisualFrame>=32\)/);
+ assert.match(source,/if\(t-lastVisualFrame>=15\)/);
  assert.match(source,/dpr=Math\.min\(1\.25,devicePixelRatio\|\|1\)/);
  assert.match(source,/function flushMap\(\)/);
  assert.match(source,/pendingMapUpdate/);
@@ -663,4 +663,21 @@ test('game RAF loop self-schedules before risky canvas painting',()=>{
  assert.match(source.slice(start,stop+40),/requestAnimationFrame\(frame\)/);
  assert.match(source.slice(start,start+2200),/catch\(e\)/);
  assert.match(source,/window\.CividomPerformance=/);
+});
+
+test('player leaves own island and draws a persistent exposed trail while moving',()=>{
+ const g=boot(419),h=g.win.__paperTest;
+ g.get('start').onclick();
+ const p=h.getGame().people[0];
+ // Isolate movement from bot combat but preserve real 60Hz gameplay loop.
+ for(const rival of h.getGame().people.slice(1))rival.alive=false;
+ const initialX=p.x,initialY=p.y;
+ g.aim(initialX+330,initialY);
+ g.tick(115);
+ assert.ok(Math.hypot(p.x-initialX,p.y-initialY)>100,'the avatar must actually advance');
+ assert.equal(p.outside,true,'crossing the island boundary must activate exposed trail');
+ assert.ok(p.trailPoints.length>=3,'the path must contain continuous points');
+ assert.ok(p.trailCells.length>=3,'the path must remain vulnerable to rivals');
+ assert.ok(g.win.CividomPerformance().paintErrors===0,'no swallowed canvas render failure');
+ assert.ok(g.win.CividomPerformance().engineErrors===0,'no swallowed game simulation failure');
 });
