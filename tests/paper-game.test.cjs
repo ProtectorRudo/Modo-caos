@@ -19,7 +19,7 @@ function boot(seed=419,query='?qa=1'){
  },{get:(o,k)=>k in o?o[k]:()=>{},set:(o,k,v)=>(o[k]=v,true)});}
  function get(id){if(!els.has(id)){
    els.set(id,{value:id==='nick'?'VOS':'',style:{},textContent:'',innerHTML:'',onclick:null,
-    classList:{add(){},remove(){}},setAttribute(){},append(){},setPointerCapture(){},getContext(){return context()},
+    classList:{add(){},remove(){},toggle(){},contains(){return false;}},setAttribute(){},append(){},setPointerCapture(){},getContext(){return context()},
     addEventListener(n,fn){(listeners[id+':'+n]??=[]).push(fn);}
    });}return els.get(id);}
  const doc={getElementById:get,createElement:k=>get('node-'+Math.random()),
@@ -258,7 +258,7 @@ test('shop has four cosmetic categories with a close action',()=>{
  assert.match(source,/id="openShopHome"/);
  assert.equal(g.get('openShopHome').onclick instanceof Function,true);
  g.get('openShopHome').onclick();
- assert.match(g.get('shopGrid').innerHTML,/outfit_cap/);
+ assert.match(g.get('shopGrid').innerHTML,/outfit_street|outfit_neon|outfit_armor/);
  g.get('closeShop').onclick();
  assert.match(source,/celebration_confetti/);
  assert.match(source,/trail_rainbow/);
@@ -446,7 +446,7 @@ test('3D stage is reparented between menu and versus without creating additional
  assert.match(source,/id="versusStage"/);
  assert.match(source,/id="menuHeroStage"/);
  assert.match(module,/function attachShowcase\(target,cssClass\)/);
- assert.match(module,/attachShowcase\('menuHeroStage','menuPosition'\)/);
+ assert.match(module,/attachShowcase\(inShop\?'shopHeroStage':'menuHeroStage'/);
  assert.match(module,/attachShowcase\('versusStage','vsPosition'\)/);
  assert.match(module,/window\.PaperMenuReady=true/);
  assert.match(module,/state\.menuing/);
