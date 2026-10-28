@@ -1046,18 +1046,16 @@ function contourPath(ctx,loops,ox=0,oy=0){
 }
 
 let pendingMapUpdate=false,lastMapRedraw=-1e5;
-function updateMap(){
- pendingMapUpdate=true;
- if(!game||clock<lastMapRedraw||clock-lastMapRedraw>=.12)flushMap();
-}
+function updateMap(){pendingMapUpdate=true;if(!game||clock<lastMapRedraw||clock-lastMapRedraw>=.12)flushMap();}
 function flushMap(){
  if(!pendingMapUpdate)return;
  pendingMapUpdate=false;lastMapRedraw=clock;
- // Physics, circular map mask, and capture contour topology are unchanged.
+ // Physics stays on the original CELL occupancy grid; graphics are cached.
  const data=terrainCtx.createImageData(N,N),buf=data.data,active=new Uint8Array(12);
  for(let k=0;k<SIZE;k++){
   const v=land[k];if(!inArena[k]||!v)continue;
-  active[v-1]=1;const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),o=k*4;
+  active[v-1]=1;
+  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),o=k*4;
   buf[o]=rgb[0];buf[o+1]=rgb[1];buf[o+2]=rgb[2];buf[o+3]=255;
  }
  terrainCtx.putImageData(data,0,0);
@@ -1067,52 +1065,17 @@ function flushMap(){
  mapCtx.lineJoin='round';mapCtx.lineCap='round';
  for(let v=1;v<=12;v++){
   if(!active[v-1])continue;
-  const loops=territoryLoops(v);
-  if(!loops.length)continue;
-  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]);
-  const color=COLORS[(v-1+settingColor)%12];
-  const rgbString=(f)=>'rgb('+rgb.map(n=>Math.max(0,Math.min(255,Math.round(n*f)))).join(',')+')';
-  // Real perceptual depth: broad diffused shadow, vertical extrusion, bright bevel, top surface.
-  mapCtx.save();mapCtx.shadowColor='rgba(3,10,25,.67)';mapCtx.shadowBlur=8;mapCtx.shadowOffsetY=9;
-  contourPath(mapCtx,loops,0,10);mapCtx.fillStyle='#0b182e';mapCtx.fill('evenodd');mapCtx.restore();
-  for(let depth=10;depth>=3;depth-=3.5){
-   contourPath(mapCtx,loops,0,depth);
-   mapCtx.fillStyle=rgbString(depth>=7?.45:.64);mapCtx.fill('evenodd');
-  }
-  contourPath(mapCtx,loops);
-  const top=mapCtx.createLinearGradient(0,0,WORLD*.6,WORLD);
-  top.addColorStop(0,rgbString(1.12));top.addColorStop(.44,color);top.addColorStop(1,rgbString(.81));
-  mapCtx.fillStyle=top;mapCtx.fill('evenodd');
-  mapCtx.save();contourPath(mapCtx,loops);mapCtx.clip('evenodd');
-  const bloom=mapCtx.createRadialGradient(WORLD*.28,WORLD*.16,10,WORLD*.48,WORLD*.53,WORLD*.87);
-  bloom.addColorStop(0,'rgba(255,255,255,.25)');
-  bloom.addColorStop(.4,'rgba(255,255,255,.08)');
-  bloom.addColorStop(1,'rgba(7,20,51,.20)');
-  mapCtx.fillStyle=bloom;mapCtx.fillRect(0,0,WORLD,WORLD);
-  // Fine ornamental engraving: no coarse, highly visible hex cells.
-  if(cvTerritoryPattern){
-   mapCtx.globalAlpha=.5;mapCtx.fillStyle=cvTerritoryPattern;mapCtx.fillRect(0,0,WORLD,WORLD);
-   mapCtx.globalAlpha=1;
-  }
-  for(let y=79;y<WORLD;y+=201)for(let x=102;x<WORLD;x+=211){
-   const k=idx(x,y);if(k<0||land[k]!==v)continue;
-   const q=(x*3+y*7+v*31)%13;
-   if(q<5)continue;
-   mapCtx.lineWidth=1.15;mapCtx.strokeStyle='rgba(255,255,255,.22)';
-   mapCtx.beginPath();mapCtx.arc(x,y,7+(q%3)*3,Math.PI*.15,Math.PI*1.12);mapCtx.stroke();
-   mapCtx.fillStyle='rgba(255,255,255,.3)';
-   mapCtx.beginPath();mapCtx.arc(x,y,1.5,0,7);mapCtx.fill();
-  }
-  mapCtx.restore();
-  contourPath(mapCtx,loops,0,5);
-  mapCtx.lineWidth=4;mapCtx.strokeStyle=rgbString(.48);mapCtx.stroke();
-  contourPath(mapCtx,loops);
-  mapCtx.shadowColor=color;mapCtx.shadowBlur=6;
-  mapCtx.lineWidth=2.7;mapCtx.strokeStyle=rgbString(1.15);mapCtx.stroke();
-  mapCtx.shadowBlur=0;
-  contourPath(mapCtx,loops,0,-1.3);
-  mapCtx.strokeStyle='rgba(255,255,255,.77)';mapCtx.lineWidth=1.3;mapCtx.stroke();
+  const loops=territoryLoops(v);if(!loops.length)continue;
+  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),col=COLORS[(v-1+settingColor)%12];
+  const darker='rgb('+rgb.map(n=>Math.round(n*.62)).join(',')+')';
+  // Only two fills and two strokes per color; no blur or repeated world gradients.
+  contourPath(mapCtx,loops,0,6.5);mapCtx.fillStyle=darker;mapCtx.fill('evenodd');
+  contourPath(mapCtx,loops);mapCtx.fillStyle=col;mapCtx.fill('evenodd');
+  mapCtx.strokeStyle='rgba(0,24,52,.35)';mapCtx.lineWidth=2.8;mapCtx.stroke();
+  contourPath(mapCtx,loops,0,-1.1);
+  mapCtx.strokeStyle='rgba(255,255,255,.54)';mapCtx.lineWidth=1.4;mapCtx.stroke();
  }
+ mapCtx.setTransform(1,0,0,1,0,0);
 }
 function burstAt(x,y,color,count=16,strength=85){
  for(let i=0;i<count;i++){
@@ -1583,30 +1546,17 @@ function drawUnit(p){
  }
  c.restore();
 
- if(p.outside&&p.trailPoints.length){
-  // Same vulnerable trail geometry: premium energized ribbon is presentation only.
+ // Visible even if the outside flag and cell state update on adjacent ticks.
+ if(p.trailPoints.length){
   const trailCol=p.id===0&&wardrobe.equipped.trail==='trail_rainbow'
    ?COLORS[Math.floor(clock*6)%COLORS.length]:col;
   c.save();c.beginPath();c.moveTo(p.trailPoints[0].x,p.trailPoints[0].y);
   for(let i=1;i<p.trailPoints.length;i++)c.lineTo(p.trailPoints[i].x,p.trailPoints[i].y);
   c.lineTo(p.x,p.y);c.lineCap='round';c.lineJoin='round';
-  c.save();c.translate(0,5);c.strokeStyle='#03163383';c.lineWidth=20;c.stroke();c.restore();
-  c.shadowColor=trailCol;c.shadowBlur=p.id===0?19:11;
-  c.strokeStyle=trailCol;c.lineWidth=17;c.stroke();
-  c.shadowBlur=0;c.strokeStyle='#122550ab';c.lineWidth=12;c.stroke();
-  c.strokeStyle=trailCol;c.lineWidth=9.8;c.stroke();
-  c.strokeStyle='#fffaff';c.lineWidth=2.6;c.globalAlpha=.93;c.stroke();
-  c.globalAlpha=1;
-  if(p.id===0){
-   const flicker=(Math.sin(clock*15)+1)*.5;
-   c.fillStyle='#fffdf6';c.shadowColor=trailCol;c.shadowBlur=12;
-   for(let j=Math.max(0,p.trailPoints.length-4);j<p.trailPoints.length;j+=2){
-    const q=p.trailPoints[j];c.globalAlpha=.4+flicker*.45;
-    c.beginPath();c.arc(q.x+Math.sin(clock*8+j)*5,q.y+Math.cos(clock*6+j)*5,1.7,0,7);c.fill();
-   }
-   c.globalAlpha=1;c.shadowBlur=0;
-  }
-  c.restore();
+  c.save();c.translate(0,4);c.strokeStyle='rgba(6,24,52,.4)';c.lineWidth=18;c.stroke();c.restore();
+  c.strokeStyle='#19325d';c.lineWidth=16.5;c.stroke();
+  c.strokeStyle=trailCol;c.lineWidth=12.5;c.stroke();
+  c.strokeStyle='#ffffffdd';c.lineWidth=p.id===0?3.5:2.2;c.stroke();c.restore();
  }
  // Actual 3D actors take over when their GLB has loaded. Otherwise use
  // anatomically legible, animated original chibi people — never robot cubes.
@@ -1907,7 +1857,7 @@ function frame(t){
   // Reset the accumulated time instead of replaying an endless frame backlog.
   acc=0;
  }
- if(t-lastVisualFrame>=32){
+ if(t-lastVisualFrame>=15){
   try{render();lastVisualFrame=t;}
   catch(e){
    drawErrorCount++;
