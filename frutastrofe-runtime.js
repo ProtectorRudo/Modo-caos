@@ -1,8 +1,8 @@
 /* FRUTÁSTROFE · runtime 3D / WebXR floor-locked / save / local versus */
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
-const $=id=>document.getElementById(id),C=window.FrutaCore,A=window.FrutaArt,P=window.FrutaARProjection;
+const $=id=>document.getElementById(id),C=window.FrutaCore,A=window.FrutaArt,P=window.FrutaARProjection,O=window.FrutaAROverlay;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),number=x=>Math.round(x).toLocaleString('es-AR');
-if(!C||!A||!P){throw new Error('Frutástrofe: faltan core, arte o proyección AR')}
+if(!C||!A||!P||!O){throw new Error('Frutástrofe: faltan core, arte o proyección AR')}
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight);
 renderer.setClearColor(0x070b23,1);renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -91,7 +91,7 @@ function handleFinish(ev){
  if(duel&&duel.turn===1)$('nextBtn').textContent='▶ TURNO JUGADOR 2';else $('nextBtn').textContent='▶ SIGUIENTE NIVEL';
  show('results');progressUI();
 }
-function resetToMenu(){arTargets=[];$('arWorld').style.display='none';arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
+function resetToMenu(){arTargets=[];O.clear();arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
 function matchFromResults(){
  if(duel&&duel.turn===1){duel.turn=2;createGame('arcade',1,duel.seed);return}
  if(!duel&&g?.mode==='campaign'&&g.level<10){selected=g.level+1;createGame('campaign',selected);return}
@@ -110,6 +110,7 @@ function fireAt(x,y){
  const targets=[...art.bodies.values()];const hits=ray.intersectObjects(targets,true);
  let id=null;
  if(hits.length)id=hits[0].object.userData.targetId;
+ if(isAR&&arTargets.length){const sx=(x+1)*innerWidth*.5,sy=(1-y)*innerHeight*.5;let dist=Infinity;for(const q of arTargets){const d=Math.hypot(q.x-sx,q.y-sy);if(d<=Math.max(26,q.r*1.3)&&d<dist){id=q.id;dist=d}}}
  if(!id){
   // Limited assistance for touch/controller jitter; rejects behind-camera and offscreen targets.
   let best=.072;
@@ -160,7 +161,7 @@ async function startAR(mode,level){
   $('arTitle').textContent='BUSCÁ EL PISO';$('arMessage').textContent='Apuntá a un suelo despejado. Cuando aparezca LISTO PARA FIJAR, tocá el botón.';
   Object.assign($('arPanel').style,{background:'transparent',alignItems:'flex-end',backdropFilter:'none'});
   Object.assign($('arPanel').querySelector('.modal').style,{background:'#100c2bd9',maxWidth:'440px',padding:'13px',marginBottom:'12px'});
-  arSession.addEventListener('end',()=>{isAR=false;arSession=null;hitSource=null;anchor=null;placement=null;art.world.visible=true;art.world.scale.setScalar(1);art.world.position.set(0,0,0);art.scene.background=new THREE.Color(0x070b23);art.scene.fog=new THREE.FogExp2(0x090d25,.021);renderer.toneMapping=THREE.ACESFilmicToneMapping;$('arPanel').removeAttribute('style');$('arPanel').querySelector('.modal').removeAttribute('style');if(view==='hud'||view==='arPanel'||view==='readyOverlay'||view==='pausePanel')resetToMenu()},{once:true});
+  arSession.addEventListener('end',()=>{O.clear();isAR=false;arSession=null;hitSource=null;anchor=null;placement=null;art.world.visible=true;art.world.scale.setScalar(1);art.world.position.set(0,0,0);art.scene.background=new THREE.Color(0x070b23);art.scene.fog=new THREE.FogExp2(0x090d25,.021);renderer.toneMapping=THREE.ACESFilmicToneMapping;$('arPanel').removeAttribute('style');$('arPanel').querySelector('.modal').removeAttribute('style');if(view==='hud'||view==='arPanel'||view==='readyOverlay'||view==='pausePanel')resetToMenu()},{once:true});
  }catch(err){console.warn('Frutástrofe AR:',err);isAR=false;art.world.visible=true;art.scene.background=new THREE.Color(0x070b23);art.world.scale.setScalar(1);alert('No se pudo abrir Frutástrofe AR: '+err.message+'\nNecesitás Chrome Android con ARCore.');show('home')}
 }
 $('arLock').onclick=async()=>{
@@ -169,7 +170,7 @@ $('arLock').onclick=async()=>{
  if(arHitResult&&typeof arHitResult.createAnchor==='function'){try{anchor=await arHitResult.createAnchor()}catch(e){console.warn('Ancla no disponible, usando pose fija del piso:',e.message)}}
  $('arLock').disabled=true;hitSource?.cancel?.();hitSource=null;
  // The scene is fixed in local-floor coordinates; moving the device NEVER rewrites the anchor transform.
- if(g&&paused){paused=false;show('hud');}else createGame(nextAR.mode,nextAR.level);
+ if(g&&paused){paused=false;show('hud');}else createGame(nextAR.mode,nextAR.level,duel?.seed??window.__frutaSharedChallenge?.seed);
 };
 $('arCancel').onclick=resetToMenu;
 $('recenterBtn').onclick=async()=>{
@@ -200,6 +201,19 @@ function onFrame(t,frame){
   art.sync(mock,sec);
  }else if(g){art.sync(g.objects,g.elapsed)}
  if(!isAR&&view!=='home'&&!g)art.sync([],sec);
+ if(isAR&&frame){try{
+   const ref=renderer.xr.getReferenceSpace(),pose=ref&&frame.getViewerPose(ref),vr=pose?.views?.[0];
+   if(vr&&t-lastOverlay>=48){
+    lastOverlay=t;arFrameCount++;
+    const origin=placement?art.world.position:(reticle?new THREE.Vector3(reticle.position.x,reticle.position.y+.09,reticle.position.z):null);
+    if(origin){
+     const overlayMode=placement&&g?.state==='playing'?'playing':'search';
+     arTargets=O.draw(vr,origin,art.world.scale.x,overlayMode==='playing'?g.objects:[],overlayMode);
+     if(view==='hud'&&t-lastHud<130)$('playTip').textContent=arTargets.length?'APUNTÁ A LAS FRUTAS · TOCÁ ¡PUM!':'LEVANTÁ UN POCO EL CELULAR PARA VER LAS FRUTAS';
+    }
+   }
+  }catch(error){console.warn('AR overlay:',error.message)}
+ }
  if(view==='hud'&&g?.fever&&Math.floor(g.elapsed)===g.duration-12&&t-lastHud<110)alertTxt('⚡ ¡JUICE FEVER!',1250);
  art.updateFx(Math.min(dt,.08),sec);
  if(toastUntil&&performance.now()>toastUntil){$('toast').classList.remove('show');toastUntil=0}
