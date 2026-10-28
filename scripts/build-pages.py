@@ -5,10 +5,11 @@ Only publish static arcade assets, never docs, SQL, tests or secrets.
 from pathlib import Path
 import re
 import shutil
+import os
 
 ROOT = Path(__file__).resolve().parent.parent
 TARGET = ROOT / "_site"
-PREFIX = "/Modo-caos"
+PREFIX = os.environ.get("STATIC_PREFIX", "/Modo-caos")
 PUBLISH = {".html", ".js", ".mjs", ".css", ".json", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".woff", ".woff2", ".mp3", ".ogg", ".glb", ".gltf", ".wasm"}
 TEXT = {".html", ".js", ".mjs", ".css"}
 # Only rewrite quoted root-relative paths; preserve external https:// and // URLs.
@@ -54,9 +55,9 @@ assert (TARGET / "paper-chibi.mjs").is_file(), "CIVIDOM chibi rig runtime missin
 assert (TARGET / "paper.html").is_file(), "CIVIDOM game missing from Pages"
 (TARGET / ".nojekyll").write_text("", encoding="utf-8")
 assert {"index.html", "meteoros.html", "meteoros-runtime.js", "meteoros-core.js", "meteoros-art.js", "engine.js"}.issubset(published)
-assert 'src="/Modo-caos/engine.js' in (TARGET / "meteoros.html").read_text()
-assert 'href="/Modo-caos/meteoros.html' in (TARGET / "index.html").read_text()
-assert 'src="/engine.js' not in (TARGET / "meteoros.html").read_text()
+assert f'src="{PREFIX}/engine.js' in (TARGET / "meteoros.html").read_text()
+assert f'href="{PREFIX}/meteoros.html' in (TARGET / "index.html").read_text()
+assert (PREFIX == '' or 'src="/engine.js' not in (TARGET / "meteoros.html").read_text())
 # Machine-checkable CIVIDOM deployment diagnostic; do not report ready just
 # because the HTML exists. Every licensed GLB must pass its pinned Git SHA1.
 import hashlib
