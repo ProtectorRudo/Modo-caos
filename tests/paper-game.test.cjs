@@ -646,7 +646,7 @@ test('compact Fortnite-inspired minimap uses square map, safe rings and one stat
  assert.match(source,/paper-mini-hud\.css\?v=2/);
  assert.match(source,/class="cvMiniMapFrame"/);
  assert.match(source,/id="miniTimeMetric"/);
- assert.match(source,/class="survivalStats" aria-label="Tiempo/);
+ assert.match(source,/class="survivalStats" aria-label="Tormenta/);
  assert.match(source,/id="survivorsCount"/);
  assert.match(source,/id="survivalKills"/);
  assert.match(css,/width:clamp\(108px,30vw,132px\)/);
