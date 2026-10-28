@@ -199,31 +199,41 @@ function vsActor(hero){
  const clip=chooseAnimation(asset,'idle');
  const action=mixer&&clip?mixer.clipAction(clip):null;
  if(action)action.play();
- const arms={left:null,right:null};mesh.traverse(n=>{
+ const arms={left:null,right:null},forearms={left:null,right:null};mesh.traverse(n=>{
   if(!n.isBone)return;
   const name=n.name.toLowerCase().replace(/[^a-z0-9]/g,'');
   if(/upperarm/.test(name)){
     if(/l$/.test(name)&&!arms.left)arms.left=n;
     if(/r$/.test(name)&&!arms.right)arms.right=n;
   }
+  if(/forearm/.test(name)){
+    if(/l$/.test(name)&&!forearms.left)forearms.left=n;
+    if(/r$/.test(name)&&!forearms.right)forearms.right=n;
+  }
  });
- return {hero,root,mesh,mixer,action,arms,phase:Math.random()*6};
+ return {hero,root,mesh,mixer,action,arms,forearms,phase:Math.random()*6};
 }
 function clearVSActors(){
  for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();vsScene?.remove(item.root);}
  vsCharacters=[];
 }
 function danceBones(item,seconds,mirror){
- const {arms}=item;
- const motion=seconds*7.1+(mirror?Math.PI*.6:0);
+ const {arms,forearms}=item;
+ const tempo=item.hero===3?8.6:item.hero===1?6.3:7.1;
+ const motion=seconds*tempo+(mirror?Math.PI*.6:0);
  const axis=new THREE.Vector3(0,0,1);
  for(const [key,bone] of Object.entries(arms)){
   if(!bone)continue;
   const side=key==='left'?-1:1;
-  // Real arm bones are changed only after the idle mixer has updated them.
-  const rise=Math.sin(motion+(side===1?Math.PI:0));
-  const swing=new THREE.Quaternion().setFromAxisAngle(axis,side*(.23+rise*.46));
-  bone.quaternion.multiply(swing);
+  // Both palms balance as if weighing options: opposite rises and falls.
+  const wave=Math.sin(motion+(side===1?Math.PI:0));
+  const angle=side*(.90+wave*.40);
+  // Pre-multiply to rotate in the visible screen plane, not along the bone axis.
+  bone.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis,angle));
+  const elbow=forearms[key];
+  if(elbow){
+   elbow.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis,-side*(.20+wave*.14)));
+  }
  }
 }
 function syncVS(state,dt){
@@ -249,6 +259,7 @@ function syncVS(state,dt){
    actor.root.scale.setScalar(sizeFactor);
    actor.root.position.set(side*(width*.27+arrival*width*.36),-height*.18+Math.sin(state.vsSeconds*7+i)*3,0);
    actor.root.rotation.y=(i===0?-.13:.13)+Math.sin(state.vsSeconds*3.5+i)*.12;
+   actor.root.rotation.z=Math.sin(state.vsSeconds*(actor.hero===3?9:6.6)+i)*.045;
    if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
    danceBones(actor,state.vsSeconds,i===1);
    if(i===0)updateOutfit(actor,state.outfit);
