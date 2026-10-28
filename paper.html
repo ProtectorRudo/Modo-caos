@@ -694,7 +694,206 @@ let mapCanvas=document.createElement('canvas');mapCanvas.width=WORLD;mapCanvas.h
 const mapCtx=mapCanvas.getContext('2d',{alpha:true});
 for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=(x+.5)*CELL-CX,dy=(y+.5)*CELL-CY,k=y*N+x;if(dx*dx+dy*dy<(R-5)*(R-5)){inArena[k]=1;landCount++;}}
 function idx(x,y){let gx=Math.floor(x/CELL),gy=Math.floor(y/CELL);return gx<0||gy<0||gx>=N||gy>=N?-1:gy*N+gx;}
-function inside(x,y){return (x-CX)**2+(y-CY)**2<(R-16)**2;}
+// Runtime storm is a nested circular playfield. It pushes characters inward,
+// but never inflicts damage. Arena cells are eroded incrementally during the match.
+function arenaState(){return game?.storm||{x:CX,y:CY,radius:R};}
+function inside(x,y,pad=16){
+ const a=arenaState(),safe=Math.max(28,a.radius-pad);
+ return (x-a.x)**2+(y-a.y)**2<safe*safe;
+}
+function stormProgress(){
+ return Math.max(0,Math.min(1,(clock-18)/145));
+}
+function stormPlan(t){
+ const p=Math.max(0,Math.min(1,t)),ease=p*p*(3-2*p);
+ return {x:CX+29*Math.sin(ease*Math.PI*.92),y:CY-22*Math.sin(ease*Math.PI*.66),
+ radius:R*(1-.57*ease)};
+}
+function updateStorm(dt){
+ if(!game?.storm)return;
+ const storm=game.storm,target=stormPlan(stormProgress()),oldRadius=storm.radius;
+ // Keep the next circle INSIDE the preceding one, including the small center drift.
+ const newRadius=Math.min(oldRadius,target.radius);
+ const availableShift=Math.max(0,oldRadius-newRadius);
+ const dx=target.x-storm.x,dy=target.y-storm.y,shift=Math.hypot(dx,dy);
+ const factor=shift>0?Math.min(1,availableShift/shift):0;
+ storm.x+=dx*factor;storm.y+=dy*factor;storm.radius=newRadius;
+ storm.remaining=Math.max(0,163-clock);
+ if(clock>=18&&clock-storm.lastWarning>32&&clock<151){
+  storm.lastWarning=clock;
+  if(game.people[0]?.alive){popup('⚡ LA TORMENTA SE CIERRA');vibrate(22);}
+ }
+ // Polygon reclassification is throttled; physics always uses the live boundary.
+ if(clock<storm.nextMaskAt)return;
+ storm.nextMaskAt=clock+.55;
+ let changed=false,available=0;
+ const bound=Math.max(0,storm.radius-5),rad2=bound*bound;
+ for(let k=0;k<SIZE;k++){
+  const x=(k%N+.5)*CELL,y=((k/N|0)+.5)*CELL;
+  const active=(x-storm.x)**2+(y-storm.y)**2<rad2?1:0;
+  if(inArena[k]&&!active){land[k]=0;trails[k]=0;changed=true;}
+  inArena[k]=active;available+=active;
+ }
+ landCount=Math.max(1,available);
+ for(const p of game.people){
+  if(!p.alive)continue;
+  // Never kill because of the storm. Gently reproject to its legal interior.
+  const safe=Math.max(25,storm.radius-22),dx=p.x-storm.x,dy=p.y-storm.y,dist=Math.hypot(dx,dy);
+  if(dist>safe){
+   p.x=storm.x+(dx/(dist||1))*safe;p.y=storm.y+(dy/(dist||1))*safe;
+   p.angle=Math.atan2(storm.y-p.y,storm.x-p.x);
+   p.goal=null;p.stage=0;p.edgeCharge=0;
+   if(p.outside)clearTrail(p);
+   burstAt(p.x,p.y,'#69edff',5,27);
+  }else if(p.outside&&p.trailCells.some(k=>!inArena[k]))clearTrail(p);
+ }
+ for(const box of game.boxes)if(box.active&&!inside(box.x,box.y,35))box.active=false;
+ if(changed){updateMap();countAreas();}
+}
+const POWER_KINDS=['FAST','SLOW','BIG','SMOLL','SHIELD','SORPRESA'];
+const POWER_COLORS={FAST:'#1dcbff',SLOW:'#9166f7',BIG:'#ffba3d',SMOLL:'#73ef90',SHIELD:'#45d8f2',SORPRESA:'#f76bca'};
+const POWER_SYMBOLS={FAST:'»',SLOW:'⏱',BIG:'↑',SMOLL:'↓',SHIELD:'◆',SORPRESA:'?'};
+const POWER_SECONDS={FAST:5,SLOW:5,BIG:10,SMOLL:10,SHIELD:7};
+function spawnBoxPoint(){
+ const a=arenaState();
+ for(let n=0;n<120;n++){
+  const angle=random(-Math.PI,Math.PI),r=Math.sqrt(Math.random())*Math.max(30,a.radius-120);
+  const x=a.x+Math.cos(angle)*r,y=a.y+Math.sin(angle)*r,k=idx(x,y);
+  if(k<0||!inArena[k]||land[k]||!inside(x,y,55))continue;
+  if(game.people.some(p=>p.alive&&Math.hypot(p.x-x,p.y-y)<125))continue;
+  if(game.boxes.some(b=>b.active&&Math.hypot(b.x-x,b.y-y)<110))continue;
+  return{x,y};
+ }
+ return null;
+}
+function spawnArenaBox(){
+ if(!game?.boxes||game.boxes.filter(b=>b.active&&!b.drop).length>=4)return;
+ const p=spawnBoxPoint();if(!p)return;
+ const slot=game.boxSerial++%14;
+ const type=POWER_KINDS[slot%POWER_KINDS.length];
+ game.boxes.push({...p,type,active:true,drop:false,spawnAt:clock,collectAt:clock+.4,expiresAt:clock+23});
+}
+function dropMystery(p){
+ // One collectible drop at the exact defeat point, including bot-vs-bot kills.
+ // 350ms grace before pickup; the player's own death does not spawn a crate.
+ if(!game?.boxes||p.id===0||!inside(p.x,p.y,23))return;
+ game.boxes.push({x:p.x,y:p.y,type:'SORPRESA',drop:true,active:true,spawnAt:clock,
+ collectAt:clock+.35,expiresAt:clock+17});
+}
+function tickBoxes(){
+ if(!game?.boxes)return;
+ for(const box of game.boxes)if(box.active&&clock>box.expiresAt)box.active=false;
+ if(clock>=game.nextBoxAt){
+  spawnArenaBox();
+  game.nextBoxAt=clock+random(5,7.5);
+ }
+ // Spent power crates do not stay in the render list indefinitely.
+ if(game.boxes.length>70)game.boxes=game.boxes.filter(b=>b.active);
+}
+function grantPower(p,kind){
+ const power=kind==='SORPRESA'?POWER_KINDS[Math.floor(Math.random()*5)]:kind;
+ if(!POWER_SECONDS[power])return;
+ p.powerKind=power;p.powerUntil=clock+POWER_SECONDS[power];
+ if(power==='SHIELD')p.shieldUntil=p.powerUntil;
+ if(p.id===0){
+  game.lastPower=power;
+  burstAt(p.x,p.y,POWER_COLORS[power],22,72);
+  popup('🎁 '+(kind==='SORPRESA'?'SORPRESA → ':'')+power+' · '+POWER_SECONDS[power]+'s');
+  audio('capture');vibrate([24,25,30]);
+ }else burstAt(p.x,p.y,POWER_COLORS[power],12,43);
+}
+function checkBoxPickup(p){
+ if(!p.alive||!game?.boxes)return;
+ for(const box of game.boxes){
+  if(!box.active||clock<box.collectAt)continue;
+  // Anatomical size affects real-world pickup distance; no click is required.
+  const reach=p.powerKind==='BIG'&&clock<p.powerUntil?30:23;
+  if((p.x-box.x)**2+(p.y-box.y)**2>reach*reach)continue;
+  box.active=false;grantPower(p,box.type);break;
+ }
+}
+function powerScale(p){
+ if(clock>=p.powerUntil)return 1;
+ return p.powerKind==='BIG'?1.6:p.powerKind==='SMOLL'?.70:1;
+}
+function powerMultiplier(p){
+ if(clock>=p.powerUntil)return 1;
+ return p.powerKind==='FAST'?1.38:p.powerKind==='SLOW'?.67:1;
+}
+function slideStormWall(p,x,y,dt){
+ const a=arenaState(),safe=Math.max(24,a.radius-19);
+ const dx=x-a.x,dy=y-a.y,d=Math.hypot(dx,dy);
+ if(d<=safe)return{x,y};
+ const nx=dx/(d||1),ny=dy/(d||1);
+ // Surface contact: preserve tangent direction and steer automatically inwards.
+ const inward=Math.atan2(a.y-p.y,a.x-p.x);
+ const tangent=p.angle+(Math.sin(p.angle)*nx-Math.cos(p.angle)*ny>0?Math.PI/2:-Math.PI/2);
+ const aim=Math.abs(angleDelta(p.angle,inward))<1.2?inward:tangent;
+ p.angle+=clamp(angleDelta(p.angle,aim),-p.turn*dt*2.5,p.turn*dt*2.5);
+ if(p.id!==0){p.goal={x:a.x,y:a.y};p.goalAt=clock;p.stage=3;}
+ if(p.id===0&&clock-(game.lastBarrierSound||-9)>.55){
+  game.lastBarrierSound=clock;burstAt(a.x+nx*safe,a.y+ny*safe,'#6ceeff',4,20);vibrate(12);
+ }
+ return{x:a.x+nx*safe,y:a.y+ny*safe};
+}
+function drawPowerBoxes(){
+ if(!game?.boxes)return;
+ for(const box of game.boxes){
+  if(!box.active)continue;
+  const t=clock-box.spawnAt,bright=clock>=box.collectAt;
+  const a=Math.min(1,t/.32),bob=Math.sin(clock*3.6+box.x*.02)*3.1;
+  const col=POWER_COLORS[box.type],sz=16;
+  c.save();c.translate(box.x,box.y+bob);c.globalAlpha=a;
+  c.fillStyle='#092e6950';c.beginPath();c.ellipse(0,18,22,8,0,0,7);c.fill();
+  c.strokeStyle=col;c.lineWidth=2;c.globalAlpha=a*(.45+.24*Math.sin(clock*5));
+  c.beginPath();c.ellipse(0,16,25,10,0,0,7);c.stroke();c.globalAlpha=a;
+  // Top face with CIVIDOM crown; coloured side faces show identical power glyph.
+  c.beginPath();c.moveTo(0,-23);c.lineTo(sz,-16);c.lineTo(0,-7);c.lineTo(-sz,-16);c.closePath();
+  c.fillStyle='#fff7d8';c.fill();c.strokeStyle='#24539d';c.lineWidth=2;c.stroke();
+  c.beginPath();c.moveTo(-sz,-16);c.lineTo(0,-7);c.lineTo(0,16);c.lineTo(-sz,7);c.closePath();
+  c.fillStyle=col;c.fill();c.stroke();
+  c.beginPath();c.moveTo(0,-7);c.lineTo(sz,-16);c.lineTo(sz,7);c.lineTo(0,16);c.closePath();
+  c.fillStyle=col;c.fill();c.stroke();
+  c.textAlign='center';c.font='900 13px system-ui';c.fillStyle='#173974';
+  c.fillText('♛',0,-11);
+  c.font='1000 14px system-ui';c.fillStyle='#153671';c.fillText(POWER_SYMBOLS[box.type],-8,3);c.fillText(POWER_SYMBOLS[box.type],8,3);
+  c.font='900 9px system-ui';c.fillStyle='#184376';c.fillText(box.type,0,29);
+  if(!bright){c.fillStyle='#ffffff70';c.fillRect(-18,-24,36,38);}
+  c.restore();
+ }
+}
+function drawStorm(){
+ if(!game?.storm)return;
+ const a=game.storm,r=a.radius,pulse=Math.sin(clock*8),on=clock>=18;
+ c.save();
+ // The old land stays muted outside; only the electric boundary is interactable.
+ c.beginPath();c.arc(a.x,a.y,r+11,0,Math.PI*2);
+ c.strokeStyle=on?'#2943b0a2':'#6f94b772';c.lineWidth=24;c.stroke();
+ c.beginPath();c.arc(a.x,a.y,r+3,0,Math.PI*2);
+ c.strokeStyle=on?'#4be8f7aa':'#a2eff2a0';c.lineWidth=10;c.stroke();
+ c.beginPath();c.arc(a.x,a.y,r,0,Math.PI*2);
+ c.strokeStyle=on?'#e4ffff':'#f8ffff';c.lineWidth=3.3+pulse*.4;c.stroke();
+ if(on){
+  for(let j=0;j<56;j++){
+   const angle=j/56*Math.PI*2+clock*.043,v=Math.sin(clock*3.7+j*1.8);
+   const px=a.x+Math.cos(angle)*(r+4),py=a.y+Math.sin(angle)*(r+4);
+   c.beginPath();c.moveTo(px,py);
+   c.lineTo(px+Math.cos(angle+.2)*(8+7*v),py+Math.sin(angle+.2)*(8+7*v));
+   c.strokeStyle=j%3?'#6ce8ff91':'#fff8bfbd';c.lineWidth=1.4;c.stroke();
+  }
+ }
+ c.restore();
+}
+function refreshBattleHud(){
+ if(!game?.storm)return;
+ const p=game.people[0],active=p&&p.powerUntil>clock;
+ $('powerStatus').textContent=active?'✦ '+p.powerKind+' '+Math.ceil(p.powerUntil-clock)+'s':'🎁 CAJAS CON PODERES';
+ $('powerStatus').classList.toggle('active',!!active);
+ const sec=Math.max(0,Math.ceil(18-clock));
+ $('stormStatus').textContent=clock<18?'⚡ TORMENTA EN '+sec+'s':
+  game.storm.remaining>0?'⚡ CÍRCULO '+Math.round(game.storm.radius/R*100)+'%':'⚡ CÍRCULO FINAL';
+}
+
 function territoryLoops(v){
  // Convert a filled grid into connected directed contour loops; diagonal contacts
  // are disambiguated clockwise so separate territories never become jagged rectangles.
