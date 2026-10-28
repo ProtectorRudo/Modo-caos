@@ -403,3 +403,17 @@ test('in-game purchased Six Seven forwards emote choice to live 3D arm bones',()
  assert.match(mod,/p\.emoteId==='emote_sixseven'/);
  assert.match(mod,/findArmRig\(base\)/);
 });
+
+test('VS picks the true standing idle instead of crouched idle across Styloo formats',()=>{
+ const mod=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ const start=mod.indexOf('function chooseAnimation(');
+ const end=mod.indexOf('\nfunction findArmRig',start);
+ assert.ok(start>=0&&end>start);
+ const choose=new Function('return '+mod.slice(start,end).trim())();
+ const regular={animations:['anim_crouchiddle','anim_iddle','anim_push','anim_run'].map(name=>({name}))};
+ const ninja={animations:['crouchiddleanim_','iddleanim_','pushanim_','runanim_'].map(name=>({name}))};
+ assert.equal(choose(regular,'idle').name,'anim_iddle');
+ assert.equal(choose(ninja,'idle').name,'iddleanim_');
+ assert.equal(choose(regular,'emote').name,'anim_push');
+ assert.equal(choose(ninja,'run').name,'runanim_');
+});
