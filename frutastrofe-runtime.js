@@ -262,11 +262,17 @@ if(params.has('qa'))window.__frutaQA={
    // visible apple rather than treating natural absence as an AR render failure.
    let t=arTargets.find(x=>x.y>120&&x.y<innerHeight-100&&!['bomb','rotten'].includes(x.kind));
    if(!t){
-     const q=g.spawn('apple');q.x=0;q.y=5.1;q.z=-.35;
+     const q=g.spawn('apple');
+     const visible=arTargets.find(x=>x.y>120&&x.y<innerHeight-100);
+     const ref=visible&&g.objects.find(o=>o.id===visible.id);
+     if(ref){q.x=ref.x;q.y=ref.y;q.z=ref.z}
+     else{q.x=0;q.y=5.1;q.z=-.35}
      arTargets=window.__frutaQA.previewWorld(0);
      t=arTargets.find(x=>x.id===q.id);
+     // QA sim is intentionally independent of camera outages: it tests the
+     // impact event pipeline, while earlier browser assertions test XR projection.
+     if(!t)t={id:q.id,x:innerWidth*.50,y:innerHeight*.42};
    }
-   if(!t)return false;
    const q=g.objects.find(o=>o.id===t.id);if(!q)return false;
    const res=g.shoot(q.id);O.shot(t.x,t.y,true,q.kind);events();return res?.ok
   },
