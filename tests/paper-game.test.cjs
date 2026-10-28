@@ -174,8 +174,10 @@ test('permanently defeated bots do not respawn and 100% conquest cannot grant vi
  assert.equal(victim.alive,false);
  assert.equal(g.win.territoryQA.mode,'play');
 });
-test('premium render uses world-size sharp canvas without magnified low resolution terrain',()=>{
- assert.match(source,/mapCanvas\.width=WORLD;mapCanvas\.height=WORLD;/);
+test('territory still uses smooth round contours while scaled canvas avoids phone stalls',()=>{
+ assert.match(source,/const MAP_RENDER_SCALE=\.70/);
+ assert.match(source,/mapCanvas\.width=Math\.ceil\(WORLD\*MAP_RENDER_SCALE\)/);
+ assert.match(source,/mapCtx\.setTransform\(MAP_RENDER_SCALE,0,0,MAP_RENDER_SCALE,0,0\)/);
  assert.match(source,/function territoryLoops\(v\)/);
  assert.match(source,/quadraticCurveTo/);
  assert.doesNotMatch(source,/const rad=CELL\*\.74/);
@@ -613,3 +615,14 @@ test('Six Seven entrance never snaps on slow 270ms mobile frames',async()=>{
   }
  }
 });
+\ntest('Android performance guardrails preserve gameplay physics and reduce GPU contention',()=>{
+ assert.match(source,/while\(acc>=RUN&&loops<7\)/);
+ assert.match(source,/if\(t-lastVisualFrame>=32\)/);
+ assert.match(source,/dpr=Math\.min\(1\.25,devicePixelRatio\|\|1\)/);
+ assert.match(source,/function flushMap\(\)/);
+ assert.match(source,/pendingMapUpdate/);
+ const three=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ assert.match(three,/ms-lastActorRender<38/);
+ assert.match(three,/const inView=p\.id===0\|\|/);
+ assert.match(three,/snapsho[t]?ChibiPortraits\(\)/);
+});\n

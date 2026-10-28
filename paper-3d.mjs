@@ -221,10 +221,10 @@ function sync(dt,ms){
  if(state&&(state.playing||state.previewing||state.menuing||state.shopping))startLoading();
  if(!state||!state.playing){
   // Generate portraits at most once, after all rigged models load, off the battlefield.
-  if(!portraitsAttempted&&window.PaperChibiStatus==='ready'){
+  if(!portraitsAttempted&&window.PaperChibiStatus==='ready'&&(state?.menuing||state?.shopping)){
    portraitsAttempted=true;
    setTimeout(()=>{
-    if(!getState()?.playing)snapshotChibiPortraits();
+    if(getState()?.menuing||getState()?.shopping)snapshotChibiPortraits();
     else portraitsAttempted=false;
    },0);
   }
