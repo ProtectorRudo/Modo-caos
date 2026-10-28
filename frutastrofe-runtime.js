@@ -169,7 +169,7 @@ async function startAR(mode,level){
   renderer.xr.getReferenceSpace();
   const viewerSpace=await arSession.requestReferenceSpace('viewer');arViewerSpace=viewerSpace;
   hitSource=await arSession.requestHitTestSource({space:viewerSpace});
-  placement=null;glHit=false;anchor=null;arHitResult=null;arMarker.visible=false;art.world.scale.set(.23,.23*.46,.23);$('arWorld').style.display='block';
+  placement=null;glHit=false;anchor=null;arHitResult=null;arMarker.visible=false;art.world.scale.set(.23,.23*.80,.23);$('arWorld').style.display='block';
   show('arPanel');$('arLock').disabled=true;
   $('arTitle').textContent='BUSCÁ EL PISO';$('arMessage').textContent='Apuntá a un suelo despejado. Cuando aparezca LISTO PARA FIJAR, tocá el botón.';
   Object.assign($('arPanel').style,{background:'transparent',alignItems:'flex-end',backdropFilter:'none'});
@@ -240,7 +240,7 @@ progressUI();show('home');
 if(params.has('qa'))window.__frutaQA={
  state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,frames:renderer.info.render.frame,arOnly:isAR,projectedSprites:arTargets.length}),
  finish:()=>g?.finish(true),
- simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.set(.23,.23*.46,.23);art.world.position.set(0,.09,-2.5);art.world.visible=false;createGame('campaign',1);return true},
+ simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.set(.23,.23*.80,.23);art.world.position.set(0,.09,-2.5);art.world.visible=false;createGame('campaign',1);return true},
  previewWorld:(dx=0)=>{const pitch=.44,c=Math.cos(pitch),s=Math.sin(pitch),V=[1,0,0,0,0,c,s,0,0,-s,c,0,-dx,-1.2*c,-1.2*s,1];const v={projectionMatrix:[1.4,0,0,0,0,2.1,0,0,0,0,-1.002,-1,0,0,-.2,0],transform:{inverse:{matrix:V}}};arTargets=O.draw(v,art.world.position,art.world.scale.x,g?.objects||[],'playing');return arTargets},
  shootTest:()=>{const q=g?.objects.find(o=>o.kind!=='bomb'&&o.kind!=='rotten');if(!q)return false;const t=arTargets.find(x=>x.id===q.id);const res=g.shoot(q.id);O.shot(t?.x||innerWidth*.5,t?.y||innerHeight*.5,true,q.kind);events();return res?.ok},
  diagnostics:()=>O.diagnostics
