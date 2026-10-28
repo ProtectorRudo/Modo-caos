@@ -48,7 +48,7 @@ function juicePop(){
   src.connect(filter);filter.connect(gain);gain.connect(musicCtx.destination);src.start(t);src.stop(t+.15);
  }catch(e){}
 }
-function fxSound(type){if(type==='shot'){tone(560,.042,'triangle',.049)}if(type==='hit'){tone(530,.07,'sine',.062);juicePop()}if(type==='trap'){tone(160,.3,'sawtooth',.1);navigator.vibrate?.([45,40,45])}if(type==='chain'){tone(600,.16,'sine',.11);tone(800,.14,'sine',.08,.09);tone(1040,.18,'sine',.10,.18);navigator.vibrate?.([18,26,28])}if(type==='boss'){tone(180,.25,'sawtooth',.12);tone(440,.32,'triangle',.12,.11)}}
+function fxSound(type){if(type==='shot'){tone(260,.095,'triangle',.038)}if(type==='hit'){tone(530,.07,'sine',.062);juicePop()}if(type==='trap'){tone(160,.3,'sawtooth',.1);navigator.vibrate?.([45,40,45])}if(type==='chain'){tone(600,.16,'sine',.11);tone(800,.14,'sine',.08,.09);tone(1040,.18,'sine',.10,.18);navigator.vibrate?.([18,26,28])}if(type==='boss'){tone(180,.25,'sawtooth',.12);tone(440,.32,'triangle',.12,.11)}}
 function moodMusic(t){if(!musicEnabled||!g||g.state!=='playing'||t-lastMusic<.48||autoFireTimer!==null)return;lastMusic=t;const beat=Math.floor(g.elapsed*3);if(beat%2===0)tone([220,247,277,330][Math.floor(beat/2)%4],.07,'triangle',.018)}
 function events(){
  if(!g)return;for(const ev of g.events.splice(0)){
@@ -124,7 +124,7 @@ function shareChallenge(){
 function startPlay(){if(!g)return;if(isAR&&!placement){alertTxt('FIJÁ LA ARENA ANTES DE JUGAR');return}g.begin();show('hud');hudUpdate();if(isAR)requestAnimationFrame(()=>O.measureMuzzle());tone(610,.16,'triangle',.1);tone(850,.16,'triangle',.08,.12)}
 function fireAt(x,y){
  if(!g||g.state!=='playing'||paused||view!=='hud')return;
- const now=performance.now();if(now-lastFireAt<104)return;lastFireAt=now;
+ const now=performance.now();if(now-lastFireAt<150)return;lastFireAt=now;
  point.set(x,y);const cam=!isAR?art.camera:null;
  if(cam)ray.setFromCamera(point,cam);
  let id=null;
@@ -151,7 +151,7 @@ function startAutoFire(e){
  stopAutoFire();if(view!=='hud'||!g||g.state!=='playing')return;
  $('fireBtn').classList.add('is-firing');$('weapon').classList.add('is-firing');
  fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y);
- autoFireTimer=setInterval(()=>{if(view!=='hud'||paused||g?.state!=='playing'){stopAutoFire();return}fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y)},120);
+ autoFireTimer=setInterval(()=>{if(view!=='hud'||paused||g?.state!=='playing'){stopAutoFire();return}fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y)},160);
 }
 $('fireBtn').addEventListener('pointerdown',startAutoFire);
 for(const type of ['pointerup','pointercancel','lostpointercapture','pointerleave'])$('fireBtn').addEventListener(type,stopAutoFire);
@@ -277,7 +277,7 @@ function onFrame(t,frame){
      reticle.classList.toggle('aim-danger',!!aim&&['bomb','rotten'].includes(aim.kind));
      overlayCost=overlayCost*.78+(performance.now()-drawStarted)*.22;
      overlayInterval=overlayCost>14?85:overlayCost>8?70:56;
-     if(view==='hud'&&t-lastHud<130){const tip=arTargets.length?'MANTENÉ ¡PUM! PARA RÁFAGAS · EVITÁ PELIGROS':'MIRÁ ARRIBA · LAS FRUTAS CAEN DEL PORTAL';if(tip!==lastUiTip){$('playTip').textContent=tip;lastUiTip=tip}}
+     if(view==='hud'&&t-lastHud<130){const tip=arTargets.length?'MANTENÉ ¡CORTÁ! PARA COMBOS · EVITÁ PELIGROS':'MIRÁ ARRIBA · CORTÁ LAS FRUTAS DEL PORTAL';if(tip!==lastUiTip){$('playTip').textContent=tip;lastUiTip=tip}}
     }
    }
   }catch(error){console.warn('AR overlay:',error.message)}
