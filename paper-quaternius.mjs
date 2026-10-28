@@ -137,7 +137,7 @@ export function transplantQuaterniusHead(THREE,fromBaseScene,outfitScene,cloneFn
  let count=0;
  overlay.traverse(mesh=>{
   if(!mesh.isSkinnedMesh)return;
-  const full=/SuperHero_Male/i.test(mesh.name);
+  const full=/SuperHero|Retopology|Sphere/i.test(mesh.name)||(mesh.geometry?.attributes?.position?.count||0)>2200;
   if(!full){mesh.userData.cvdomHeadMesh=true;return;}
   const geometry=mesh.geometry,idx=geometry.index,si=geometry.attributes.skinIndex,sw=geometry.attributes.skinWeight;
   const headIds=new Set(mesh.skeleton.bones.map((b,i)=>['head','neck_01'].includes(b.name.toLowerCase())?i:-1).filter(v=>v>=0));
@@ -278,7 +278,7 @@ export function setHumanFashion(T,actor,config={}){
 export function animateHuman(T,actor,t,mode='idle',mirror=false){
  if(!actor?.humanBones)return;
  const bones=actor.humanBones,pose=actor.humanRest;
- const k=mode==='emote_sixseven'||mode==='sixseven'?'sixseven':mode.startsWith('emote_')?'celebrate':mode==='run'?'run':'idle';
+ const k=mode==='emote_sixseven'||mode==='sixseven'?'sixseven':String(mode).startsWith('emote_')?'celebrate':mode==='run'?'run':'idle';
  const phase=t*(k==='run'?10.4:k==='sixseven'?4.3:3.5)+(mirror?Math.PI:.0);
  function turn(name,x=0,y=0,z=0){
   const bone=bones[name];if(!bone||!pose[name])return;
@@ -288,28 +288,50 @@ export function animateHuman(T,actor,t,mode='idle',mirror=false){
  const bounce=k==='idle'?Math.sin(phase)*.018:0;
  turn('thigh_l',stride,0,.02);turn('thigh_r',-stride,0,-.02);
  turn('calf_l',Math.max(0,-stride)*.5);turn('calf_r',Math.max(0,stride)*.5);
+ // The original Quaternius rest pose is T-shaped. Reconstruct a NATURAL arm
+ // direction each frame using the real parent-space bone orientation. This
+ // avoids both the T-pose and the accumulated-rotation Six Seven bug.
+ if(actor.nativeOutfit){
+  for(const side of ['l','r']){
+   const bone=bones['upperarm_'+side],bind=pose['upperarm_'+side];
+   if(!bone||!bind)continue;
+   const sign=side==='l'?-1:1,beat=Math.sin(phase+(side==='r'?Math.PI:0));
+   const desired=k==='sixseven'?
+    new T.Vector3(sign*(.78+.11*beat),-.44+.19*beat,.13):
+    k==='celebrate'?
+    new T.Vector3(sign*.72,.24+.18*Math.sin(phase),.12):
+    k==='run'?
+    new T.Vector3(sign*.24,-.95,.12+sign*stride*.9):
+    new T.Vector3(sign*.22,-1,.10);
+   const parentWorld=bone.parent.getWorldQuaternion(new T.Quaternion());
+   desired.applyQuaternion(parentWorld.invert()).normalize();
+   const bindVector=new T.Vector3(0,1,0).applyQuaternion(bind).normalize();
+   const correction=new T.Quaternion().setFromUnitVectors(bindVector,desired);
+   bone.quaternion.copy(correction.multiply(bind));
+  }
+ }
  if(k==='sixseven'){
   const beat=Math.sin(phase);
-  turn('upperarm_l',-.12,0,-.36-.18*beat);
-  turn('upperarm_r',-.12,0,.36-.18*beat);
+  if(!actor.nativeOutfit)turn('upperarm_l',-.12,0,-.36-.18*beat);
+  if(!actor.nativeOutfit)turn('upperarm_r',-.12,0,.36-.18*beat);
   turn('lowerarm_l',0,0,-.16-.13*beat);
   turn('lowerarm_r',0,0,.16-.13*beat);
   turn('spine_03',0,Math.sin(phase*.5)*.07,Math.sin(phase)*.036);
   turn('head',0,0,Math.sin(phase*.5)*.052);
  }else if(k==='celebrate'){
-  turn('upperarm_l',.12,0,-.36-.14*Math.sin(phase));
-  turn('upperarm_r',.12,0,.36+.14*Math.sin(phase));
+  if(!actor.nativeOutfit)turn('upperarm_l',.12,0,-.36-.14*Math.sin(phase));
+  if(!actor.nativeOutfit)turn('upperarm_r',.12,0,.36+.14*Math.sin(phase));
   turn('lowerarm_l',0,0,-.15);turn('lowerarm_r',0,0,.15);
   turn('spine_03',0,Math.sin(phase)*.06,Math.sin(phase)*.025);
  }else{
-  turn('upperarm_l',-stride*.55,0,-.06);
-  turn('upperarm_r',stride*.55,0,.06);
+  if(!actor.nativeOutfit)turn('upperarm_l',-stride*.55,0,-.06);
+  if(!actor.nativeOutfit)turn('upperarm_r',stride*.55,0,.06);
   turn('lowerarm_l',0,0,-.12);turn('lowerarm_r',0,0,.12);
   turn('spine_03',bounce,0,Math.sin(phase*.5)*.012);
   turn('head',0,Math.sin(phase*.27)*.03,0);
  }
 }
-export function initializeHumanRig(base,heroIndex=0){
+export function initializeHumanRig(base,heroIndex=0,nativeOutfit=false){
  const bones=findBones(base),rest={};
  for(const [name,bone] of Object.entries(bones))rest[name]=bone.quaternion.clone();
  // Each clone owns its material; a recolour never affects another player's rig.
@@ -317,7 +339,10 @@ export function initializeHumanRig(base,heroIndex=0){
  base.traverse(n=>{
   if(!n.isSkinnedMesh)return;
   const original=n.material;
-  const tint=(m)=>{const c=m.clone();if(c.color)c.color.set(palette.skin);c.userData={...(c.userData||{}),cvdomRigInstance:true};return c;};
+  const tint=(m)=>{
+   const c=m.clone();if(!nativeOutfit&&c.color)c.color.set(palette.skin);
+   c.userData={...(c.userData||{}),cvdomRigInstance:true};return c;
+  };
   n.material=Array.isArray(original)?original.map(tint):tint(original);
   // Retain Three.js frustum culling on mobile: offscreen bots are not rendered.
  });
