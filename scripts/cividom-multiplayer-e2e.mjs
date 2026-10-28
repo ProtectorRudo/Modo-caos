@@ -23,7 +23,7 @@ try{
  await host.locator('#cv-online-button').click();
  await host.locator('#cv-nick').fill('Cividom Host QA');
  await host.locator('#cv-action').click();
- await host.waitForFunction(()=>window.CividomOnlineUI?.getRoom()?.length===8,{timeout:45000});
+ await host.waitForFunction(()=>window.CividomOnlineUI?.getRoom()?.length===32,{timeout:45000});
  code=await host.evaluate(()=>window.CividomOnlineUI.getRoom());
  logs.events.push('created '+code);
  phase='join';
@@ -31,7 +31,7 @@ try{
  await guest.waitForFunction(()=>!!window.CividomOnlineUI,{timeout:35000});
  await guest.locator('#cv-nick').fill('Invitado QA');
  await guest.locator('#cv-action').click();
- await guest.waitForFunction(()=>window.CividomOnlineUI?.getRoom()?.length===8,{timeout:45000});
+ await guest.waitForFunction(()=>window.CividomOnlineUI?.getRoom()?.length===32,{timeout:45000});
  await host.waitForFunction(()=>document.querySelectorAll('#cv-people .player').length===2,{timeout:30000});
  logs.events.push('both joined');
  phase='ready';
@@ -79,6 +79,8 @@ try{
   try{
    if(page)diagnostic[label]=await page.evaluate(()=>({
     status:document.getElementById('cv-status')?.textContent,
+    roster:document.getElementById('cv-people')?.textContent,
+    roomCode:window.CividomOnlineUI?.getRoom(),
     actionDisabled:document.getElementById('cv-action')?.disabled,
     onlineLoaded:!!window.CividomOnlineUI,
     gameBridge:!!window.CividomOnlineBridge,
