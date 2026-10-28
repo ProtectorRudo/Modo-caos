@@ -196,6 +196,36 @@
  box-shadow:0 0 0 3px #f15b6449,0 0 15px #ff4b72a1!important;
 }
 #crosshair.aim-danger:after{background:#ff93a2!important}
+
+/* JUICE SABER · replaces blaster final cascade without touching WebXR */
+#weapon{
+ left:54%!important;
+ bottom:16px!important;
+ width:clamp(155px,44vw,184px)!important;
+ transform:translateX(-50%) rotate(-3deg)!important;
+ transform-origin:44% 84%!important;
+ filter:drop-shadow(0 9px 12px #03152b9c) drop-shadow(0 0 8px #49eadf78)!important;
+}
+#weapon .gun-name{display:none!important}
+#weapon svg{overflow:visible!important}
+#weapon.is-firing{
+ animation:saber-swish .16s ease-in-out infinite alternate!important;
+ will-change:transform;
+}
+#weapon.firing{animation:saber-swish .16s ease-out 1!important}
+#weapon.is-firing #saberPulse{animation:saber-core .16s ease-in-out infinite!important}
+@keyframes saber-swish{
+ 0%{transform:translateX(-50%) rotate(-11deg) translateY(4px)}
+ 55%{transform:translateX(-50%) rotate(8deg) translateY(-6px)}
+ 100%{transform:translateX(-50%) rotate(-3deg) translateY(0)}
+}
+@keyframes saber-core{0%{opacity:.05}60%{opacity:.55}100%{opacity:.04}}
+#hud .fire{background:radial-gradient(circle at 34% 27%,#e9fff3 0%,#80fce3 26%,#25c6d1 62%,#155f9c 100%)!important;
+ border-color:#d9ffae!important;
+ box-shadow:0 0 0 5px #6ff9d966,0 0 22px #73ffee64,inset 0 3px 11px #ffffff96!important;
+ font-size:clamp(13px,3.4vw,16px)!important;letter-spacing:-.03em!important}
+#hud .fire.is-firing{background:radial-gradient(circle at 35% 25%,#fff 0%,#dbffa5 30%,#53e9d0 70%,#2075a2 100%)!important}
+@media(max-width:760px){#weapon{left:55%!important;bottom:18px!important;width:clamp(146px,43vw,174px)!important}}
 </style></head><body>
 <div id="view" aria-label="Escena tridimensional de frutas"></div><svg id="arWorld" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;overflow:visible"></svg>
 <div id="home" class="shell">
@@ -206,7 +236,7 @@
  <footer class="pageFoot"><span>HECHO PARA MODO CAOS · EDICIÓN JUICE FEVER</span><span>10 NIVELES · PROGRESO GUARDADO EN ESTE DISPOSITIVO</span></footer>
 </div>
 <div id="selector" class="shell"><a href="#" id="selectorBack" class="logo">‹ VOLVER</a><div class="eyebrow">EL CAMINO DEL JUGO</div><h2>LA FÁBRICA LOCA</h2><p class="copy">Superá niveles, ganá estrellas y enfrentá a la Sandía Gigante.</p><div class="levelGrid" id="levelGrid"></div><div id="levelInfo" class="copy"></div><div class="copy" style="color:#d9ff83;font-weight:900">◉ EXPERIENCIA EXCLUSIVA EN REALIDAD AUMENTADA</div><button id="levelPlay" class="cta" style="width:min(560px,100%)">◉ ABRIR CÁMARA Y JUGAR</button></div>
-<div id="weapon" role="img" aria-label="Bláster futurista que dispara rayos de jugo" style="display:none" aria-hidden="true">
+<div id="weapon" role="img" aria-label="Sable futurista de energía para cortar frutas" style="display:none" aria-hidden="true">
 <svg viewBox="0 0 260 330" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 <defs>
 <linearGradient id="gw1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d5efff"/><stop offset=".26" stop-color="#6789ab"/><stop offset=".6" stop-color="#1d344c"/><stop offset="1" stop-color="#071528"/></linearGradient>
@@ -245,7 +275,7 @@
 </svg>
 <div class="gun-name">JUICE BLASTER <b>∞</b></div>
 </div>
-<div id="hud" class="shell"><div><div class="hudTop"><div class="hudCard"><small>PUNTOS</small><strong class="yellow" id="hudScore">0</strong></div><div class="hudCard"><small>COMBO</small><strong id="hudCombo">×1</strong></div><div class="hudCard"><small>TIEMPO</small><strong id="hudTime">60</strong></div><div class="hudCard"><small>RÉCORD</small><strong id="hudBest">0</strong></div></div><div class="hudGoal"><div class="goalLabel"><span id="goalName">OBJETIVO</span><span id="goalNums">0 / 0</span></div><div class="meter"><i id="goalBar"></i></div></div></div><div id="crosshair"></div><div id="floating"></div><div class="bottomHud"><div><button id="pauseBtn" class="quietBtn">Ⅱ PAUSA</button><button id="recenterBtn" class="quietBtn" style="display:none;margin-left:6px">⌖ RECENTRAR</button><div class="infoBox" id="playTip">TOCÁ UNA FRUTA PARA DISPARAR · EVITÁ LAS BOMBAS</div></div><button id="fireBtn" class="fire" aria-label="Disparar; mantené presionado para ráfaga">¡PUM!</button></div></div>
+<div id="hud" class="shell"><div><div class="hudTop"><div class="hudCard"><small>PUNTOS</small><strong class="yellow" id="hudScore">0</strong></div><div class="hudCard"><small>COMBO</small><strong id="hudCombo">×1</strong></div><div class="hudCard"><small>TIEMPO</small><strong id="hudTime">60</strong></div><div class="hudCard"><small>RÉCORD</small><strong id="hudBest">0</strong></div></div><div class="hudGoal"><div class="goalLabel"><span id="goalName">OBJETIVO</span><span id="goalNums">0 / 0</span></div><div class="meter"><i id="goalBar"></i></div></div></div><div id="crosshair"></div><div id="floating"></div><div class="bottomHud"><div><button id="pauseBtn" class="quietBtn">Ⅱ PAUSA</button><button id="recenterBtn" class="quietBtn" style="display:none;margin-left:6px">⌖ RECENTRAR</button><div class="infoBox" id="playTip">APUNTÁ CON EL CELULAR · TOCÁ ¡CORTÁ! · EVITÁ BOMBAS</div></div><button id="fireBtn" class="fire" aria-label="Cortar frutas con el sable; mantené presionado para hacer varios cortes">¡CORTÁ!</button></div></div>
 <section id="onlinePanel" aria-label="Frutástrofe duelo online" style="display:none">
   <div class="onlineGlass">
    <div class="onlineHeading"><span>🍓 FRUTÁSTROFE <b>1 VS 1 ONLINE</b></span><button id="onlineBack" type="button" aria-label="Cerrar">✕</button></div>
