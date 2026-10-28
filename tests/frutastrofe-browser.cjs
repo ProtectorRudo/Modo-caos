@@ -36,8 +36,16 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   assert((await page.locator('#arWorld g').count())>=2,'AR SVG contains visible graphical fruits');
   const after=await page.evaluate(()=>window.__frutaQA.previewWorld(.3));
   assert(after.length>=2&&after[0].x<before[0].x,'moving viewer changes image projection, never world placement');
+  assert((await page.locator('#arWorld').innerHTML()).includes('JUICE'),'reactor physically appears in anchored playfield');
+  assert((await page.locator('#arWorld').innerHTML()).includes('fp-deck'),'reactor platform is rendered');
+  assert(await page.locator('#weapon').isVisible(),'first-person Juice Blaster must be visible');
   await page.screenshot({path:'frutastrofe-ar-world-projection-mobile.png',animations:'disabled'});
-  await page.locator('#fireBtn').click();await page.locator('#pauseBtn').click();
+  assert(await page.evaluate(()=>window.__frutaQA.shootTest()),'hitting a spawned fruit in AR must succeed');
+  await page.evaluate(()=>window.__frutaQA.previewWorld());
+  const fx=await page.evaluate(()=>window.__frutaQA.diagnostics());
+  assert(fx.particles>=16&&fx.shots>=1,'juice particles and shot beams must actually exist '+JSON.stringify(fx));
+  await page.screenshot({path:'frutastrofe-ar-impact-mobile.png',animations:'disabled'});
+  await page.locator('#pauseBtn').click();
   assert(await page.locator('#pausePanel').isVisible());
   const paused=await page.locator('#hudTime').textContent();await page.waitForTimeout(250);assert.equal(await page.locator('#hudTime').textContent(),paused);
   await page.locator('#resumeBtn').click();assert(await page.locator('#hud').isVisible());
