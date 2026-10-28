@@ -121,7 +121,7 @@ function shareChallenge(){
  const txt='🍓 FRUTÁSTROFE · Hice '+number(g.score)+' puntos. ¿Me superás? '+link.toString();
  if(navigator.share){navigator.share({title:'FRUTÁSTROFE',text:txt}).catch(()=>{})}else{navigator.clipboard?.writeText(txt).then(()=>alertTxt('¡RETO COPIADO!',1300)).catch(()=>prompt('Compartí el enlace:',txt))}
 }
-function startPlay(){if(!g)return;if(isAR&&!placement){alertTxt('FIJÁ LA ARENA ANTES DE JUGAR');return}g.begin();show('hud');hudUpdate();tone(610,.16,'triangle',.1);tone(850,.16,'triangle',.08,.12)}
+function startPlay(){if(!g)return;if(isAR&&!placement){alertTxt('FIJÁ LA ARENA ANTES DE JUGAR');return}g.begin();show('hud');hudUpdate();if(isAR)requestAnimationFrame(()=>O.measureMuzzle());tone(610,.16,'triangle',.1);tone(850,.16,'triangle',.08,.12)}
 function fireAt(x,y){
  if(!g||g.state!=='playing'||paused||view!=='hud')return;
  const now=performance.now();if(now-lastFireAt<104)return;lastFireAt=now;
@@ -272,6 +272,9 @@ function onFrame(t,frame){
      O.setStage(g?.phase||1,!!g?.fever);
      const overlayMode=placement&&g?.state==='playing'?'playing':'search';
      arTargets=O.draw(vr,origin,art.world.scale.x,overlayMode==='playing'?g.objects:[],overlayMode);
+     const aim=overlayMode==='playing'?O.getAim():null,reticle=$('crosshair');
+     reticle.classList.toggle('aim-fruit',!!aim&&!['bomb','rotten'].includes(aim.kind));
+     reticle.classList.toggle('aim-danger',!!aim&&['bomb','rotten'].includes(aim.kind));
      overlayCost=overlayCost*.78+(performance.now()-drawStarted)*.22;
      overlayInterval=overlayCost>14?85:overlayCost>8?70:56;
      if(view==='hud'&&t-lastHud<130){const tip=arTargets.length?'MANTENÉ ¡PUM! PARA RÁFAGAS · EVITÁ PELIGROS':'MIRÁ ARRIBA · LAS FRUTAS CAEN DEL PORTAL';if(tip!==lastUiTip){$('playTip').textContent=tip;lastUiTip=tip}}
@@ -287,7 +290,7 @@ function onFrame(t,frame){
 }
 renderer.setAnimationLoop(onFrame);
 function resize(){const w=innerWidth,h=innerHeight;art.camera.aspect=w/h;art.camera.fov=h>w?52:48;art.camera.updateProjectionMatrix();renderer.setSize(w,h);renderer.setPixelRatio(isAR?1:Math.min(devicePixelRatio||1,1.5))}
-addEventListener('resize',resize);resize();
+addEventListener('resize',()=>{resize();if(isAR)requestAnimationFrame(()=>O.measureMuzzle())});resize();
 progressUI();show('home');
 if(params.has('duel')&&/^[0-9a-fA-F]{8}$/.test(params.get('duel')||''))openFrutaOnline();
 if(params.has('qa'))window.__frutaQA={
