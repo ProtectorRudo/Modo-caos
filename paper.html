@@ -1187,8 +1187,8 @@ function drawVersus(ms){
   const txt=Math.floor(sec*2)%2===0?'SIX':'SEVEN';
   ctx.strokeText(txt,380,390);ctx.fillText(txt,380,390);ctx.restore();
  }
- if(sec>4.15){ctx.save();ctx.textAlign='center';ctx.font='1000 35px system-ui';
-  ctx.fillStyle='#fdf2a3';ctx.fillText('¡QUE EMPIECE EL CAOS!',380,480);ctx.restore();}
+ if(sec>4.15&&!window.PaperVSReady){ctx.save();ctx.textAlign='center';ctx.font='1000 35px system-ui';
+  ctx.fillStyle='#fdf2a3';ctx.fillText('¡QUE EMPIECE EL CAOS!',380,210);ctx.restore();}
  $('vsCountdown').textContent=String(Math.max(1,Math.ceil((VS_DURATION-ms+vsStartedAt)/1000)));
  $('vsTrackFill').style.width=Math.min(100,sec/(VS_DURATION/1000)*100)+'%';
  const beat=Math.floor(sec*2.1);if(beat!==vsLastBeat){vsLastBeat=beat;if(beat<11&&navigator.vibrate&&beat%2===0)navigator.vibrate(12);}
