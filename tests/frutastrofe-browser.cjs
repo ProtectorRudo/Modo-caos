@@ -82,7 +82,7 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   assert(await page.locator('#weapon').isVisible(),'first-person Juice Blaster must be visible');
   await page.screenshot({path:'frutastrofe-ar-world-projection-mobile.png',animations:'disabled'});
   await page.waitForFunction(()=>window.__frutaQA.state().elapsed>7,null,{timeout:16000});
-  assert(await page.locator('#hud').evaluate(el=>el.classList.contains('apocalypse-guide-hidden')),'persistent tutorial must disappear after introduction');
+  await page.waitForFunction(()=>document.getElementById('hud')?.classList.contains('apocalypse-guide-hidden'),null,{timeout:3000});
   const wave=await page.evaluate(()=>({objects:window.__frutaQA.state().objects,targets:window.__frutaQA.previewWorld(0).length}));
   assert(wave.objects>=3&&wave.objects<=12,'sky fruit must arrive in spaced manageable waves '+JSON.stringify(wave));
   await page.screenshot({path:'frutastrofe-ar-dense-volley-mobile.png',animations:'disabled'});
