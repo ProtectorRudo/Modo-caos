@@ -102,7 +102,7 @@ function shareChallenge(){
  const txt='🍓 FRUTÁSTROFE · Hice '+number(g.score)+' puntos. ¿Me superás? '+link.toString();
  if(navigator.share){navigator.share({title:'FRUTÁSTROFE',text:txt}).catch(()=>{})}else{navigator.clipboard?.writeText(txt).then(()=>alertTxt('¡RETO COPIADO!',1300)).catch(()=>prompt('Compartí el enlace:',txt))}
 }
-function startPlay(){if(!g)return;g.begin();show('hud');hudUpdate();tone(610,.16,'triangle',.1);tone(850,.16,'triangle',.08,.12)}
+function startPlay(){if(!g)return;if(isAR&&!placement){alertTxt('FIJÁ LA ARENA ANTES DE JUGAR');return}g.begin();show('hud');hudUpdate();tone(610,.16,'triangle',.1);tone(850,.16,'triangle',.08,.12)}
 function fireAt(x,y){
  if(!g||g.state!=='playing'||paused||view!=='hud')return;
  point.set(x,y);const cam=isAR&&renderer.xr.isPresenting?renderer.xr.getCamera(art.camera):art.camera;
@@ -156,7 +156,7 @@ async function startAR(mode,level){
   renderer.xr.getReferenceSpace();
   const viewerSpace=await arSession.requestReferenceSpace('viewer');arViewerSpace=viewerSpace;
   hitSource=await arSession.requestHitTestSource({space:viewerSpace});
-  placement=null;glHit=false;anchor=null;arHitResult=null;arMarker.visible=false;art.world.scale.setScalar(.23);$('arWorld').style.display='block';
+  placement=null;glHit=false;anchor=null;arHitResult=null;arMarker.visible=false;art.world.scale.set(.23,.23*.46,.23);$('arWorld').style.display='block';
   show('arPanel');$('arLock').disabled=true;
   $('arTitle').textContent='BUSCÁ EL PISO';$('arMessage').textContent='Apuntá a un suelo despejado. Cuando aparezca LISTO PARA FIJAR, tocá el botón.';
   Object.assign($('arPanel').style,{background:'transparent',alignItems:'flex-end',backdropFilter:'none'});
@@ -209,7 +209,7 @@ function onFrame(t,frame){
     if(origin){
      const overlayMode=placement&&g?.state==='playing'?'playing':'search';
      arTargets=O.draw(vr,origin,art.world.scale.x,overlayMode==='playing'?g.objects:[],overlayMode);
-     if(view==='hud'&&t-lastHud<130)$('playTip').textContent=arTargets.length?'APUNTÁ A LAS FRUTAS · TOCÁ ¡PUM!':'LEVANTÁ UN POCO EL CELULAR PARA VER LAS FRUTAS';
+     if(view==='hud'&&t-lastHud<130)$('playTip').textContent=arTargets.length?'APUNTÁ A LAS FRUTAS · TOCÁ ¡PUM!':'NO HAY FRUTAS A LA VISTA · LEVANTÁ SUAVEMENTE EL CELULAR';
     }
    }
   }catch(error){console.warn('AR overlay:',error.message)}
@@ -227,7 +227,7 @@ progressUI();show('home');
 if(params.has('qa'))window.__frutaQA={
  state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,frames:renderer.info.render.frame,arOnly:isAR,projectedSprites:arTargets.length}),
  finish:()=>g?.finish(true),
- simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.setScalar(.23);art.world.position.set(0,.09,-2.5);art.world.visible=true;createGame('campaign',1);return true},
+ simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.set(.23,.23*.46,.23);art.world.position.set(0,.09,-2.5);art.world.visible=true;createGame('campaign',1);return true},
  previewWorld:(dx=0)=>{const I=[1,0,0,0,0,1,0,0,0,0,-1.002,-1,0,0,-.2,0],V=[1,0,0,0,0,1,0,0,0,0,1,0,-dx,-1.2,0,1];const v={projectionMatrix:[1.4,0,0,0,0,2.1,0,0,0,0,-1.002,-1,0,0,-.2,0],transform:{inverse:{matrix:V}}};arTargets=O.draw(v,art.world.position,art.world.scale.x,g?.objects||[],'playing');return arTargets}
 };
 if(params.has('seed')){const l=clamp(Number(params.get('level')||1),1,10),m=params.get('mode')==='arcade'?'arcade':'campaign';if(m==='arcade'||l<=progress.unlocked){duel=null;selected=l;window.__frutaSharedChallenge={mode:m,level:l,seed:getSeed()};if(m==='campaign'){progressUI();show('selector')}else alertTxt('RETO DISPONIBLE · ABRÍ AR PARA JUGAR',2000)}}
