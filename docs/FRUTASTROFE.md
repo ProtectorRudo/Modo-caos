@@ -114,3 +114,19 @@ Se revisaron Kenney Food Kit (CC0: https://kenney.nl/assets/food-kit), Quaterniu
 - CDN público: mismas rutas/archivos reproducidos desde un commit Git inmutable.
 - Pendiente **prueba real con ARCore físico**: encuadre del portal, tamaño de plataforma, saturación de color al aire libre, FPS y estabilidad de sombras.
 - No modificar producción original, repositorio main ni Supabase hasta validar un preview.
+
+## 28/10/2026 · JUICE APOCALYPSE — auditoría visual v4
+
+**Evidencia:** captura física Android reportó portal demasiado grande y recortado, arma superpuesta a la plataforma, cuatro indicadores invasivos, disparos como láser continuo y frutas que parecían pegadas al video. Se priorizó presencia y legibilidad sin cambiar física ni sala online.
+
+**Cambios efectivamente integrados en rama `feat/frutastrofe-premium`:**
+- `frutastrofe-premium-art.js`: el portal circular gigante se sustituyó por una máquina de cinco bocas de salida alineadas a los cinco carriles. La carcasa blindada tiene placas biseladas, turbina interna, destellos, animación y cambios de color según fase/fiebre. Todos los puntos se proyectan desde la misma posición física AR.
+- `frutastrofe-ar-overlay.js`: frutas con rotación y oscilación sutil, reflejos en especiales, peligros reconocibles con pulsos pequeños e iconos en lugar de etiquetas enormes, trazas de energía de 112 ms que recorren la distancia hacia el blanco (no rayos permanentes), destellos en la boca del arma, manchas de fruta en la plataforma. Efectos delimitados a 24 partículas y 2 pulsos visibles para evitar la regresión de FPS.
+- `frutastrofe-premium-art.js`: **mitades de fruta 128×128 precalculadas**, mostrando pulpa, borde y semillas; también se precargan con las texturas originales de 256×256. No se generan geometrías pesadas en cada disparo.
+- Pistola MK II: depósito semitransparente de jugo, iluminación, remaches y detalles; reposicionada en zona inferior para evitar ocultar el objetivo. Es el único elemento fijado al HUD.
+- `frutastrofe.html`: cuatro indicadores más delgados, barra de objetivo reducida, retícula única, tutorial que se oculta a los 7 s, feedback de fiebre y seis etapas de reactor.
+- `frutastrofe-runtime.js`: transmite fase y fiebre al motor artístico y preserva los 60 s, la semilla compartida y la puntería.
+
+**Pruebas:** Node y Chromium móvil simulados + smoke de CDN inmutable, con verificación de las 11 frutas, mitades precalculadas, dimensiones del HUD/arma, arranque/pausa/reinicio, proyección a distinta pose, disparos rápidos durante 1,8 s y modo online sin regresiones. **No equivalen a una prueba física ARCore con dos celulares.**
+
+**Publicación:** el proyecto Vercel `modo-caos` devuelve error HTTP 402 `api-deployments-free-per-day` (límite gratuito diario). Se conserva la rama de prueba y el enlace CDN del commit exacto; producción `main` y proyecto original intactos. No se descargaron modelos externos: el arte programático original mantiene la licencia controlada y evita peso en datos móviles.
