@@ -462,7 +462,7 @@ test('real generated 3D portraits replace CSS doll tiles and old VS fallback',()
  assert.match(source,/id="vsPortraitPlayer"/);
  assert.match(source,/id="vsPortraitOpponent"/);
  assert.doesNotMatch(source,/versusActor\(ctx,wardrobe\.hero,168/);
- assert.match(source,/document\.getElementById\('menuHeroPortrait'\)/);
+ assert.match(fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8'),/document\.getElementById\('menuHeroPortrait'\)/);
 });
 test('changing selected hero updates the original GLB portrait before the model loads',()=>{
  const g=boot(419),h=g.win.__paperTest;
