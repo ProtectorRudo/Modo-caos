@@ -190,7 +190,7 @@ export function syncQuaterniusHead(THREE,actor){
 
 export function setHumanFashion(T,actor,config={}){
  if(!actor?.humanBones)return;
- if(actor.nativeOutfit){initializeNativeFashion(THREE,actor,config);return;}
+ if(actor.nativeOutfit){initializeNativeFashion(T,actor,config);return;}
  const index=Math.max(0,Math.min(HUMAN_HEROES.length-1,actor.hero|0));
  const preset=HUMAN_HEROES[index];
  const ids={outfit:config.outfit||'outfit_base',headwear:config.headwear||'head_none',
