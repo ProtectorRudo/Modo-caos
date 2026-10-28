@@ -1224,7 +1224,7 @@ window.Paper3DState=()=>({
  people:game?game.people.map(p=>({
   id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,
   hero:p.id===0?wardrobe.hero:p.id===1?vsRival:p.id%4,
-  emoting:p.id===0&&clock<emoteUntil
+  emoting:p.id===0&&clock<emoteUntil,emoteId:p.id===0?wardrobe.equipped.emote:''
  })):[]
 });
 // Read-only diagnostics: ?qa=1 exposes counters to automated smoke tests.
