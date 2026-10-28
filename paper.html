@@ -811,6 +811,11 @@ const POWER_KINDS=['FAST','SLOW','BIG','SMOLL','SHIELD','SORPRESA'];
 const POWER_COLORS={FAST:'#1dcbff',SLOW:'#9166f7',BIG:'#ffba3d',SMOLL:'#73ef90',SHIELD:'#45d8f2',SORPRESA:'#f76bca'};
 const POWER_SYMBOLS={FAST:'»',SLOW:'⏱',BIG:'↑',SMOLL:'↓',SHIELD:'◆',SORPRESA:'?'};
 const POWER_SECONDS={FAST:5,SLOW:5,BIG:10,SMOLL:10,SHIELD:7};
+// Purely cosmetic. Neither pickups nor power duration depend on 3D availability.
+const cvCrateOpenings=[];
+const cvCrateKey=b=>Math.round(b.x*10)+'_'+Math.round(b.y*10)+'_'+b.type;
+window.PaperCrate3DReady=new Set();
+
 function spawnBoxPoint(){
  const a=arenaState();
  for(let n=0;n<120;n++){
@@ -866,7 +871,11 @@ function checkBoxPickup(p){
   // Anatomical size affects real-world pickup distance; no click is required.
   const reach=p.powerKind==='BIG'&&clock<p.powerUntil?30:23;
   if((p.x-box.x)**2+(p.y-box.y)**2>reach*reach)continue;
-  box.active=false;grantPower(p,box.type);break;
+  box.active=false;
+  cvCrateOpenings.push({x:box.x,y:box.y,type:box.type,age:0,life:.54,key:cvCrateKey(box)});
+  // A short reward burst: cost bounded to 12 simple particles and one tone.
+  burstAt(box.x,box.y,POWER_COLORS[box.type]||'#ffd76e',12,67);
+  grantPower(p,box.type);break;
  }
 }
 function powerScale(p){
@@ -893,30 +902,109 @@ function slideStormWall(p,x,y,dt){
  }
  return{x:a.x+nx*safe,y:a.y+ny*safe};
 }
+// High-contrast futuristic crate sprites: once-generated at 2x resolution,
+// six consistent types, no per-frame gradients or WebGL dependency.
+const cvCrateSprites=new Map();
+function cvCrateSprite(type){
+ if(cvCrateSprites.has(type))return cvCrateSprites.get(type);
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=144;
+ const p=canvas.getContext('2d');
+ p.scale(2,2);p.translate(36,38);
+ const col=POWER_COLORS[type]||'#fdde7e',mystery=type==='SORPRESA';
+ const dark=mystery?'#331b55':'#182c50';
+ const outline=mystery?'#f5cbff':'#bfeeff';
+ function poly(points,fill,stroke='#0c1b3b',width=2){
+  p.beginPath();points.forEach(([x,y],i)=>i?p.lineTo(x,y):p.moveTo(x,y));p.closePath();
+  p.fillStyle=fill;p.fill();if(stroke){p.lineWidth=width;p.strokeStyle=stroke;p.stroke();}
+ }
+ // Ambient silhouette / bevelled graphite pedestal.
+ p.shadowBlur=10;p.shadowColor=col;
+ poly([[-22,-17],[0,-28],[22,-17],[22,14],[0,26],[-22,14]],'#09233e','#153457',3);
+ p.shadowBlur=0;
+ const left=p.createLinearGradient(-22,-8,0,19);
+ left.addColorStop(0,'#536b86');left.addColorStop(.43,dark);left.addColorStop(1,'#101b34');
+ poly([[-22,-17],[0,-6],[0,21],[-22,9]],left,'#101a30',2.1);
+ const right=p.createLinearGradient(0,-7,22,22);
+ right.addColorStop(0,'#7e8fa4');right.addColorStop(.2,'#485b7c');right.addColorStop(1,'#131e38');
+ poly([[0,-6],[22,-17],[22,9],[0,21]],right,'#10203b',2.1);
+ // Oversized clamshell lid + chromed diagonal steel bevel.
+ const lid=p.createLinearGradient(-16,-29,12,-8);
+ lid.addColorStop(0,'#ffffff');lid.addColorStop(.3,'#b4cae1');
+ lid.addColorStop(.58,'#66809c');lid.addColorStop(1,'#253d63');
+ poly([[-25,-20],[0,-33],[25,-20],[0,-7]],lid,'#142c51',2.8);
+ p.lineWidth=2.6;p.strokeStyle=outline;
+ p.beginPath();p.moveTo(-20,-19);p.lineTo(0,-29);p.lineTo(20,-19);p.stroke();
+ p.shadowBlur=5;p.shadowColor=col;
+ p.strokeStyle=col;p.lineWidth=2.8;
+ p.beginPath();p.moveTo(-21,-14);p.lineTo(0,-4);p.lineTo(21,-14);p.moveTo(0,-4);p.lineTo(0,18);p.stroke();
+ p.shadowBlur=0;
+ // Three bright colored panels and rivets make the silhouette read at 32px.
+ p.fillStyle=col;
+ poly([[-18,-4],[-6,2],[-6,8],[-18,2]],col,null);
+ poly([[7,1],[19,-5],[19,1],[7,7]],col,null);
+ for(const x of [-18,18]){p.fillStyle='#fff';p.beginPath();p.arc(x,11,1.35,0,7);p.fill();}
+ p.shadowColor=col;p.shadowBlur=7;
+ poly([[-9,-20],[0,-24],[9,-20],[0,-15]],col,'#fff8',1);
+ p.shadowBlur=0;
+ // Clear gem / bolt / question emblem. Same silhouette across all powers.
+ p.textAlign='center';p.font='1000 18px system-ui';p.lineWidth=2.7;
+ p.strokeStyle='#192d53';p.strokeText(POWER_SYMBOLS[type]||'?',0,7);
+ p.fillStyle='#fff';p.fillText(POWER_SYMBOLS[type]||'?',0,7);
+ cvCrateSprites.set(type,canvas);
+ return canvas;
+}
+function cvCrateRewardFx(x,y,type,progress){
+ const col=POWER_COLORS[type]||'#ffdc91';
+ const f=Math.max(0,1-progress),radius=16+progress*60;
+ c.save();c.translate(x,y);c.globalAlpha=f;
+ c.strokeStyle=col;c.lineWidth=4*f;
+ c.beginPath();c.ellipse(0,4,radius,radius*.39,0,0,7);c.stroke();
+ c.globalAlpha=f*.8;c.strokeStyle='#fff';c.lineWidth=1.8;
+ for(let n=0;n<6;n++){
+  const angle=n*Math.PI/3+progress*2.4;
+  c.beginPath();c.moveTo(Math.cos(angle)*radius*.52,Math.sin(angle)*radius*.24);
+  c.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius*.46);c.stroke();
+ }
+ c.restore();
+}
 function drawPowerBoxes(){
  if(!game?.boxes)return;
  for(const box of game.boxes){
   if(!box.active)continue;
-  const t=clock-box.spawnAt,bright=clock>=box.collectAt;
-  const a=Math.min(1,t/.32),bob=Math.sin(clock*3.6+box.x*.02)*3.1;
-  const col=POWER_COLORS[box.type],sz=16;
-  c.save();c.translate(box.x,box.y+bob);c.globalAlpha=a;
-  c.fillStyle='#092e6950';c.beginPath();c.ellipse(0,18,22,8,0,0,7);c.fill();
-  c.strokeStyle=col;c.lineWidth=2;c.globalAlpha=a*(.45+.24*Math.sin(clock*5));
-  c.beginPath();c.ellipse(0,16,25,10,0,0,7);c.stroke();c.globalAlpha=a;
-  // Top face with CIVIDOM crown; coloured side faces show identical power glyph.
-  c.beginPath();c.moveTo(0,-23);c.lineTo(sz,-16);c.lineTo(0,-7);c.lineTo(-sz,-16);c.closePath();
-  c.fillStyle='#fff7d8';c.fill();c.strokeStyle='#24539d';c.lineWidth=2;c.stroke();
-  c.beginPath();c.moveTo(-sz,-16);c.lineTo(0,-7);c.lineTo(0,16);c.lineTo(-sz,7);c.closePath();
-  c.fillStyle=col;c.fill();c.stroke();
-  c.beginPath();c.moveTo(0,-7);c.lineTo(sz,-16);c.lineTo(sz,7);c.lineTo(0,16);c.closePath();
-  c.fillStyle=col;c.fill();c.stroke();
-  c.textAlign='center';c.font='900 13px system-ui';c.fillStyle='#173974';
-  c.fillText('♛',0,-11);
-  c.font='1000 14px system-ui';c.fillStyle='#153671';c.fillText(POWER_SYMBOLS[box.type],-8,3);c.fillText(POWER_SYMBOLS[box.type],8,3);
-  c.font='900 9px system-ui';c.fillStyle='#184376';c.fillText(box.type,0,29);
-  if(!bright){c.fillStyle='#ffffff70';c.fillRect(-18,-24,36,38);}
+  const key=cvCrateKey(box),loaded=window.PaperCrate3DReady?.has(key);
+  const bright=clock>=box.collectAt;
+  const elapsed=Math.max(0,clock-box.spawnAt);
+  const alpha=Math.min(1,elapsed/.27),bob=Math.sin(clock*3.1+box.x*.02)*3;
+  const color=POWER_COLORS[box.type]||'#f2d584',gold=box.type==='SORPRESA';
+  // Light halo / floor contact is in shared 2D canvas, even for GLB crates.
+  c.save();c.translate(box.x,box.y);
+  c.globalAlpha=alpha;
+  c.fillStyle='rgba(7,22,48,.23)';
+  c.beginPath();c.ellipse(0,20,24,7.2,0,0,7);c.fill();
+  c.strokeStyle=color;c.lineWidth=2.3;c.globalAlpha=alpha*(.58+.24*Math.sin(clock*4));
+  c.beginPath();c.ellipse(0,18,26,9,0,0,7);c.stroke();c.globalAlpha=alpha;
+  if(!loaded){
+   const sprite=cvCrateSprite(box.type);
+   const pulse=1+Math.sin(clock*2.5+box.y*.03)*.025;
+   c.save();c.translate(0,bob);c.scale(pulse,pulse);
+   c.drawImage(sprite,-36,-43,72,72);c.restore();
+  }
+  if(gold&&bright){
+   c.globalAlpha=alpha*(.5+.35*Math.sin(clock*5));
+   c.strokeStyle='#ffefff';c.lineWidth=1.5;
+   c.beginPath();c.ellipse(0,18,31,11,0,0,7);c.stroke();
+  }
+  // Compact, legible uppercase name: no dangling small glyph on either side.
+  c.globalAlpha=alpha;
+  c.font='900 10px system-ui';c.textAlign='center';
+  const label=box.type==='SORPRESA'?'SORPRESA':box.type;
+  const width=Math.max(36,c.measureText(label).width+12);
+  c.fillStyle='rgba(9,27,54,.87)';c.beginPath();c.roundRect(-width/2,27,width,15,6);c.fill();
+  c.fillStyle='#ffffff';c.fillText(label,0,38);
   c.restore();
+ }
+ for(const open of cvCrateOpenings){
+  cvCrateRewardFx(open.x,open.y,open.type,open.age/open.life);
  }
 }
 function drawStorm(){
@@ -1055,6 +1143,10 @@ function captureEffect(points,p,color,share){
  }
 }
 function tickEffects(dt){
+ for(let i=cvCrateOpenings.length-1;i>=0;i--){
+  cvCrateOpenings[i].age+=dt;
+  if(cvCrateOpenings[i].age>=cvCrateOpenings[i].life)cvCrateOpenings.splice(i,1);
+ }
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=1-dt*2.5;p.vy*=1-dt*2.5;if(p.age>=p.life)particles.splice(i,1);}
  for(let i=bursts.length-1;i>=0;i--){bursts[i].age+=dt;if(bursts[i].age>=bursts[i].life)bursts.splice(i,1);}
 }
@@ -1109,7 +1201,7 @@ function reset(){
  landCount=inArena.reduce((n,v)=>n+v,0);
  game={people:[],ordered:[],kills:0,started:0,record:0,lastArea:0,defeated:new Set(),rewards:new Set(),
  epicTrail:false,crowned:false,storm:{x:CX,y:CY,radius:R,phase:0,closing:false,remaining:STORM_FIRST_AT,next:null,stages:createStormStages(),nextMaskAt:0,lastWarning:-99},
- boxes:[],boxSerial:0,nextBoxAt:9,lastPower:null,lastBarrierSound:-9};particles=[];bursts=[];rewardToastUntil=0;$('rewardToast').classList.remove('visible');for(let i=0;i<REWARDS.length;i++)$('milestone'+i).classList.remove('unlocked');let player={x:CX,y:CY};
+ boxes:[],boxSerial:0,nextBoxAt:9,lastPower:null,lastBarrierSound:-9};particles=[];bursts=[];cvCrateOpenings.length=0;rewardToastUntil=0;$('rewardToast').classList.remove('visible');for(let i=0;i<REWARDS.length;i++)$('milestone'+i).classList.remove('unlocked');let player={x:CX,y:CY};
  game.people.push(makePerson(0,player));game.people[0].angle=-Math.PI/2;game.earnedCoins=0;emoteUntil=0;celebrationBursts=[];base(game.people[0],6);
  for(let i=1;i<MATCH_PLAYERS;i++){const pos=spawnPoint();const p=makePerson(i,pos);game.people.push(p);base(p,random(3.5,5)|0);}
  if(cvRole==='host'&&cvRemoteConnected)game.people[1].name=cvGuestName;
@@ -1890,6 +1982,10 @@ window.Paper3DState=()=>({
  previewYaw:shopPreviewYaw,
  previewEmote:shopCategory==='emote'?shopPreviewId:'idle',
  vsEmote:wardrobe.equipped.emote==='emote_hello'?'emote_sixseven':wardrobe.equipped.emote,
+ powerBoxes:game?game.boxes.filter(b=>b.active).map(b=>({
+  x:b.x,y:b.y,type:b.type,key:cvCrateKey(b),ready:clock>=b.collectAt,age:clock-b.spawnAt
+ })):[],
+ crateOpenings:cvCrateOpenings.map(o=>({...o})),
  people:game?game.people.map(p=>({
   id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,scale:powerScale(p),shielded:clock<p.shieldUntil,
   hero:p.id===cvLocalId()?wardrobe.hero:p.id===1&&cvRole==='host'?cvGuestHero:p.id===1?vsRival:p.id%CHIBI_HEROES,
@@ -1935,6 +2031,7 @@ function cvPackSnapshot(includeMap=false){
    kills:p.kills,area:p.area,score:cvRound(p.score),power:p.powerKind,until:cvRound(p.powerUntil),
    shield:cvRound(p.shieldUntil)
   })),
+  openings:cvCrateOpenings.map(o=>({x:cvRound(o.x),y:cvRound(o.y),type:o.type,age:cvRound(o.age)})),
   boxes:game.boxes.filter(b=>b.active).map(b=>({x:cvRound(b.x),y:cvRound(b.y),
    type:b.type,spawnAt:b.spawnAt,collectAt:b.collectAt,expiresAt:b.expiresAt})),
   map:includeMap?cvCompressLand():null
@@ -1964,6 +2061,12 @@ function cvApplySnapshot(data){
   local.powerKind=p.power;local.powerUntil=p.until;local.shieldUntil=p.shield;
  }
  game.boxes=Array.isArray(data.boxes)?data.boxes.map(b=>({...b,active:true})).slice(0,65):[];
+ if(Array.isArray(data.openings)){
+  cvCrateOpenings.length=0;
+  for(const o of data.openings.slice(0,8))if(Number.isFinite(o.x)&&Number.isFinite(o.y)&&POWER_COLORS[o.type]){
+   cvCrateOpenings.push({x:o.x,y:o.y,type:o.type,age:o.age||0,life:.54});
+  }
+ }
  if(data.map&&data.rev!==cvGuestMapRevision&&cvDecompressLand(data.map)){
   cvGuestMapRevision=data.rev;updateMap();
  }
