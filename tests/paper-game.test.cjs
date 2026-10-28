@@ -6,7 +6,7 @@ const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','paper.html'),'utf8');
 const script=source.split('<script>')[1]?.split('</script>')[0];
 assert.ok(script,'Game script must be embedded in paper.html');
-function boot(seed=419){
+function boot(seed=419,query='?qa=1'){
  const els=new Map(),listeners={};
  let now=0,frame=null,rng=seed>>>0;
  const fakeMath=Object.create(Math);
@@ -25,10 +25,10 @@ function boot(seed=419){
  const doc={getElementById:get,createElement:k=>get('node-'+Math.random()),
    addEventListener(n,fn){(listeners['document:'+n]??=[]).push(fn);},querySelectorAll:()=>[],hidden:false};
  const win={addEventListener(){}};
- const loc={search:'?qa=1',href:'https://example.test/paper.html'};
+ const loc={search:query,href:'https://example.test/paper.html'};
  const storage=new Map();
  // Instrument test sandbox only; production game source remains unchanged.
- const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R,territoryLoops,updateMap,grantRewards,REWARDS,buyOrEquip,awardCoins,setHero,saveWardrobe,loadWardrobe,wardrobe,SHOP_ITEMS,celebrateAt};\\n// Read-only diagnostics:'.replace('\\n','\n'));
+ const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R,territoryLoops,updateMap,grantRewards,REWARDS,buyOrEquip,awardCoins,setHero,saveWardrobe,loadWardrobe,wardrobe,SHOP_ITEMS,celebrateAt,showVS,launchMatch,drawVersus,getFeatured:()=>vsRival};\\n// Read-only diagnostics:'.replace('\\n','\n'));
  const browser=Function('document','window','location','performance','requestAnimationFrame','innerWidth','innerHeight','devicePixelRatio','localStorage','navigator','setTimeout','URLSearchParams','Math',instrumented);
  browser(doc,win,loc,{now:()=>now},fn=>frame=fn,430,850,1,
   {getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))},{vibrate(){}},()=>{},URLSearchParams,fakeMath);
@@ -311,4 +311,58 @@ test('wardrobe overlays remain assigned to humanoid heads and torsos',()=>{
  assert.match(source,/roundRect\(-14,-47,12,8,2\)/); // glasses
  assert.match(source,/ellipse\(-10,-76,5,15/); // ears
  assert.match(source,/roundRect\(-13,-28,26,24,5\)/); // armor
+});
+
+test('VS opens before a normal game and shows animated Six Seven performers',()=>{
+ const g=boot(419,'?play=1');
+ assert.equal(g.win.territoryQA.mode,'home');
+ g.get('start').onclick();
+ assert.equal(g.win.territoryQA.mode,'versus');
+ assert.equal(g.get('vsPlayerName').textContent,'NOVA');
+ assert.notEqual(g.get('vsRivalName').textContent,'NOVA');
+ g.tick(10); // canvas renderer must not throw
+ assert.equal(g.win.territoryQA.mode,'versus');
+ assert.match(source,/function versusActor\(/);
+ assert.match(source,/The arms perform original Six-Seven|Six-Seven/);
+ assert.match(source,/id="versusCanvas"/);
+ assert.match(source,/id="vsPlayNow"/);
+});
+test('VS skip starts a playable game with the featured rival correctly represented',()=>{
+ const g=boot(2024,'?normal=1');
+ g.get('start').onclick();
+ const name=g.get('vsRivalName').textContent;
+ assert.ok(name);
+ assert.equal(g.get('vsPlayNow').onclick(),true);
+ assert.equal(g.win.territoryQA.mode,'play');
+ assert.equal(g.win.territoryQA.players,12);
+ assert.equal(g.win.__paperTest.getGame().people[1].name,name);
+ assert.equal(g.win.Paper3DState().people[1].hero,g.win.__paperTest.getFeatured());
+});
+test('VS automatically proceeds to the match after the choreographed countdown',()=>{
+ const g=boot(419,'?normal=1');
+ g.get('start').onclick();
+ g.tick(365);
+ assert.equal(g.win.territoryQA.mode,'play');
+ assert.equal(g.win.territoryQA.players,12);
+});
+test('replay displays another versus intro rather than bypassing the fight presentation',()=>{
+ const g=boot(419,'?normal=1');
+ g.get('start').onclick();g.get('vsPlayNow').onclick();
+ g.win.__paperTest.death(g.win.__paperTest.getGame().people[0]);
+ assert.equal(g.win.territoryQA.mode,'result');
+ g.get('again').onclick();
+ assert.equal(g.win.territoryQA.mode,'versus');
+ g.get('vsPlayNow').onclick();
+ assert.equal(g.win.territoryQA.mode,'play');
+});
+test('Six Seven is purchasable with earned in-game currency and equips normally',()=>{
+ const g=boot(419),h=g.win.__paperTest;
+ const item=h.SHOP_ITEMS.find(x=>x.id==='emote_sixseven');
+ assert.equal(item.category,'emote');
+ assert.ok(item.price>0);
+ h.awardCoins(item.price);
+ assert.equal(h.buyOrEquip(item.id),true);
+ g.get('start').onclick();g.tick(8);
+ assert.equal(g.get('emoteButton').textContent,'🙌');
+ assert.equal(h.wardrobe.equipped.emote,'emote_sixseven');
 });
