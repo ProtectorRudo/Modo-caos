@@ -109,11 +109,39 @@ function drawPortal(c,pos,t){
  }c.restore()
 }
 function installGun(){
- const b=document.getElementById('weapon');if(!b||b.dataset.v3)return;b.dataset.v3='1';
- const s=b.querySelector('svg');if(!s)return;
- s.style.filter='drop-shadow(0 12px 10px #030b19bb)';
- const m=s.querySelector('#gunFlash');if(m){m.setAttribute('rx','40');m.setAttribute('ry','46')}
- b.querySelector('.gun-name').innerHTML='JUICE <b>BLASTER MK II</b> <span>∞</span>';
+ const el=document.getElementById('weapon');if(!el||el.dataset.v3)return;
+ el.dataset.v3='1';
+ el.innerHTML=[
+ '<svg viewBox="0 0 240 335" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>',
+ '<linearGradient id="jbx" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#cde5f0"/><stop offset=".17" stop-color="#708eaa"/><stop offset=".43" stop-color="#203f61"/><stop offset=".71" stop-color="#11253f"/><stop offset="1" stop-color="#071426"/></linearGradient>',
+ '<linearGradient id="jbc" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#faffeb"/><stop offset=".30" stop-color="#91fff0"/><stop offset=".61" stop-color="#25d2d4"/><stop offset="1" stop-color="#237bb7"/></linearGradient>',
+ '<linearGradient id="jbg" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#e6ffa4"/><stop offset=".4" stop-color="#b3f65a"/><stop offset="1" stop-color="#668e36"/></linearGradient>',
+ '<radialGradient id="jbm"><stop stop-color="#ffffff"/><stop offset=".2" stop-color="#f2ff9d"/><stop offset=".58" stop-color="#46f7db"/><stop offset="1" stop-color="#235d95"/></radialGradient>',
+ '<radialGradient id="jbf"><stop stop-color="#ffffff" stop-opacity=".99"/><stop offset=".25" stop-color="#a0ffe8" stop-opacity=".85"/><stop offset=".6" stop-color="#4deaff" stop-opacity=".28"/><stop offset="1" stop-color="#19baf9" stop-opacity="0"/></radialGradient>',
+ '</defs><g class="jb-body">',
+ '<path d="M103 156L171 165L204 277Q197 320 154 331L127 298L97 222Z" fill="#091529" stroke="#7a9bb1" stroke-width="3"/>',
+ '<path d="M122 194L158 190L184 285Q172 312 153 310L130 284L107 227Z" fill="url(#jbx)" stroke="#aacdd5" stroke-width="2"/>',
+ '<path d="M130 229L175 218M135 249L179 241M144 266L187 260M150 285L189 277" stroke="#0c223c" stroke-width="5" opacity=".75"/>',
+ '<path d="M77 88L159 69L203 112L199 190L162 235L95 228L50 182L54 124Z" fill="url(#jbx)" stroke="#b1d4df" stroke-width="3"/>',
+ '<path d="M81 119L155 100L181 127L175 184L151 206L86 193L75 159Z" fill="#0a2948" stroke="#4f7c9a" stroke-width="2"/>',
+ '<path d="M91 128L161 114L171 149L91 166Z" fill="url(#jbc)" stroke="#c8ffe5" stroke-width="2"/>',
+ '<path d="M95 171L160 157L169 176L99 191Z" fill="url(#jbg)" stroke="#efffd5" stroke-width="2"/>',
+ '<path d="M102 134L151 122M110 144L158 130" stroke="#fafff0" stroke-width="2" opacity=".60"/>',
+ '<path d="M49 123L73 104L95 116L103 180L79 197L46 165Z" fill="url(#jbx)" stroke="#88b3d1" stroke-width="3"/>',
+ '<circle cx="72" cy="145" r="17" fill="#0c2941" stroke="#75fff1" stroke-width="3"/><circle cx="72" cy="145" r="7" fill="url(#jbm)"/>',
+ '<path d="M145 207L180 196L175 225L148 229Z" fill="#0e4c63" stroke="#7ef4de" stroke-width="2"/>',
+ '<path d="M159 206L154 218L168 215L157 228" stroke="#f0ffa2" stroke-width="4" fill="none"/>',
+ '<path d="M99 40L158 36L172 103L91 113Z" fill="url(#jbx)" stroke="#c2e4ee" stroke-width="4"/>',
+ '<path d="M106 49L149 47L156 96L100 100Z" fill="#0f2947"/><path d="M109 58L145 56M111 75L149 72M113 90L152 87" stroke="url(#jbc)" stroke-width="4"/>',
+ '<ellipse cx="129" cy="39" rx="37" ry="17" fill="#091e34" stroke="#b8d9eb" stroke-width="5"/>',
+ '<ellipse cx="129" cy="38" rx="28" ry="13" fill="#174f6c" stroke="#52f1d9" stroke-width="3"/>',
+ '<ellipse cx="129" cy="37" rx="17" ry="9" fill="url(#jbm)"/>',
+ '<ellipse id="gunFlash" cx="129" cy="34" rx="56" ry="59" fill="url(#jbf)" opacity="0"/>',
+ '<path d="M61 196L85 188L94 230L78 243L58 228Z" fill="#10283f" stroke="#5ad2e1" stroke-width="3"/>',
+ '<path d="M69 206L83 202L85 226L72 231Z" fill="#b8ff8b" stroke="#dfffca" stroke-width="1.5"/>',
+ '<path d="M92 112L117 105" stroke="#eefcff" stroke-width="3" opacity=".7"/>',
+ '</g></svg><div class="gun-name">JUICE <b>BLASTER MK II</b> <span>∞</span></div>'
+ ].join('');
 }
 root.FrutaPremiumArt={sprite,prime,drawDeck,drawPortal,installGun,stats:()=>({spriteCount:cache.size})};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{installGun();prime()},{once:true});else{installGun();prime()}
