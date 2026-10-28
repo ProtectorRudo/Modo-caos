@@ -36,6 +36,7 @@ jobs:
       - run: node tests/frutastrofe-timed.test.cjs
       - run: node --check frutastrofe-ar-projection.js
       - run: node --check frutastrofe-ar-overlay.js
+      - run: node --check frutastrofe-premium-art.js
 
   mobile-browser:
     runs-on: ubuntu-latest
