@@ -653,7 +653,7 @@ function spawnPoint(){
  return{x:CX+random(-250,250),y:CY+random(-250,250)};
 }
 function makePerson(id,pnt){
- return {id,name:id===0?($('nick').value.trim().slice(0,16)||'VOS'):NAMES[id],x:pnt.x,y:pnt.y,angle:random(-Math.PI,Math.PI),
+ return {id,name:id===0?($('nick').value.trim().slice(0,16)||'VOS'):id===1?HEROES[vsRival].name:NAMES[id],x:pnt.x,y:pnt.y,angle:random(-Math.PI,Math.PI),
  target:null,speed:id===0?156:random(117,137),turn:id===0?6.3:random(2.8,4.05),alive:true,outside:false,trailPoints:[],trailCells:[],trailSeen:new Map(),lastCell:-1,kills:0,score:0,area:0,respawn:0,
  stage:0,goal:null,goalAt:0,protectedUntil:clock+1.8,thinking:0,edgeCharge:0,boostUntil:0,style:id%3};
 }
@@ -827,7 +827,7 @@ function showHud(){
  const ownRank=game.ordered.findIndex(q=>q.id===0);
  const arr=ownRank>=3?[...game.ordered.slice(0,3),game.people[0]]:game.ordered.slice(0,4);
  // CSS-drawn original character portraits; avoid arbitrary unicode placeholders.
- $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="portraitMech skin'+(q.id%4)+'"><i class="eyeL"></i><i class="eyeR"></i></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
+ $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="portraitMech skin'+(q.id===0?wardrobe.hero:q.id===1?vsRival:q.id%4)+'"><i class="eyeL"></i><i class="eyeR"></i></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
  const best=Math.max(readBest(),game.record,p.score);
  $('recordPointer').style.left=clamp(best/25*100,8,92)+'%';
  drawMini();
@@ -958,7 +958,7 @@ function drawUnit(p){
  }
  // Actual 3D actors take over when their GLB has loaded. Otherwise use
  // anatomically legible, animated original chibi people — never robot cubes.
- const hero=p.id===0?selectedSkin:p.id%4;
+ const hero=p.id===0?selectedSkin:p.id===1?vsRival:p.id%4;
  const has3D=!!(window.Paper3DReady&&window.Paper3DReady[hero]);
  if(!has3D)paintChibi(p,hero,col);
 
@@ -1202,7 +1202,7 @@ window.Paper3DState=()=>({
  outfit:wardrobe.equipped.outfit,
  people:game?game.people.map(p=>({
   id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,
-  hero:p.id===0?wardrobe.hero:p.id%4,
+  hero:p.id===0?wardrobe.hero:p.id===1?vsRival:p.id%4,
   emoting:p.id===0&&clock<emoteUntil
  })):[]
 });
