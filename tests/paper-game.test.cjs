@@ -300,7 +300,7 @@ test('progressive 3D renderer uses genuine humanoid rigged models and safe fallb
  assert.match(module,/SkeletonUtils\.clone/);
  for(const model of ['Knight.glb','Barbarian.glb','Mage.glb','Rogue.glb'])assert.ok(module.includes(model));
  assert.match(module,/KayKit Adventurers/);
- assert.match(module,/Rigged|rigged/);
+ assert.match(module,/RIG_HEIGHT=80/);
  assert.match(source,/function paintChibi\(p,hero,col\)/);
  assert.match(source,/window\.Paper3DReady/);
  assert.match(source,/paper-3d\.mjs/);
