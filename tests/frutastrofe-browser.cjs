@@ -62,9 +62,14 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   await page.waitForTimeout(200);
   assert(!await page.locator('#fireBtn').evaluate(el=>el.classList.contains('is-firing')),'auto fire must stop after release');
   const perfBefore=await page.evaluate(()=>({elapsed:window.__frutaQA.state().elapsed,render:window.__frutaQA.diagnostics().renders}));
+  // Actual real AR drives draw() from XR frames. In headless Chrome, emulate those
+  // real-world projection frames at 20 FPS throughout the continuous trigger hold.
+  await page.evaluate(()=>{window.__frutaProjectionLoop=setInterval(()=>window.__frutaQA.previewWorld(0),50)});
   await page.mouse.down();await page.waitForTimeout(1800);await page.mouse.up();
+  await page.evaluate(()=>{clearInterval(window.__frutaProjectionLoop);window.__frutaProjectionLoop=null});
   const perfAfter=await page.evaluate(()=>({elapsed:window.__frutaQA.state().elapsed,render:window.__frutaQA.diagnostics().renders,fx:window.__frutaQA.diagnostics()}));
   assert(perfAfter.elapsed-perfBefore.elapsed>=1.15,'game simulation must continue during extended rapid fire '+JSON.stringify({perfBefore,perfAfter}));
+  assert(perfAfter.render-perfBefore.render>=15,'scene must keep rendering in sustained firing '+JSON.stringify({perfBefore,perfAfter}));
   assert(perfAfter.fx.svgNodes===0&&perfAfter.fx.particles<=24&&perfAfter.fx.shots<=2&&perfAfter.fx.averageDrawMs<20,'long burst must not accumulate effects or slow painting '+JSON.stringify(perfAfter.fx));
   console.log('AR CANVAS RAPID FIRE METRICS',JSON.stringify({perfBefore,perfAfter}));
   await page.locator('#pauseBtn').click();
