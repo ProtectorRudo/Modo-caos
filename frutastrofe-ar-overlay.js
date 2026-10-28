@@ -155,8 +155,10 @@ function draw(view,origin,scale,objects,kind='playing'){
   if(age<.27&&!['bomb','rotten'].includes(p.kind)){
    for(const side of [-1,1]){
     c.save();c.translate(q.x+side*age*100,q.y-age*43);c.rotate(side*age*3);
-    c.beginPath();if(side<0)c.rect(-64,-64,64,128);else c.rect(0,-64,64,128);c.clip();
-    c.drawImage(sprite(p.kind),-44,-53,88,105);c.restore();
+    const piece=root.FrutaPremiumArt?.slicedHalf(p.kind,side);
+    if(piece)c.drawImage(piece,-44,-53,88,105);
+    else{c.beginPath();if(side<0)c.rect(-64,-64,64,128);else c.rect(0,-64,64,128);c.clip();c.drawImage(sprite(p.kind),-44,-53,88,105)}
+    c.restore();
    }
   }
   c.globalAlpha=1;
