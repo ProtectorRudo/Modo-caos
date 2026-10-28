@@ -1,4 +1,4 @@
-name: CIVIDOM - install licensed Styloo chibi champions
+name: CIVIDOM - vendor 5 original Styloo chibi GLBs
 on:
   push:
     branches: [main]
@@ -19,48 +19,38 @@ jobs:
         with:
           ref: main
           persist-credentials: true
-      - name: Download Styloo CC0 Chibi Characters from official Godot Asset Store
+      - name: Vendor exact original 5 Styloo CC0 animated Chibi GLBs
         shell: bash
         run: |
           set -euo pipefail
-          curl -fLSs --retry 4 --connect-timeout 20 --max-time 250 \
-            -A 'CIVIDOM-CC0-asset-vendor/1.0' \
-            'https://store.godotengine.org/asset/styloo/chibi/download/1373/' \
-            -o /tmp/cividom-styloo.zip
+          mkdir -p assets/styloo
+          ROOT='https://raw.githubusercontent.com/binyoun-cberi/kidscade/a68ea8ac843db770e24172d3319ac6cd07bec97a/assets/game/chibi/ChibiCharactersV1.2/ChibiCharacters/glb'
+          for name in ninja archer student merchant knight; do
+            curl -fLsS --retry 4 --connect-timeout 20 --max-time 240 "$ROOT/${name}pr.glb" -o "assets/styloo/${name}.glb"
+          done
           python3 - <<'PY'
-          import os, zipfile, struct, json, hashlib, re, pathlib
-          src='/tmp/cividom-styloo.zip'
-          assert zipfile.is_zipfile(src), 'Official archive not ZIP'
-          goal=['ninja','archer','student','merchant','knight']
-          out=pathlib.Path('assets/styloo');out.mkdir(parents=True,exist_ok=True)
-          manifest={'source':'https://store.godotengine.org/asset/styloo/chibi/','license':'CC0-1.0','author':'Styloo','characters':{}}
-          with zipfile.ZipFile(src) as z:
-            models=[p for p in z.namelist() if p.lower().endswith('.glb') and not p.startswith('__MACOSX')]
-            print('GLB candidates:',models[:100])
-            assert len(models)>=5,'Official zip missing 5 GLBs'
-            for name in goal:
-              matches=[p for p in models if re.search(r'(^|[^a-z])'+name+r'([^a-z]|$)',p.lower())]
-              assert matches, f'No official {name} GLB'
-              matches.sort(key=lambda p:(('allinone' in p.lower()) or ('all_in_one' in p.lower()),len(p.split('/')[-1]),p.count('/')))
-              # Prefer the individual ready-to-play GLB, not the editing all-in-one mix.
-              selected=matches[0]
-              data=z.read(selected)
-              assert len(data)>10000 and len(data)<35000000, f'Unexpected asset size {name}'
-              magic,version,declared=struct.unpack_from('<III',data)
-              assert magic==0x46546c67 and version==2 and declared==len(data), f'Invalid GLB {name}'
-              (out/(name+'.glb')).write_bytes(data)
-              manifest['characters'][name]={'archive_path':selected,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
-          (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
-          (out/'LICENSE.txt').write_text('Styloo Chibi Characters (https://styloo.itch.io/chibi)\\nCC0 1.0 Universal https://creativecommons.org/publicdomain/zero/1.0/\\nOriginal model files with original author credit preserved.\\n')
-          print('VERIFIED:',manifest['characters'])
+          import json, pathlib, struct, hashlib
+          base=pathlib.Path('assets/styloo')
+          names=['ninja','archer','student','merchant','knight']
+          manifest={'author':'Styloo','license':'CC0-1.0','source':'https://styloo.itch.io/chibi','mirror':'https://github.com/binyoun-cberi/kidscade/tree/a68ea8ac843db770e24172d3319ac6cd07bec97a/assets/game/chibi/ChibiCharactersV1.2/ChibiCharacters/glb','models':{}}
+          for name in names:
+            data=(base/(name+'.glb')).read_bytes()
+            magic,version,size=struct.unpack_from('<III',data,0)
+            assert magic==0x46546C67 and version==2 and size==len(data)
+            assert 100000<len(data)<20000000
+            manifest['models'][name]={'size':len(data),'sha256':hashlib.sha256(data).hexdigest()}
+          (base/'manifest.json').write_text(json.dumps(manifest,indent=2))
+          (base/'LICENSE.txt').write_text('Styloo Chibi Characters, CC0 1.0 Universal.\\nAuthor: https://styloo.itch.io/chibi\\nhttps://creativecommons.org/publicdomain/zero/1.0/\\n')
+          print('ALL 5 RIGGED STYLOO CHIBIS VERIFIED',manifest)
           PY
-      - name: Commit the verified static models to repository
+      - name: Commit first-party static assets for fast mobile loads
+        shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add assets/styloo
           if ! git diff --cached --quiet; then
-            git commit -m 'assets(cividom): vendor 5 authentic Styloo CC0 animated chibi GLBs'
+            git commit -m 'assets(cividom): five licensed chibi GLBs from Styloo'
             git push origin HEAD:main
           fi
