@@ -1,10 +1,7 @@
 /*
-  Territory Loop: humanoid 3D characters (progressive enhancement only).
-  CC0 original model author: Kay Lousberg — KayKit Adventurers.
-  Source: https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0
-  Primary models: Styloo Chibi Characters, CC0 1.0; locally hosted official GLB files.
-  Fallback models: KayKit Adventurers, CC0 1.0; original screenshots not reused.
-  If WebGL, 3D assets, or the CDN fail, the game keeps its custom chibi canvas sprites.
+  CIVIDOM ORIGINALS: original locally generated 3D champions, no external meshes.
+  The wardrobe is a separate rig-bound module; character animation does not
+  modify Paper gameplay physics. CSS portraits remain fallback when WebGL fails.
 */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -285,7 +282,7 @@ function syncMenu(state,dt){
  }
 }
 function syncVS(state,dt){
- if(!state?.previewing){window.PaperVSReady=false;return;}
+ if(!state?.previewing){window.PaperVSReady=false;document.getElementById('versusStage')?.classList.remove('is-3d');return;}
  const wanted=[state.vsHero,state.vsRival];
  if(!wanted.every(i=>sourceAssets[i])){window.PaperVSReady=false;if(vsCanvas)vsCanvas.style.opacity='0';return;}
  vsCreate();if(vsFailure||!vsRenderer)return;
@@ -318,19 +315,19 @@ function syncVS(state,dt){
    else danceBones(actor,state.vsSeconds,i===1);
    if(i===0)updateOutfit(actor,state.equipment);
   }
-  window.PaperVSReady=true;vsCanvas.style.opacity='1';
+  window.PaperVSReady=true;vsCanvas.style.opacity='1';document.getElementById('versusStage')?.classList.add('is-3d');
   // Skip frames where possible to avoid competing with the gameplay canvas on 4G devices.
   if(vsLastFrame<0||state.vsSeconds-vsLastFrame>.028){
    vsRenderer.render(vsScene,vsCamera);
    vsLastFrame=state.vsSeconds;
   }
- }catch(error){window.PaperVSReady=false;vsFailure=true;vsCanvas.style.display='none';console.warn('VS 3D failed; procedural Six-Seven dolls remain available',error);}
+ }catch(error){window.PaperVSReady=false;vsFailure=true;vsCanvas.style.display='none';document.getElementById('versusStage')?.classList.remove('is-3d');console.warn('VS 3D failed; illustrated mascots remain available',error);}
 }
 
 function frame(ms){
  requestAnimationFrame(frame);
  const dt=Math.min(.06,(ms-last)/1000||0);last=ms;
- if(!failed)try{const state=getState();sync(dt);if(state?.menuing||state?.shopping)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
+ if(!failed)try{const state=getState();sync(dt);if(state?.menuing||state?.shopping)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';document.getElementById('versusStage')?.classList.remove('is-3d');}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
   for(const k of Object.keys(window.Paper3DReady))delete window.Paper3DReady[k];
   canvas.style.display='none';}
 }
