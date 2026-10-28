@@ -47,6 +47,25 @@ try{
   lastClock=sample.clock||0;
   if(maxTrail>=4&&lastClock>1.25)break;
  }
+ const compactHUD=await page.evaluate(()=>{
+  const panel=document.getElementById('survivalPanel')?.getBoundingClientRect();
+  const map=document.querySelector('.cvMiniMapFrame')?.getBoundingClientRect();
+  const stats=document.querySelector('#survivalPanel .survivalStats')?.getBoundingClientRect();
+  const canvas=document.getElementById('mini')?.getBoundingClientRect();
+  const metrics=Array.from(document.querySelectorAll('#survivalPanel .miniMetric')).map(el=>el.getBoundingClientRect().toJSON());
+  return {panel:panel?.toJSON(),map:map?.toJSON(),stats:stats?.toJSON(),canvas:canvas?.toJSON(),metrics,
+   text:document.getElementById('nextZoneLabel')?.textContent,
+   viewport:window.innerWidth};
+ });
+ assert.ok(compactHUD.map&&compactHUD.stats,'mini map and status strip must render');
+ assert.ok(compactHUD.map.width>=100&&compactHUD.map.width<=136,'map must be compact on mobile: '+compactHUD.map.width);
+ assert.ok(compactHUD.map.height<=136,'map must not cover too much gameplay space');
+ assert.ok(compactHUD.stats.top>=compactHUD.map.bottom-2,'status strip must be BELOW map, never at left');
+ assert.ok(compactHUD.panel.height<178,'combined HUD must occupy less than 178px');
+ assert.ok(compactHUD.viewport-compactHUD.panel.right<=16,'map must sit in top-right corner');
+ assert.equal(compactHUD.metrics.length,3,'clock, live players, and eliminations on a single strip');
+ assert.match(compactHUD.text||'',/^\\d+:\\d{2}$/,'the zone countdown must fit mm:ss');
+ console.log('CIVIDOM_COMPACT_HUD='+JSON.stringify(compactHUD));
  const elapsed=(Date.now()-started)/1000;
  const frames=await page.evaluate(async()=>new Promise(resolve=>{
   let n=0,first=performance.now();
@@ -57,7 +76,7 @@ try{
  estimatedFps=Math.round(frames.fps*10)/10;
  await mkdir('artifacts',{recursive:true});
  await page.screenshot({path:'artifacts/cividom-mobile-'+(twoDOnly?'2d':'3d')+'.png'});
- const diagnostic={version:'rollback-before-visual-v2',mode:twoDOnly?'2D_ONLY':'2D_PLUS_3D',samples,errors,maxTrail,everOutside,dead,gameClock:lastClock,estimatedFps,elapsed};
+ const diagnostic={version:'rollback-before-visual-v2',mode:twoDOnly?'2D_ONLY':'2D_PLUS_3D',samples,errors,maxTrail,everOutside,dead,gameClock:lastClock,estimatedFps,elapsed,compactHUD};
  await writeFile('artifacts/cividom-browser-audit-'+(twoDOnly?'2d':'3d')+'.json',JSON.stringify(diagnostic,null,2));
  console.log('CIVIDOM_BROWSER_AUDIT='+JSON.stringify({mode:twoDOnly?'2D_ONLY':'2D_PLUS_3D',maxTrail,everOutside,gameClock:lastClock,estimatedFps,elapsed,errors:errors.slice(0,6),samples:samples.length,dead}));
  assert.ok(lastClock>=.6,'gameplay must advance past initial island exit even under software GPU emulation');
