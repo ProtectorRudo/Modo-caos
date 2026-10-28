@@ -9,6 +9,7 @@ on:
       - 'tests/frutastrofe-browser.cjs'
       - 'tests/frutastrofe-ar.test.cjs'
       - 'tests/frutastrofe-sky.test.cjs'
+      - 'tests/frutastrofe-balance.test.cjs'
       - '.github/workflows/frutastrofe-tests.yml'
   pull_request:
     paths:
@@ -30,6 +31,7 @@ jobs:
       - run: node tests/frutastrofe.test.cjs
       - run: node tests/frutastrofe-ar.test.cjs
       - run: node tests/frutastrofe-sky.test.cjs
+      - run: node tests/frutastrofe-balance.test.cjs
       - run: node --check frutastrofe-ar-projection.js
       - run: node --check frutastrofe-ar-overlay.js
 
