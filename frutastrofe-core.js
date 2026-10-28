@@ -4,28 +4,28 @@
 const TYPES=['strawberry','orange','apple','watermelon','lemon'];
 const COLORS={strawberry:0xf04469,orange:0xffa83e,apple:0xe95153,watermelon:0x36d7a2,lemon:0xf8dc58,gold:0xffcf58,ice:0x74eaff,rainbow:0xb68aff,bomb:0x34354b,rotten:0x607b38,boss:0x49dd9c};
 const LEVELS=[
- {name:'PRIMER CHORRO',goal:'score',target:420,duration:54,rank:[420,700,980],speed:1.0,rate:1.05,trap:.025,special:.055},
- {name:'FRUTAS EN FUGA',goal:'score',target:720,duration:55,rank:[720,1040,1420],speed:1.15,rate:.97,trap:.035,special:.06},
- {name:'CADENA DELICIOSA',goal:'combos',target:3,duration:60,rank:[3,4,5],speed:1.05,rate:.85,trap:.04,special:.055},
- {name:'DULCE RESPIRO',goal:'score',target:920,duration:56,rank:[920,1250,1690],speed:1.0,rate:.72,trap:.035,special:.09},
- {name:'NO TOQUES LA BOMBA',goal:'clean',target:1150,duration:63,rank:[1150,1650,2200],speed:1.14,rate:.77,trap:.14,special:.065,maxErrors:1},
- {name:'TORMENTA DE CITRICOS',goal:'citrus',target:18,duration:65,rank:[18,24,30],speed:1.3,rate:.7,trap:.075,special:.08},
- {name:'FIESTA FRUTAL',goal:'score',target:1650,duration:65,rank:[1650,2150,2800],speed:1.12,rate:.64,trap:.065,special:.13},
- {name:'PRECISION DE ORO',goal:'clean',target:2000,duration:65,rank:[2000,2600,3500],speed:1.32,rate:.66,trap:.15,special:.095,maxErrors:1},
- {name:'JUICE FEVER',goal:'combos',target:6,duration:65,rank:[6,8,10],speed:1.25,rate:.56,trap:.11,special:.12},
- {name:'LA GRAN SANDIA',goal:'boss',target:12,duration:75,rank:[12,12,12],speed:1.26,rate:.75,trap:.11,special:.09}
+ {name:'PRIMER CHORRO',goal:'score',target:420,duration:54,rank:[420,700,980],speed:1.0,rate:1.05,trap:.072,rotten:.082,special:.055},
+ {name:'FRUTAS EN FUGA',goal:'score',target:720,duration:55,rank:[720,1040,1420],speed:1.15,rate:.97,trap:.078,rotten:.085,special:.06},
+ {name:'CADENA DELICIOSA',goal:'combos',target:3,duration:60,rank:[3,4,5],speed:1.05,rate:.85,trap:.082,rotten:.087,special:.055},
+ {name:'DULCE RESPIRO',goal:'score',target:920,duration:56,rank:[920,1250,1690],speed:1.0,rate:.72,trap:.07,rotten:.08,special:.09},
+ {name:'NO TOQUES LA BOMBA',goal:'clean',target:1150,duration:63,rank:[1150,1650,2200],speed:1.14,rate:.77,trap:.14,rotten:.10,special:.065,maxErrors:1},
+ {name:'TORMENTA DE CITRICOS',goal:'citrus',target:18,duration:65,rank:[18,24,30],speed:1.3,rate:.7,trap:.09,rotten:.09,special:.08},
+ {name:'FIESTA FRUTAL',goal:'score',target:1650,duration:65,rank:[1650,2150,2800],speed:1.12,rate:.64,trap:.095,rotten:.09,special:.13},
+ {name:'PRECISION DE ORO',goal:'clean',target:2000,duration:65,rank:[2000,2600,3500],speed:1.32,rate:.66,trap:.15,rotten:.10,special:.095,maxErrors:1},
+ {name:'JUICE FEVER',goal:'combos',target:6,duration:65,rank:[6,8,10],speed:1.25,rate:.56,trap:.12,rotten:.10,special:.12},
+ {name:'LA GRAN SANDIA',goal:'boss',target:12,duration:75,rank:[12,12,12],speed:1.26,rate:.75,trap:.115,rotten:.10,special:.09}
 ];
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 function seeded(seed){let a=(seed>>>0)||1;return ()=>{a+=0x6D2B79F5;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296}}
 const pick=(a,rng)=>a[Math.floor(rng()*a.length)];
 function challengeSeed(date){const s=String(date||new Date().toISOString().slice(0,10));let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
 function create(opts={}){
- const mode=opts.mode==='arcade'?'arcade':'campaign',level=clamp(Math.floor(opts.level||1),1,10),cfg=mode==='arcade'?{name:'MODO ARCADE',goal:'score',target:1250,duration:60,rank:[1250,2100,3200],speed:1.18,rate:.72,trap:.09,special:.105}:LEVELS[level-1];
+ const mode=opts.mode==='arcade'?'arcade':'campaign',level=clamp(Math.floor(opts.level||1),1,10),cfg=mode==='arcade'?{name:'MODO ARCADE',goal:'score',target:1250,duration:60,rank:[1250,2100,3200],speed:1.18,rate:.72,trap:.095,rotten:.09,special:.105}:LEVELS[level-1];
  const seed=(Number(opts.seed)||((Date.now()^0x73b91c)>>>0))>>>0,rng=seeded(seed);
- const g={mode,level,seed,cfg,elapsed:0,duration:cfg.duration,state:'ready',score:0,shots:0,hits:0,misses:0,errors:0,combo:0,maxCombo:0,chains:0,citrus:0,bossHits:0,streakType:null,streakCount:0,streakUntil:0,multiplier:1,slowUntil:0,fever:false,nextSpawn:1.65,nextCluster:8.5,launchQueue:[],launchIndex:0,objects:[],events:[],nextId:1,goalsMet:false,stars:0,best:0,locked:false};
+ const g={mode,level,seed,cfg,elapsed:0,duration:cfg.duration,state:'ready',score:0,shots:0,hits:0,misses:0,errors:0,combo:0,maxCombo:0,chains:0,citrus:0,bossHits:0,streakType:null,streakCount:0,streakUntil:0,multiplier:1,slowUntil:0,fever:false,nextSpawn:1.65,nextCluster:8.5,nextBomb:6.1,nextRotten:10.4,launchQueue:[],launchIndex:0,objects:[],events:[],nextId:1,goalsMet:false,stars:0,best:0,locked:false};
  const emit=(type,extra={})=>g.events.push(Object.assign({type,at:g.elapsed},extra));
  function spawn(override){
-  const r=rng(),kind=override||(r<cfg.trap?'bomb':r<cfg.trap+.045?'rotten':r<cfg.trap+cfg.special+.045?pick(['gold','ice','rainbow'],rng):pick(TYPES,rng));
+  const r=rng(),kind=override||(r<cfg.trap?'bomb':r<cfg.trap+(cfg.rotten||.075)?'rotten':r<cfg.trap+cfg.special+(cfg.rotten||.075)?pick(['gold','ice','rainbow'],rng):pick(TYPES,rng));
   // Sky shower: a high visible portal above the arena; no fruit launches from the floor.
   // Five lanes, shuffled with a coprime stride so consecutive drops don't overlap.
   const lane=(g.launchIndex*2+1)%5;g.launchIndex++;
@@ -34,7 +34,7 @@ function create(opts={}){
   const y=9.25+rng()*.42;
   const obj={id:g.nextId++,kind,x,y,z,baseY:y,r:.26+rng()*.09,
    vx:(rng()-.5)*.24,vy:-.14-rng()*.13,vz:(rng()-.5)*.16,
-   gravity:4.4*cfg.speed,age:0,rot:rng()*Math.PI*2,spin:(rng()-.5)*1.8,dead:false};
+   gravity:2.15*cfg.speed,age:0,rot:rng()*Math.PI*2,spin:(rng()-.5)*1.8,dead:false};
   if(kind==='boss'){obj.x=0;obj.y=5.55;obj.z=-.35;obj.r=.82;obj.vx=0;obj.vy=0;obj.vz=0;obj.gravity=0;obj.hp=12;obj.spin=.35}
   g.objects.push(obj);emit('spawn',{id:obj.id,kind,x:obj.x,y:obj.y,z:obj.z});return obj;
  }
@@ -45,7 +45,7 @@ function create(opts={}){
    else{
     const intro=pick(TYPES,rng);
     for(let j=0;j<3;j++)g.launchQueue.push({at:j*.57,kind:intro});
-    g.nextSpawn=1.65;g.nextCluster=8.5;
+    g.nextSpawn=1.65;g.nextCluster=8.5;g.nextBomb=6.1;g.nextRotten=10.4;
    }
   }
   return g
@@ -115,6 +115,9 @@ function create(opts={}){
    for(let j=0;j<3;j++)g.launchQueue.push({at:g.elapsed+j*.52,kind:fruit});
    emit('opportunity',{kind:fruit});g.nextCluster+=8.5;
   }
+  // Guaranteed, spaced warnings: bombs and rotten fruit cannot disappear by bad RNG.
+  if(g.elapsed>=g.nextBomb){if(g.objects.length<12)spawn('bomb');g.nextBomb+=13.0;}
+  if(g.elapsed>=g.nextRotten){if(g.objects.length<12)spawn('rotten');g.nextRotten+=15.6;}
   if(g.elapsed>=g.nextSpawn){
    if(g.objects.length<13&&g.launchQueue.length<7)spawn();
    const period=Math.max(.36,cfg.rate*.48*(g.fever ? .76 : 1));
