@@ -80,7 +80,44 @@ function sprite(k){
  ellipse(g,89,92,26,10,'rgba(255,255,255,.34)',-.38);
  cache.set(k,c);return c;
 }
-function prime(){let i=0;function step(){if(i>=keys.length)return;sprite(keys[i++]);setTimeout(step,18)}setTimeout(step,100)}
+const cutCache=new Map();
+function slicedHalf(kind,side){
+ const key=kind+':'+(side<0?'left':'right');
+ if(cutCache.has(key))return cutCache.get(key);
+ const can=document.createElement('canvas');can.width=can.height=128;
+ const c=can.getContext('2d'),fruit=sprite(kind);
+ c.save();c.beginPath();c.rect(side<0?0:64,0,64,128);c.clip();
+ c.drawImage(fruit,0,0,128,128);c.restore();
+ // Exposed glossy flesh on the cut face gives genuine volume to each blast.
+ const x=64,y=67,k=kind;
+ let shell='#ffe8cf',flesh='#fff1d9';
+ if(k==='watermelon'||k==='boss'){shell='#c5ffa9';flesh='#fa5272'}
+ else if(k==='strawberry'){shell='#ffeab5';flesh='#f65f87'}
+ else if(k==='orange'){shell='#ffe7a6';flesh='#ffb541'}
+ else if(k==='apple'){shell='#fee4bc';flesh='#fff5cb'}
+ else if(k==='lemon'){shell='#ffffbd';flesh='#fff8ab'}
+ else if(k==='rotten'){shell='#aabf6d';flesh='#645071'}
+ else if(k==='ice'){shell='#f9ffff';flesh='#beedfd'}
+ const shine=c.createLinearGradient(x-14,0,x+14,0);
+ shine.addColorStop(0,'rgba(255,255,255,.4)');shine.addColorStop(.48,shell);shine.addColorStop(1,'rgba(56,39,55,.82)');
+ c.beginPath();c.ellipse(x,y,13,40,0,0,TAU);c.fillStyle=shine;c.fill();
+ c.beginPath();c.ellipse(x,y,8,34,0,0,TAU);c.fillStyle=flesh;c.fill();
+ if(k==='orange'||k==='lemon'||k==='watermelon'||k==='strawberry'){
+  c.save();c.beginPath();c.ellipse(x,y,8,34,0,0,TAU);c.clip();
+  c.strokeStyle='rgba(255,255,241,.62)';c.lineWidth=2;
+  for(let i=0;i<5;i++){const yy=34+i*16;c.beginPath();c.moveTo(x-7,yy);c.lineTo(x+7,yy+7);c.stroke()}
+  if(k==='watermelon')for(let i=0;i<4;i++)disc(c,x+(i%2?3:-3),45+i*14,2.5,'#231b37');
+  c.restore();
+ }
+ cutCache.set(key,can);return can;
+}
+function prime(){let i=0;function step(){
+ if(i>=keys.length)return;
+ const k=keys[i++];sprite(k);
+ if(k!=='bomb'&&k!=='rotten'){slicedHalf(k,-1);slicedHalf(k,1)}
+ setTimeout(step,18);
+ }setTimeout(step,100)}
+
 function poly(c,p,fill,stroke,w=2){if(p.some(x=>!x))return false;c.beginPath();c.moveTo(p[0].x,p[0].y);for(let i=1;i<p.length;i++)c.lineTo(p[i].x,p[i].y);c.closePath();c.fillStyle=fill;c.fill();c.lineWidth=w;c.strokeStyle=stroke;c.stroke();return true}
 function drawDeck(c,pos,t){
  const coords=[[-2.28,-1.55],[2.28,-1.55],[2.52,-.9],[2.52,.95],[2.24,1.55],[-2.24,1.55],[-2.52,.95],[-2.52,-.9]];
@@ -230,6 +267,6 @@ function installGun(){
  '</g></svg><div class="gun-name">JUICE <b>BLASTER MK II</b> <span>∞</span></div>'
  ].join('');
 }
-root.FrutaPremiumArt={sprite,prime,drawDeck,drawPortal,installGun,stats:()=>({spriteCount:cache.size})};
+root.FrutaPremiumArt={sprite,slicedHalf,prime,drawDeck,drawPortal,installGun,stats:()=>({spriteCount:cache.size,cutSprites:cutCache.size,portal:'juice-apocalypse-5-chamber'})};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{installGun();prime()},{once:true});else{installGun();prime()}
 })(typeof window!=='undefined'?window:globalThis);
