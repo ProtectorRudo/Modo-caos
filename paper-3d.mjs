@@ -21,6 +21,7 @@ const RIG_HEIGHT=80;
 const gltfLoader=new GLTFLoader();
 const sourceAssets=new Array(models.length).fill(null),instances=new Map();
 window.Paper3DReady=Object.create(null);
+window.PaperVSReady=false;
 let scene,camera,renderer,started=false,failed=false,last=0,activeHero=-1;
 try{
  renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'low-power',premultipliedAlpha:false});
@@ -75,7 +76,7 @@ function destroyInstance(id){
 function chooseAnimation(gltf,kind){
  const candidates=gltf.animations||[];
  if(!candidates.length)return null;
- const pattern=kind==='run'?/run|walk|move|sprint/i:kind==='emote'?/dance|cheer|wave|celebrat/i:/idle|breath|stand/i;
+ const pattern=kind==='run'?/run|walk|move|sprint/i:kind==='emote'?/dance|cheer|wave|celebrat|push|jump/i:/idle|iddle|breath|stand/i;
  return candidates.find(a=>pattern.test(a.name))||candidates[0];
 }
 function instantiate(person){
@@ -164,10 +165,107 @@ function sync(dt){
  for(const id of instances.keys())if(!all.has(id))destroyInstance(id);
  renderer.render(scene,camera);
 }
+
+/* Versus fighters use the same CC0 Styloo GLB as the game, without substituting a
+   screenshot or copyrighted song. The alternating open-palmed 6/7 dance is generated
+   by custom bone animation layered over the included idle cycle. */
+const vsCanvas=document.getElementById('versus3dCanvas');
+let vsRenderer=null,vsScene=null,vsCamera=null,vsCharacters=[],vsFailure=false,vsLastFrame=-1;
+function vsCreate(){
+ if(vsRenderer||vsFailure||!vsCanvas)return;
+ try{
+  vsRenderer=new THREE.WebGLRenderer({canvas:vsCanvas,alpha:true,antialias:true,powerPreference:'low-power',premultipliedAlpha:false});
+  vsRenderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));
+  vsRenderer.setClearColor(0,0,0);
+  vsRenderer.outputColorSpace=THREE.SRGBColorSpace;
+  vsRenderer.toneMapping=THREE.ACESFilmicToneMapping;
+  vsRenderer.toneMappingExposure=1.45;
+  vsScene=new THREE.Scene();vsCamera=new THREE.OrthographicCamera(-200,200,250,-250,.1,1200);
+  vsCamera.position.set(0,0,750);vsCamera.lookAt(0,0,0);
+  vsScene.add(new THREE.HemisphereLight(0xffffff,0x7f91cf,3.2));
+  const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(-120,210,420);vsScene.add(key);
+  const rim=new THREE.DirectionalLight(0x9dcaff,1.6);rim.position.set(190,90,190);vsScene.add(rim);
+ }catch(error){vsFailure=true;window.PaperVSReady=false;if(vsCanvas)vsCanvas.style.display='none';console.warn('VS WebGL unavailable, continuing with animated canvas dolls',error);}
+}
+function vsActor(hero){
+ if(!sourceAssets[hero])return null;
+ const asset=sourceAssets[hero],root=new THREE.Group(),mesh=SkeletonUtils.clone(asset.scene);
+ const box=new THREE.Box3().setFromObject(mesh),size=box.getSize(new THREE.Vector3());
+ if(size.y<=0||!Number.isFinite(size.y))return null;
+ const factor=RIG_HEIGHT/size.y;mesh.scale.setScalar(factor);
+ mesh.position.set(-(box.min.x+size.x*.5)*factor,-box.min.y*factor,0);
+ root.add(mesh);vsScene.add(root);
+ const mixer=asset.animations.length?new THREE.AnimationMixer(mesh):null;
+ const clip=chooseAnimation(asset,'idle');
+ const action=mixer&&clip?mixer.clipAction(clip):null;
+ if(action)action.play();
+ const arms={left:null,right:null};mesh.traverse(n=>{
+  if(!n.isBone)return;
+  const name=n.name.toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(/upperarm/.test(name)){
+    if(/l$/.test(name)&&!arms.left)arms.left=n;
+    if(/r$/.test(name)&&!arms.right)arms.right=n;
+  }
+ });
+ return {hero,root,mesh,mixer,action,arms,phase:Math.random()*6};
+}
+function clearVSActors(){
+ for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();vsScene?.remove(item.root);}
+ vsCharacters=[];
+}
+function danceBones(item,seconds,mirror){
+ const {arms}=item;
+ const motion=seconds*7.1+(mirror?Math.PI*.6:0);
+ const axis=new THREE.Vector3(0,0,1);
+ for(const [key,bone] of Object.entries(arms)){
+  if(!bone)continue;
+  const side=key==='left'?-1:1;
+  // Real arm bones are changed only after the idle mixer has updated them.
+  const rise=Math.sin(motion+(side===1?Math.PI:0));
+  const swing=new THREE.Quaternion().setFromAxisAngle(axis,side*(.23+rise*.46));
+  bone.quaternion.multiply(swing);
+ }
+}
+function syncVS(state,dt){
+ if(!state?.previewing){window.PaperVSReady=false;if(vsCanvas)vsCanvas.style.opacity='0';return;}
+ const wanted=[state.vsHero,state.vsRival];
+ if(!wanted.every(i=>sourceAssets[i])){window.PaperVSReady=false;if(vsCanvas)vsCanvas.style.opacity='0';return;}
+ vsCreate();if(vsFailure||!vsRenderer)return;
+ try{
+  if(vsCharacters.length!==2||vsCharacters.some((a,i)=>!a||a.hero!==wanted[i])){
+   clearVSActors();vsCharacters=wanted.map(vsActor);
+  }
+  if(vsCharacters.some(a=>!a)){window.PaperVSReady=false;vsCanvas.style.opacity='0';return;}
+  const width=Math.max(1,vsCanvas.clientWidth||350),height=Math.max(1,vsCanvas.clientHeight||480);
+  const dpr=Math.min(devicePixelRatio||1,1.25);
+  if(vsCanvas.width!==Math.round(width*dpr)||vsCanvas.height!==Math.round(height*dpr))vsRenderer.setSize(width,height,false);
+  vsCamera.left=-width/2;vsCamera.right=width/2;vsCamera.top=height/2;vsCamera.bottom=-height/2;
+  vsCamera.updateProjectionMatrix();
+  const sizeFactor=(height*.61)/RIG_HEIGHT;
+  const arrival=Math.max(0,1-state.vsSeconds/.6);
+  for(let i=0;i<2;i++){
+   const actor=vsCharacters[i];
+   const side=i===0?-1:1;
+   actor.root.scale.setScalar(sizeFactor);
+   actor.root.position.set(side*(width*.27+arrival*width*.36),-height*.18+Math.sin(state.vsSeconds*7+i)*3,0);
+   actor.root.rotation.y=(i===0?-.13:.13)+Math.sin(state.vsSeconds*3.5+i)*.12;
+   if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
+   danceBones(actor,state.vsSeconds,i===1);
+   if(i===0)updateOutfit(actor,state.outfit);
+  }
+  window.PaperVSReady=true;vsCanvas.style.opacity='1';
+  // Skip frames where possible to avoid competing with the gameplay canvas on 4G devices.
+  if(vsLastFrame<0||state.vsSeconds-vsLastFrame>.028){
+   vsRenderer.render(vsScene,vsCamera);
+   vsLastFrame=state.vsSeconds;
+  }
+ }catch(error){window.PaperVSReady=false;vsFailure=true;vsCanvas.style.display='none';console.warn('VS 3D failed; procedural Six-Seven dolls remain available',error);}
+}
+
 function frame(ms){
  requestAnimationFrame(frame);
  const dt=Math.min(.06,(ms-last)/1000||0);last=ms;
- if(!failed)try{sync(dt);}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
+ if(!failed)try{const state=getState();sync(dt);syncVS(state,dt);}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
   for(const k of Object.keys(window.Paper3DReady))delete window.Paper3DReady[k];
   canvas.style.display='none';}
 }
