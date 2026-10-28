@@ -1,7 +1,8 @@
 /*
-  CIVIDOM ORIGINALS: original locally generated 3D champions, no external meshes.
-  The wardrobe is a separate rig-bound module; character animation does not
-  modify Paper gameplay physics. CSS portraits remain fallback when WebGL fails.
+ CIVIDOM · Quaternius Base Characters (CC0) + original rig-attached outfits.
+ Four humanoid champions use locally vendored, skinned GLB; eight legacy mascots
+ remain selectable. The official Quaternius Modular Outfits Fantasy ZIP is NOT
+ bundled. Never change capture, boxes or storm physics from the render layer.
 */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -309,7 +310,7 @@ function syncMenu(state,dt){
   vsCanvas.style.opacity='1';
   const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='0';
   const status=document.getElementById('menu3dStatus');
-  if(status)status.textContent='PERSONAJE 3D ORIGINAL';
+  if(status)status.textContent=actor.humanBones?'PERSONAJE 3D · RIG PROFESIONAL':'PERSONAJE 3D ORIGINAL';
   document.getElementById('menuModelLoader')?.classList.add('loaded');
  }catch(error){
   console.warn('Menu GLB preview fallback enabled',error);
