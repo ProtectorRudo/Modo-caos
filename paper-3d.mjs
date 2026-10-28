@@ -24,6 +24,7 @@ const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
 const RIG_HEIGHT=80;
 const gltfLoader=new GLTFLoader();
 const sourceAssets=new Array(TOTAL_HEROES).fill(null),instances=new Map();
+const assetVersions=new Uint32Array(TOTAL_HEROES);
 window.PaperPortraits=window.PaperPortraits||[];
 window.PaperChibiStatus='loading';
 let mainGameVisible=false;
@@ -100,7 +101,7 @@ function instantiate(person){
  const rig=findArmRig(base);
  const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,
  restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null,...(human||{}),
- nativeOutfit:!!asset.nativeOutfit,headOverlay,headBones:face?.humanBones,headRest:face?.humanRest,chibi:!!asset.chibi,chibiSourceHeight:size.y};
+ nativeOutfit:!!asset.nativeOutfit,headOverlay,headBones:face?.humanBones,headRest:face?.humanRest,chibi:!!asset.chibi,chibiSourceHeight:size.y,assetVersion:assetVersions[hero]};
  if(instance.humanBones||instance.chibi)updateOutfit(instance,{});
  scene.add(root);instances.set(person.id,instance);
  window.Paper3DReady[person.id]=true;
@@ -148,14 +149,14 @@ function startLoading(){
    getGLB(name).then(asset=>{
     if(!asset?.scene)throw new Error('Invalid GLB scene');
     const available=CHIBI_ROSTER.map((h,i)=>h.model===name?i:-1).filter(i=>i>=0);
-    for(const i of available)sourceAssets[i]={...asset,chibi:true,model:name};
+    for(const i of available){sourceAssets[i]={...asset,chibi:true,model:name};assetVersions[i]++;}
     success++;window.PaperChibiStatus='partial';
     // Photo portraits update progressively with each rigged GLB load.
     setTimeout(snapshotChibiPortraits,60);
    }).catch(error=>{
     console.warn('Chibi model could not load, retaining gameplay fallback:',name,error);
     for(let i=0;i<CHIBI_ROSTER.length;i++)if(CHIBI_ROSTER[i].model===name)
-     sourceAssets[i]={procedural:true,animations:[],scene:null};
+     {sourceAssets[i]={procedural:true,animations:[],scene:null};assetVersions[i]++;}
    }).finally(()=>{
     complete++;
     if(complete===priority.length)window.PaperChibiStatus=success?'ready':'fallback';
@@ -233,7 +234,7 @@ function sync(dt){
  const all=new Set();
  for(const p of state.people){
   all.add(p.id);let item=instances.get(p.id);
-  if(!item||item.hero!==p.hero){if(item)destroyInstance(p.id);item=instantiate(p);}
+  if(!item||item.hero!==p.hero||item.assetVersion!==assetVersions[p.hero]){if(item)destroyInstance(p.id);item=instantiate(p);}
   if(!item)continue;
   item.root.visible=!!p.alive;
   if(!p.alive)continue;
@@ -303,7 +304,7 @@ function vsActor(hero){
  const actor={hero,root,mesh,base:mesh,mixer,action,arms,forearms,
  dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6,
  mascotRig:kit?.rig||null,...(human||{}),nativeOutfit:!!asset.nativeOutfit,
- headOverlay,headBones:face?.humanBones,headRest:face?.humanRest,chibi:!!asset.chibi,chibiSourceHeight:size.y};
+ headOverlay,headBones:face?.humanBones,headRest:face?.humanRest,chibi:!!asset.chibi,chibiSourceHeight:size.y,assetVersion:assetVersions[hero]};
  if(actor.humanBones||actor.chibi)updateOutfit(actor,{});
  return actor;
 }
@@ -357,7 +358,7 @@ function syncMenu(state,dt){
   const inShop=!!state.shopping;
   attachShowcase(inShop?'shopHeroStage':'menuHeroStage',inShop?'shopPosition':'menuPosition');
   const previous=vsCharacters[0];
-  if(vsCharacters.length!==1||!previous||previous.hero!==hero){
+  if(vsCharacters.length!==1||!previous||previous.hero!==hero||previous.assetVersion!==assetVersions[hero]){
    clearVSActors();vsCharacters=[vsActor(hero)];
   }
   const actor=vsCharacters[0];
@@ -401,7 +402,7 @@ function syncVS(state,dt){
  vsCreate();if(vsFailure||!vsRenderer)return;
  try{
   attachShowcase('versusStage','vsPosition');
-  if(vsCharacters.length!==2||vsCharacters.some((a,i)=>!a||a.hero!==wanted[i])){
+  if(vsCharacters.length!==2||vsCharacters.some((a,i)=>!a||a.hero!==wanted[i]||a.assetVersion!==assetVersions[wanted[i]])){
    clearVSActors();vsCharacters=wanted.map(vsActor);vsLastFrame=-1;
   }
   if(vsCharacters.some(a=>!a)){window.PaperVSReady=false;vsCanvas.style.opacity='0';return;}
@@ -452,6 +453,8 @@ if(new URLSearchParams(location.search).has('qa')){
   models:sourceAssets.filter(x=>x?.procedural).length,
    chibi:window.PaperChibiStatus||'none',
    licensedChibiAssets:sourceAssets.filter(x=>x?.chibi).length,
+   modelsLoading:sourceAssets.filter(x=>!x).length,
+   modelVersions:[...assetVersions],
    nativeOutfitActors:[...instances.values()].filter(x=>x.nativeOutfit).length,
    nativeOutfitPreview:vsCharacters.filter(x=>x?.nativeOutfit).length,
    syncedHeadPreview:vsCharacters.filter(x=>x?.headOverlay).length,
