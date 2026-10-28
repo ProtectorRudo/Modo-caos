@@ -255,8 +255,18 @@ function draw(view,origin,scale,objects,kind='playing'){
   c.lineWidth=3;c.strokeStyle='#121627';c.strokeText('+'+p.value,q.x,q.y-22);c.fillStyle='#dfff65';c.fillText('+'+p.value,q.x,q.y-22);c.globalAlpha=1;
  }
  for(let i=puddles.length-1;i>=0;i--){
-  const p=puddles[i],age=t-p.at;if(age>1.7){puddles.splice(i,1);continue}
-  const q=pos(p.x,0,p.z);if(q){c.globalAlpha=.30*(1-age/1.7);ellipse(c,q.x,q.y,18+age*9,6+age*3,p.color);c.globalAlpha=1}
+  const p=puddles[i],age=t-p.at;if(age>1.15){puddles.splice(i,1);continue}
+  const q=pos(p.x,-.06,p.z);if(!q)continue;
+  // Transparent expanding juice ripple on the fixed floor instead of opaque
+  // colored spots that made the deck resemble a low-quality prototype.
+  const fade=(1-age/1.15),r=4+age*27;
+  c.save();c.globalAlpha=.44*fade;
+  c.beginPath();c.ellipse(q.x,q.y,r,r*.32,0,0,TAU);
+  c.strokeStyle=p.color;c.lineWidth=Math.max(.6,2.6*fade);c.stroke();
+  c.globalAlpha=.14*fade;
+  c.beginPath();c.ellipse(q.x,q.y,r*.61,r*.19,0,0,TAU);
+  c.fillStyle=p.color;c.fill();
+  c.restore();
  }
  aimAssist=getAim();
  mode=kind;renders++;costMs=costMs*.8+(performance.now()-start)*.2;
