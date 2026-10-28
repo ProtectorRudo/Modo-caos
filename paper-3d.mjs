@@ -89,7 +89,7 @@ function instantiate(person){
  const actions={};
  if(mixer)for(const [key,clip] of [['run',run],['idle',idle],['emote',emote]])if(clip){actions[key]=mixer.clipAction(clip);actions[key].setLoop(THREE.LoopRepeat);}
  const rig=findArmRig(base);
- const human=asset.human?initializeHumanRig(base):null;
+ const human=asset.human?initializeHumanRig(base,hero):null;
  const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,
  restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null,...(human||{})};
  if(instance.humanBones)updateOutfit(instance,{});
@@ -223,7 +223,7 @@ function vsActor(hero){
  const action=mixer&&clip?mixer.clipAction(clip):null;
  if(action)action.play();
  const {arms,forearms}=findArmRig(mesh);
- const human=asset.human?initializeHumanRig(mesh):null;
+ const human=asset.human?initializeHumanRig(mesh,hero):null;
  const actor={hero,root,mesh,base:mesh,mixer,action,arms,forearms,
  dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6,
  mascotRig:kit?.rig||null,...(human||{})};
