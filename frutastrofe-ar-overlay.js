@@ -30,6 +30,7 @@ function circle(c,x,y,r,color){c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=colo
 function strokeCircle(c,x,y,r,color,w=2){c.beginPath();c.arc(x,y,r,0,TAU);c.lineWidth=w;c.strokeStyle=color;c.stroke()}
 function line(c,x1,y1,x2,y2,color,w=2){c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.strokeStyle=color;c.lineWidth=w;c.stroke()}
 function sprite(kind){
+ if(root.FrutaPremiumArt)return root.FrutaPremiumArt.sprite(kind);
  if(sprites[kind])return sprites[kind];
  const c=document.createElement('canvas');c.width=128;c.height=150;
  const a=c.getContext('2d',{alpha:true});const k=palette[kind]?kind:'apple';
@@ -90,38 +91,27 @@ function draw(view,origin,scale,objects,kind='playing'){
  const start=performance.now(),t=start/1000;
  c.clearRect(0,0,width,height);
  const pos=(x,y,z)=>P.projection(view,origin,scale,{x,y,z},width,height);
- const corners=[pos(-3,-.08,-2.35),pos(3,-.08,-2.35),pos(3,-.08,2.35),pos(-3,-.08,2.35)];
- const underside=[pos(-3,-.38,-2.35),pos(3,-.38,-2.35),pos(3,-.38,2.35),pos(-3,-.38,2.35)];
- if(corners.every(Boolean)){
-  polygon(c,[corners[3],corners[2],underside[2],underside[3]],'rgba(9,22,44,.88)','#1ebcde',2);
-  polygon(c,corners,'rgba(14,32,60,.88)','#54f2dc',3.5);
-  for(let x=-2;x<=2;x++){let a=pos(x,-.07,-2.3),b=pos(x,-.07,2.3);if(a&&b)line(c,a.x,a.y,b.x,b.y,'rgba(81,217,235,.28)',1)}
-  for(let z=-2;z<=2;z++){let a=pos(-2.9,-.07,z),b=pos(2.9,-.07,z);if(a&&b)line(c,a.x,a.y,b.x,b.y,'rgba(111,238,222,.24)',1)}
+ // Render a coherent premium metal dais and a physically anchored sky rift.
+ // They share the same AR view/projection as every falling fruit.
+ if(root.FrutaPremiumArt){
+  root.FrutaPremiumArt.drawDeck(c,pos,t);
+  root.FrutaPremiumArt.drawPortal(c,pos,t);
  }else{
-  const ring=P.floorOutline(view,origin,scale,3,width,height);
-  c.beginPath();let prev=false;
-  for(const p of ring){if(!p){prev=false;continue}if(prev)c.lineTo(p[0],p[1]);else c.moveTo(p[0],p[1]);prev=true}
-  c.lineWidth=3;c.strokeStyle='#4df8df';c.stroke();
+  const corners=[pos(-2.3,-.08,-1.6),pos(2.3,-.08,-1.6),pos(2.3,-.08,1.6),pos(-2.3,-.08,1.6)];
+  polygon(c,corners,'rgba(12,28,54,.88)','#58efdd',3);
  }
- // Elevated, physically anchored sky portal.
- const ring=[];for(let i=0;i<=30;i++){const a=i*TAU/30;ring.push(pos(Math.cos(a)*2.8,9.46+Math.sin(a*3)*.13,-.32+Math.sin(a)*.67))}
- c.beginPath();let prev=false;
- for(const p of ring){if(!p){prev=false;continue}if(prev)c.lineTo(p.x,p.y);else c.moveTo(p.x,p.y);prev=true}
- c.lineWidth=5;c.strokeStyle='#73f4f3';c.stroke();
- const center=pos(0,9.46,-.32);
- if(center&&center.y>-80&&center.y<height+80){
-  softLight(c,center.x,center.y,68,'#9dffd6',.32);
-  c.fillStyle='#ebfff4';c.textAlign='center';c.font='900 12px system-ui';
-  c.fillText('SKY JUICE PORTAL',center.x,center.y-25);
- }
- const stage=pos(0,0,-.5);if(stage){c.font='bold 11px system-ui';c.fillStyle='#b6fff0';c.textAlign='center';c.fillText('JUICE ZONE',stage.x,stage.y)}
  targets=[];
  if(kind==='playing'){
   const mapped=P.targets(view,origin,scale,objects,width,height).sort((a,b)=>b.depth-a.depth);
   for(const q of mapped){
    if(q.y<66||q.y>height-86)continue;
    targets.push(q);
-   const r=clamp(q.r,20,86);c.drawImage(sprite(q.kind),q.x-r*1.28,q.y-r*1.53,r*2.56,r*3);
+   const r=clamp(q.r,20,86),img=sprite(q.kind);
+   c.save();c.translate(q.x,q.y);
+   // A little measured spin makes the real-world fall look volumetric.
+   const o=(objects||[]).find(v=>v.id===q.id);
+   c.rotate(clamp((o?.rot||0)*.055,-.18,.18));
+   c.drawImage(img,-r*1.24,-r*1.36,r*2.48,r*2.70);c.restore();
    if(q.kind==='bomb'||q.kind==='rotten'){
     let danger=q.kind==='bomb',co=danger?'#ff5c73':'#c9ff50';
     c.globalAlpha=.72+.18*Math.sin(t*11);strokeCircle(c,q.x,q.y,r*1.27,co,3);c.globalAlpha=1;
@@ -195,5 +185,5 @@ function clear(){
 }
 root.FrutaAROverlay={draw,clear,impact,shot,popup,land,emerge,
  get targets(){return targets},get state(){return mode},
- get diagnostics(){return {engine:'canvas2d',sprites:Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
+ get diagnostics(){return {engine:'canvas2d',premium:true,sprites:root.FrutaPremiumArt?.stats().spriteCount||Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
 })(typeof window!=='undefined'?window:globalThis);
