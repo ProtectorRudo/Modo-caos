@@ -6,7 +6,7 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
 (async()=>{
  let browser;
  try{
-  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const url='http://127.0.0.1:'+server.address().port;
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const url=process.env.FRUTA_BROWSER_BASE||'http://127.0.0.1:'+server.address().port;
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   const page=await browser.newPage({viewport:{width:393,height:852},deviceScaleFactor:1,isMobile:true,hasTouch:true});
   const errors=[];page.on('pageerror',e=>errors.push('JS '+e.message));page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE '+m.text())});page.on('requestfailed',r=>errors.push('REQUEST '+r.url()+' '+r.failure()?.errorText));
