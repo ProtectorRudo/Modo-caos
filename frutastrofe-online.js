@@ -7,10 +7,10 @@ export function createFrutaOnline(bridge){
  if(!cfg||!window.ModoCaosRooms)throw Error('Falta cargar las salas online de Modo Caos');
  const sb=createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
  const mc=window.ModoCaosRooms.createClient(sb);
- let roomId='',code='',me='',room=null,connection=null,clockOffset=0,connected=false;
+ let roomId='',code='',me='',room=null,connection=null,clockOffset=0,clockCalibrated=false,connected=false;
  let calibrated=false,lastRound=0,gameStarted=false,closed=false,busy=false,pollTimer=null,refreshing=false,lastPoll=0;
  let lastBroadcast=0,lastPersist=0,persisting=false,lastScore=null,finalSent=false,finishPending=false;
- let rematchRequested=false,previousRemoteSeq=-1,otherScore=0,otherName='RIVAL',lastView='';
+ let rematchRequested=false,previousRemoteSeq=-1,lastRemoteAt=0,otherScore=0,otherName='RIVAL',lastView='',lastHeartbeat=0,lastFinalizeAttempt=0;
  const panel=$('onlinePanel'),notice=$('onlineNotice'),hud=$('onlineHud'),result=$('onlineResult');
  const show=(open)=>{panel.style.display=open?'flex':'none'};
  const tell=(text,bad=false)=>{notice.textContent=text;notice.classList.toggle('error',bad)};
@@ -62,7 +62,7 @@ export function createFrutaOnline(bridge){
    :playing?(timeToStart>0?'¡EMPEZAMOS EN '+Math.ceil(timeToStart)+'!':'¡PARTIDA EN CURSO!')
    :'¡RONDA FINALIZADA!';
   $('onlineHint').textContent=inLobby?'Invitá al segundo jugador. Abran AR y fijen su arena antes de iniciar.':playing?'Ambos reciben el mismo cielo y reloj; cada uno apunta desde su teléfono.':'Resultados guardados. Pueden jugar otra ronda.';
-  if(opp){otherScore=Math.max(0,Number(opp.score)||0);updateHud()}
+  if(opp){if(Date.now()-lastRemoteAt>2600)otherScore=Math.max(0,Number(opp.score)||0);updateHud()}
   if(playing&&calibrated)maybeBegin();
   if(finished){updateResults();if(rematchRequested&&host())rematchRequested=false}
  }
@@ -89,10 +89,10 @@ export function createFrutaOnline(bridge){
   try{
    const before=Date.now(),latest=await rpc('state',{p_room_id:roomId}),after=Date.now();
    if(!latest?.id||latest.id!==roomId)return;
-   const srv=Date.parse(latest.serverTime||'');if(Number.isFinite(srv))clockOffset=clockOffset*.65+(srv-(before+after)/2)*.35;
+   const srv=Date.parse(latest.serverTime||'');if(Number.isFinite(srv)){const measured=srv-(before+after)/2;clockOffset=clockCalibrated?clockOffset*.65+measured*.35:measured;clockCalibrated=true;}
    const earlier=roomRound();room=latest;lastPoll=after;
    if(earlier!==roomRound()&&status()==='playing'){
-    gameStarted=false;finalSent=false;lastScore=null;lastBroadcast=0;lastPersist=0;previousRemoteSeq=-1;otherScore=0;
+    gameStarted=false;finalSent=false;lastScore=null;lastBroadcast=0;lastPersist=0;previousRemoteSeq=-1;lastRemoteAt=0;otherScore=0;
    }
    render();
   }catch(e){tell('Sin conexión al servidor. Reintentando… '+e.message,true)}
@@ -104,7 +104,7 @@ export function createFrutaOnline(bridge){
   if(!players().some(x=>x.userId===msg.userId)||!Number.isInteger(msg.seq)||msg.seq<=previousRemoteSeq)return;
   previousRemoteSeq=msg.seq;const points=Number(msg.score);
   if(!Number.isFinite(points)||points<0||points>1000000)return;
-  otherScore=points;updateHud();
+  otherScore=points;lastRemoteAt=Date.now();updateHud();
   if(msg.final)refresh();
  }
  async function enter(id,c){
@@ -118,7 +118,7 @@ export function createFrutaOnline(bridge){
    onRefresh:refresh,onPresence:refresh,onGameEvent:receive
   });
   if(pollTimer)clearInterval(pollTimer);
-  pollTimer=setInterval(()=>{if(!document.hidden){refresh();maybeBegin();if(gameStarted)sendScore(false)}},1350);
+  pollTimer=setInterval(()=>{if(!document.hidden){refresh();maybeBegin();if(gameStarted)sendScore(false);if(Date.now()-lastHeartbeat>11000){lastHeartbeat=Date.now();mc.heartbeat(roomId).catch(()=>{})}}},1350);
   show(true);render();
  }
  async function act(fn){if(busy||closed)return;setBusy(true);try{await fn()}catch(e){tell(e.message||String(e),true)}finally{setBusy(false);render()}}
@@ -177,7 +177,7 @@ export function createFrutaOnline(bridge){
  async function finish(){
   if(!gameStarted||finalSent)return;
   await sendScore(true);
-  show(false);result.style.display='block';updateResults();
+  show(false);hud.style.display='none';result.style.display='block';updateResults();
   // Sync if rival is late or drops. The server can close an abandoned match after 75s.
  }
  async function requestRematch(){
@@ -189,8 +189,8 @@ export function createFrutaOnline(bridge){
   if(status()==='playing'&&calibrated&&!gameStarted)maybeBegin();
   if(status()==='playing'&&gameStarted){
    if(finishPending&&!finalSent&&serverNow()>=Date.parse(room.startedAt)+59000)sendScore(true);
-   if(serverNow()>Date.parse(room.startedAt)+76000&&status()==='playing'){
-    rpc('finalize',{p_room_id:roomId}).then(refresh).catch(()=>{});
+   if(serverNow()>Date.parse(room.startedAt)+76000&&Date.now()-lastFinalizeAttempt>8000){
+    lastFinalizeAttempt=Date.now();rpc('finalize',{p_room_id:roomId}).then(refresh).catch(()=>{});
    }
   }
   if(panel.style.display==='flex'&&room?.startedAt&&status()==='playing'&&!gameStarted){
