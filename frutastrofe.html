@@ -16,6 +16,19 @@
 @media(max-width:760px){.hero{grid-template-columns:1fr;min-height:unset;margin:5vh 0 0;padding:20px 0}.hero-side{position:absolute;right:-20%;top:14%;width:85vw;height:52vh;opacity:.6}.hero-main{position:relative;z-index:2}.heading{font-size:clamp(57px,16vw,88px)}#home{background:linear-gradient(90deg,#0c0a24ee 0%,#120b2ed2 55%,#090a1955)}.fake-pill,.side-bottom{display:none}.tagline{max-width:305px}.pageFoot{margin-top:auto;padding-top:30px}.hudTop{gap:5px}.hudCard{min-width:69px;padding:8px 9px}.fire{width:92px;height:92px}.infoBox{max-width:180px}.levelGrid{gap:6px}.lvl{min-height:70px;border-radius:12px}.lvl b{font-size:22px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 #arPanel .modal{max-height:52vh;overflow:auto}#arPanel .arTarget{height:26px;width:26px;margin:6px auto}#arPanel .modal h2{font-size:clamp(23px,6vw,32px)}#arPanel .modal p{margin:7px 0;font-size:12px}#arPanel .cta{min-height:47px;margin-top:7px}@media(max-width:760px){.bottomHud .quietBtn{font-size:11px;padding:9px 9px}.bottomHud .infoBox{font-size:10px}}
+
+#weapon{position:fixed;z-index:4;bottom:-18px;left:44%;width:clamp(140px,40vw,242px);pointer-events:none;transform:translateX(-50%) rotate(-6deg);filter:drop-shadow(0 13px 18px #000b) drop-shadow(0 0 14px #19dffa6b);transform-origin:50% 78%;will-change:transform;}
+#weapon svg{width:100%;height:auto;display:block;}
+#weapon .gun-name{position:absolute;bottom:23px;left:-12px;font-size:9px;font-weight:1000;letter-spacing:1.2px;color:#d3ffff;background:#0a1b38d9;border:1px solid #53d5ee;padding:4px 8px;border-radius:6px;text-shadow:0 0 6px #0ff;}
+#weapon .gun-name b{color:#e4ff6d;font-size:13px}
+#weapon.firing{animation:juice-recoil .18s cubic-bezier(.2,.9,.25,1);}
+#weapon.firing #gunFlash{opacity:1;animation:juice-flash .18s ease-out}
+@keyframes juice-recoil{0%{transform:translateX(-50%) rotate(-6deg)}28%{transform:translateX(-50%) translateY(20px) rotate(-3deg)}100%{transform:translateX(-50%) rotate(-6deg)}}
+@keyframes juice-flash{0%{opacity:1}100%{opacity:0}}
+#hud .hudCard{border-color:#75e7ec55;background:linear-gradient(160deg,#081932e6,#121333dc);}
+#hud .hudGoal{background:#06162bdc;border-color:#7bf5e244;}
+#hud .fire{width:95px;height:95px;font-size:16px;box-shadow:inset 0 5px 15px #fff6,0 0 0 5px #ff427648,0 8px 0 #771a4c,0 15px 35px #ff447e77;}
+@media(max-width:760px){#weapon{bottom:-32px;left:40%;width:clamp(143px,47vw,235px)}#hud .fire{width:86px;height:86px}}
 </style></head><body>
 <div id="view" aria-label="Escena tridimensional de frutas"></div><svg id="arWorld" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;overflow:visible"></svg>
 <div id="home" class="shell">
@@ -26,6 +39,45 @@
  <footer class="pageFoot"><span>HECHO PARA MODO CAOS · EDICIÓN JUICE FEVER</span><span>10 NIVELES · PROGRESO GUARDADO EN ESTE DISPOSITIVO</span></footer>
 </div>
 <div id="selector" class="shell"><a href="#" id="selectorBack" class="logo">‹ VOLVER</a><div class="eyebrow">EL CAMINO DEL JUGO</div><h2>LA FÁBRICA LOCA</h2><p class="copy">Superá niveles, ganá estrellas y enfrentá a la Sandía Gigante.</p><div class="levelGrid" id="levelGrid"></div><div id="levelInfo" class="copy"></div><div class="copy" style="color:#d9ff83;font-weight:900">◉ EXPERIENCIA EXCLUSIVA EN REALIDAD AUMENTADA</div><button id="levelPlay" class="cta" style="width:min(560px,100%)">◉ ABRIR CÁMARA Y JUGAR</button></div>
+<div id="weapon" role="img" aria-label="Bláster futurista que dispara rayos de jugo" style="display:none" aria-hidden="true">
+<svg viewBox="0 0 260 330" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs>
+<linearGradient id="gw1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d5efff"/><stop offset=".26" stop-color="#6789ab"/><stop offset=".6" stop-color="#1d344c"/><stop offset="1" stop-color="#071528"/></linearGradient>
+<linearGradient id="gw2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".3" stop-color="#55f6ea"/><stop offset=".68" stop-color="#1182b5"/><stop offset="1" stop-color="#0d345d"/></linearGradient>
+<linearGradient id="gw3" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#0f1739"/><stop offset=".5" stop-color="#99a4bb"/><stop offset="1" stop-color="#151b3e"/></linearGradient>
+<radialGradient id="gw4"><stop stop-color="#fff"/><stop offset=".28" stop-color="#e9ff81"/><stop offset=".66" stop-color="#62f1e9"/><stop offset="1" stop-color="#34dafa" stop-opacity="0"/></radialGradient>
+</defs>
+<!-- physical shadow / lower grip -->
+<path d="M109 159L158 159L192 278Q178 323 143 328L108 312L87 228Z" fill="#0a112b" stroke="#4a6780" stroke-width="4"/>
+<path d="M119 178L151 173L181 280Q176 300 154 311L132 303L104 222Z" fill="url(#gw3)"/>
+<path d="M110 210L158 199M114 230L161 220M123 248L170 240M129 270L177 260" stroke="#091d33" stroke-width="7" opacity=".85"/>
+<!-- battery cartridge -->
+<path d="M84 171Q58 179 61 222L84 244L112 234L105 183Z" fill="#0d2849" stroke="#5deaf1" stroke-width="4"/>
+<rect x="72" y="192" width="18" height="31" rx="6" fill="#72ffe3" opacity=".84"/>
+<!-- main housing & chrome bevel -->
+<path d="M88 70L169 70L197 115L185 218L110 238L68 197L67 117Z" fill="url(#gw1)" stroke="#b0d2f4" stroke-width="4"/>
+<path d="M79 113L171 99L179 184L149 212L91 208L80 171Z" fill="#101e39" stroke="#82a4c6" stroke-width="2"/>
+<path d="M90 119L157 107L165 148L98 164Z" fill="url(#gw2)" opacity=".9"/>
+<path d="M95 173L162 158L166 178L99 197Z" fill="#bfff65" stroke="#f4ffd5" stroke-width="2"/>
+<path d="M101 176L149 165" stroke="#e7ffe3" stroke-width="4" opacity=".8"/>
+<!-- barrel to muzzle -->
+<path d="M95 48L159 48L169 102L92 107Z" fill="url(#gw1)" stroke="#bce9ff" stroke-width="5"/>
+<path d="M104 57L149 57L155 93L100 96Z" fill="#17283c"/>
+<path d="M110 62L141 62" stroke="#d5ff76" stroke-width="5"/>
+<ellipse cx="128" cy="48" rx="37" ry="19" fill="#0d1832" stroke="#d2f0ff" stroke-width="6"/>
+<ellipse cx="128" cy="48" rx="26" ry="13" fill="#26cfe4" stroke="#4d6687" stroke-width="4"/>
+<ellipse cx="128" cy="47" rx="15" ry="8" fill="#e7ff8e"/>
+<ellipse id="gunFlash" cx="128" cy="43" rx="50" ry="57" fill="url(#gw4)" opacity="0"/>
+<!-- scope -->
+<path d="M62 125L78 109L90 119L90 159L66 164Z" fill="url(#gw1)" stroke="#6ce6ef" stroke-width="3"/>
+<circle cx="70" cy="139" r="10" fill="#1b3d5a" stroke="#b2ff79" stroke-width="3"/>
+<circle cx="70" cy="139" r="4" fill="#ccffdc"/>
+<!-- medallion -->
+<path d="M155 182L181 178L178 210L159 217Z" fill="#0e3159" stroke="#6bdde8" stroke-width="3"/>
+<path d="M168 184L164 199L174 197L167 213" fill="none" stroke="#efff7e" stroke-width="4"/>
+</svg>
+<div class="gun-name">JUICE BLASTER <b>∞</b></div>
+</div>
 <div id="hud" class="shell"><div><div class="hudTop"><div class="hudCard"><small>PUNTOS</small><strong class="yellow" id="hudScore">0</strong></div><div class="hudCard"><small>COMBO</small><strong id="hudCombo">×1</strong></div><div class="hudCard"><small>TIEMPO</small><strong id="hudTime">60</strong></div><div class="hudCard"><small>RÉCORD</small><strong id="hudBest">0</strong></div></div><div class="hudGoal"><div class="goalLabel"><span id="goalName">OBJETIVO</span><span id="goalNums">0 / 0</span></div><div class="meter"><i id="goalBar"></i></div></div></div><div id="crosshair"></div><div id="floating"></div><div class="bottomHud"><div><button id="pauseBtn" class="quietBtn">Ⅱ PAUSA</button><button id="recenterBtn" class="quietBtn" style="display:none;margin-left:6px">⌖ RECENTRAR</button><div class="infoBox" id="playTip">TOCÁ UNA FRUTA PARA DISPARAR · EVITÁ LAS BOMBAS</div></div><button id="fireBtn" class="fire" aria-label="Disparar">¡PUM!</button></div></div>
 <div id="readyOverlay" class="shell"><div class="modal"><div class="eyebrow" id="readyEyebrow">NIVEL 01</div><h2 id="readyTitle">PRIMER CHORRO</h2><p id="readyDescription">Apuntá y dispará. ¡Tres frutas iguales hacen un combo!</p><button id="goBtn" class="cta">▶ ¡VAMOS!</button><button id="readyBack" class="cta alt">‹ VOLVER AL MENÚ</button></div></div>
 <div id="pausePanel" class="shell"><div class="modal"><div class="eyebrow">DESCANSO TÉCNICO</div><h2>EN PAUSA</h2><p>Respirá, elegí tu próxima combinación y volvé por más jugo.</p><button id="resumeBtn" class="cta">▶ CONTINUAR</button><button id="quitBtn" class="cta alt">SALIR AL MENÚ</button></div></div>
