@@ -244,7 +244,7 @@ if(params.has('qa'))window.__frutaQA={
  finish:()=>g?.finish(true),
  simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.set(.23,.23*.80,.23);art.world.position.set(0,.09,-2.5);art.world.visible=false;createGame('campaign',1);return true},
  previewWorld:(dx=0)=>{const pitch=.02,c=Math.cos(pitch),s=Math.sin(pitch),V=[1,0,0,0,0,c,s,0,0,-s,c,0,-dx,-1.2*c,-1.2*s,1];const v={projectionMatrix:[1.4,0,0,0,0,2.1,0,0,0,0,-1.002,-1,0,0,-.2,0],transform:{inverse:{matrix:V}}};arTargets=O.draw(v,art.world.position,art.world.scale.x,g?.objects||[],'playing');return arTargets},
- shootTest:()=>{const q=g?.objects.find(o=>o.kind!=='bomb'&&o.kind!=='rotten');if(!q)return false;const t=arTargets.find(x=>x.id===q.id);const res=g.shoot(q.id);O.shot(t?.x||innerWidth*.5,t?.y||innerHeight*.5,true,q.kind);events();return res?.ok},
+ shootTest:()=>{const t=arTargets.find(x=>x.y>120&&x.y<innerHeight-100&&!['bomb','rotten'].includes(x.kind));if(!t)return false;const q=g.objects.find(o=>o.id===t.id);if(!q)return false;const res=g.shoot(q.id);O.shot(t.x,t.y,true,q.kind);events();return res?.ok},
  diagnostics:()=>O.diagnostics
 };
 if(params.has('seed')){const l=clamp(Number(params.get('level')||1),1,10),m=params.get('mode')==='arcade'?'arcade':'campaign';if(m==='arcade'||l<=progress.unlocked){duel=null;selected=l;window.__frutaSharedChallenge={mode:m,level:l,seed:getSeed()};if(m==='campaign'){progressUI();show('selector')}else alertTxt('RETO DISPONIBLE · ABRÍ AR PARA JUGAR',2000)}}
