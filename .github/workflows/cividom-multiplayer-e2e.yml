@@ -1,0 +1,37 @@
+name: CIVIDOM Multiplayer E2E
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'paper.html'
+      - 'paper-online.mjs'
+      - 'mc-rooms-client.js'
+      - 'scripts/cividom-multiplayer-e2e.mjs'
+      - '.github/workflows/cividom-multiplayer-e2e.yml'
+permissions:
+  contents: read
+jobs:
+  browser-multiplayer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test two real authenticated browsers in same room
+        run: |
+          mkdir -p artifacts
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/room-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          node scripts/cividom-multiplayer-e2e.mjs
+      - name: Save diagnostic logs and two screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cividom-multiplayer-e2e
+          path: artifacts/
+          retention-days: 7
+          if-no-files-found: ignore
