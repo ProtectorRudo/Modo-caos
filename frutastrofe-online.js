@@ -49,7 +49,8 @@ export function createFrutaOnline(bridge){
   }
   $('onlineConnection').textContent=connected?'● EN LÍNEA':'○ RECONECTANDO';
   const playing=status()==='playing',finished=status()==='finished',inLobby=status()==='lobby';
-  $('onlineCalibrate').hidden=calibrated||!inLobby;
+  $('onlineCalibrate').hidden=calibrated||finished;
+  $('onlineCalibrate').textContent=playing?'◎ VOLVER A FIJAR ARENA':'◎ ABRIR CÁMARA Y FIJAR ARENA';
   $('onlineReady').hidden=!calibrated||!inLobby;
   $('onlineReady').textContent=you?.ready?'✓ YA ESTÁS LISTO':'✓ LISTO PARA JUGAR';
   $('onlineStart').hidden=!(host()&&inLobby);
@@ -123,7 +124,7 @@ export function createFrutaOnline(bridge){
  }
  async function act(fn){if(busy||closed)return;setBusy(true);try{await fn()}catch(e){tell(e.message||String(e),true)}finally{setBusy(false);render()}}
  $('onlineCreate').onclick=()=>act(async()=>{const result=await mc.createRoom('frutastrofe',chooseName(),2);await enter(result.room_id,result.room_code)});
- $('onlineJoin').onclick=()=>act(async()=>{const code=$('onlineJoinCode').value.trim().toUpperCase();const result=await mc.joinRoom(code,chooseName());await enter(result.room_id,code)});
+ $('onlineJoin').onclick=()=>act(async()=>{const code=$('onlineJoinCode').value.trim().toUpperCase(),nick=chooseName();let result;try{result=await mc.joinRoom(code,nick)}catch(error){try{result=await mc.resumeRoom(code)}catch(_){throw error}}await enter(result.room_id,code)});
  $('onlineCopy').onclick=async()=>{try{await navigator.clipboard.writeText(url());tell('✓ Enlace copiado para compartir')}catch(e){prompt('Copiá este enlace:',url())}};
  $('onlineShare').onclick=linkShare;
  $('onlineCalibrate').onclick=()=>{if(!roomId)return;show(false);bridge.openAR()};
