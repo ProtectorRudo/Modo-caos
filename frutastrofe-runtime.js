@@ -19,7 +19,7 @@ const save=()=>{try{localStorage.setItem('mc-frutastrofe-save-v1',JSON.stringify
 let g=null,view='home',selected=1,isAR=false,arSession=null,hitSource=null,anchor=null,placement=null,reticle=null,glHit=false,arHitResult=null,arViewerSpace=null,arTargets=[],lastOverlay=0,arFrameCount=0;
 let lastTime=0,lastHud=0,toastUntil=0,pulseUntil=0,paused=false,musicEnabled=true,lastMusic=0,wasLost=false;
 let duel=null,musicCtx=null,touchAim=new THREE.Vector2(0,0),lastPointer=null;
-const show=name=>{view=name;for(const n of ['home','selector','hud','readyOverlay','pausePanel','results','arPanel'])$(n).style.display=n===name?(n==='hud'||n==='home'?'flex':'flex'):'none';};
+const show=name=>{view=name;for(const n of ['home','selector','hud','readyOverlay','pausePanel','results','arPanel'])$(n).style.display=n===name?'flex':'none';$('weapon').style.display=name==='hud'&&isAR?'block':'none';};
 function progressUI(){
  $('coinsHome').textContent='◉ '+number(progress.coins);
  $('levelGrid').innerHTML='';
@@ -40,14 +40,14 @@ function fxSound(type){if(type==='shot')tone(280,.085,'triangle',.07);if(type===
 function moodMusic(t){if(!musicEnabled||!g||g.state!=='playing'||t-lastMusic<.34)return;lastMusic=t;const beat=Math.floor(g.elapsed*3);if(beat%2===0)tone([220,247,277,330][Math.floor(beat/2)%4],.07,'triangle',.018)}
 function events(){
  if(!g)return;for(const ev of g.events.splice(0)){
-  if(ev.type==='hit'){art.burst(ev.x,ev.y,ev.z,ev.kind,14);fxSound('hit')}
-  if(ev.type==='splash')art.burst(ev.x,ev.y,ev.z,ev.kind,9);
-  if(ev.type==='trap'){art.burst(ev.x,ev.y,ev.z,'bomb',22);fxSound('trap');alertTxt('¡TRAMPA! − PUNTOS',900)}
-  if(ev.type==='chain'){art.burst(ev.x,ev.y,ev.z,'rainbow',30);fxSound('chain');alertTxt('JUICE CHAIN ×'+Math.min(5,1+Math.floor(ev.combo/2)),1300)}
+  if(ev.type==='hit'){art.burst(ev.x,ev.y,ev.z,ev.kind,14);if(isAR)O.impact(ev,ev.kind);fxSound('hit')}
+  if(ev.type==='splash'){art.burst(ev.x,ev.y,ev.z,ev.kind,9);if(isAR)O.impact(ev,ev.kind)}
+  if(ev.type==='trap'){art.burst(ev.x,ev.y,ev.z,'bomb',22);if(isAR)O.impact(ev,'bomb');fxSound('trap');alertTxt('¡TRAMPA! − PUNTOS',900)}
+  if(ev.type==='chain'){art.burst(ev.x,ev.y,ev.z,'rainbow',30);if(isAR)O.impact(ev,'rainbow',true);fxSound('chain');alertTxt('JUICE CHAIN ×'+Math.min(5,1+Math.floor(ev.combo/2)),1300)}
   if(ev.type==='rainbow')alertTxt('¡EXPLOSIÓN ARCOÍRIS!',1100);
   if(ev.type==='slow')alertTxt('¡TIEMPO HELADO!',950);
   if(ev.type==='gold')alertTxt('¡FRUTA DORADA!',950);
-  if(ev.type==='boss-hit'){art.burst(ev.x,ev.y,ev.z,'boss',28);fxSound('boss')}
+  if(ev.type==='boss-hit'){art.burst(ev.x,ev.y,ev.z,'boss',28);if(isAR)O.impact(ev,'boss',true);fxSound('boss')}
   if(ev.type==='boss-down'){fxSound('chain');alertTxt('¡SANDÍA DERROTADA!',1800)}
   if(ev.type==='finish')handleFinish(ev);
  }
@@ -55,7 +55,7 @@ function events(){
 function getSeed(){const s=params.get('seed');return s&&/^\d+$/.test(s)?Number(s)>>>0:undefined}
 function createGame(mode='campaign',level=selected,seed){
  if(isAR&&arSession&&!placement){throw new Error('Primero fijá la pista AR')}
- g=C.create({mode,level,seed:seed??getSeed()});art.reset();paused=false;lastHud=0;
+ g=C.create({mode,level,seed:seed??getSeed()});art.reset();if(isAR)O.clear();paused=false;lastHud=0;
  $('readyEyebrow').textContent=mode==='arcade'?'DESAFÍO ARCADE':'NIVEL '+String(level).padStart(2,'0');
  $('readyTitle').textContent=duel?'JUGADOR '+duel.turn+' · '+g.cfg.name:g.cfg.name;
  $('readyDescription').textContent=g.cfg.goal==='boss'?'La Sandía Gigante tiene 12 puntos débiles. ¡Apuntá con precisión!':g.cfg.goal==='combos'?'¡Conseguí '+g.cfg.target+' cadenas de tres frutas iguales!':'Dispará a las frutas, encadená tres iguales y evitá las bombas. ¡Completá el objetivo antes de que acabe el tiempo!';
@@ -91,7 +91,7 @@ function handleFinish(ev){
  if(duel&&duel.turn===1)$('nextBtn').textContent='▶ TURNO JUGADOR 2';else $('nextBtn').textContent='▶ SIGUIENTE NIVEL';
  show('results');progressUI();
 }
-function resetToMenu(){arTargets=[];O.clear();arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
+function resetToMenu(){arTargets=[];O.clear();$('weapon').style.display='none';arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
 function matchFromResults(){
  if(duel&&duel.turn===1){duel.turn=2;createGame('arcade',1,duel.seed);return}
  if(!duel&&g?.mode==='campaign'&&g.level<10){selected=g.level+1;createGame('campaign',selected);return}
@@ -119,7 +119,7 @@ function fireAt(x,y){
    const dist=Math.hypot(p.x-x,p.y-y);if(dist<best){best=dist;id=k}
   }
  }
- const result=g.shoot(id);fxSound('shot');pulseUntil=performance.now()+80;const ret=$('crosshair');ret.style.transform='translate(-50%,-50%) scale(.8)';setTimeout(()=>{ret.style.transform='translate(-50%,-50%)'},80);
+ const target=arTargets.find(q=>q.id===id);const result=g.shoot(id);if(isAR)O.shot(target?.x??innerWidth*.5,target?.y??innerHeight*.45,!!result?.ok,target?.kind||'apple');fxSound('shot');pulseUntil=performance.now()+80;const ret=$('crosshair');ret.style.transform='translate(-50%,-50%) scale(.8)';setTimeout(()=>{ret.style.transform='translate(-50%,-50%)'},80);
  events();hudUpdate();return result;
 }
 function cursorShoot(e){if(view!=='hud'||isAR)return;const rect=renderer.domElement.getBoundingClientRect();const nx=((e.clientX-rect.left)/rect.width)*2-1,ny=-((e.clientY-rect.top)/rect.height)*2+1;touchAim.set(nx,ny);fireAt(nx,ny)}
