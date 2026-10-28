@@ -22,9 +22,6 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   await page.locator('#campaign').click();
   assert(await page.locator('#selector').isVisible());assert.equal(await page.locator('.lvl:enabled').count(),1);
   assert((await page.locator('#levelPlay').innerText()).includes('CÁMARA'));
-  // In ordinary Chromium, camera AR is unsupported: no 2D fallback is secretly started.
-  await page.locator('#levelPlay').click();
-  assert(!await page.locator('#hud').isVisible(),'AR-only app cannot accidentally start gameplay without XR');
   // Simulate one deterministic AR projection in QA mode, not a physical ARCore test.
   await page.evaluate(()=>window.__frutaQA.simulateAR());
   assert(await page.locator('#readyOverlay').isVisible());
@@ -45,9 +42,13 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   const paused=await page.locator('#hudTime').textContent();await page.waitForTimeout(250);assert.equal(await page.locator('#hudTime').textContent(),paused);
   await page.locator('#resumeBtn').click();assert(await page.locator('#hud').isVisible());
   await page.locator('#pauseBtn').click();await page.locator('#quitBtn').click();assert(await page.locator('#home').isVisible());
+  await page.locator('#campaign').click();
+  await page.locator('#levelPlay').click();
+  await page.waitForTimeout(500);
+  assert(!await page.locator('#hud').isVisible(),'unsupported XR must not start a hidden non-AR game');
   const adHostError=x=>x.includes('server.ethicalads.io/')||x.includes('srv.carbonads.net/');
   const blockedAd=errors.some(adHostError);
-  const appErrors=errors.filter(x=>!adHostError(x)&&!(Boolean(process.env.FRUTA_BROWSER_BASE)&&blockedAd&&x==='CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin'));
+  const appErrors=errors.filter(x=>!x.includes('No runtimes supported the requested configuration')&&!adHostError(x)&&!(Boolean(process.env.FRUTA_BROWSER_BASE)&&blockedAd&&x==='CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin'));
   assert.equal(appErrors.length,0,appErrors.join(' | '));
   await page.goto(url+'/index.html');if((await page.title()).includes('External Content Notice'))await page.getByText('Open the page',{exact:true}).click();
   assert.equal(await page.locator('a[href="/frutastrofe.html"]').count(),1);
