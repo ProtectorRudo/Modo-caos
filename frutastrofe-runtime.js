@@ -52,7 +52,7 @@ function fxSound(type){if(type==='shot'){tone(560,.042,'triangle',.049)}if(type=
 function moodMusic(t){if(!musicEnabled||!g||g.state!=='playing'||t-lastMusic<.48||autoFireTimer!==null)return;lastMusic=t;const beat=Math.floor(g.elapsed*3);if(beat%2===0)tone([220,247,277,330][Math.floor(beat/2)%4],.07,'triangle',.018)}
 function events(){
  if(!g)return;for(const ev of g.events.splice(0)){
-  if(ev.type==='phase'&&g.phase>1)alertTxt('OLEADA '+g.phase+' / 6 · MÁS INTENSO',920);
+  if(ev.type==='phase'&&g.phase>1){alertTxt('⚡ OLEADA '+g.phase+' / 6 · REACTOR INESTABLE',1050);$('hud').classList.add('apocalypse-wave')}
   if(ev.type==='spawn'&&isAR)O.emerge(ev);
   if(ev.type==='drop'&&isAR)O.land(ev);
   if(ev.type==='points'&&isAR&&Number.isFinite(ev.x)&&Number.isFinite(ev.y))O.popup(ev,ev.points);
@@ -89,6 +89,8 @@ function hudUpdate(){
  $('goalNums').textContent=number(goal.current)+' / '+number(goal.target);
  $('goalBar').style.width=(100*goal.progress).toFixed(1)+'%';
  $('hudBest').textContent=number(Math.max(progress.best,g.score));
+ $('hud').classList.toggle('apocalypse-fever',!!g.fever);
+ $('hud').classList.toggle('apocalypse-guide-hidden',g.elapsed>7);
 }
 function handleFinish(ev){
  stopAutoFire();paused=false;
@@ -267,6 +269,7 @@ function onFrame(t,frame){
     lastOverlay=t;arFrameCount++;const drawStarted=performance.now();
     const origin=placement?art.world.position:(reticle?new THREE.Vector3(reticle.position.x,reticle.position.y+.09,reticle.position.z):null);
     if(origin){
+     O.setStage(g?.phase||1,!!g?.fever);
      const overlayMode=placement&&g?.state==='playing'?'playing':'search';
      arTargets=O.draw(vr,origin,art.world.scale.x,overlayMode==='playing'?g.objects:[],overlayMode);
      overlayCost=overlayCost*.78+(performance.now()-drawStarted)*.22;
