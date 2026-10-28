@@ -43,7 +43,7 @@ test('page has complete standalone territory game and licensed external characte
  assert.match(source,/function capture\(p\)/);
  assert.match(source,/function death\(p/);
  assert.match(source,/function stepBot\(p/);
- assert.match(source,/type="module" src="\.\/paper-3d\.mjs(?:\?[^"]*)?"/);
+ assert.match(source,/type="module" src="\.\/paper-3d\.mjs"/);
  assert.match(source,/function paintChibi\(p,hero,col\)/);
 });
 test('12 agents, territory HUD and pause controls initialize',()=>{
@@ -174,10 +174,8 @@ test('permanently defeated bots do not respawn and 100% conquest cannot grant vi
  assert.equal(victim.alive,false);
  assert.equal(g.win.territoryQA.mode,'play');
 });
-test('territory still uses smooth round contours while scaled canvas avoids phone stalls',()=>{
- assert.match(source,/const MAP_RENDER_SCALE=\.70/);
- assert.match(source,/mapCanvas\.width=Math\.ceil\(WORLD\*MAP_RENDER_SCALE\)/);
- assert.match(source,/mapCtx\.setTransform\(MAP_RENDER_SCALE,0,0,MAP_RENDER_SCALE,0,0\)/);
+test('premium render uses world-size sharp canvas without magnified low resolution terrain',()=>{
+ assert.match(source,/mapCanvas\.width=WORLD;mapCanvas\.height=WORLD;/);
  assert.match(source,/function territoryLoops\(v\)/);
  assert.match(source,/quadraticCurveTo/);
  assert.doesNotMatch(source,/const rad=CELL\*\.74/);
@@ -199,13 +197,7 @@ test('connected territory is converted to coherent vector boundary loops',()=>{
  for(const q of loops[0]){assert.ok(Number.isFinite(q.x));assert.ok(Number.isFinite(q.y));}
 });
 
-test('circular arena keeps its geometry while premium floor gets cached hex lighting',()=>{
- assert.match(source,/id="bestCurrent"/);
- assert.match(source,/const cvFloorPattern=c.createPattern/);
- assert.match(source,/c\.arc\(CX,CY,R\+21,0,Math.PI\*2\)/);
- assert.match(source,/c\.arc\(storm.x,storm.y,storm.radius,0,Math.PI\*2\)/);
- assert.match(source,/const land=new Uint8Array\(SIZE\)/);
-});
+test('reference HUD includes best score, transparent layout and a subtle paper grid',()=>{assert.match(source,/id="bestCurrent"/);assert.match(source,/class="best-live"/);assert.match(source,/const tileStep=74/);assert.doesNotMatch(source,/const dotStep=84/);});
 
 test('battle royale minimap previews the next safe area and displays live counts',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(10);
@@ -216,13 +208,12 @@ test('battle royale minimap previews the next safe area and displays live counts
  assert.match(source,/zone\.next/);
  assert.match(g.get('zonePhaseLabel').textContent,/ZONA 0\/7/);
 });
-test('chibi characters retain fallback while energy trails and circular radar gain richer VFX',()=>{
+test('chibi character and layered neon trails use original vector rendering',()=>{
  assert.match(source,/function paintChibi\(p,hero,col\)/);
  assert.match(source,/drawOutfit\(p\)/);
- assert.match(source,/if\(p\.trailPoints\.length\)/);
- assert.match(source,/c\.lineTo\(p.x,p.y\)/);
- assert.match(source,/mc\.arc\(91,91,80,0,Math.PI\*2\)/);
- assert.match(source,/function drawPowerBoxes\(\)/);
+ assert.match(source,/#2448b5/);
+ assert.match(source,/procedural motif/);
+ assert.match(source,/function drawMini\(\)/);
 });
 
 test('reward thresholds unlock exactly once, with real effects',()=>{
@@ -614,70 +605,4 @@ test('Six Seven entrance never snaps on slow 270ms mobile frames',async()=>{
    previous=current;
   }
  }
-});
-
-test('Android performance guardrails preserve gameplay physics and reduce GPU contention',()=>{
- assert.match(source,/while\(acc>=RUN&&loops<7\)/);
- assert.match(source,/if\(t-lastVisualFrame>=15\)/);
- assert.match(source,/dpr=Math\.min\(1\.25,devicePixelRatio\|\|1\)/);
- assert.match(source,/function flushMap\(\)/);
- assert.match(source,/pendingMapUpdate/);
- const three=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
- assert.match(three,/ms-lastActorRender<38/);
- assert.match(three,/const inView=p\.id===0\|\|/);
- assert.match(three,/snapsho[t]?ChibiPortraits\(\)/);
-});
-
-test('WebGL Android regression: resizing buffers only when the viewport changes',()=>{
- const fs=require('node:fs');
- const source=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
- const begin=source.indexOf('let gameSurfaceWidth=0,gameSurfaceHeight=0,gameSurfaceResizes=0;');
- const end=source.indexOf('let lastActorRender=',begin);
- assert.ok(begin>=0&&end>begin,'game resize helper should exist');
- const code=source.slice(begin,end);
- const mainCalls=[];
- const fn=new Function('renderer',code+';return {adjustSize,stats:()=>gameSurfaceResizes}');
- const helpers=fn({setSize:(w,h)=>mainCalls.push([w,h])});
- for(let i=0;i<250;i++)helpers.adjustSize(412,844);
- assert.equal(mainCalls.length,1,'mobile 3D must not resize every render frame');
- helpers.adjustSize(844,412);
- assert.equal(mainCalls.length,2,'actual orientation change must resize once');
-
- const v1=source.indexOf('let vsSurfaceWidth=0,vsSurfaceHeight=0,vsSurfaceResizes=0;');
- const v2=source.indexOf('function vsCreate(){',v1);
- assert.ok(v1>=0&&v2>v1,'VS resize helper should exist');
- const vsCalls=[];
- const vs=new Function('vsRenderer',source.slice(v1,v2)+';return {sizeVS,stats:()=>vsSurfaceResizes}')({
-  setSize:(w,h)=>vsCalls.push([w,h])
- });
- for(let i=0;i<250;i++)vs.sizeVS(380,530);
- assert.equal(vsCalls.length,1,'versus 3D must not resize on each frame');
- vs.sizeVS(380,570);
- assert.equal(vsCalls.length,2);
-});
-test('game RAF loop self-schedules before risky canvas painting',()=>{
- const source=fs.readFileSync(path.join(__dirname,'..','paper.html'),'utf8');
- const start=source.indexOf('function frame(t){');
- const stop=source.indexOf('requestAnimationFrame(frame);',start);
- assert.ok(start>=0&&stop>start);
- assert.match(source.slice(start,stop+40),/requestAnimationFrame\(frame\)/);
- assert.match(source.slice(start,start+2200),/catch\(e\)/);
- assert.match(source,/window\.CividomPerformance=/);
-});
-
-test('player leaves own island and draws a persistent exposed trail while moving',()=>{
- const g=boot(419),h=g.win.__paperTest;
- g.get('start').onclick();
- const p=h.getGame().people[0];
- // Isolate movement from bot combat but preserve real 60Hz gameplay loop.
- for(const rival of h.getGame().people.slice(1))rival.alive=false;
- const initialX=p.x,initialY=p.y;
- g.aim(initialX+330,initialY);
- g.tick(115);
- assert.ok(Math.hypot(p.x-initialX,p.y-initialY)>100,'the avatar must actually advance');
- assert.equal(p.outside,true,'crossing the island boundary must activate exposed trail');
- assert.ok(p.trailPoints.length>=3,'the path must contain continuous points');
- assert.ok(p.trailCells.length>=3,'the path must remain vulnerable to rivals');
- assert.ok(g.win.CividomPerformance().paintErrors===0,'no swallowed canvas render failure');
- assert.ok(g.win.CividomPerformance().engineErrors===0,'no swallowed game simulation failure');
 });

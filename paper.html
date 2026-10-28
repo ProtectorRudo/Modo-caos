@@ -372,7 +372,7 @@ input[type=text]:focus{border-color:#42bcca}
 #menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
 #menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
-<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"><link rel="stylesheet" href="./paper-survival.css?v=1"><link rel="stylesheet" href="./paper-ultra.css?v=2"></head>
+<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"><link rel="stylesheet" href="./paper-survival.css?v=1"></head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <canvas id="characterStage" aria-hidden="true"></canvas>
@@ -713,55 +713,8 @@ function drawOutfit(p){
 const land=new Uint8Array(SIZE),trails=new Uint16Array(SIZE),inArena=new Uint8Array(SIZE);
 let landCount=0, terrainCanvas=document.createElement('canvas');terrainCanvas.width=N;terrainCanvas.height=N;
 const terrainCtx=terrainCanvas.getContext('2d',{alpha:true});
-let mapCanvas=document.createElement('canvas');const MAP_RENDER_SCALE=.70;mapCanvas.width=Math.ceil(WORLD*MAP_RENDER_SCALE);mapCanvas.height=Math.ceil(WORLD*MAP_RENDER_SCALE);
+let mapCanvas=document.createElement('canvas');mapCanvas.width=WORLD;mapCanvas.height=WORLD;
 const mapCtx=mapCanvas.getContext('2d',{alpha:true});
-
-/* V2 visual material: naturally lit arena floor, without an oversized visible hex grid. */
-const cvFloorTile=document.createElement('canvas');cvFloorTile.width=512;cvFloorTile.height=512;
-const cvFloorBrush=cvFloorTile.getContext('2d');
-const cvFloorGrad=cvFloorBrush.createLinearGradient(0,0,512,512);
-cvFloorGrad.addColorStop(0,'#315471');cvFloorGrad.addColorStop(.42,'#23415e');cvFloorGrad.addColorStop(1,'#1b324c');
-cvFloorBrush.fillStyle=cvFloorGrad;cvFloorBrush.fillRect(0,0,512,512);
-function cvHex(ctx,x,y,rad){
- ctx.beginPath();
- for(let q=0;q<6;q++){
-  const a=q*Math.PI/3+Math.PI/6,px=x+Math.cos(a)*rad,py=y+Math.sin(a)*rad;
-  if(q)ctx.lineTo(px,py);else ctx.moveTo(px,py);
- }
- ctx.closePath();
-}
-// Non-gameplay material variation: deterministic, seamless, and extremely low contrast.
-for(let row=0;row<8;row++)for(let col=0;col<8;col++){
- const x=32+col*64,y=32+row*64,n=(row*17+col*37)%11;
- const g=cvFloorBrush.createRadialGradient(x-8,y-11,1,x,y,51);
- g.addColorStop(0,n%3?'rgba(131,200,224,.075)':'rgba(255,203,144,.06)');
- g.addColorStop(1,'rgba(9,24,49,0)');
- cvFloorBrush.fillStyle=g;cvFloorBrush.fillRect(x-51,y-51,102,102);
- if(n%4===0){
-  cvFloorBrush.beginPath();cvFloorBrush.moveTo(x-18,y+16);cvFloorBrush.lineTo(x+8,y-10);
-  cvFloorBrush.lineTo(x+25,y+9);cvFloorBrush.closePath();
-  cvFloorBrush.fillStyle='rgba(181,218,229,.035)';cvFloorBrush.fill();
- }
- if(n===0||n===7){
-  cvFloorBrush.strokeStyle='rgba(125,214,229,.14)';cvFloorBrush.lineWidth=1.1;
-  cvFloorBrush.beginPath();cvFloorBrush.moveTo(x-13,y+9);cvFloorBrush.lineTo(x-13,y-8);
-  cvFloorBrush.lineTo(x+9,y-8);cvFloorBrush.stroke();
-  cvFloorBrush.fillStyle='rgba(143,239,255,.33)';cvFloorBrush.beginPath();cvFloorBrush.arc(x+9,y-8,1.75,0,7);cvFloorBrush.fill();
- }
-}
-const cvFloorPattern=c.createPattern(cvFloorTile,'repeat');
-const cvDetailTile=document.createElement('canvas');cvDetailTile.width=256;cvDetailTile.height=256;
-const cvDetailBrush=cvDetailTile.getContext('2d');
-for(let y=0;y<256;y+=64)for(let x=0;x<256;x+=64){
- cvDetailBrush.strokeStyle='rgba(255,255,255,.075)';cvDetailBrush.lineWidth=.8;
- cvDetailBrush.beginPath();cvDetailBrush.moveTo(x+9,y+47);cvDetailBrush.lineTo(x+23,y+58);
- cvDetailBrush.lineTo(x+39,y+58);cvDetailBrush.stroke();
- if((x+y)%128===0){
-  cvDetailBrush.fillStyle='rgba(255,255,255,.22)';
-  cvDetailBrush.beginPath();cvDetailBrush.arc(x+45,y+15,1.35,0,7);cvDetailBrush.fill();
- }
-}
-const cvTerritoryPattern=mapCtx.createPattern(cvDetailTile,'repeat');
 for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=(x+.5)*CELL-CX,dy=(y+.5)*CELL-CY,k=y*N+x;if(dx*dx+dy*dy<(R-5)*(R-5)){inArena[k]=1;landCount++;}}
 function idx(x,y){let gx=Math.floor(x/CELL),gy=Math.floor(y/CELL);return gx<0||gy<0||gx>=N||gy>=N?-1:gy*N+gx;}
 // Runtime storm is a nested circular playfield. It pushes characters inward,
@@ -921,51 +874,29 @@ function slideStormWall(p,x,y,dt){
  }
  return{x:a.x+nx*safe,y:a.y+ny*safe};
 }
-
 function drawPowerBoxes(){
  if(!game?.boxes)return;
  for(const box of game.boxes){
   if(!box.active)continue;
-  const dt=clock-box.spawnAt,ready=clock>=box.collectAt,alpha=Math.min(1,dt/.34);
-  const col=POWER_COLORS[box.type]||'#79f2ff',scale=1.12+Math.sin(clock*3+box.x*.02)*.035;
-  const rise=Math.sin(clock*2.9+box.x*.011)*2.6;
-  c.save();c.translate(box.x,box.y+rise);c.scale(scale,scale);c.globalAlpha=Math.max(0,alpha);
-  c.fillStyle='#020e2390';c.beginPath();c.ellipse(0,27,27,9,0,0,7);c.fill();
-  const aura=c.createRadialGradient(0,10,0,0,10,51);
-  aura.addColorStop(0,col+'88');aura.addColorStop(.55,col+'28');aura.addColorStop(1,col+'00');
-  c.fillStyle=aura;c.beginPath();c.arc(0,10,50,0,7);c.fill();
-  c.globalAlpha=Math.max(0,alpha)*(.65+.25*Math.sin(clock*5));
-  c.strokeStyle=col;c.lineWidth=2.3;c.beginPath();c.ellipse(0,23,32,10,0,0,7);c.stroke();
-  c.globalAlpha=Math.max(0,alpha);
-  if(ready){
-   const light=c.createLinearGradient(0,-95,0,-18);
-   light.addColorStop(0,col+'00');light.addColorStop(.77,col+'0c');light.addColorStop(1,col+'70');
-   c.fillStyle=light;c.beginPath();c.moveTo(-10,-16);c.lineTo(-15,-95);c.lineTo(15,-95);c.lineTo(10,-16);c.fill();
-  }
-  // Faceted loot trunk, distinctive chunky lid, rim metalwork and luminous crest.
-  c.shadowColor=col;c.shadowBlur=ready?15:6;
-  c.fillStyle='#0d1632';c.strokeStyle='#101a34';c.lineWidth=3;
-  c.beginPath();c.moveTo(-24,-14);c.lineTo(0,-25);c.lineTo(24,-14);c.lineTo(24,10);
-  c.lineTo(0,23);c.lineTo(-24,10);c.closePath();c.fill();c.stroke();
-  c.shadowBlur=0;
-  const l=c.createLinearGradient(-22,-18,0,22);l.addColorStop(0,'#62718e');l.addColorStop(.55,'#2b395d');l.addColorStop(1,'#0a1430');
-  c.fillStyle=l;c.beginPath();c.moveTo(-22,-13);c.lineTo(0,-3);c.lineTo(0,19);c.lineTo(-22,8);c.closePath();c.fill();
-  const r=c.createLinearGradient(0,-7,24,17);r.addColorStop(0,'#637490');r.addColorStop(.5,'#273658');r.addColorStop(1,'#0a1229');
-  c.fillStyle=r;c.beginPath();c.moveTo(0,-3);c.lineTo(22,-13);c.lineTo(22,8);c.lineTo(0,19);c.closePath();c.fill();
-  const top=c.createLinearGradient(-18,-32,10,-8);top.addColorStop(0,'#f4f5ff');top.addColorStop(.3,'#a7b3c9');top.addColorStop(.65,'#4d5a78');top.addColorStop(1,'#1a2d4c');
-  c.fillStyle=top;c.beginPath();c.moveTo(-26,-21);c.lineTo(0,-34);c.lineTo(26,-21);c.lineTo(0,-8);c.closePath();c.fill();
-  c.strokeStyle='#111932';c.lineWidth=3;c.stroke();
-  c.strokeStyle=col;c.lineWidth=2.3;c.shadowColor=col;c.shadowBlur=9;
-  c.beginPath();c.moveTo(-22,-18);c.lineTo(0,-6);c.lineTo(22,-18);c.moveTo(0,-6);c.lineTo(0,18);c.stroke();
-  c.shadowBlur=0;
-  // Four rivets and chromed faceplates: extra volume without external downloads.
-  for(const dx of [-17,17])for(const dy of [-6,6]){
-   c.fillStyle='#e5ebff';c.beginPath();c.arc(dx,dy,1.65,0,7);c.fill();
-  }
-  c.fillStyle=col;c.shadowColor=col;c.shadowBlur=6;c.beginPath();c.roundRect(-9,-20,18,6,2);c.fill();
-  c.shadowBlur=0;c.font='900 16px system-ui';c.textAlign='center';c.fillStyle='#fdfcff';
-  c.fillText(POWER_SYMBOLS[box.type]||'✦',0,6);
-  if(!ready){c.fillStyle='#12204574';c.beginPath();c.roundRect(-25,-34,50,56,7);c.fill();}
+  const t=clock-box.spawnAt,bright=clock>=box.collectAt;
+  const a=Math.min(1,t/.32),bob=Math.sin(clock*3.6+box.x*.02)*3.1;
+  const col=POWER_COLORS[box.type],sz=16;
+  c.save();c.translate(box.x,box.y+bob);c.globalAlpha=a;
+  c.fillStyle='#092e6950';c.beginPath();c.ellipse(0,18,22,8,0,0,7);c.fill();
+  c.strokeStyle=col;c.lineWidth=2;c.globalAlpha=a*(.45+.24*Math.sin(clock*5));
+  c.beginPath();c.ellipse(0,16,25,10,0,0,7);c.stroke();c.globalAlpha=a;
+  // Top face with CIVIDOM crown; coloured side faces show identical power glyph.
+  c.beginPath();c.moveTo(0,-23);c.lineTo(sz,-16);c.lineTo(0,-7);c.lineTo(-sz,-16);c.closePath();
+  c.fillStyle='#fff7d8';c.fill();c.strokeStyle='#24539d';c.lineWidth=2;c.stroke();
+  c.beginPath();c.moveTo(-sz,-16);c.lineTo(0,-7);c.lineTo(0,16);c.lineTo(-sz,7);c.closePath();
+  c.fillStyle=col;c.fill();c.stroke();
+  c.beginPath();c.moveTo(0,-7);c.lineTo(sz,-16);c.lineTo(sz,7);c.lineTo(0,16);c.closePath();
+  c.fillStyle=col;c.fill();c.stroke();
+  c.textAlign='center';c.font='900 13px system-ui';c.fillStyle='#173974';
+  c.fillText('♛',0,-11);
+  c.font='1000 14px system-ui';c.fillStyle='#153671';c.fillText(POWER_SYMBOLS[box.type],-8,3);c.fillText(POWER_SYMBOLS[box.type],8,3);
+  c.font='900 9px system-ui';c.fillStyle='#184376';c.fillText(box.type,0,29);
+  if(!bright){c.fillStyle='#ffffff70';c.fillRect(-18,-24,36,38);}
   c.restore();
  }
 }
@@ -1044,38 +975,48 @@ function contourPath(ctx,loops,ox=0,oy=0){
   ctx.closePath();
  }
 }
-
-let pendingMapUpdate=false,lastMapRedraw=-1e5;
-function updateMap(){pendingMapUpdate=true;if(!game||clock<lastMapRedraw||clock-lastMapRedraw>=.12)flushMap();}
-function flushMap(){
- if(!pendingMapUpdate)return;
- pendingMapUpdate=false;lastMapRedraw=clock;
- // Physics stays on the original CELL occupancy grid; graphics are cached.
+function updateMap(){
+ // Capture physics keeps the accurate occupancy grid. Presentation uses smooth
+ // connected vector contours rather than thousands of low-res circular stamps.
  const data=terrainCtx.createImageData(N,N),buf=data.data,active=new Uint8Array(12);
  for(let k=0;k<SIZE;k++){
   const v=land[k];if(!inArena[k]||!v)continue;
-  active[v-1]=1;
-  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),o=k*4;
+  active[v-1]=1;const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),o=k*4;
   buf[o]=rgb[0];buf[o+1]=rgb[1];buf[o+2]=rgb[2];buf[o+3]=255;
  }
  terrainCtx.putImageData(data,0,0);
- mapCtx.setTransform(1,0,0,1,0,0);
- mapCtx.clearRect(0,0,mapCanvas.width,mapCanvas.height);
- mapCtx.setTransform(MAP_RENDER_SCALE,0,0,MAP_RENDER_SCALE,0,0);
+ mapCtx.clearRect(0,0,WORLD,WORLD);
  mapCtx.lineJoin='round';mapCtx.lineCap='round';
  for(let v=1;v<=12;v++){
   if(!active[v-1])continue;
   const loops=territoryLoops(v);if(!loops.length)continue;
-  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),col=COLORS[(v-1+settingColor)%12];
-  const darker='rgb('+rgb.map(n=>Math.round(n*.62)).join(',')+')';
-  // Only two fills and two strokes per color; no blur or repeated world gradients.
-  contourPath(mapCtx,loops,0,6.5);mapCtx.fillStyle=darker;mapCtx.fill('evenodd');
-  contourPath(mapCtx,loops);mapCtx.fillStyle=col;mapCtx.fill('evenodd');
-  mapCtx.strokeStyle='rgba(0,24,52,.35)';mapCtx.lineWidth=2.8;mapCtx.stroke();
-  contourPath(mapCtx,loops,0,-1.1);
-  mapCtx.strokeStyle='rgba(255,255,255,.54)';mapCtx.lineWidth=1.4;mapCtx.stroke();
+  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]);
+  contourPath(mapCtx,loops,0,7);
+  mapCtx.fillStyle='rgba('+Math.floor(rgb[0]*.77)+','+Math.floor(rgb[1]*.77)+','+Math.floor(rgb[2]*.77)+',1)';
+  mapCtx.fill('evenodd');
+  contourPath(mapCtx,loops);
+  mapCtx.fillStyle=COLORS[(v-1+settingColor)%12];mapCtx.fill('evenodd');
+  // Intricate but subtle procedural motif, clipped inside owned territory.
+  // No copyrighted sprite sheets, no image downloads, no noisy background.
+  mapCtx.save();contourPath(mapCtx,loops);mapCtx.clip('evenodd');
+  mapCtx.strokeStyle='rgba(255,255,255,.20)';mapCtx.fillStyle='rgba(255,255,255,.20)';
+  for(let gy=92;gy<WORLD;gy+=172)for(let gx=85;gx<WORLD;gx+=178){
+   const ix=idx(gx,gy);if(ix<0||land[ix]!==v)continue;
+   const twist=(v*29+gx*3+gy)%7,rad=18+twist*2;
+   mapCtx.lineWidth=2.3;mapCtx.beginPath();mapCtx.arc(gx,gy,rad,.35,5.1);mapCtx.stroke();
+   mapCtx.lineWidth=1.4;mapCtx.beginPath();mapCtx.arc(gx,gy,rad*.63,0,Math.PI*1.7);mapCtx.stroke();
+   mapCtx.beginPath();mapCtx.roundRect(gx-9,gy-9,18,18,5);mapCtx.stroke();
+   for(let j=0;j<4;j++){
+    const a=j*Math.PI/2+twist*.14;
+    const nx=gx+Math.cos(a)*(rad+10),ny=gy+Math.sin(a)*(rad+10);
+    mapCtx.beginPath();mapCtx.arc(nx,ny,2.8,0,Math.PI*2);mapCtx.fill();
+   }
+  }
+  mapCtx.restore();
+  contourPath(mapCtx,loops);mapCtx.strokeStyle='rgba(23,57,107,.25)';mapCtx.lineWidth=2.1;mapCtx.stroke();
+  contourPath(mapCtx,loops,0,-1.7);
+  mapCtx.strokeStyle='rgba(255,255,255,.12)';mapCtx.lineWidth=2;mapCtx.stroke();
  }
- mapCtx.setTransform(1,0,0,1,0,0);
 }
 function burstAt(x,y,color,count=16,strength=85){
  for(let i=0;i<count;i++){
@@ -1097,29 +1038,10 @@ function tickEffects(dt){
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=1-dt*2.5;p.vy*=1-dt*2.5;if(p.age>=p.life)particles.splice(i,1);}
  for(let i=bursts.length-1;i>=0;i--){bursts[i].age+=dt;if(bursts[i].age>=bursts[i].life)bursts.splice(i,1);}
 }
-
 function drawEffects(){
- c.save();c.lineCap='round';c.lineJoin='round';
- for(const b of bursts){
-  if(b.points.length<2)continue;
-  const f=Math.max(0,1-b.age/b.life);
-  c.save();c.globalAlpha=f;
-  c.beginPath();c.moveTo(b.points[0].x,b.points[0].y);
-  for(let k=1;k<b.points.length;k++)c.lineTo(b.points[k].x,b.points[k].y);
-  c.shadowColor=b.color;c.shadowBlur=19*f;c.strokeStyle=b.color;c.lineWidth=15*(1-f)+4;c.stroke();
-  c.shadowBlur=0;c.strokeStyle='#fffefa';c.lineWidth=2.4*f;c.stroke();
-  c.restore();
- }
- for(const p of particles){
-  const f=Math.max(0,1-p.age/p.life);
-  c.save();c.translate(p.x,p.y);c.rotate(p.spin*p.age);c.globalAlpha=f;
-  c.shadowColor=p.color;c.shadowBlur=8*f;c.fillStyle=p.color;
-  const size=p.size*(.65+f*.4);
-  if(p.size>4.5){c.beginPath();c.moveTo(0,-size);c.lineTo(size*.6,0);c.lineTo(0,size);c.lineTo(-size*.6,0);c.closePath();c.fill();}
-  else{c.beginPath();c.arc(0,0,size*.55,0,7);c.fill();}
-  if(p.size>5){c.fillStyle='#fff';c.globalAlpha=f*.8;c.beginPath();c.arc(0,0,1.25,0,7);c.fill();}
-  c.restore();
- }
+ c.save();
+ for(const b of bursts){if(b.points.length<2)continue;const f=1-b.age/b.life;c.globalAlpha=Math.max(0,f*.68);c.strokeStyle='#ffffff';c.lineJoin='round';c.lineCap='round';c.lineWidth=4+(1-f)*16;c.beginPath();c.moveTo(b.points[0].x,b.points[0].y);for(let k=1;k<b.points.length;k++)c.lineTo(b.points[k].x,b.points[k].y);c.stroke();}
+ for(const p of particles){c.globalAlpha=Math.max(0,1-p.age/p.life);c.fillStyle=p.color;c.save();c.translate(p.x,p.y);c.rotate(p.spin*p.age);c.fillRect(-p.size/2,-p.size/2,p.size,p.size);c.restore();}
  c.restore();
 }
 
@@ -1378,41 +1300,53 @@ function showHud(){
  drawMini();
 }
 function safe(s){return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
-
 function drawMini(){
  const w=182;mc.clearRect(0,0,w,w);mc.save();
  const zone=stormZoneState(),current=arenaState(),next=zone.next;
- const mapX=x=>10+x/WORLD*162,mapY=y=>10+y/WORLD*162,rad=r=>r/WORLD*162;
- mc.beginPath();mc.arc(91,91,80,0,Math.PI*2);mc.clip();
- const bg=mc.createRadialGradient(88,66,10,91,91,92);
- bg.addColorStop(0,'#244774');bg.addColorStop(1,'#081a39');mc.fillStyle=bg;mc.fillRect(0,0,w,w);
- mc.imageSmoothingEnabled=true;mc.drawImage(terrainCanvas,10,10,162,162);
+ const mapX=x=>9+x/WORLD*164,mapY=y=>9+y/WORLD*164,rad=r=>r/WORLD*164;
+ // Every part of the map is visible. The storm covers the unsafe outer region
+ // with a readable purple mask, exactly like the familiar battle-royale maps.
+ mc.save();mc.beginPath();mc.roundRect(7,7,168,168,10);mc.clip();
+ mc.fillStyle='#dffbf0';mc.fillRect(7,7,168,168);
+ mc.imageSmoothingEnabled=true;mc.drawImage(terrainCanvas,9,9,164,164);
  const cx=mapX(current.x),cy=mapY(current.y),r=rad(current.radius);
- mc.beginPath();mc.rect(9,9,164,164);mc.arc(cx,cy,r,0,Math.PI*2,true);
- mc.fillStyle='rgba(19,26,67,.77)';mc.fill('evenodd');
- mc.strokeStyle='#58dbff';mc.lineWidth=4;mc.beginPath();mc.arc(cx,cy,r,0,Math.PI*2);mc.stroke();
+ mc.fillStyle='rgba(119,65,183,.68)';
+ mc.beginPath();mc.rect(7,7,168,168);mc.arc(cx,cy,r,0,Math.PI*2,true);
+ mc.fill('evenodd');
+ // A blue ring is the ACTUAL safe boundary; a dashed white ring is the NEXT
+ // safe area. Its displaced position changes from game to game.
+ mc.strokeStyle='#1151de';mc.lineWidth=3.5;mc.beginPath();mc.arc(cx,cy,r,0,7);mc.stroke();
  if(next){
   const nx=mapX(next.x),ny=mapY(next.y),nr=rad(next.radius);
-  mc.save();mc.setLineDash([5,4]);mc.strokeStyle='#fff1a7';mc.lineWidth=3;
-  mc.beginPath();mc.arc(nx,ny,nr,0,Math.PI*2);mc.stroke();mc.restore();
-  mc.fillStyle='#ffe8a2';mc.beginPath();mc.arc(nx,ny,3,0,7);mc.fill();
-  const me=game.people[0];
-  if(me.alive&&Math.hypot(me.x-next.x,me.y-next.y)>next.radius-22){
-   mc.save();mc.setLineDash([4,5]);mc.strokeStyle='#ffeaa1';mc.lineWidth=1.7;
+  mc.setLineDash([5,4]);mc.strokeStyle='#fff';mc.lineWidth=3.6;
+  mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();mc.setLineDash([]);
+  mc.strokeStyle='#163577';mc.lineWidth=1;mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();
+  mc.fillStyle='#ffe77c';mc.beginPath();mc.arc(nx,ny,3.8,0,7);mc.fill();
+  const me=game.people[0],out=Math.hypot(me.x-next.x,me.y-next.y)>next.radius-22;
+  if(out&&me.alive){
+   mc.save();mc.setLineDash([4,4]);mc.strokeStyle='#ffef86';mc.lineWidth=1.8;
    mc.beginPath();mc.moveTo(mapX(me.x),mapY(me.y));mc.lineTo(nx,ny);mc.stroke();mc.restore();
   }
  }
- for(const box of game.boxes){if(!box.active)continue;mc.fillStyle=POWER_COLORS[box.type];mc.strokeStyle='#0e1c43';
-  mc.beginPath();mc.arc(mapX(box.x),mapY(box.y),2.6,0,7);mc.fill();mc.lineWidth=1.1;mc.stroke();}
- for(const p of game.people){if(!p.alive||p.id===0)continue;
-  mc.fillStyle=COLORS[(p.id+settingColor)%12];mc.strokeStyle='#ffffffcc';mc.lineWidth=1.1;
-  mc.beginPath();mc.arc(mapX(p.x),mapY(p.y),3.2,0,7);mc.fill();mc.stroke();}
+ for(const box of game.boxes){
+  if(!box.active)continue;
+  const x=mapX(box.x),y=mapY(box.y);
+  mc.fillStyle=POWER_COLORS[box.type];mc.strokeStyle='#203f80';mc.lineWidth=1.1;
+  mc.fillRect(x-2.2,y-2.2,4.4,4.4);mc.strokeRect(x-2.2,y-2.2,4.4,4.4);
+ }
+ for(const p of game.people){
+  if(!p.alive||p.id===0)continue;
+  const x=mapX(p.x),y=mapY(p.y);
+  mc.fillStyle=COLORS[(p.id+settingColor)%12];
+  mc.strokeStyle='#142e76';mc.lineWidth=1.15;
+  mc.beginPath();mc.arc(x,y,3.2,0,7);mc.fill();mc.stroke();
+ }
  const player=game.people[0];
  mc.save();mc.translate(mapX(player.x),mapY(player.y));mc.rotate(player.angle+Math.PI/2);
- mc.fillStyle='#fffaf0';mc.strokeStyle='#122451';mc.lineWidth=2.5;
- mc.beginPath();mc.moveTo(0,-10);mc.lineTo(6.7,6);mc.lineTo(-6.7,6);mc.closePath();mc.fill();mc.stroke();mc.restore();
+ mc.fillStyle='#fff';mc.strokeStyle='#113da5';mc.lineWidth=2.5;
+ mc.beginPath();mc.moveTo(0,-9);mc.lineTo(6.3,7);mc.lineTo(-6.3,7);mc.closePath();mc.fill();mc.stroke();mc.restore();
  mc.restore();
- mc.strokeStyle='#b9eaff';mc.lineWidth=3;mc.beginPath();mc.arc(91,91,79,0,Math.PI*2);mc.stroke();
+ mc.strokeStyle='#bedfff';mc.lineWidth=2;mc.strokeRect(8,8,166,166);
  mc.restore();
 }
 function paintChibi(p,hero,col){
@@ -1531,32 +1465,20 @@ function paintMascotCanvas(p,hero,color){
 function drawUnit(p){
  if(!p.alive)return;
  const col=COLORS[(p.id+settingColor)%12];
- // Rendered contact shadow grounds actual GLB actors, whose canvas remains transparent.
- c.save();c.translate(p.x,p.y+8);
- const shadowScale=powerScale(p)*(p.id===0?1.12:1);
- c.scale(shadowScale,shadowScale);
- const shadow=c.createRadialGradient(0,0,2,0,0,36);
- shadow.addColorStop(0,'rgba(0,12,31,.55)');shadow.addColorStop(1,'rgba(0,12,31,0)');
- c.fillStyle=shadow;c.beginPath();c.ellipse(0,0,36,16,0,0,7);c.fill();
- if(p.id===0){
-  c.strokeStyle='rgba(236,250,255,.48)';c.lineWidth=2;
-  c.beginPath();c.ellipse(0,0,24,10,0,0,7);c.stroke();
-  c.strokeStyle=col;c.globalAlpha=.7+.25*Math.sin(clock*4);c.lineWidth=2.4;
-  c.beginPath();c.ellipse(0,0,24,10,0,Math.PI*1.4);c.stroke();
- }
- c.restore();
-
- // Visible even if the outside flag and cell state update on adjacent ticks.
- if(p.trailPoints.length){
-  const trailCol=p.id===0&&wardrobe.equipped.trail==='trail_rainbow'
-   ?COLORS[Math.floor(clock*6)%COLORS.length]:col;
-  c.save();c.beginPath();c.moveTo(p.trailPoints[0].x,p.trailPoints[0].y);
+ if(p.outside&&p.trailPoints.length){
+  // Raised, neon-rimmed ribbons: visually continuous even through a sharp turn.
+  c.beginPath();c.moveTo(p.trailPoints[0].x,p.trailPoints[0].y);
   for(let i=1;i<p.trailPoints.length;i++)c.lineTo(p.trailPoints[i].x,p.trailPoints[i].y);
-  c.lineTo(p.x,p.y);c.lineCap='round';c.lineJoin='round';
-  c.save();c.translate(0,4);c.strokeStyle='rgba(6,24,52,.4)';c.lineWidth=18;c.stroke();c.restore();
-  c.strokeStyle='#19325d';c.lineWidth=16.5;c.stroke();
-  c.strokeStyle=trailCol;c.lineWidth=12.5;c.stroke();
-  c.strokeStyle='#ffffffdd';c.lineWidth=p.id===0?3.5:2.2;c.stroke();c.restore();
+  c.lineTo(p.x,p.y);
+  c.lineCap='round';c.lineJoin='round';
+  c.save();c.translate(0,5);c.strokeStyle='rgba(21,52,94,.22)';c.lineWidth=16.5;c.stroke();c.restore();
+  c.strokeStyle='#2448b5';c.lineWidth=17;c.stroke();
+  c.strokeStyle=p.id===0&&wardrobe.equipped.trail==='trail_rainbow'?COLORS[Math.floor(clock*6)%COLORS.length]:col;c.lineWidth=12.5;c.stroke();
+  c.strokeStyle=(p.id===0&&game&&game.epicTrail)?'#fff0a0':'#ffffffb5';c.lineWidth=(p.id===0&&game&&game.epicTrail)?3.4:2.0;c.stroke();
+  if(p.id===0&&game&&game.epicTrail){
+   c.save();c.strokeStyle='#fff8d2';c.lineWidth=1.35;c.globalAlpha=.72;
+   c.setLineDash([15,31]);c.lineDashOffset=-clock*80;c.stroke();c.restore();
+  }
  }
  // Actual 3D actors take over when their GLB has loaded. Otherwise use
  // anatomically legible, animated original chibi people — never robot cubes.
@@ -1575,35 +1497,34 @@ function drawUnit(p){
  // No floating username on top of characters: silhouette stays readable.
  if(p.id===0&&clock<emoteUntil){
   const yy=p.y-133,cx=p.x;
-  c.save();c.fillStyle='#132d59e8';c.strokeStyle='#b9e5ff';c.lineWidth=1.5;c.beginPath();
+  c.save();c.fillStyle='#fffffff2';c.strokeStyle='#2c5dc0';c.lineWidth=2;c.beginPath();
   c.roundRect(cx-67,yy-16,134,33,10);c.fill();c.stroke();
-  c.fillStyle='#fff0b8';c.font='900 11px system-ui';c.fillText(emoteLabel,cx,yy+5);c.restore();
+  c.fillStyle='#2047a3';c.font='900 11px system-ui';c.fillText(emoteLabel,cx,yy+5);c.restore();
  }
 }
-
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
- // V2: consistent slate backdrop, no turquoise footer, restrained atmospheric vignette.
- const sky=c.createLinearGradient(0,0,screenW,screenH);
- sky.addColorStop(0,'#1a3c5d');sky.addColorStop(.58,'#183351');sky.addColorStop(1,'#0d233d');
- c.fillStyle=sky;c.fillRect(0,0,screenW,screenH);
+ c.fillStyle=game&&clock>=STORM_INTERVAL?'#c7cedf':'#e5fff4';c.fillRect(0,0,screenW,screenH);
  if(!game)return;
- if(pendingMapUpdate&&(clock<lastMapRedraw||clock-lastMapRedraw>=.12))flushMap();
- const ref=Math.min(screenW,screenH*.75);zoom=clamp(ref/520,.68,1.12);
+ const ref=Math.min(screenW,screenH*0.75);
+ zoom=clamp(ref/520,.68,1.12);
  c.save();c.translate(screenW/2,screenH/2);c.scale(zoom,zoom);c.translate(-camX,-camY);
+ // Ocean and map boundary, matching the soft arcade look.
  const storm=arenaState();
- // Keep ONE circular arena and the existing seven nested shrinking zones.
- c.beginPath();c.arc(CX,CY,R+21,0,Math.PI*2);c.fillStyle='#071629';c.fill();
- c.beginPath();c.arc(CX,CY,R+12,0,Math.PI*2);c.fillStyle='#366989';c.fill();
+ c.fillStyle='#b6bbd8';c.beginPath();c.arc(CX,CY,R+4,0,Math.PI*2);c.fill();
  c.save();c.beginPath();c.arc(storm.x,storm.y,storm.radius,0,Math.PI*2);c.clip();
- c.fillStyle=cvFloorPattern||'#24405e';c.fillRect(0,0,WORLD,WORLD);
- const glow=c.createRadialGradient(storm.x-280,storm.y-320,45,storm.x,storm.y,Math.max(200,storm.radius));
- glow.addColorStop(0,'rgba(174,218,233,.11)');glow.addColorStop(.56,'rgba(88,149,181,.045)');glow.addColorStop(1,'rgba(8,24,45,.18)');
- c.fillStyle=glow;c.fillRect(0,0,WORLD,WORLD);
+ c.fillStyle='#eafff7';c.fill();
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
+ // Very low-contrast floor markings leave the visual focus on the territories.
+ const tileStep=74;
+ c.strokeStyle='rgba(112,164,153,0.014)';c.lineWidth=1;
+ const minX=Math.max(0,Math.floor((camX-screenW/zoom)/tileStep)-1),maxX=Math.min(35,Math.ceil((camX+screenW/zoom)/tileStep)+1);
+ const minY=Math.max(0,Math.floor((camY-screenH/zoom)/tileStep)-1),maxY=Math.min(35,Math.ceil((camY+screenH/zoom)/tileStep)+1);
+ c.beginPath();
+ for(let i=minX;i<=maxX;i++){c.moveTo(i*tileStep,Math.max(0,minY*tileStep));c.lineTo(i*tileStep,Math.min(WORLD,maxY*tileStep));}
+ for(let j=minY;j<=maxY;j++){c.moveTo(Math.max(0,minX*tileStep),j*tileStep);c.lineTo(Math.min(WORLD,maxX*tileStep),j*tileStep);}
+ c.stroke();
  c.restore();
- c.beginPath();c.arc(storm.x,storm.y,storm.radius,0,Math.PI*2);
- c.strokeStyle='#85d8ed55';c.lineWidth=12;c.stroke();
  drawEffects();paintCelebrations();drawPowerBoxes();
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
  drawUnit(game.people[0]);drawStorm();c.restore();
@@ -1787,7 +1708,7 @@ function start(){const params=new URLSearchParams(location.search);if(params.has
 function goHome(){mode='home';game=null;$('versus').classList.add('hidden');renderHeroPicker();refreshWallet();$('hud').style.display='none';$('result').classList.add('hidden');$('paused').classList.add('hidden');$('home').classList.remove('hidden');$('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';}
 function pause(){if(mode!=='play')return;mode='pause';$('paused').classList.remove('hidden');}
 function resume(){mode='play';$('paused').classList.add('hidden');}
-function fit(){screenW=innerWidth;screenH=innerHeight;dpr=Math.min(1.25,devicePixelRatio||1);canvas.width=Math.round(screenW*dpr);canvas.height=Math.round(screenH*dpr);}
+function fit(){screenW=innerWidth;screenH=innerHeight;dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(screenW*dpr);canvas.height=Math.round(screenH*dpr);}
 function userAim(x,y){const dx=x-screenW/2,dy=y-screenH/2;if(Math.hypot(dx,dy)>22)desiredAngle=Math.atan2(dy,dx);}
 canvas.addEventListener('pointerdown',e=>{if(mode!=='play')return;e.preventDefault();canvas.setPointerCapture(e.pointerId);pointer={id:e.pointerId,x:e.clientX,y:e.clientY,kind:e.pointerType};if(e.pointerType==='mouse')userAim(e.clientX,e.clientY);});
 canvas.addEventListener('pointermove',e=>{if(mode!=='play')return;
@@ -1836,64 +1757,9 @@ renderHeroPicker();refreshWallet();
 COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Color '+(i+1));b.style.background=col;b.className=i===settingColor?'active':'';b.onclick=()=>{settingColor=i;document.querySelectorAll('#colors button').forEach(el=>el.classList.remove('active'));b.classList.add('active');};$('colors').append(b);});
 $('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';
 fit();window.addEventListener('resize',fit);
-// An optional diagnostic HUD helps audit real Android performance without altering gameplay.
-const cvDebug=new URLSearchParams(location.search).has('debug');
-let cvDebugNode=null,cvDebugAt=0,cvDebugFrames=0;
-if(cvDebug&&document.body){
- cvDebugNode=document.createElement('div');
- cvDebugNode.id='cividom-debug-overlay';
- cvDebugNode.style.cssText='position:fixed;z-index:9999;top:max(65px,env(safe-area-inset-top) + 55px);left:6px;max-width:52vw;padding:7px 9px;border-radius:8px;background:#0a183de6;color:#f9edac;font:700 11px/1.4 monospace;pointer-events:none;white-space:pre-line';
- document.body.appendChild(cvDebugNode);
-}
-let last=performance.now(),acc=0,lastVisualFrame=-1e5,loopErrorCount=0,drawErrorCount=0;
-let frameCount=0,lastFrameCost=0;
-function frame(t){
- // Schedule before doing any work. A transient canvas exception can no longer
- // permanently stop game ticks and leave the player on a frozen first frame.
- requestAnimationFrame(frame);
- const started=performance.now();
- const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;
- try{
-  if(mode==='versus')drawVersus(t);
-  else if(mode==='home')drawMenuHeroFallback(t);
-  if(mode==='play'&&game){
-   acc=Math.min(acc+dt,.13);let loops=0;
-   while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}
-  }else acc=0;
- }catch(e){
-  loopErrorCount++;
-  if(loopErrorCount<=3)console.error('CIVIDOM engine error (recoverable)',e);
-  // Reset the accumulated time instead of replaying an endless frame backlog.
-  acc=0;
- }
- if(t-lastVisualFrame>=15){
-  try{render();lastVisualFrame=t;}
-  catch(e){
-   drawErrorCount++;
-   if(drawErrorCount<=3)console.error('CIVIDOM canvas render error (recoverable)',e);
-   // Clear any unbalanced canvas state after a failed paint.
-   try{c.restore();c.setTransform(dpr,0,0,dpr,0,0);}catch(_){}
-   lastVisualFrame=t;
-  }
- }
- lastFrameCost=performance.now()-started;frameCount++;
- if(cvDebugNode&&(t-cvDebugAt>850)){
-  const fps=Math.round((frameCount-cvDebugFrames)*1000/Math.max(1,t-cvDebugAt));
-  const me=game?.people?.[0];
-  const perf=window.PaperMascotQA?.();
-  cvDebugNode.textContent='FPS '+fps+' / 60\nRastro '+(me?.trailPoints?.length||0)+' · fuera '+!!me?.outside+
-   '\nMotor '+loopErrorCount+' · dibujo '+drawErrorCount+'\nZona '+Math.floor(clock)+'s · GLB '+(window.PaperChibiStatus||'?');
-  cvDebugAt=t;cvDebugFrames=frameCount;
- }
-}
+let last=performance.now(),acc=0;
+function frame(t){const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;if(mode==='versus')drawVersus(t);else if(mode==='home')drawMenuHeroFallback(t);if(mode==='play'&&game){acc=Math.min(acc+dt,.13);let loops=0;while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}}else acc=0;render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
-window.CividomPerformance=()=>({
- gameSeconds:Math.round(clock*10)/10,mode,frames:frameCount,
- lastFrameCostMs:Math.round(lastFrameCost*10)/10,
- engineErrors:loopErrorCount,paintErrors:drawErrorCount,
- mapRebuildPending:pendingMapUpdate,
- threeStatus:window.PaperChibiStatus||'unknown'
-});
 // The 3D renderer is a separate, optional visual layer. Expose only the
 // lightweight read-only coordinates it needs; all gameplay stays unchanged.
 window.Paper3DState=()=>({
@@ -1920,6 +1786,6 @@ if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'
 </script>
 <!-- Pinned ES modules: if CDN is blocked the original chibi canvas game still plays. -->
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
-<script type="module" src="./paper-3d.mjs?v=resize-guard-r2"></script>
+<script type="module" src="./paper-3d.mjs"></script>
 </body>
 </html>

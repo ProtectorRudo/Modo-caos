@@ -21,7 +21,7 @@ const models=CHIBI_ROSTER.map(x=>x.model+'.glb');
 const backupBase='./assets/styloo/';
 const backupModels=['archer.glb','merchant.glb','student.glb','ninja.glb','archer.glb','merchant.glb','student.glb','ninja.glb'];
 const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
-const RIG_HEIGHT=98; // Present more expressive chibi silhouettes; no hitbox changes.
+const RIG_HEIGHT=80;
 const gltfLoader=new GLTFLoader();
 const sourceAssets=new Array(TOTAL_HEROES).fill(null),instances=new Map();
 const assetVersions=new Uint32Array(TOTAL_HEROES);
@@ -34,17 +34,16 @@ window.PaperMenuReady=false;
 let scene,camera,renderer,started=false,failed=false,last=0,activeHero=-1;
 try{
  renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'low-power',premultipliedAlpha:false});
- renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.15));
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
  renderer.setClearColor(0,0);
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;
- renderer.toneMappingExposure=1.32;
+ renderer.toneMappingExposure=1.25;
  scene=new THREE.Scene();
  camera=new THREE.OrthographicCamera(-200,200,350,-350,.1,3000);
- scene.add(new THREE.HemisphereLight(0xf6ffff,0x526aab,2.45));
- const key=new THREE.DirectionalLight(0xfff4db,3.4);key.position.set(-250,390,700);scene.add(key);
- const fill=new THREE.DirectionalLight(0x82d5ff,1.8);fill.position.set(230,170,370);scene.add(fill);
- const rim=new THREE.DirectionalLight(0xffd09e,1.05);rim.position.set(110,120,-220);scene.add(rim);
+ scene.add(new THREE.HemisphereLight(0xf1ffff,0x5e7aab,2.8));
+ const key=new THREE.DirectionalLight(0xfff9e8,3.1);key.position.set(-250,350,700);scene.add(key);
+ const fill=new THREE.DirectionalLight(0x86d9ff,1.3);fill.position.set(200,180,340);scene.add(fill);
 }catch(e){failed=true;console.warn('3D not available, using original chibi fallback',e);}
 const material=(color,metalness=0,roughness=.34)=>new THREE.MeshStandardMaterial({color,metalness,roughness});
 const addMesh=(group,geometry,mat,x,y,z=0)=>{const m=new THREE.Mesh(geometry,mat);m.position.set(x,y,z);group.add(m);return m;};
@@ -152,8 +151,8 @@ function startLoading(){
     const available=CHIBI_ROSTER.map((h,i)=>h.model===name?i:-1).filter(i=>i>=0);
     for(const i of available){sourceAssets[i]={...asset,chibi:true,model:name};assetVersions[i]++;}
     success++;window.PaperChibiStatus='partial';
-    // Portraits are generated after loading, only when the battle is idle.
-
+    // Photo portraits update progressively with each rigged GLB load.
+    setTimeout(snapshotChibiPortraits,60);
    }).catch(error=>{
     console.warn('Chibi model could not load, retaining gameplay fallback:',name,error);
     for(let i=0;i<CHIBI_ROSTER.length;i++)if(CHIBI_ROSTER[i].model===name)
@@ -209,40 +208,23 @@ function snapshotChibiPortraits(){
  }catch(error){console.warn('3D avatar portraits unavailable; game 3D remains playable',error);}
  finally{if(preview){preview.dispose();preview.forceContextLoss();}}
 }
-let gameSurfaceWidth=0,gameSurfaceHeight=0,gameSurfaceResizes=0;
 function adjustSize(width,height){
- // Crucial: NEVER compare against a different DPR than renderer.setPixelRatio.
- // On high-DPI Android the previous mismatch recreated the WebGL buffer
- // every frame (1.5 expected versus 1.15 actual), stalling the entire game.
- const w=Math.max(1,Math.round(width)),h=Math.max(1,Math.round(height));
- if(gameSurfaceWidth===w&&gameSurfaceHeight===h)return;
- gameSurfaceWidth=w;gameSurfaceHeight=h;gameSurfaceResizes++;
- renderer.setSize(w,h,false);
+ if(canvas.width!==Math.round(width*Math.min(devicePixelRatio||1,1.5))||canvas.height!==Math.round(height*Math.min(devicePixelRatio||1,1.5))){
+  renderer.setSize(width,height,false);
+ }
 }
-let lastActorRender=-1e5,portraitsAttempted=false;
-function sync(dt,ms){
+function sync(dt){
  if(failed)return;
  const state=getState();
  if(state&&(state.playing||state.previewing||state.menuing||state.shopping))startLoading();
  if(!state||!state.playing){
-  // Generate portraits at most once, after all rigged models load, off the battlefield.
-  if(!portraitsAttempted&&window.PaperChibiStatus==='ready'&&(state?.menuing||state?.shopping)){
-   portraitsAttempted=true;
-   setTimeout(()=>{
-    if(getState()?.menuing||getState()?.shopping)snapshotChibiPortraits();
-    else portraitsAttempted=false;
-   },0);
-  }
   // Avoid a second full-screen WebGL clear every VS frame on mobile devices.
   // One clear is enough when leaving the match, freeing GPU for smooth dancing.
   if(mainGameVisible){for(const p of instances.values())p.root.visible=false;renderer.clear();mainGameVisible=false;}
   return;
  }
- if(ms-lastActorRender<38)return;
- lastActorRender=ms;
  mainGameVisible=true;
  const w=state.screenW,h=state.screenH,zoom=Math.max(.5,state.zoom);
- const viewX=w/(2*zoom)+105,viewY=h/(2*zoom)+135;
  adjustSize(w,h);
  camera.left=-w/(2*zoom);camera.right=w/(2*zoom);
  camera.top=h/(2*zoom);camera.bottom=-h/(2*zoom);
@@ -252,18 +234,13 @@ function sync(dt,ms){
  const all=new Set();
  for(const p of state.people){
   all.add(p.id);let item=instances.get(p.id);
-  // Don't skin or instantiate invisible bots: distance culling changes rendering only.
-  const inView=p.id===0||(p.alive&&Math.abs(p.x-state.camX)<viewX&&Math.abs(p.y-state.camY)<viewY);
-  if(!p.alive||!inView){if(item)item.root.visible=false;continue;}
-  if(!item||item.hero!==p.hero||item.assetVersion!==assetVersions[p.hero]){
-   if(item)destroyInstance(p.id);
-   item=instantiate(p);
-  }
+  if(!item||item.hero!==p.hero||item.assetVersion!==assetVersions[p.hero]){if(item)destroyInstance(p.id);item=instantiate(p);}
   if(!item)continue;
-  item.root.visible=true;
+  item.root.visible=!!p.alive;
+  if(!p.alive)continue;
   item.root.position.set(p.x,-p.y+7,0);
   // BIG / SMOLL use the same gameplay modifier in 2D and in the WebGL actors.
-  item.root.scale.setScalar(Math.max(.65,Math.min(1.7,p.scale||1))); // visual scale only
+  item.root.scale.setScalar(Math.max(.65,Math.min(1.7,p.scale||1)));
   // Always show faces and outfit silhouettes while hinting at turning.
   item.root.rotation.y=Math.sin(p.angle)*.45;
   if(item.mixer){
@@ -289,18 +266,11 @@ function sync(dt,ms){
    by custom bone animation layered over the included idle cycle. */
 const vsCanvas=document.getElementById('versus3dCanvas');
 let vsRenderer=null,vsScene=null,vsCamera=null,vsCharacters=[],vsFailure=false,vsLastFrame=-1;
-let vsSurfaceWidth=0,vsSurfaceHeight=0,vsSurfaceResizes=0;
-function sizeVS(width,height){
- const w=Math.max(1,Math.round(width)),h=Math.max(1,Math.round(height));
- if(w===vsSurfaceWidth&&h===vsSurfaceHeight)return;
- vsSurfaceWidth=w;vsSurfaceHeight=h;vsSurfaceResizes++;
- vsRenderer.setSize(w,h,false);
-}
 function vsCreate(){
  if(vsRenderer||vsFailure||!vsCanvas)return;
  try{
   vsRenderer=new THREE.WebGLRenderer({canvas:vsCanvas,alpha:true,antialias:true,powerPreference:'low-power',premultipliedAlpha:false});
-  vsRenderer.setPixelRatio(Math.min(devicePixelRatio||1,1.0));
+  vsRenderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));
   vsRenderer.setClearColor(0,0,0);
   vsRenderer.outputColorSpace=THREE.SRGBColorSpace;
   vsRenderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -394,7 +364,9 @@ function syncMenu(state,dt){
   const actor=vsCharacters[0];
   if(!actor){window.PaperMenuReady=false;return;}
   const width=Math.max(1,vsCanvas.clientWidth||360),height=Math.max(1,vsCanvas.clientHeight||240);
-  sizeVS(width,height);
+  const dpr=Math.min(devicePixelRatio||1,1.25);
+  if(vsCanvas.width!==Math.round(width*dpr)||vsCanvas.height!==Math.round(height*dpr))
+   vsRenderer.setSize(width,height,false);
   vsCamera.left=-width/2;vsCamera.right=width/2;
   vsCamera.top=height/2;vsCamera.bottom=-height/2;vsCamera.updateProjectionMatrix();
   const t=performance.now()/1000;
@@ -435,7 +407,8 @@ function syncVS(state,dt){
   }
   if(vsCharacters.some(a=>!a)){window.PaperVSReady=false;vsCanvas.style.opacity='0';return;}
   const width=Math.max(1,vsCanvas.clientWidth||350),height=Math.max(1,vsCanvas.clientHeight||480);
-  sizeVS(width,height);
+  const dpr=Math.min(devicePixelRatio||1,1.25);
+  if(vsCanvas.width!==Math.round(width*dpr)||vsCanvas.height!==Math.round(height*dpr))vsRenderer.setSize(width,height,false);
   vsCamera.left=-width/2;vsCamera.right=width/2;vsCamera.top=height/2;vsCamera.bottom=-height/2;
   vsCamera.updateProjectionMatrix();
   // Keep each animal inside its half, regardless of the model's proportions.
@@ -471,7 +444,7 @@ function syncVS(state,dt){
 function frame(ms){
  requestAnimationFrame(frame);
  const dt=Math.min(.06,(ms-last)/1000||0);last=ms;
- if(!failed)try{const state=getState();sync(dt,ms);if(state?.menuing||state?.shopping)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';document.getElementById('versusStage')?.classList.remove('is-3d');}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
+ if(!failed)try{const state=getState();sync(dt);if(state?.menuing||state?.shopping)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';document.getElementById('versusStage')?.classList.remove('is-3d');}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
   for(const k of Object.keys(window.Paper3DReady))delete window.Paper3DReady[k];
   canvas.style.display='none';}
 }
@@ -491,8 +464,6 @@ if(new URLSearchParams(location.search).has('qa')){
   vsReady:window.PaperVSReady,
   versus:vsCharacters.map(x=>x?.mascotRig?{hero:x.hero,left:x.mascotRig.left.rotation.z,right:x.mascotRig.right.rotation.z}:null),
   gameCharacters:instances.size,
-  gameBufferResizes:gameSurfaceResizes,showcaseBufferResizes:vsSurfaceResizes,
-  gameBuffer:[gameSurfaceWidth,gameSurfaceHeight],showcaseBuffer:[vsSurfaceWidth,vsSurfaceHeight],
   showroomFashion:vsCharacters[0]?.fashionKey||'',
   showroomRig:!!vsCharacters[0]?.mascotRig
  });
