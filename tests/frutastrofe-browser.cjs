@@ -19,6 +19,16 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   assert.equal(await page.locator('#arStart').count(),0,'duplicate 3D/AR selection removed');
   assert((await page.locator('#home').innerText()).includes('EXCLUSIVO AR'));
   await page.screenshot({path:'frutastrofe-ar-menu-mobile.png',animations:'disabled'});
+  assert(await page.locator('#onlineBtn').isVisible(),'online 1v1 option must be visible');
+  await page.locator('#onlineBtn').click();
+  await page.waitForFunction(()=>document.getElementById('onlinePanel').style.display==='flex',null,{timeout:15000});
+  assert(await page.locator('#onlineName').isVisible());
+  assert(await page.locator('#onlineJoinCode').isVisible());
+  assert(await page.locator('#onlineCreate').isVisible());
+  assert.equal(await page.locator('#onlineRoom').isVisible(),false,'room code only appears once server creates a real room');
+  await page.screenshot({path:'frutastrofe-online-lobby-mobile.png',animations:'disabled'});
+  await page.locator('#onlineBack').click();
+  assert(await page.locator('#home').isVisible(),'closing online setup returns to regular AR home');
   await page.locator('#campaign').click();
   assert(await page.locator('#selector').isVisible());assert.equal(await page.locator('.lvl:enabled').count(),1);
   assert((await page.locator('#levelPlay').innerText()).includes('CÁMARA'));
