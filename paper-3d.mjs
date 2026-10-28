@@ -8,17 +8,20 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {buildMascot,animateMascot,MASCOT_DATA} from './paper-mascots.mjs';
 import {setFashion} from './paper-fashion.mjs';
+import {setHumanFashion,animateHuman,initializeHumanRig,HUMAN_HEROES} from './paper-quaternius.mjs';
 
 const canvas=document.getElementById('characterStage');
 const getState=()=>typeof window.Paper3DState==='function'?window.Paper3DState():null;
 const relative='./assets/mascots/';
+const HUMAN_COUNT=HUMAN_HEROES.length;
+const TOTAL_HEROES=HUMAN_COUNT+MASCOT_DATA.length;
 const models=MASCOT_DATA.map(x=>x.species+'.procedural');
 const backupBase='./assets/styloo/';
 const backupModels=['archer.glb','merchant.glb','student.glb','ninja.glb','archer.glb','merchant.glb','student.glb','ninja.glb'];
 const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
 const RIG_HEIGHT=80;
 const gltfLoader=new GLTFLoader();
-const sourceAssets=new Array(models.length).fill(null),instances=new Map();
+const sourceAssets=new Array(TOTAL_HEROES).fill(null),instances=new Map();
 let mainGameVisible=false;
 window.Paper3DReady=Object.create(null);
 window.PaperVSReady=false;
@@ -72,7 +75,7 @@ function instantiate(person){
  const hero=person.hero;
  const asset=sourceAssets[hero];if(!asset)return null;
  const root=new THREE.Group();root.name='Hero_'+person.id;
- const kit=asset.procedural?buildMascot(THREE,hero):null;
+ const kit=asset.procedural?buildMascot(THREE,hero<HUMAN_COUNT?hero:hero-HUMAN_COUNT):null;
  const base=kit?kit.root:SkeletonUtils.clone(asset.scene);
  const bounds=new THREE.Box3().setFromObject(base),size=bounds.getSize(new THREE.Vector3());
  if(!size.y||!Number.isFinite(size.y))return null;
@@ -86,13 +89,16 @@ function instantiate(person){
  const actions={};
  if(mixer)for(const [key,clip] of [['run',run],['idle',idle],['emote',emote]])if(clip){actions[key]=mixer.clipAction(clip);actions[key].setLoop(THREE.LoopRepeat);}
  const rig=findArmRig(base);
- const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null};
+ const human=asset.human?initializeHumanRig(base):null;
+ const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,
+ restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null,...(human||{})};
  scene.add(root);instances.set(person.id,instance);
  window.Paper3DReady[person.id]=true;
  return instance;
 }
 function updateOutfit(instance,equipment){
- setFashion(THREE,instance,equipment||{});
+ if(instance.humanBones)setHumanFashion(THREE,instance,equipment||{});
+ else setFashion(THREE,instance,equipment||{});
 }
 function loadModel(index){
  return new Promise(resolve=>{
@@ -107,8 +113,26 @@ function loadModel(index){
 function startLoading(){
  if(started||failed)return;
  started=true;
- // Eight original models are generated locally: no missing mascot GLB URLs.
- for(let i=0;i<MASCOT_DATA.length;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
+ // Keep the legacy eight mascots as selectable alternatives. The first four
+ // champions are genuinely skinned Quaternius humanoids, not primitives.
+ for(let i=HUMAN_COUNT;i<TOTAL_HEROES;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
+ window.PaperQuaterniusStatus='loading';
+ gltfLoader.load('./assets/cividom-quaternius/ubc-superhero-male.glb',gltf=>{
+  let rigged=false;
+  gltf?.scene?.traverse(n=>{if(n.isSkinnedMesh)rigged=true;});
+  if(!rigged){
+   console.warn('Quaternius GLB loaded without its skeleton; using legacy fallback');
+   for(let i=0;i<HUMAN_COUNT;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
+   window.PaperQuaterniusStatus='fallback';
+   return;
+  }
+  for(let i=0;i<HUMAN_COUNT;i++)sourceAssets[i]={...gltf,human:true};
+  window.PaperQuaterniusStatus='ready';
+ },undefined,error=>{
+  console.warn('Quaternius GLB unavailable; retaining original fallback',error);
+  for(let i=0;i<HUMAN_COUNT;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
+  window.PaperQuaterniusStatus='fallback';
+ });
 }
 
 function adjustSize(width,height){
@@ -155,7 +179,8 @@ function sync(dt){
    }
   }else{item.root.position.y+=Math.sin(state.clock*9+item.phase)*1.8;}
   if(item.mascotRig)animateMascot(item,state.clock,p.emoting?p.emoteId:'run');
-  if(p.id===0){updateOutfit(item,state.equipment);if(!item.mascotRig&&p.emoting&&p.emoteId==='emote_sixseven')danceBones(item,state.clock,false);}
+   else if(item.humanBones)animateHuman(THREE,item,state.clock,p.emoting?p.emoteId:'run');
+  if(p.id===0){updateOutfit(item,state.equipment);}
  }
  for(const id of instances.keys())if(!all.has(id))destroyInstance(id);
  renderer.render(scene,camera);
@@ -185,7 +210,7 @@ function vsCreate(){
 function vsActor(hero){
  if(!sourceAssets[hero])return null;
  const asset=sourceAssets[hero],root=new THREE.Group();
- const kit=asset.procedural?buildMascot(THREE,hero):null;
+ const kit=asset.procedural?buildMascot(THREE,hero<HUMAN_COUNT?hero:hero-HUMAN_COUNT):null;
  const mesh=kit?kit.root:SkeletonUtils.clone(asset.scene);
  const box=new THREE.Box3().setFromObject(mesh),size=box.getSize(new THREE.Vector3());
  if(size.y<=0||!Number.isFinite(size.y))return null;
@@ -197,7 +222,10 @@ function vsActor(hero){
  const action=mixer&&clip?mixer.clipAction(clip):null;
  if(action)action.play();
  const {arms,forearms}=findArmRig(mesh);
- return {hero,root,mesh,mixer,action,arms,forearms,dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6,mascotRig:kit?.rig||null};
+ const human=asset.human?initializeHumanRig(mesh):null;
+ return {hero,root,mesh,base:mesh,mixer,action,arms,forearms,
+ dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6,
+ mascotRig:kit?.rig||null,...(human||{})};
 }
 function clearVSActors(){
  for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();vsScene?.remove(item.root);}
@@ -268,6 +296,7 @@ function syncMenu(state,dt){
   actor.root.rotation.z=Math.sin(t*1.8)*.015;
   if(actor.mixer)actor.mixer.update(Math.min(dt,.04));
   if(actor.mascotRig)animateMascot(actor,t,inShop?(state.previewEmote||'idle'):'idle');
+   else if(actor.humanBones)animateHuman(THREE,actor,t,inShop?(state.previewEmote||'idle'):'idle');
   updateOutfit(actor,inShop?(state.previewEquipment||state.equipment):state.equipment);
   vsRenderer.render(vsScene,vsCamera);
   window.PaperMenuReady=true;
@@ -314,7 +343,8 @@ function syncVS(state,dt){
    actor.root.rotation.x=Math.sin(state.vsSeconds*1.9+i)*.025;
    if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
    if(actor.mascotRig)animateMascot(actor,state.vsSeconds,i===0?(state.vsEmote||'emote_sixseven'):'emote_sixseven',i===1);
-   else danceBones(actor,state.vsSeconds,i===1);
+    else if(actor.humanBones)animateHuman(THREE,actor,state.vsSeconds,i===0?(state.vsEmote||'emote_sixseven'):'emote_sixseven',i===1);
+   else if(!actor.humanBones)danceBones(actor,state.vsSeconds,i===1);
    if(i===0)updateOutfit(actor,state.equipment);
   }
   window.PaperVSReady=true;vsCanvas.style.opacity='1';document.getElementById('versusStage')?.classList.add('is-3d');
@@ -336,6 +366,9 @@ function frame(ms){
 if(new URLSearchParams(location.search).has('qa')){
  window.PaperMascotQA=()=>({
   models:sourceAssets.filter(x=>x?.procedural).length,
+   quaternius:window.PaperQuaterniusStatus||'none',
+   riggedActors:[...instances.values()].filter(x=>x.humanBones).length,
+   humanoidPreview:vsCharacters.filter(x=>x?.humanBones).length,
   menuReady:window.PaperMenuReady,
   vsReady:window.PaperVSReady,
   versus:vsCharacters.map(x=>x?.mascotRig?{hero:x.hero,left:x.mascotRig.left.rotation.z,right:x.mascotRig.right.rotation.z}:null),
