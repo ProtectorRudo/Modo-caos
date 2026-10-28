@@ -207,12 +207,11 @@ test('arcade portraits and fallback chibi people are original vector and CSS geo
 
 test('original heroes each have a distinct identity and can be selected',()=>{
  const g=boot(419);
- assert.match(source,/name:'NOVA'/);assert.match(source,/name:'BOMBO'/);
- assert.match(source,/name:'KIRA'/);assert.match(source,/name:'RAYO'/);
+ for(const name of ['MOMO','ZURI','PLATY','PINGO','OTTO','KUMA','COCO','TORA'])assert.ok(source.includes("name:'"+name+"'"));
  const h=g.win.__paperTest;
  assert.equal(h.setHero(2),true);
  assert.equal(h.wardrobe.hero,2);
- assert.match(g.get('heroDetails').innerHTML,/estratega/);
+ assert.match(g.get('heroDetails').innerHTML,/Caos adorable/);
  assert.equal(h.setHero(-1),false);
  assert.equal(h.wardrobe.hero,2);
 });
@@ -298,8 +297,8 @@ test('progressive 3D renderer uses genuine humanoid rigged models and safe fallb
  const module=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
  assert.match(module,/GLTFLoader/);
  assert.match(module,/SkeletonUtils\.clone/);
- for(const model of ['Knight.glb','Barbarian.glb','Mage.glb','Rogue.glb'])assert.ok(module.includes(model));
- assert.match(module,/KayKit Adventurers/);
+ for(const model of ['marmot.glb','fox.glb','platypus.glb','penguin.glb','seaotter.glb','koala.glb','corgi.glb','tiger.glb'])assert.ok(module.includes(model));
+ assert.match(module,/const relative='\.\/assets\/mascots\/'/);
  assert.match(module,/RIG_HEIGHT=80/);
  assert.match(source,/function paintChibi\(p,hero,col\)/);
  assert.match(source,/window\.Paper3DReady/);
@@ -318,8 +317,8 @@ test('VS opens before a normal game and shows animated Six Seven performers',()=
  assert.equal(g.win.territoryQA.mode,'home');
  g.get('start').onclick();
  assert.equal(g.win.territoryQA.mode,'versus');
- assert.equal(g.get('vsPlayerName').textContent,'NOVA');
- assert.notEqual(g.get('vsRivalName').textContent,'NOVA');
+ assert.equal(g.get('vsPlayerName').textContent,'MOMO');
+ assert.notEqual(g.get('vsRivalName').textContent,'MOMO');
  g.tick(10); // canvas renderer must not throw
  assert.equal(g.win.territoryQA.mode,'versus');
  assert.match(source,/function versusActor\(/);
@@ -367,11 +366,11 @@ test('Six Seven is purchasable with earned in-game currency and equips normally'
  assert.equal(h.wardrobe.equipped.emote,'emote_sixseven');
 });
 
-test('verified Styloo CC0 sources are mapped to all four distinct playable hero GLBs',()=>{
+test('verified CC0 animal sources mapped to eight different GLBs',()=>{
  const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
- for(const name of ['archer.glb','merchant.glb','student.glb','ninja.glb'])
+ for(const name of ['marmot.glb','fox.glb','platypus.glb','penguin.glb','seaotter.glb','koala.glb','corgi.glb','tiger.glb'])
    assert.match(renderer,new RegExp(name.replace('.','\\.')));
- assert.match(renderer,/const relative='\.\/assets\/styloo\/'/);
+ assert.match(renderer,/const relative='\.\/assets\/mascots\/'/);
  assert.match(renderer,/backupModels/);
  assert.match(renderer,/sourceAssets\[index\]=gltf/);
 });
@@ -379,7 +378,7 @@ test('original Six-Seven dance drives genuine arm bones on two 3D showdown chara
  const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
  assert.match(renderer,/function danceBones\(item,seconds,mirror\)/);
  assert.match(renderer,/upperarm/);
- assert.match(renderer,/bone\.quaternion\.premultiply\(/);
+ assert.match(renderer,/bone\.quaternion\.copy\(baseline\)\.slerp\(/);
  assert.match(renderer,/function syncVS\(state,dt\)/);
  assert.match(renderer,/window\.PaperVSReady=true/);
  assert.match(source,/id="versus3dCanvas"/);
@@ -435,11 +434,11 @@ test('home menu no longer includes retired square avatar and showcases live 3D c
 test('hero selection updates game character and the new menu name plate',()=>{
  const g=boot(419),h=g.win.__paperTest;
  assert.equal(h.setHero(3),true);
- assert.equal(g.get('menuCharacterLabel').textContent,'RAYO');
- assert.equal(g.get('menuCharacterTagline').textContent,'¡Velocidad total!');
+ assert.equal(g.get('menuCharacterLabel').textContent,'PINGO');
+ assert.equal(g.get('menuCharacterTagline').textContent,'¡Sangre fría!');
  assert.equal(g.win.Paper3DState().menuHero,3);
  assert.equal(h.setHero(2),true);
- assert.equal(g.get('menuCharacterLabel').textContent,'KIRA');
+ assert.equal(g.get('menuCharacterLabel').textContent,'PLATY');
 });
 test('3D stage is reparented between menu and versus without creating additional renderers',()=>{
  const module=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
@@ -471,4 +470,24 @@ test('changing selected hero updates the original GLB portrait before the model 
  h.setHero(3);
  assert.match(g.get('menuHeroPortrait').src,/ninja\.png$/);
  assert.match(g.get('heroPicker').innerHTML,/ninja\.png/);
+});
+
+test('eight playable animals have unique, commercial-safe model/portrait choices',()=>{
+ const g=boot(419),h=g.win.__paperTest;
+ const names=['MOMO','ZURI','PLATY','PINGO','OTTO','KUMA','COCO','TORA'];
+ assert.equal((g.get('heroPicker').innerHTML.match(/data-hero=/g)||[]).length,8);
+ for(let i=0;i<8;i++){
+  assert.equal(h.setHero(i),true);
+  assert.equal(g.get('menuCharacterLabel').textContent,names[i]);
+  assert.equal(g.win.Paper3DState().menuHero,i);
+ }
+ assert.match(source,/paper-animals\.css/);
+ assert.match(source,/function paintMascotCanvas/);
+});
+test('Six Seven no longer accumulates uncontrolled bone angles',()=>{
+ const module=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ assert.match(module,/captureRestPose/);
+ assert.match(module,/bone\.quaternion\.copy\(baseline\)\.slerp\(desired,ease\)/);
+ assert.doesNotMatch(module,/bone\.quaternion\.premultiply\(/);
+ assert.match(module,/const tempo=2\*Math\.PI/);
 });
