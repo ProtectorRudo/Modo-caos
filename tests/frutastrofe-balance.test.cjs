@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict'), C=require('../frutastrofe-core.js');
+const g=C.create({level:1,seed:2217});g.begin();
+g.update(.05);const first=g.objects[0];assert(first&&first.y>9.2,'high sky spawn expected');
+for(let i=0;i<47;i++)g.update(.05);
+assert(!first.dead&&first.y>1.0,'first level falling object must remain shootable after 2.4 seconds');
+for(let i=0;i<240;i++)g.update(.05);
+const spawns=g.events.filter(e=>e.type==='spawn');
+assert(spawns.some(x=>x.kind==='bomb'&&x.at>=6&&x.at<=7),'a recognizable bomb must appear during every early round');
+assert(spawns.some(x=>x.kind==='rotten'&&x.at>=10&&x.at<=11),'rotten fruit is guaranteed instead of relying on luck');
+assert(spawns.filter(x=>x.kind==='bomb').length>=1);
+assert(spawns.filter(x=>x.kind==='rotten').length>=1);
+const bad=g.spawn('bomb'),rotten=g.spawn('rotten');
+const score=g.score;g.shoot(bad.id);assert.equal(g.errors,1);g.shoot(rotten.id);assert.equal(g.errors,2);assert.equal(g.score,score);
+assert(C.LEVELS[0].trap>=.07&&C.LEVELS[0].rotten>=.08,'new hazard probabilities must remain conspicuous');
+console.log('PASS: slower sky fall, bomb and rotten guarantees, penalty semantics and danger probabilities');
