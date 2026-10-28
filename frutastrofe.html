@@ -47,6 +47,36 @@
 #weapon.is-firing #gunFlash{animation:gun-fast-flash .12s linear infinite}
 @keyframes gun-fast-recoil{0%,100%{transform:translateX(-50%) rotate(-6deg)}35%{transform:translateX(-50%) translateY(7px) rotate(-4deg)}}
 @keyframes gun-fast-flash{0%,20%{opacity:1}100%{opacity:0}}
+
+/* JUICEVERSE v3 — compact, glass-and-metal HUD that doesn't crowd the camera */
+#weapon{z-index:5!important;filter:drop-shadow(0 13px 14px #021025aa) drop-shadow(0 0 12px #29ddea70)!important;bottom:-36px!important;left:42%!important;width:clamp(140px,40vw,193px)!important}
+#weapon svg{transform:translateZ(0)}
+#weapon .gun-name{background:linear-gradient(110deg,#041529e5,#183651c9)!important;border:1px solid #60d8d6a3!important;font-size:9px!important;letter-spacing:1px!important;bottom:26px!important}
+#weapon .gun-name b{color:#d5ff83}
+#hud{z-index:6!important;padding:env(safe-area-inset-top) 9px calc(10px + env(safe-area-inset-bottom))!important}
+#hud .hudTop{justify-content:center!important;gap:6px!important;padding-top:6px!important}
+#hud .hudCard{min-width:0!important;flex:1!important;padding:7px 8px!important;max-width:130px!important;border-radius:13px!important;background:linear-gradient(155deg,#071626cf,#1d2445b8)!important;border:1px solid #b2fbee35!important;box-shadow:0 5px 14px #010c2290,inset 0 1px #ffffff24!important;backdrop-filter:blur(9px)}
+#hud .hudCard small{font-size:9px!important;letter-spacing:.11em!important;color:#add5dd!important}
+#hud .hudCard strong{font-size:clamp(18px,4.7vw,26px)!important;letter-spacing:-.05em!important;line-height:1.1!important;margin-top:3px}
+#hud .hudCard .yellow{color:#e4ff78!important;text-shadow:0 0 12px #ddff7665}
+#hud .hudGoal{width:min(600px,100%)!important;margin:6px auto 0!important;border-radius:11px!important;padding:7px 11px!important;background:linear-gradient(130deg,#07182dd6,#0f2243b8)!important;border:1px solid #6de3de3d!important;box-shadow:0 8px 20px #0611265e!important}
+#hud .goalLabel{font-size:9px!important;letter-spacing:.03em!important;align-items:center;color:#ecfcff!important}
+#hud .meter{height:5px!important;background:#a0c6d331!important;margin-top:5px!important}
+#hud .meter i{background:linear-gradient(90deg,#48dfef,#90f7b8,#e5ff72)!important;box-shadow:0 0 10px #a6ff9a}
+#crosshair{width:34px!important;height:34px!important;filter:drop-shadow(0 0 4px #2bdcce)!important}
+#crosshair:before{inset:2px!important;border-color:#7ff9e8!important;border-width:2px!important;box-shadow:0 0 8px #32e5cc83!important}
+#crosshair:after{inset:14px!important;background:#e9ff9c!important;box-shadow:0 0 6px #defb8f!important}
+#hud .infoBox{border-color:#73daf54f!important;background:#06152bbf!important;color:#e2f2f5!important;font-size:10px!important;backdrop-filter:blur(8px)!important;line-height:1.32!important}
+#hud .quietBtn{border-color:#8ed4e45a!important;background:#061b35cf!important;font-size:11px!important;box-shadow:0 3px 10px #0005!important}
+#hud .fire{width:85px!important;height:85px!important;border:3px solid #f7ffd2!important;color:#fff!important;font-weight:1000!important;font-size:16px!important;background:radial-gradient(circle at 35% 25%,#fffbc7,#f7a94d 23%,#ff537f 64%,#ab235c 100%)!important;box-shadow:0 0 0 5px #fb5f8370,inset 0 3px 8px #fff8,0 5px 0 #77224e,0 0 27px #ff698b8c!important}
+#hud .fire.is-firing{background:radial-gradient(circle at 35% 25%,#f9ffe9,#c5ff86 25%,#27d7ce 65%,#14589e 100%)!important;box-shadow:0 0 0 6px #60f3d58c,0 0 32px #61fdf4a5!important}
+@media(max-width:760px){
+ #weapon{bottom:-40px!important;left:42%!important;width:clamp(148px,43vw,185px)!important}
+ #hud .hudCard{padding:6px 7px!important}
+ #hud .hudCard strong{font-size:22px!important}
+ #hud .bottomHud{gap:5px!important}
+ #hud .fire{width:81px!important;height:81px!important}
+}
 </style></head><body>
 <div id="view" aria-label="Escena tridimensional de frutas"></div><svg id="arWorld" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;overflow:visible"></svg>
 <div id="home" class="shell">
