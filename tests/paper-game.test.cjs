@@ -198,9 +198,9 @@ test('earned milestones and boosts reset on the next match',()=>{
 });
 test('arcade portraits and fallback chibi people are original vector and CSS geometry',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(10);
- assert.match(g.get('rank').innerHTML,/portraitDoll/);
+ assert.match(g.get('rank').innerHTML,/rankAnimal/);
  assert.match(source,/const zoomHero=p\.id===0\?1\.16:1\.0/);
- assert.match(source,/\.portraitDoll\.skin3/);
+ assert.match(source,/rankAnimalHolder/);
  assert.match(source,/#rewardToast\.visible/);
  assert.match(source,/id="railTarget"|class="railTarget"/);
 });
@@ -239,7 +239,7 @@ test('wardrobe balance and equipped emote persist into fresh match',()=>{
  g.get('start').onclick();
  assert.equal(h.getGame().people.length,12);
  assert.equal(h.wardrobe.equipped.emote,'emote_laugh');
- assert.match(g.get('rank').innerHTML,/portraitDoll/);
+ assert.match(g.get('rank').innerHTML,/rankAnimal/);
 });
 test('game grants currency on conquest and elimination, without real-money checkout',()=>{
  const g=boot(419);g.get('start').onclick();
@@ -490,4 +490,11 @@ test('Six Seven no longer accumulates uncontrolled bone angles',()=>{
  assert.match(module,/bone\.quaternion\.copy\(baseline\)\.slerp\(desired,ease\)/);
  assert.doesNotMatch(module,/bone\.quaternion\.premultiply\(/);
  assert.match(module,/const tempo=2\*Math\.PI/);
+});
+
+test('leaderboard shows species-matched original animal portraits',()=>{
+ const g=boot(419);g.get('start').onclick();g.tick(7);
+ const html=g.get('rank').innerHTML;
+ assert.match(html,/rankAnimal/);
+ assert.match(html,/data:image\/svg\+xml/);
 });
