@@ -18,7 +18,7 @@ function draw(view,origin,scale,objects,mode='playing'){
  const w=innerWidth,h=innerHeight;svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.style.display='block';
  const ring=P.floorOutline(view,origin,scale,3.35,w,h),center=P.projection(view,origin,scale,{x:0,y:.03,z:0},w,h);
  let html=defs;
- if(ring.length===48){html+='<polygon points="'+ring.map(([x,y])=>round(x)+','+round(y)).join(' ')+'" fill="#2acbe5" fill-opacity=".07" stroke="url(#fx-floor)" stroke-width="4" stroke-linejoin="round" opacity=".96"/>';for(let j=0;j<8;j++){const q=ring[j*6],p=ring[(j*6+1)%48];html+='<line x1="'+round(q[0])+'" y1="'+round(q[1])+'" x2="'+round(p[0])+'" y2="'+round(p[1])+'" stroke="#e6ffe7" stroke-width="6" opacity=".5"/>'}}
+ if(ring.length===48){let path='',last=false;for(let j=0;j<=48;j++){const p=ring[j%48];if(p){path+=(last?'L':'M')+round(p[0])+','+round(p[1])+' ';last=true}else last=false}html+='<path d="'+path+'" fill="none" stroke="url(#fx-floor)" stroke-width="4" stroke-linecap="round" opacity=".96"/>';for(let j=0;j<8;j++){const q=ring[j*6],p=ring[(j*6+1)%48];if(q&&p)html+='<line x1="'+round(q[0])+'" y1="'+round(q[1])+'" x2="'+round(p[0])+'" y2="'+round(p[1])+'" stroke="#e6ffe7" stroke-width="6" opacity=".5"/>'}}
  if(center)html+='<circle cx="'+round(center.x)+'" cy="'+round(center.y)+'" r="'+(mode==='search'?23:12)+'" fill="none" stroke="#ccff79" stroke-width="3"/><circle cx="'+round(center.x)+'" cy="'+round(center.y)+'" r="4" fill="#f7ffe5"/>';
  visible=[];
  if(mode==='playing'){
