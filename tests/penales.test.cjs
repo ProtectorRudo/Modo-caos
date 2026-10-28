@@ -1,0 +1,43 @@
+'use strict';
+const assert=require('node:assert/strict');
+require('../penales-core.js');
+const C=globalThis.PenalesCore;
+const goal={x:.9,y:.86,power:.8},left={x:-1,y:.12},near={x:.9,y:.85};
+const shot=(m,score)=>C.apply(m,goal,score?left:near);
+assert.equal(C.resolve(goal,left).goal,true);
+assert.equal(C.resolve(goal,near).saved,true);
+let m=C.createMatch();
+for(let i=0;i<6;i++)m=shot(m,true);
+assert.equal(m.done,false,'early termination before the opponent runs out of penalties');
+m=shot(m,true); // 4:3
+m=shot(m,false); // 4:3
+m=shot(m,true); // 5:3, opponent has one left, early clinch
+assert.equal(m.done,true);
+assert.equal(m.winner,0);
+assert.deepEqual(m.scores,[5,3]);
+let sudden=C.createMatch();
+for(let i=0;i<10;i++)sudden=shot(sudden,true);
+assert.equal(sudden.sudden,true);
+assert.equal(sudden.done,false);
+sudden=shot(sudden,false);
+assert.equal(sudden.done,false,'wait for both sudden-death attempts');
+sudden=shot(sudden,true);
+assert.equal(sudden.done,true);
+assert.equal(sudden.winner,1);
+let cup=C.makeCup();
+assert.equal(cup.phase,0);
+assert.equal(cup.opponents.length,3);
+for(let i=0;i<7;i++)cup=C.recordCup(cup,true,5,3);
+assert.equal(cup.status,'champion');
+assert.equal(cup.played,7);
+assert.equal(cup.records.length,7);
+assert.equal(C.cupStage(cup),'GRAN FINAL');
+let lost=C.makeCup();
+for(let i=0;i<3;i++)lost=C.recordCup(lost,false,2,4);
+assert.equal(lost.status,'eliminated');
+let loseKO=C.makeCup();
+for(let i=0;i<3;i++)loseKO=C.recordCup(loseKO,true,5,4);
+assert.equal(loseKO.phase,1);
+loseKO=C.recordCup(loseKO,false,2,4);
+assert.equal(loseKO.status,'eliminated');
+console.log('PENALES AR: all rules, sudden-death and cup tests passed');
