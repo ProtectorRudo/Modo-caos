@@ -86,6 +86,17 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   assert(visual.gunTop>0&&visual.gunBottom<=852,'weapon should fit inside physical phone viewport '+JSON.stringify(visual));
   assert(visual.toastWidth<300&&visual.toastTop>=visual.goalBottom-10,'compact status toast must avoid huge text over fruit '+JSON.stringify(visual));
   assert(visual.boltMs<=100&&visual.maxTrail<=50,'no sustained beam across the whole game space '+JSON.stringify(visual));
+  const muzzle=await page.evaluate(()=>{
+   const measured=window.FrutaAROverlay.measureMuzzle();
+   const ell=document.querySelector('#gunFlash').getBoundingClientRect();
+   const diag=window.__frutaQA.diagnostics();
+   return {measured,expected:{x:ell.left+ell.width*.5,y:ell.top+ell.height*.5},actual:diag.muzzle};
+  });
+  assert(muzzle.measured&&Math.abs(muzzle.measured.x-muzzle.expected.x)<.6&&Math.abs(muzzle.measured.y-muzzle.expected.y)<.6,
+    'AR plasma beam must originate in the actual transformed SVG barrel '+JSON.stringify(muzzle));
+  assert(muzzle.measured.y>0&&muzzle.measured.y<852,'barrel flash must be on-screen '+JSON.stringify(muzzle));
+  console.log('JUICE BLASTER MUZZLE ALIGNED',JSON.stringify(muzzle));
+
   console.log('JUICE APOCALYPSE UI AUDIT',JSON.stringify(visual));
   console.log('JUICE APOCALYPSE QA',JSON.stringify(apoc));
 
