@@ -48,3 +48,14 @@ Nuevos mundos y cosméticos; análisis de packs GLB CC0 con medición de FPS; on
 - Se eliminó la sonda asíncrona XR antes de `requestSession()` para preservar la activación de usuario en Chrome Android.
 - Tests de proyección física simulada de cámara, perspectiva y visibilidad: `node tests/frutastrofe-ar.test.cjs`. Smoke de navegador móvil con simulación de cámara: `tests/frutastrofe-browser.cjs`.
 - **Límite de verificación:** simulación no equivale a prueba física Android/ARCore. Una captura sin geometría fue el motivo de esta revisión; debe comprobarse con teléfono antes de afirmar que está totalmente resuelto.
+
+## Rediseño reactivo AR — Reactor 2 (28/10/2026)
+- La crítica de pruebas físicas incluyó imágenes donde las frutas aparecían sin emisor, la arena parecía un contorno vacío, no había arma visible y los aciertos no producían explosiones.
+- El `frutastrofe-core.js` ahora crea todas las frutas en la garganta de una máquina física fija (x ~0, y 2.76, z -1.15) y les aplica velocidad inicial, gravedad, movimiento lateral y avance en profundidad. Las trayectorias son deterministas por semilla, con oleadas densas y un límite de objetos activos.
+- `frutastrofe-ar-overlay.js` pasó de círculos a un juego de escena proyectada: plataforma sólida con espesor, paneles luminosos y rejilla, reactor con tolva y tanques laterales, emisor de fruta brillante, frutas con volumen simulado, trazas de lanzamiento, destellos, ondas de jugo, gotas y puntos flotantes; sus posiciones provienen de las matrices XR, no de posiciones 2D fijas.
+- El arma de primera persona Juice Blaster aparece en el HUD (es el único elemento fijado a pantalla de manera deliberada); utiliza retroceso, flash y disparos visibles que salen de su boca hacia las frutas proyectadas.
+- Los sonidos de impacto combinan osciladores y una muestra procedural de ruido filtrado; vibración breve cuando es posible.
+- En modo AR, el motor 3D no dibuja duplicados encima del SVG. La proyección conserva el anclaje de superficie y el cálculo de puntería sigue los objetos visibles.
+- Se mantuvo modo únicamente AR, progreso y niveles; los juegos existentes no se tocaron.
+- Se auditaron Kenney Food Kit CC0 y Poly Haven CC0; no se incorporaron modelos externos porque la ruta WebGL-AR mostraba objetos invisibles en el teléfono y porque los recursos pesados elevan el costo en móviles. Se priorizó render reproducible en el DOM-overlay anclado al espacio real.
+- CI: `tests/frutastrofe.test.cjs`, `tests/frutastrofe-ar.test.cjs`, prueba Playwright en dispositivo emulado con escenas y capturas de caída densa, arma, reacción de disparo, pausa y retorno. **No sustituye prueba física ARCore**.
