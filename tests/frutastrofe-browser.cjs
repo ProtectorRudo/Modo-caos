@@ -10,8 +10,11 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   const page=await browser.newPage({viewport:{width:393,height:852},deviceScaleFactor:1,isMobile:true,hasTouch:true});
   const errors=[];page.on('pageerror',e=>errors.push('JS '+e.message));page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE '+m.text())});page.on('requestfailed',r=>errors.push('REQUEST '+r.url()+' '+r.failure()?.errorText));
-  await page.goto(url+'/frutastrofe.html?qa=1',{waitUntil:'load',timeout:40000});
-  await page.locator('#view canvas').waitFor({state:'visible',timeout:35000});
+  const resp=await page.goto(url+'/frutastrofe.html?qa=1',{waitUntil:'domcontentloaded',timeout:40000});
+  console.log('FRUTÁSTROFE browser initial:',JSON.stringify({url:page.url(),status:resp?.status(),title:await page.title(),body:(await page.locator('body').innerText()).slice(0,230)}));
+  if((await page.title()).includes('External Content Notice')){await page.getByText('Open the page',{exact:true}).click({timeout:12000});console.log('AFTER WARNING',page.url(),await page.title())}
+  try{await page.locator('#view canvas').waitFor({state:'visible',timeout:35000})}
+  catch(err){console.log('GAME RENDER DIAG',JSON.stringify({url:page.url(),title:await page.title(),body:(await page.locator('body').innerText()).slice(0,700),errors}));throw err}
   assert(await page.locator('#campaign').isVisible());assert(await page.locator('#arcade').isVisible());
   await page.screenshot({path:'frutastrofe-menu-mobile.png',animations:'disabled'});
   await page.locator('#campaign').click();
