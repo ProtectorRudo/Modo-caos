@@ -372,7 +372,7 @@ input[type=text]:focus{border-color:#42bcca}
 #menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
 #menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
-<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"></head>
+<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"><link rel="stylesheet" href="./paper-survival.css?v=1"></head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <canvas id="characterStage" aria-hidden="true"></canvas>
@@ -388,7 +388,13 @@ input[type=text]:focus{border-color:#42bcca}
    <div class="score"><small>ÁREA CONQUISTADA</small><div class="num" id="percent">0.0%</div><div class="best-live">BEST <b id="bestCurrent">0.0%</b></div><div class="progress"><i id="bar"></i></div><div id="boostline"><span>EXTRA SPEED</span><b id="boostnumber">0%</b></div><div id="boostbar"><i id="boostfill"></i></div></div>
    <div id="kills"><span class="killIcon">☠</span><b id="killCount">0</b></div>
  </div>
- <div id="rank"></div><div id="rewardToast" aria-live="polite"><span id="rewardIcon">✦</span><div><strong id="rewardTitle">RECOMPENSA</strong><small id="rewardDesc">¡Buen trabajo!</small></div></div><canvas id="mini" width="182" height="182"></canvas><button id="pause" aria-label="Pausar partida">Ⅱ</button><button id="emoteButton" aria-label="Hacer gesto de tu personaje">👋</button><div id="msg"></div>
+ <div id="rank" aria-hidden="true"></div><div id="rewardToast" aria-live="polite"><span id="rewardIcon">✦</span><div><strong id="rewardTitle">RECOMPENSA</strong><small id="rewardDesc">¡Buen trabajo!</small></div></div>
+  <aside id="survivalPanel" aria-label="Mapa de zonas seguras, eliminaciones y jugadores vivos">
+   <div class="survivalStats"><span>☠ <b id="survivalKills">0</b> BAJAS</span><span>♥ <b id="survivorsCount">12</b> VIVOS</span></div>
+   <canvas id="mini" width="182" height="182" aria-label="Minimapa con tormenta actual y próxima zona segura"></canvas>
+   <div class="survivalNext" id="nextZoneLabel">SIGUIENTE ZONA · 15s</div>
+   <div class="survivalPhase" id="zonePhaseLabel">ZONA 0/7</div>
+  </aside><button id="pause" aria-label="Pausar partida">Ⅱ</button><button id="emoteButton" aria-label="Hacer gesto de tu personaje">👋</button><div id="msg"></div>
  <div id="controls">ARRASTRÁ PARA DIRIGIR</div><div id="stormStatus" aria-live="off">⚡ TORMENTA EN 18s</div><div id="powerStatus" aria-live="polite">🎁 CAJAS CON PODERES</div>
 </div>
 <section id="versus" class="overlay hidden" aria-label="Presentación de rivales antes de la partida">
@@ -1285,12 +1291,12 @@ function showHud(){
  const boost=Math.round(100*(clock<p.boostUntil?1:p.edgeCharge));
  $('boostfill').style.width=boost+'%';$('boostnumber').textContent=boost+'%';
  if(boost>80)$('boostline').classList.add('active');else $('boostline').classList.remove('active');
- const ownRank=game.ordered.findIndex(q=>q.id===0);
- const arr=ownRank>=3?[...game.ordered.slice(0,3),game.people[0]]:game.ordered.slice(0,4);
- // CSS-drawn original character portraits; avoid arbitrary unicode placeholders.
- $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="rankAnimalHolder"><img class="rankAnimal" src="'+portraitURL(q.id===0?wardrobe.hero:q.id===1?vsRival:q.id%CHIBI_HEROES)+'" alt=""></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
- const best=Math.max(readBest(),game.record,p.score);
- $('recordPointer').style.left=clamp(best/25*100,8,92)+'%';
+ $('survivalKills').textContent=game.kills;
+ $('survivorsCount').textContent=game.people.filter(q=>q.alive).length;
+ const zone=stormZoneState();
+ $('nextZoneLabel').textContent=zone.active?'⚡ CERRANDO · '+Math.ceil(zone.remaining)+'s':zone.next?'SIGUIENTE ZONA · '+Math.ceil(zone.remaining)+'s':'⚡ ZONA FINAL';
+ $('zonePhaseLabel').textContent='ZONA '+zone.phase+'/'+STORM_FRACTIONS.length;
+ $('rank').innerHTML=''; // No leaderboard: only survival matters.
  drawMini();
 }
 function safe(s){return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
@@ -1462,12 +1468,12 @@ function drawUnit(p){
 
  // Text stays readable without putting a huge comic heading over the actor.
  c.font='900 14px system-ui';c.textAlign='center';c.lineWidth=3.6;c.strokeStyle='#153da7';
- c.strokeText(p.name,p.x,p.y-(p.id===0?84:75));c.fillStyle='#fff';c.fillText(p.name,p.x,p.y-(p.id===0?84:75));
+ // No floating username on top of characters: silhouette stays readable.
  if(p.id===0&&clock<emoteUntil){
-  const yy=p.y-80,cx=p.x;
+  const yy=p.y-133,cx=p.x;
   c.save();c.fillStyle='#fffffff2';c.strokeStyle='#2c5dc0';c.lineWidth=2;c.beginPath();
-  c.roundRect(cx-60,yy-14,120,29,9);c.fill();c.stroke();
-  c.fillStyle='#2047a3';c.font='900 11px system-ui';c.fillText(emoteLabel,cx,yy+4);c.restore();
+  c.roundRect(cx-67,yy-16,134,33,10);c.fill();c.stroke();
+  c.fillStyle='#2047a3';c.font='900 11px system-ui';c.fillText(emoteLabel,cx,yy+5);c.restore();
  }
 }
 function render(){
