@@ -8,6 +8,9 @@ import shutil
 import os
 
 ROOT = Path(__file__).resolve().parent.parent
+# Exactly two small CC0 GLBs. This step is optional; fallback remains playable.
+import subprocess, sys
+subprocess.run([sys.executable,str(ROOT/"scripts"/"vendor-power-crates.py")],check=True)
 TARGET = ROOT / "_site"
 PREFIX = os.environ.get("STATIC_PREFIX", "/Modo-caos")
 PUBLISH = {".html", ".js", ".mjs", ".css", ".json", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".woff", ".woff2", ".mp3", ".ogg", ".glb", ".gltf", ".wasm"}
@@ -50,6 +53,16 @@ if STYLOO.exists() and STYLOO.is_dir():
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(item, dest)
         published.append("assets/styloo/" + item.name)
+POWERCRATES = ROOT / "assets" / "powercrates"
+ALLOWED_POWERCRATES = {"pickup-ammo.glb","elite-locked.glb","manifest.json"}
+if POWERCRATES.exists() and POWERCRATES.is_dir():
+    for item in POWERCRATES.iterdir():
+        if not item.is_file() or item.is_symlink() or item.name not in ALLOWED_POWERCRATES:
+            continue
+        dest = TARGET / "assets" / "powercrates" / item.name
+        dest.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(item,dest)
+        published.append("assets/powercrates/" + item.name)
 assert (TARGET / "paper-3d.mjs").is_file(), "CIVIDOM WebGL runtime missing from Pages"
 assert (TARGET / "paper-chibi.mjs").is_file(), "CIVIDOM chibi rig runtime missing from Pages"
 assert (TARGET / "paper.html").is_file(), "CIVIDOM game missing from Pages"
