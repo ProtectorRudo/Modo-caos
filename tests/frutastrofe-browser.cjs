@@ -40,6 +40,10 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   assert((await page.locator('#arWorld').innerHTML()).includes('fp-deck'),'reactor platform is rendered');
   assert(await page.locator('#weapon').isVisible(),'first-person Juice Blaster must be visible');
   await page.screenshot({path:'frutastrofe-ar-world-projection-mobile.png',animations:'disabled'});
+  await page.waitForFunction(()=>window.__frutaQA.state().elapsed>7,null,{timeout:16000});
+  const wave=await page.evaluate(()=>({objects:window.__frutaQA.state().objects,targets:window.__frutaQA.previewWorld(0).length}));
+  assert(wave.objects>=6,'the reactor must generate a dense fruit volley '+JSON.stringify(wave));
+  await page.screenshot({path:'frutastrofe-ar-dense-volley-mobile.png',animations:'disabled'});
   assert(await page.evaluate(()=>window.__frutaQA.shootTest()),'hitting a spawned fruit in AR must succeed');
   await page.evaluate(()=>window.__frutaQA.previewWorld());
   const fx=await page.evaluate(()=>window.__frutaQA.diagnostics());
