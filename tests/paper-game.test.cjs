@@ -381,7 +381,7 @@ test('VS skip starts a playable game with the featured rival correctly represent
  assert.ok(name);
  assert.equal(g.get('vsPlayNow').onclick(),true);
  assert.equal(g.win.territoryQA.mode,'play');
- assert.equal(g.win.territoryQA.players,12);
+ assert.equal(g.win.territoryQA.players,25);
  assert.equal(g.win.__paperTest.getGame().people[1].name,name);
  assert.equal(g.win.Paper3DState().people[1].hero,g.win.__paperTest.getFeatured());
 });
@@ -390,7 +390,7 @@ test('VS automatically proceeds to the match after the choreographed countdown',
  g.get('start').onclick();
  g.tick(365);
  assert.equal(g.win.territoryQA.mode,'play');
- assert.equal(g.win.territoryQA.players,12);
+ assert.equal(g.win.territoryQA.players,25);
 });
 test('replay displays another versus intro rather than bypassing the fight presentation',()=>{
  const g=boot(419,'?qa=1&vs=1');
@@ -544,7 +544,7 @@ test('Six Seven no longer accumulates uncontrolled bone angles',()=>{
 test('the survivor count remains valid even before the GLB assets load',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(7);
  assert.equal(g.get('rank').innerHTML,'');
- assert.equal(g.get('survivorsCount').textContent,12);
+ assert.equal(g.get('survivorsCount').textContent,25);
  assert.match(g.get('nextZoneLabel').textContent,/ZONA/);
 });
 test('original fallbacks remain available while the official CIVIDOM Chibi collection is featured',()=>{
@@ -605,4 +605,38 @@ test('Six Seven entrance never snaps on slow 270ms mobile frames',async()=>{
    previous=current;
   }
  }
+});
+
+test('APK-scale 25 participants occupy independent starting cells and have valid names',()=>{
+ const g=boot(419);g.get('start').onclick();const people=g.win.__paperTest.getGame().people;
+ assert.equal(people.length,25);
+ assert.equal(people[0].id,0);
+ for(const p of people){assert.ok(typeof p.name==='string'&&p.name.length>0);assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));}
+ for(let i=0;i<people.length;i++)for(let j=i+1;j<people.length;j++)
+  assert.ok(Math.hypot(people[i].x-people[j].x,people[i].y-people[j].y)>95,'spawn overlap '+i+'/'+j);
+});
+test('25 player trail masks can represent id 24 without colliding with player id 0',()=>{
+ assert.match(source,/trails=new Uint32Array\(SIZE\)/);
+ const g=boot(419);g.get('start').onclick();const h=g.win.__paperTest;
+ const enemy=h.getGame().people[24],player=h.getGame().people[0];
+ for(const bot of h.getGame().people.slice(1,24))bot.alive=false;
+ const x=1398,y=1118,k=h.idx(x,y);
+ enemy.x=x+22;enemy.y=y;enemy.outside=true;enemy.trailPoints=[{x:x-33,y},{x,y}];
+ h.markTrail(enemy,k);
+ assert.equal(enemy.alive,true);
+ h.cutExposedTrails(player,x+3,y+12);
+ assert.equal(enemy.alive,false,'last bot has an independent high-bit collision trail');
+ assert.equal(player.alive,true);
+ assert.equal(h.getGame().kills,1);
+});
+test('APK longer storm pacing gives 45 seconds safe opening and seven phases through 225 seconds',()=>{
+ const g=boot(10);g.get('start').onclick();const h=g.win.__paperTest;
+ assert.deepEqual(h.getGame().storm.stages.map(x=>x.at),[45,75,105,135,165,195,225]);
+ h.setClock(44.5);h.updateStorm(0);
+ assert.equal(h.stormZoneState().phase,0);
+ h.setClock(49);h.updateStorm(0);
+ assert.equal(h.stormZoneState().phase,1);
+ assert.ok(h.getGame().storm.radius<h.R);
+ h.setClock(55.1);h.updateStorm(0);
+ assert.equal(h.getGame().storm.stages[0].radius,h.getGame().storm.radius);
 });
