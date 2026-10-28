@@ -415,7 +415,7 @@ input[type=text]:focus{border-color:#42bcca}
 </section>
 <section id="home" class="overlay"><div class="panel">
  <div class="brand">♛ MODO CAOS · NUEVA GENERACIÓN ♛</div><h1 class="cvdomLogo">CV<em>DOM</em><span class="logoCrown">♛</span></h1><div class="lobbyTag">CLAIM. CONQUER. DOMINATE.</div>
- <p class="description">Ocho campeones. Ocho personalidades. Un mapa para conquistar.</p>
+ <p class="description">Conquistá territorio · 🎁 recogé cajas con poderes · ⚡ escapá de la tormenta que cierra el círculo.</p>
  <div id="menuHeroStage" class="menuHeroStage">
  <div class="menuSparks" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>
  <canvas id="menuFallbackCanvas" width="500" height="390" aria-label="Vista previa del personaje seleccionado"></canvas>
@@ -767,11 +767,11 @@ function spawnBoxPoint(){
  return null;
 }
 function spawnArenaBox(){
- if(!game?.boxes||game.boxes.filter(b=>b.active&&!b.drop).length>=4)return;
+ if(!game?.boxes||game.boxes.filter(b=>b.active&&!b.drop).length>=14)return;
  const p=spawnBoxPoint();if(!p)return;
  const slot=game.boxSerial++%14;
  const type=POWER_KINDS[slot%POWER_KINDS.length];
- game.boxes.push({...p,type,active:true,drop:false,spawnAt:clock,collectAt:clock+.4,expiresAt:clock+23});
+ game.boxes.push({...p,type,active:true,drop:false,spawnAt:clock,collectAt:clock+.4,expiresAt:clock+32});
 }
 function dropMystery(p){
  // One collectible drop at the exact defeat point, including bot-vs-bot kills.
@@ -784,8 +784,8 @@ function tickBoxes(){
  if(!game?.boxes)return;
  for(const box of game.boxes)if(box.active&&clock>box.expiresAt)box.active=false;
  if(clock>=game.nextBoxAt){
-  spawnArenaBox();
-  game.nextBoxAt=clock+random(5,7.5);
+  spawnArenaBox();spawnArenaBox();
+  game.nextBoxAt=clock+random(3.2,4.5);
  }
  // Spent power crates do not stay in the render list indefinitely.
  if(game.boxes.length>70)game.boxes=game.boxes.filter(b=>b.active);
@@ -794,7 +794,7 @@ function grantPower(p,kind){
  const power=kind==='SORPRESA'?POWER_KINDS[Math.floor(Math.random()*5)]:kind;
  if(!POWER_SECONDS[power])return;
  p.powerKind=power;p.powerUntil=clock+POWER_SECONDS[power];
- if(power==='SHIELD')p.shieldUntil=p.powerUntil;
+ p.shieldUntil=power==='SHIELD'?p.powerUntil:0;
  if(p.id===0){
   game.lastPower=power;
   burstAt(p.x,p.y,POWER_COLORS[power],22,72);
