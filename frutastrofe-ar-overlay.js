@@ -7,7 +7,7 @@ const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const palette={strawberry:['#ff9ba8','#ef2454','#921035'],apple:['#ffd0c5','#f63b4b','#8d112a'],orange:['#ffe3aa','#ff9833','#b34e13'],watermelon:['#b1ffe1','#34c786','#086c48'],lemon:['#ffffce','#ffe749','#bb8d08'],gold:['#fff4b8','#fbc03e','#a06612'],ice:['#f5ffff','#71d5ff','#2181b3'],rainbow:['#faeaff','#a685fa','#6d43a9'],rotten:['#b9cb6b','#6c8540','#2f4122'],bomb:['#9aa4bf','#2d344f','#0c1125'],boss:['#ccffe2','#3bd48c','#07643d']};
 const LAYER_ID='frutastrofe-canvas';
 let canvas=null,ctx=null,width=0,height=0,sprites={},targets=[],mode='idle',renders=0,costMs=0;
-const particles=[],splashes=[],shots=[],scores=[],puddles=[];let shotsEver=0,stage=1,fever=false;
+const particles=[],splashes=[],shots=[],scores=[],puddles=[],launchBursts=[];let shotsEver=0,stage=1,fever=false;
 function now(){return performance.now()/1000}
 function layer(){
  if(!canvas){
@@ -100,6 +100,16 @@ function draw(view,origin,scale,objects,kind='playing'){
   const corners=[pos(-2.3,-.08,-1.6),pos(2.3,-.08,-1.6),pos(2.3,-.08,1.6),pos(-2.3,-.08,1.6)];
   polygon(c,corners,'rgba(12,28,54,.88)','#58efdd',3);
  }
+ // Ejection flashes connect each fruit's first appearance to a real portal nozzle.
+ for(let i=launchBursts.length-1;i>=0;i--){
+  const burst=launchBursts[i],age=t-burst.at;
+  if(age>.21){launchBursts.splice(i,1);continue}
+  const p=pos(burst.x,burst.y,burst.z);if(!p)continue;
+  const alpha=1-age/.21;
+  c.save();c.globalAlpha=alpha*.75;
+  strokeCircle(c,p.x,p.y,6+age*70,burst.kind==='bomb'?'#ff837e':'#b5ffdf',2.3);
+  c.globalAlpha=alpha*.42;circle(c,p.x,p.y,5+age*20,'#ebffad');c.restore();
+ }
  targets=[];
  if(kind==='playing'){
   // Contact shadows on the REAL anchored deck; their strength depends on height.
@@ -177,7 +187,7 @@ function draw(view,origin,scale,objects,kind='playing'){
   // CSS weapon uses viewport width 35%, left 43% and bottom 2px.
   // This projected muzzle stays at exactly the same virtual geometry,
   // without invoking getBoundingClientRect during every WebXR frame.
-  const sx=width*.43,sy=height-gunWidth*(1.04*(335/240))+2;
+  const sx=width*.43,sy=height-2-gunWidth*(298/240);
   const dx=p.x-sx,dy=p.y-sy,d=Math.hypot(dx,dy)||1;
   const head=clamp(k*1.45,0,1);
   const px=sx+dx*head,py=sy+dy*head;
@@ -224,13 +234,13 @@ function impact(p,kind='apple',combo=false){
 function shot(x,y,hit=true){shotsEver++;shots.push({x:x??width/2,y:y??height*.48,hit,at:now()});if(shots.length>2)shots.shift()}
 function popup(p,value){if(p)scores.push({...p,value:Math.round(value),at:now()});if(scores.length>5)scores.shift()}
 function land(p){if(p){puddles.push({...p,color:palette[p.kind]?.[1]||'#84ffff',at:now()});if(puddles.length>6)puddles.shift()}}
-function emerge(){}
+function emerge(p){if(!p)return;launchBursts.push({x:p.x,y:p.y,z:p.z,kind:p.kind,at:now()});if(launchBursts.length>4)launchBursts.shift()}
 function clear(){
  if(canvas){canvas.style.display='none';ctx?.clearRect(0,0,width,height)}
- particles.length=splashes.length=shots.length=scores.length=puddles.length=targets.length=0;mode='idle';
+ particles.length=splashes.length=shots.length=scores.length=puddles.length=targets.length=launchBursts.length=0;mode='idle';
 }
 root.FrutaAROverlay={draw,clear,impact,shot,popup,land,emerge,
  setStage(phase,isFever){stage=clamp(Number(phase)||1,1,6);fever=!!isFever},
  get targets(){return targets},get state(){return mode},
- get diagnostics(){return {engine:'canvas2d',boltDurationMs:95,boltMaxStreakPx:48,premium:true,sprites:root.FrutaPremiumArt?.stats().spriteCount||Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
+ get diagnostics(){return {engine:'canvas2d',boltDurationMs:95,boltMaxStreakPx:48,premium:true,sprites:root.FrutaPremiumArt?.stats().spriteCount||Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,launchBursts:launchBursts.length,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
 })(typeof window!=='undefined'?window:globalThis);
