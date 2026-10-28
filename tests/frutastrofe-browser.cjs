@@ -30,7 +30,10 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   const before=await page.locator('#hudTime').textContent();await page.waitForTimeout(300);assert.equal(await page.locator('#hudTime').textContent(),before);
   await page.locator('#resumeBtn').click();assert(await page.locator('#hud').isVisible());
   await page.locator('#pauseBtn').click();await page.locator('#quitBtn').click();assert(await page.locator('#home').isVisible());
-  assert.equal(errors.length,0,errors.join(' | '));
+  // Githack injects its own external advertisement script; a blocked external ad is unrelated to our game.
+  const adBlocked=errors.some(x=>x.includes('server.ethicalads.io/')&&x.includes('ERR_BLOCKED_BY_RESPONSE'));
+  const appErrors=errors.filter(x=>!x.includes('server.ethicalads.io/')&&!(Boolean(process.env.FRUTA_BROWSER_BASE)&&adBlocked&&x==='CONSOLE Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin'));
+  assert.equal(appErrors.length,0,appErrors.join(' | '));
   await page.goto(url+'/index.html');assert.equal(await page.locator('a[href="/frutastrofe.html"]').count(),1);
   console.log('PASS FRUTÁSTROFE: 3D canvas, mobile gameplay, timer, pause/resume, menu, screenshot; no JS errors');
  }catch(err){console.error(err.stack||err);process.exitCode=1}
