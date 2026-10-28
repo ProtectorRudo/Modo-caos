@@ -116,6 +116,16 @@
           notify:()=>send('mc-refresh',{at:Date.now()}),
           pulse:()=>send('mc-pulse',{at:Date.now(),userId:session.user.id}),
           sendGameEvent:payload=>send('mc-game',{...payload,userId:session.user.id}),
+          // Host-authoritative arcade snapshots are larger than lobby pulses.
+          // Kept separate so other Modo Caos games retain the 2.4 KB limit.
+          async sendGameState(payload){
+            if(closed||!connected)throw new Error('Sala sin conexión realtime');
+            const event={...payload,userId:session.user.id};
+            if(JSON.stringify(event).length>70000)throw new Error('Estado de CIVIDOM demasiado grande');
+            const result=await channel.send({type:'broadcast',event:'mc-game',payload:event});
+            if(result!=='ok')throw new Error('No se entregó el estado: '+result);
+            return result;
+          },
           async close(){
             if(closed)return;closed=true;connected=false;
             try{await channel.untrack()}catch(e){}
