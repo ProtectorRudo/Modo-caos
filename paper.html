@@ -520,6 +520,8 @@ SHOP_ITEMS.push(
  {id:'shoes_gold',category:'shoes',name:'Golden Steps',icon:'🥇',price:390,desc:'Zapatillas doradas'},
  {id:'shoes_rollers',category:'shoes',name:'Roller Pop',icon:'🛼',price:440,desc:'Rueditas animadas'}
 );
+// Old single-slot hats/glasses stay owned, but are replaced by real modular versions.
+for(const id of ['outfit_cap','outfit_shades','outfit_ears'])SHOP_ITEMS.find(x=>x.id===id).retired=true;
 const STORE_KEY='territoryloop_wardrobe_v1';
 function loadWardrobe(){
  let raw={};try{raw=JSON.parse(localStorage.getItem(STORE_KEY)||'{}')||{};}catch(e){}
@@ -625,7 +627,7 @@ function renderShop(){
  if(!SHOP_ITEMS.some(x=>x.id===shopPreviewId&&x.category===shopCategory))shopPreviewId=wardrobe.equipped[shopCategory];
  const selected=SHOP_ITEMS.find(x=>x.id===shopPreviewId);
  $('shopPreviewName').textContent=HEROES[wardrobe.hero].name+' · '+(selected?.name||'ORIGINAL').toUpperCase();
- $('shopGrid').innerHTML=SHOP_ITEMS.filter(x=>x.category===shopCategory).map(item=>{
+ $('shopGrid').innerHTML=SHOP_ITEMS.filter(x=>x.category===shopCategory&&!x.retired).map(item=>{
   const owned=wardrobe.owned.has(item.id),equipped=wardrobe.equipped[item.category]===item.id,previewed=item.id===shopPreviewId;
   return '<article class="shopItem '+(equipped?'equipped ':'')+(previewed?'previewed':'')+'"><button class="shopPreviewChoice" data-preview="'+item.id+'" aria-label="Probar '+item.name+'"><span class="itemArt">'+item.icon+'</span><strong>'+item.name+'</strong><small>'+item.desc+'</small></button><button class="buyItem" data-buy="'+item.id+'" '+(equipped?'disabled':'')+'>'+(equipped?'✓ EQUIPADO':owned?'EQUIPAR':'🪙 '+item.price+' · COMPRAR')+'</button></article>';
  }).join('');
@@ -1365,7 +1367,10 @@ function drawVersus(ms){
  if(sec>1.1&&sec<4.9){
   ctx.save();ctx.textAlign='center';ctx.font='1000 34px system-ui';
   ctx.strokeStyle='#132873';ctx.lineWidth=7;ctx.fillStyle='#fff';
-  const txt=Math.floor(sec*2)%2===0?'SIX':'SEVEN';
+  const selectedEmote=wardrobe.equipped.emote;
+  const txt=selectedEmote==='emote_sixseven'||selectedEmote==='emote_hello'
+   ?(Math.floor(sec*2)%2===0?'SIX':'SEVEN')
+   :(SHOP_ITEMS.find(x=>x.id===selectedEmote)?.name||'¡VAMOS!').toUpperCase();
   ctx.strokeText(txt,380,390);ctx.fillText(txt,380,390);ctx.restore();
  }
  if(sec>4.15&&!window.PaperVSReady){ctx.save();ctx.textAlign='center';ctx.font='1000 35px system-ui';
