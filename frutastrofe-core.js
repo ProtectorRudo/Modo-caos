@@ -98,7 +98,7 @@ function create(opts={}){
   if(g.elapsed>=g.nextCluster&&g.cfg.goal!=='boss'){const choice=pick(TYPES,rng),base=(rng()-.5)*1.1;for(let j=0;j<3;j++){const q=spawn(choice);q.vx=base+(j-1)*1.4;q.vy=2.7+.25*j;q.gravity=4.3}emit('opportunity',{kind:choice});g.nextCluster+=7.7}
   if(g.elapsed>=g.nextSpawn){
    if(g.objects.length<26)spawn();
-   const period=Math.max(.19,cfg.rate*.44*(g.fever ? 0.58 : 1));
+   const period=Math.max(.14,cfg.rate*.27*(g.fever ? 0.58 : 1));
    g.nextSpawn=g.elapsed+period*(.7+rng()*.56);
    // Periodic guaranteed same-fruit clusters provide real strategic combo opportunities.
    if(g.elapsed>8&&Math.floor(g.elapsed)%13===0&&g.objects.length<19){const fruit=pick(TYPES,rng);spawn(fruit);spawn(fruit)}
