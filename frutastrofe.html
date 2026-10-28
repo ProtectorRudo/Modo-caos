@@ -183,6 +183,19 @@
  #weapon{left:43%!important;bottom:14px!important;width:clamp(119px,35vw,136px)!important}
  #toast{max-width:74vw!important;padding:7px 11px!important}
 }
+
+/* Physical aim feedback: one reticle, no giant extra targeting rings. */
+#crosshair{transition:filter .12s ease}
+#crosshair.aim-fruit:before{
+ border-color:#dfff8c!important;
+ box-shadow:0 0 0 3px #9bfa8840,0 0 14px #b3ff85b0!important;
+}
+#crosshair.aim-fruit:after{background:#edffa6!important}
+#crosshair.aim-danger:before{
+ border-color:#ff727f!important;
+ box-shadow:0 0 0 3px #f15b6449,0 0 15px #ff4b72a1!important;
+}
+#crosshair.aim-danger:after{background:#ff93a2!important}
 </style></head><body>
 <div id="view" aria-label="Escena tridimensional de frutas"></div><svg id="arWorld" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;overflow:visible"></svg>
 <div id="home" class="shell">
