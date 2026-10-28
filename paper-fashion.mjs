@@ -30,6 +30,10 @@ export function setFashion(THREE,actor,config){
  if(!rig)return;
  const ids={outfit:config?.outfit||'outfit_base',headwear:config?.headwear||'head_none',eyewear:config?.eyewear||'eyes_none',shoes:config?.shoes||'shoes_base'};
  if(!Object.values(ids).every(valid))return;
+ // Preserve the original shop purchases even after the modular-slot migration.
+ if(ids.outfit==='outfit_cap'){if(ids.headwear==='head_none')ids.headwear='head_cap';ids.outfit='outfit_base';}
+ if(ids.outfit==='outfit_ears'){if(ids.headwear==='head_none')ids.headwear='head_beanie';ids.outfit='outfit_base';}
+ if(ids.outfit==='outfit_shades'){if(ids.eyewear==='eyes_none')ids.eyewear='eyes_shades';ids.outfit='outfit_base';}
  const fingerprint=Object.values(ids).join('|');
  if(actor.fashionKey===fingerprint)return;
  // Discard only the previous fashion modules, never character anatomy.
@@ -38,7 +42,7 @@ export function setFashion(THREE,actor,config){
   g.traverse(n=>{if(n.isMesh){n.geometry.dispose();n.material.dispose();}});
  }
  actor.fashionNodes=[];actor.fashionKey=fingerprint;
- const mat=(hex,metal=0,rough=.38,emissive=null)=>new THREE.MeshStandardMaterial({color:hex,metalness:metal,roughness:rough,emissive:emissive||'#000000',emissiveIntensity:emissive?.3:0});
+ const mat=(hex,metal=0,rough=.38,emissive=null)=>new THREE.MeshStandardMaterial({color:hex,metalness:metal,roughness:rough,emissive:emissive||'#000000',emissiveIntensity:emissive?0.3:0});
  const mesh=(p,geometry,material,x,y,z,scale)=>{
   const item=new THREE.Mesh(geometry,material);
   item.position.set(x,y,z);
