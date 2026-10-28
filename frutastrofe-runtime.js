@@ -36,10 +36,23 @@ function tone(freq=600,duration=.10,type='sine',vol=.08,offset=0){
  if(!musicEnabled)return;
  try{musicCtx=musicCtx||new(window.AudioContext||window.webkitAudioContext)();musicCtx.resume?.();const t=musicCtx.currentTime+offset,osc=musicCtx.createOscillator(),gain=musicCtx.createGain();osc.type=type;osc.frequency.setValueAtTime(freq,t);osc.frequency.exponentialRampToValueAtTime(Math.max(80,freq*.67),t+duration);gain.gain.setValueAtTime(vol,t);gain.gain.exponentialRampToValueAtTime(.0002,t+duration);osc.connect(gain);gain.connect(musicCtx.destination);osc.start(t);osc.stop(t+duration+.01)}catch(e){}
 }
-function fxSound(type){if(type==='shot')tone(280,.085,'triangle',.07);if(type==='hit')tone(440,.095,'sine',.075);if(type==='trap'){tone(160,.3,'sawtooth',.1);navigator.vibrate?.([45,40,45])}if(type==='chain'){tone(600,.16,'sine',.11);tone(800,.14,'sine',.08,.09);tone(1040,.18,'sine',.10,.18);navigator.vibrate?.([18,26,28])}if(type==='boss'){tone(180,.25,'sawtooth',.12);tone(440,.32,'triangle',.12,.11)}}
+let cachedSplashNoise=null;
+function juicePop(){
+ if(!musicEnabled)return;
+ try{
+  musicCtx=musicCtx||new(window.AudioContext||window.webkitAudioContext)();
+  if(!cachedSplashNoise){const sr=musicCtx.sampleRate,size=Math.floor(sr*.14);cachedSplashNoise=musicCtx.createBuffer(1,size,sr);const channel=cachedSplashNoise.getChannelData(0);for(let i=0;i<size;i++)channel[i]=(Math.random()*2-1)*(1-i/size)}
+  const src=musicCtx.createBufferSource(),filter=musicCtx.createBiquadFilter(),gain=musicCtx.createGain(),t=musicCtx.currentTime;
+  src.buffer=cachedSplashNoise;src.playbackRate.value=.8+Math.random()*.5;filter.type='lowpass';filter.frequency.value=520;
+  gain.gain.setValueAtTime(.12,t);gain.gain.exponentialRampToValueAtTime(.001,t+.13);
+  src.connect(filter);filter.connect(gain);gain.connect(musicCtx.destination);src.start(t);src.stop(t+.15);
+ }catch(e){}
+}
+function fxSound(type){if(type==='shot')tone(280,.085,'triangle',.07);if(type==='hit'){tone(440,.095,'sine',.075);juicePop();navigator.vibrate?.(9)}if(type==='trap'){tone(160,.3,'sawtooth',.1);navigator.vibrate?.([45,40,45])}if(type==='chain'){tone(600,.16,'sine',.11);tone(800,.14,'sine',.08,.09);tone(1040,.18,'sine',.10,.18);navigator.vibrate?.([18,26,28])}if(type==='boss'){tone(180,.25,'sawtooth',.12);tone(440,.32,'triangle',.12,.11)}}
 function moodMusic(t){if(!musicEnabled||!g||g.state!=='playing'||t-lastMusic<.34)return;lastMusic=t;const beat=Math.floor(g.elapsed*3);if(beat%2===0)tone([220,247,277,330][Math.floor(beat/2)%4],.07,'triangle',.018)}
 function events(){
  if(!g)return;for(const ev of g.events.splice(0)){
+  if(ev.type==='points'&&isAR&&Number.isFinite(ev.x)&&Number.isFinite(ev.y))O.popup(ev,ev.points);
   if(ev.type==='hit'){if(!isAR)art.burst(ev.x,ev.y,ev.z,ev.kind,14);if(isAR)O.impact(ev,ev.kind);fxSound('hit')}
   if(ev.type==='splash'){if(!isAR)art.burst(ev.x,ev.y,ev.z,ev.kind,9);if(isAR)O.impact(ev,ev.kind)}
   if(ev.type==='trap'){if(!isAR)art.burst(ev.x,ev.y,ev.z,'bomb',22);if(isAR)O.impact(ev,'bomb');fxSound('trap');alertTxt('¡TRAMPA! − PUNTOS',900)}
