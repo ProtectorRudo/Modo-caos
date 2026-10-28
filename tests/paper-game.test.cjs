@@ -643,7 +643,7 @@ test('APK longer storm pacing gives 45 seconds safe opening and seven phases thr
 
 test('compact Fortnite-inspired minimap uses square map, safe rings and one status strip',()=>{
  const css=fs.readFileSync(path.join(__dirname,'..','paper-mini-hud.css'),'utf8');
- assert.match(source,/paper-mini-hud\.css\?v=2/);
+ assert.match(source,/paper-mini-hud\.css\?v=3/);
  assert.match(source,/class="cvMiniMapFrame"/);
  assert.match(source,/id="miniTimeMetric"/);
  assert.match(source,/class="survivalStats" aria-label="Tormenta/);
@@ -682,7 +682,7 @@ test('R4 minimap is white, enemy positions have double-contrast markers and curr
 });
 test('R4 storm, alive and kills use readable labels and bold counts under compact map',()=>{
  const css=fs.readFileSync(path.join(__dirname,'..','paper-mini-hud.css'),'utf8');
- assert.match(source,/paper-mini-hud\.css\?v=2/);
+ assert.match(source,/paper-mini-hud\.css\?v=3/);
  assert.match(source,/class="miniMetricLabel">TORMENTA<\/small>/);
  assert.match(source,/class="miniMetricLabel">VIVOS<\/small>/);
  assert.match(source,/class="miniMetricLabel">BAJAS<\/small>/);
@@ -691,4 +691,7 @@ test('R4 storm, alive and kills use readable labels and bold counts under compac
  assert.match(css,/min-height:42px!important/);
  assert.match(css,/font:950 14px\/1\.12/);
  assert.match(css,/#hud #survivalPanel #mini\{background:#fff!important\}/);
+ assert.match(css,/Neutralize legacy padded span rules/);
+ assert.match(css,/\.miniMetricValue,\s*\n#hud #survivalPanel \.survivalStats \.miniMetricIcon/);
+
 });
