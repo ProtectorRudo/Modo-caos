@@ -1157,7 +1157,7 @@ function drawVersus(ms){
  if(ms-vsStartedAt>=VS_DURATION)launchMatch();
 }
 
-function start(){if(new URLSearchParams(location.search).has('qa')){selectedSkin=wardrobe.hero;reset();audio('start');return;}showVS();}
+function start(){const params=new URLSearchParams(location.search);if(params.has('qa')&&!params.has('vs')){selectedSkin=wardrobe.hero;reset();audio('start');return;}showVS();}
 function goHome(){mode='home';game=null;$('versus').classList.add('hidden');renderHeroPicker();refreshWallet();$('hud').style.display='none';$('result').classList.add('hidden');$('paused').classList.add('hidden');$('home').classList.remove('hidden');$('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';}
 function pause(){if(mode!=='play')return;mode='pause';$('paused').classList.remove('hidden');}
 function resume(){mode='play';$('paused').classList.add('hidden');}
