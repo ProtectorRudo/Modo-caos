@@ -383,7 +383,7 @@ test('original Six-Seven dance drives genuine arm bones on two 3D showdown chara
  assert.match(renderer,/window\.PaperVSReady=true/);
  assert.match(source,/id="versus3dCanvas"/);
  assert.match(source,/id="vsPortraits"/);
- assert.match(source,/style\.opacity=window\.PaperVSReady\?'0':'1'/);
+ assert.match(source,/\$\('vsPortraits'\)\.style\.opacity='1'/);
  assert.doesNotMatch(source,/if\(!window\.PaperVSReady\)/);
 });
 test('showdown preloads GLBs while the countdown is running',()=>{
