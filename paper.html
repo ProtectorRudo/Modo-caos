@@ -405,7 +405,7 @@ input[type=text]:focus{border-color:#42bcca}
       <div class="vsNamePlate vsNameRight"><small>RIVAL DESTACADO</small><strong id="vsRivalName">BOMBO</strong><span id="vsRivalRole">El bromista</span></div>
     </div>
     <div class="vsFooter">
-      <div class="vsFestejo"><span class="vsFire">✦</span><div><strong>SHOW SIX SEVEN</strong><small>El gesto viral, con coreografía original para nuestros personajes</small></div></div>
+      <div class="vsFestejo"><span class="vsFire">✦</span><div><strong id="vsEmoteTitle">SHOW SIX SEVEN</strong><small>El gesto viral, con coreografía original para nuestros personajes</small></div></div>
       <div class="vsCountdown"><span>EMPIEZA EN</span><strong id="vsCountdown">5</strong></div>
     </div>
     <div class="vsTrack"><i id="vsTrackFill"></i></div>
@@ -426,7 +426,7 @@ input[type=text]:focus{border-color:#42bcca}
  <span id="menu3dStatus" class="menuStatus">VISTA PREVIA ANIMADA</span>
 </div>
  <input id="nick" maxlength="16" type="text" placeholder="Tu nombre" value="VOS" aria-label="Nombre de jugador">
- <div class="colors" id="colors"></div><div class="heroRosterHead">ELEGÍ TU CAMPEÓN · 8 AVATARES ORIGINALES</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
+ <div class="colors" id="colors"></div><div class="heroRosterHead">CIVIDOM ORIGINALS · ELEGÍ TU CAMPEÓN</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
  <button class="primary" id="start">▶ JUGAR AHORA</button>
  <div class="best" id="best"></div><div class="mini-label">PERSONAJE SELECCIONADO: <b id="heroName">NOVA</b></div><div class="subline">Vos contra 11 rivales IA · movimiento continuo · móvil y PC · sin descargas</div>
  <div class="rowbtn"><button class="secondary" id="mutebtn">🔊 Sonido activado</button><button class="secondary" id="homeback">↩ Modo Caos</button></div>
@@ -525,8 +525,14 @@ function loadWardrobe(){
  let raw={};try{raw=JSON.parse(localStorage.getItem(STORE_KEY)||'{}')||{};}catch(e){}
  const owned=new Set(['outfit_base','head_none','eyes_none','shoes_base','emote_hello','celebration_spark','trail_normal']);
  if(Array.isArray(raw.owned))for(const id of raw.owned)if(SHOP_ITEMS.some(it=>it.id===id))owned.add(id);
+  if(owned.has('outfit_cap'))owned.add('head_cap');
+  if(owned.has('outfit_shades'))owned.add('eyes_shades');
+  if(owned.has('outfit_ears'))owned.add('head_beanie');
  const equipped={...DEFAULT_EQUIPMENT};
  for(const k of Object.keys(equipped)){const item=SHOP_ITEMS.find(it=>it.id===raw.equipped?.[k]);if(item&&item.category===k&&owned.has(item.id))equipped[k]=item.id;}
+  if(equipped.outfit==='outfit_cap'){equipped.outfit='outfit_base';equipped.headwear='head_cap';}
+  if(equipped.outfit==='outfit_shades'){equipped.outfit='outfit_base';equipped.eyewear='eyes_shades';}
+  if(equipped.outfit==='outfit_ears'){equipped.outfit='outfit_base';equipped.headwear='head_beanie';}
  const hero=Number.isInteger(raw.hero)&&raw.hero>=0&&raw.hero<HEROES.length?raw.hero:0;
  return{coins:Number.isFinite(raw.coins)?Math.max(0,Math.min(999999,Math.floor(raw.coins))):0,owned,equipped,hero};
 }
@@ -572,6 +578,14 @@ function portraitURL(i){
  const cheeks=kind==='fox'?'<ellipse cx="33" cy="102" rx="18" ry="15" fill="#fff0db"/><ellipse cx="99" cy="102" rx="18" ry="15" fill="#fff0db"/>':'';
  const face=kind==='penguin'?'#203954':c;
  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 160"><defs><radialGradient id="headGlow" cx=".2" cy=".15" r=".95"><stop stop-color="#ffffff" stop-opacity=".7"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient><linearGradient id="suit" x2="1" y2="1"><stop stop-color="#ffffff" stop-opacity=".8"/><stop offset=".36" stop-color="'+h.color+'"/><stop offset="1" stop-color="#163b88"/></linearGradient></defs><ellipse cx="66" cy="154" rx="42" ry="5" fill="#010b24" opacity=".35"/><path d="M31 119Q66 102 101 119L108 158H24Z" fill="url(#suit)" stroke="#243b79" stroke-width="3"/><path d="M48 122L66 140 83 122" fill="none" stroke="#ffffff" stroke-width="4"/>'+ears+'<ellipse cx="66" cy="79" rx="52" ry="50" fill="'+face+'" stroke="#273853" stroke-width="3"/>'+mask+cheeks+'<ellipse cx="66" cy="77" rx="52" ry="50" fill="url(#headGlow)"/><ellipse cx="45" cy="77" rx="8" ry="11" fill="#17283c"/><ellipse cx="87" cy="77" rx="8" ry="11" fill="#17283c"/><circle cx="42" cy="73" r="3" fill="#fff"/><circle cx="84" cy="73" r="3" fill="#fff"/>'+muzzle+'</svg>';
+ if(['banana','screen','bull'].includes(kind)){
+  const body='<ellipse cx="66" cy="154" rx="42" ry="5" fill="#061334" opacity=".33"/><path d="M28 125Q66 98 104 125L109 159H23Z" fill="'+h.color+'" stroke="#28345e" stroke-width="3"/><path d="M41 134Q66 145 91 134" fill="none" stroke="#f5e7b2" stroke-width="4"/>';
+  let head='';
+  if(kind==='banana')head='<path d="M47 19Q67 -1 82 17Q88 33 104 53Q115 99 90 119Q52 146 30 104Q47 92 50 74Q32 45 47 19Z" fill="#ffe25a" stroke="#aa7c21" stroke-width="4"/><path d="M63 19L70 8 82 18" fill="#81552f"/><ellipse cx="56" cy="76" rx="7" ry="10" fill="#2a2943"/><ellipse cx="88" cy="76" rx="7" ry="10" fill="#2a2943"/><circle cx="54" cy="73" r="2.5" fill="white"/><circle cx="86" cy="73" r="2.5" fill="white"/><path d="M60 97Q73 110 86 97" stroke="#5d354b" stroke-width="4" fill="none"/>';
+  if(kind==='screen')head='<rect x="18" y="30" width="96" height="89" rx="22" fill="#1a3b6c" stroke="#1b2851" stroke-width="5"/><rect x="25" y="37" width="82" height="72" rx="16" fill="#12294a" stroke="#79edfa" stroke-width="4"/><rect x="38" y="58" width="15" height="28" rx="7" fill="#69f6ef"/><rect x="79" y="58" width="15" height="28" rx="7" fill="#69f6ef"/><path d="M51 92Q66 103 81 92" stroke="#fff5a4" stroke-width="4" fill="none"/><circle cx="35" cy="49" r="5" fill="#fff"/>';
+  if(kind==='bull')head='<path d="M29 41L20 15 46 35Q66 28 87 35L112 15 103 41" fill="#fbefd2" stroke="#946b45" stroke-width="4"/><ellipse cx="66" cy="79" rx="50" ry="48" fill="#bf7b53" stroke="#694638" stroke-width="4"/><ellipse cx="66" cy="98" rx="30" ry="22" fill="#fbd4b2"/><ellipse cx="45" cy="74" rx="9" ry="12" fill="#1b233c"/><ellipse cx="87" cy="74" rx="9" ry="12" fill="#1b233c"/><circle cx="42" cy="71" r="3" fill="#fff"/><circle cx="84" cy="71" r="3" fill="#fff"/><ellipse cx="57" cy="100" rx="5" ry="3" fill="#9c7562"/><ellipse cx="75" cy="100" rx="5" ry="3" fill="#9c7562"/>';
+  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 160">'+body+head+'</svg>');
+ }
  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 function renderHeroPicker(){
