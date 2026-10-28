@@ -17,7 +17,7 @@ let progress={unlocked:1,stars:{},coins:0,best:0,scores:{}};
 try{const o=JSON.parse(localStorage.getItem('mc-frutastrofe-save-v1')||'{}');if(o&&typeof o==='object')progress={...progress,...o,stars:o.stars||{},scores:o.scores||{}}}catch(e){}
 const save=()=>{try{localStorage.setItem('mc-frutastrofe-save-v1',JSON.stringify(progress))}catch(e){}};
 let g=null,view='home',selected=1,isAR=false,arSession=null,hitSource=null,anchor=null,placement=null,reticle=null,glHit=false,arHitResult=null,arViewerSpace=null,arTargets=[],lastOverlay=0,arFrameCount=0;
-let lastTime=0,lastHud=0,toastUntil=0,pulseUntil=0,paused=false,musicEnabled=true,lastMusic=0,wasLost=false,autoFireTimer=null,lastFireAt=-9999;
+let lastTime=0,lastHud=0,toastUntil=0,pulseUntil=0,paused=false,musicEnabled=true,lastMusic=0,wasLost=false,autoFireTimer=null,lastFireAt=-9999,overlayCost=0,overlayInterval=56,lastUiTip='';
 let duel=null,musicCtx=null,touchAim=new THREE.Vector2(0,0),lastPointer=null;
 const show=name=>{view=name;for(const n of ['home','selector','hud','readyOverlay','pausePanel','results','arPanel'])$(n).style.display=n===name?'flex':'none';$('weapon').style.display=name==='hud'&&isAR?'block':'none';};
 function progressUI(){
@@ -48,10 +48,11 @@ function juicePop(){
   src.connect(filter);filter.connect(gain);gain.connect(musicCtx.destination);src.start(t);src.stop(t+.15);
  }catch(e){}
 }
-function fxSound(type){if(type==='shot'){tone(470,.055,'sawtooth',.052);tone(970,.065,'triangle',.035,.008)}if(type==='hit'){tone(440,.095,'sine',.075);juicePop();navigator.vibrate?.(9)}if(type==='trap'){tone(160,.3,'sawtooth',.1);navigator.vibrate?.([45,40,45])}if(type==='chain'){tone(600,.16,'sine',.11);tone(800,.14,'sine',.08,.09);tone(1040,.18,'sine',.10,.18);navigator.vibrate?.([18,26,28])}if(type==='boss'){tone(180,.25,'sawtooth',.12);tone(440,.32,'triangle',.12,.11)}}
-function moodMusic(t){if(!musicEnabled||!g||g.state!=='playing'||t-lastMusic<.34)return;lastMusic=t;const beat=Math.floor(g.elapsed*3);if(beat%2===0)tone([220,247,277,330][Math.floor(beat/2)%4],.07,'triangle',.018)}
+function fxSound(type){if(type==='shot'){tone(560,.042,'triangle',.049)}if(type==='hit'){tone(530,.07,'sine',.062);juicePop()}if(type==='trap'){tone(160,.3,'sawtooth',.1);navigator.vibrate?.([45,40,45])}if(type==='chain'){tone(600,.16,'sine',.11);tone(800,.14,'sine',.08,.09);tone(1040,.18,'sine',.10,.18);navigator.vibrate?.([18,26,28])}if(type==='boss'){tone(180,.25,'sawtooth',.12);tone(440,.32,'triangle',.12,.11)}}
+function moodMusic(t){if(!musicEnabled||!g||g.state!=='playing'||t-lastMusic<.48||autoFireTimer!==null)return;lastMusic=t;const beat=Math.floor(g.elapsed*3);if(beat%2===0)tone([220,247,277,330][Math.floor(beat/2)%4],.07,'triangle',.018)}
 function events(){
  if(!g)return;for(const ev of g.events.splice(0)){
+  if(ev.type==='phase'&&g.phase>1)alertTxt('OLEADA '+g.phase+' / 6 · MÁS INTENSO',920);
   if(ev.type==='spawn'&&isAR)O.emerge(ev);
   if(ev.type==='drop'&&isAR)O.land(ev);
   if(ev.type==='points'&&isAR&&Number.isFinite(ev.x)&&Number.isFinite(ev.y))O.popup(ev,ev.points);
@@ -70,7 +71,7 @@ function events(){
 function getSeed(){const s=params.get('seed');return s&&/^\d+$/.test(s)?Number(s)>>>0:undefined}
 function createGame(mode='campaign',level=selected,seed){
  if(isAR&&arSession&&!placement){throw new Error('Primero fijá la pista AR')}
- g=C.create({mode,level,seed:seed??getSeed()});art.reset();if(isAR)O.clear();paused=false;lastHud=0;
+ g=C.create({mode,level,seed:seed??getSeed()});art.reset();if(isAR)O.clear();paused=false;lastHud=0;lastUiTip='';
  $('readyEyebrow').textContent=mode==='arcade'?'DESAFÍO ARCADE':'NIVEL '+String(level).padStart(2,'0');
  $('readyTitle').textContent=duel?'JUGADOR '+duel.turn+' · '+g.cfg.name:g.cfg.name;
  $('readyDescription').textContent=g.cfg.goal==='boss'?'La Sandía Gigante flota sobre la arena. Levantá la mira y acertale 12 disparos.':g.cfg.goal==='combos'?'¡Conseguí '+g.cfg.target+' cadenas de tres frutas iguales!':'¡Las frutas caen desde un portal EN EL CIELO! Apuntá hacia arriba, seguí su caída y dispará antes de que toquen la plataforma. Encadená tres iguales.';
@@ -84,7 +85,7 @@ function hudUpdate(){
  const goal=g.goalStatus();
  $('hudScore').textContent=number(g.score);$('hudCombo').textContent='×'+g.multiplier;
  $('hudTime').textContent=Math.max(0,Math.ceil(g.duration-g.elapsed));
- $('goalName').textContent=goal.label+' · '+g.cfg.name;
+ $('goalName').textContent='OLEADA '+g.phase+'/6 · '+goal.label+' · '+g.cfg.name;
  $('goalNums').textContent=number(goal.current)+' / '+number(goal.target);
  $('goalBar').style.width=(100*goal.progress).toFixed(1)+'%';
  $('hudBest').textContent=number(Math.max(progress.best,g.score));
@@ -123,11 +124,10 @@ function fireAt(x,y){
  const now=performance.now();if(now-lastFireAt<104)return;lastFireAt=now;
  point.set(x,y);const cam=isAR&&renderer.xr.isPresenting?renderer.xr.getCamera(art.camera):art.camera;
  ray.setFromCamera(point,cam);
- const targets=[...art.bodies.values()];const hits=ray.intersectObjects(targets,true);
  let id=null;
- if(hits.length)id=hits[0].object.userData.targetId;
+ if(!isAR){const targets=[...art.bodies.values()];const hits=ray.intersectObjects(targets,true);if(hits.length)id=hits[0].object.userData.targetId;}
  if(isAR&&arTargets.length){const sx=(x+1)*innerWidth*.5,sy=(1-y)*innerHeight*.5;let dist=Infinity;for(const q of arTargets){const d=Math.hypot(q.x-sx,q.y-sy);if(d<=Math.max(26,q.r*1.3)&&d<dist){id=q.id;dist=d}}}
- if(!id){
+ if(!id&&!isAR){
   // Limited assistance for touch/controller jitter; rejects behind-camera and offscreen targets.
   let best=.072;
   for(const [k,mesh] of art.bodies){
@@ -135,8 +135,8 @@ function fireAt(x,y){
    const dist=Math.hypot(p.x-x,p.y-y);if(dist<best){best=dist;id=k}
   }
  }
- const target=arTargets.find(q=>q.id===id);const result=g.shoot(id);if(isAR)O.shot(target?.x??innerWidth*.5,target?.y??innerHeight*.45,!!result?.ok,target?.kind||'apple');fxSound('shot');pulseUntil=performance.now()+100;const ret=$('crosshair');ret.classList.remove('shoot-hit','shoot-miss');void ret.offsetWidth;ret.classList.add(result?.ok&&!result?.trap?'shoot-hit':'shoot-miss');
- events();hudUpdate();return result;
+ const target=arTargets.find(q=>q.id===id);const result=g.shoot(id);if(isAR)O.shot(target?.x??innerWidth*.5,target?.y??innerHeight*.45,!!result?.ok,target?.kind||'apple');fxSound('shot');pulseUntil=performance.now()+100;const ret=$('crosshair');ret.classList.toggle('shoot-hit',!!result?.ok&&!result?.trap);ret.classList.toggle('shoot-miss',!result?.ok||!!result?.trap);
+ events();if(performance.now()-lastHud>90){hudUpdate();lastHud=performance.now()}return result;
 }
 function cursorShoot(e){if(view!=='hud'||isAR)return;const rect=renderer.domElement.getBoundingClientRect();const nx=((e.clientX-rect.left)/rect.width)*2-1,ny=-((e.clientY-rect.top)/rect.height)*2+1;touchAim.set(nx,ny);fireAt(nx,ny)}
 renderer.domElement.addEventListener('pointerdown',cursorShoot);
@@ -177,7 +177,7 @@ async function startAR(mode,level){
  if(!navigator.xr||!window.isSecureContext){alert('Frutástrofe se juega exclusivamente en AR. Requiere HTTPS, Chrome Android y ARCore compatible.');return}
  try{
   // Request the native session directly inside the user activation; asynchronous feature probing can expire it.
-  art.reset();art.world.visible=false;renderer.setClearColor(0,0);art.scene.background=null;art.scene.fog=null;renderer.toneMapping=THREE.NoToneMapping;
+  art.reset();art.world.visible=false;renderer.setClearColor(0,0);art.scene.background=null;art.scene.fog=null;renderer.toneMapping=THREE.NoToneMapping;renderer.shadowMap.enabled=false;renderer.setPixelRatio(1);
   const opts={requiredFeatures:['hit-test','local-floor','dom-overlay'],optionalFeatures:['anchors'],domOverlay:{root:document.body}};
   arSession=await navigator.xr.requestSession('immersive-ar',opts);
   isAR=true;await renderer.xr.setSession(arSession);
@@ -189,8 +189,8 @@ async function startAR(mode,level){
   $('arTitle').textContent='BUSCÁ EL PISO';$('arMessage').textContent='Apuntá a un suelo despejado. Cuando aparezca LISTO PARA FIJAR, tocá el botón.';
   Object.assign($('arPanel').style,{background:'transparent',alignItems:'flex-end',backdropFilter:'none'});
   Object.assign($('arPanel').querySelector('.modal').style,{background:'#100c2bd9',maxWidth:'440px',padding:'13px',marginBottom:'12px'});
-  arSession.addEventListener('end',()=>{O.clear();isAR=false;arSession=null;hitSource=null;anchor=null;placement=null;art.world.visible=true;art.world.scale.setScalar(1);art.world.position.set(0,0,0);art.scene.background=new THREE.Color(0x070b23);art.scene.fog=new THREE.FogExp2(0x090d25,.021);renderer.toneMapping=THREE.ACESFilmicToneMapping;$('arPanel').removeAttribute('style');$('arPanel').querySelector('.modal').removeAttribute('style');if(view==='hud'||view==='arPanel'||view==='readyOverlay'||view==='pausePanel')resetToMenu()},{once:true});
- }catch(err){console.warn('Frutástrofe AR:',err);isAR=false;art.world.visible=true;art.scene.background=new THREE.Color(0x070b23);art.world.scale.setScalar(1);alert('No se pudo abrir Frutástrofe AR: '+err.message+'\nNecesitás Chrome Android con ARCore.');show('home')}
+  arSession.addEventListener('end',()=>{O.clear();isAR=false;arSession=null;hitSource=null;anchor=null;placement=null;art.world.visible=true;art.world.scale.setScalar(1);art.world.position.set(0,0,0);art.scene.background=new THREE.Color(0x070b23);art.scene.fog=new THREE.FogExp2(0x090d25,.021);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=true;renderer.setPixelRatio(Math.min(1.5,devicePixelRatio||1));$('arPanel').removeAttribute('style');$('arPanel').querySelector('.modal').removeAttribute('style');if(view==='hud'||view==='arPanel'||view==='readyOverlay'||view==='pausePanel')resetToMenu()},{once:true});
+ }catch(err){console.warn('Frutástrofe AR:',err);isAR=false;art.world.visible=true;art.scene.background=new THREE.Color(0x070b23);art.world.scale.setScalar(1);renderer.shadowMap.enabled=true;renderer.setPixelRatio(Math.min(1.5,devicePixelRatio||1));alert('No se pudo abrir Frutástrofe AR: '+err.message+'\nNecesitás Chrome Android con ARCore.');show('home')}
 }
 $('arLock').onclick=async()=>{
  if(!glHit||!reticle||!arSession)return;
@@ -231,29 +231,31 @@ function onFrame(t,frame){
  if(!isAR&&view!=='home'&&!g)art.sync([],sec);
  if(isAR&&frame){try{
    const ref=renderer.xr.getReferenceSpace(),pose=ref&&frame.getViewerPose(ref),vr=pose?.views?.[0];
-   if(vr&&t-lastOverlay>=48){
-    lastOverlay=t;arFrameCount++;
+   if(vr&&t-lastOverlay>=overlayInterval){
+    lastOverlay=t;arFrameCount++;const drawStarted=performance.now();
     const origin=placement?art.world.position:(reticle?new THREE.Vector3(reticle.position.x,reticle.position.y+.09,reticle.position.z):null);
     if(origin){
      const overlayMode=placement&&g?.state==='playing'?'playing':'search';
      arTargets=O.draw(vr,origin,art.world.scale.x,overlayMode==='playing'?g.objects:[],overlayMode);
-     if(view==='hud'&&t-lastHud<130)$('playTip').textContent=arTargets.length?'MANTENÉ ¡PUM! PARA RÁFAGAS · EVITÁ PELIGROS':'MIRÁ ARRIBA · LAS FRUTAS CAEN DEL PORTAL';
+     overlayCost=overlayCost*.78+(performance.now()-drawStarted)*.22;
+     overlayInterval=overlayCost>14?85:overlayCost>8?70:56;
+     if(view==='hud'&&t-lastHud<130){const tip=arTargets.length?'MANTENÉ ¡PUM! PARA RÁFAGAS · EVITÁ PELIGROS':'MIRÁ ARRIBA · LAS FRUTAS CAEN DEL PORTAL';if(tip!==lastUiTip){$('playTip').textContent=tip;lastUiTip=tip}}
     }
    }
   }catch(error){console.warn('AR overlay:',error.message)}
  }
  if(view==='hud'&&g?.fever&&Math.floor(g.elapsed)===g.duration-12&&t-lastHud<110)alertTxt('⚡ ¡JUICE FEVER!',1250);
- art.updateFx(Math.min(dt,.08),sec);
+ if(!isAR)art.updateFx(Math.min(dt,.08),sec);
  if(toastUntil&&performance.now()>toastUntil){$('toast').classList.remove('show');toastUntil=0}
  if(view==='home'&&!isAR)art.camera.position.x=Math.sin(sec*.18)*.45;
  renderer.render(art.scene,art.camera);
 }
 renderer.setAnimationLoop(onFrame);
-function resize(){const w=innerWidth,h=innerHeight;art.camera.aspect=w/h;art.camera.fov=h>w?52:48;art.camera.updateProjectionMatrix();renderer.setSize(w,h);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7))}
+function resize(){const w=innerWidth,h=innerHeight;art.camera.aspect=w/h;art.camera.fov=h>w?52:48;art.camera.updateProjectionMatrix();renderer.setSize(w,h);renderer.setPixelRatio(isAR?1:Math.min(devicePixelRatio||1,1.5))}
 addEventListener('resize',resize);resize();
 progressUI();show('home');
 if(params.has('qa'))window.__frutaQA={
- state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,shots:g?.shots,frames:renderer.info.render.frame,arOnly:isAR,projectedSprites:arTargets.length}),
+ state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,shots:g?.shots,phase:g?.phase,overlayCost,overlayInterval,frames:renderer.info.render.frame,arOnly:isAR,projectedSprites:arTargets.length}),
  finish:()=>g?.finish(true),
  simulateAR:()=>{isAR=true;placement=new THREE.Object3D();art.world.scale.set(.23,.23*.80,.23);art.world.position.set(0,.09,-2.5);art.world.visible=false;createGame('campaign',1);return true},
  previewWorld:(dx=0)=>{const pitch=.02,c=Math.cos(pitch),s=Math.sin(pitch),V=[1,0,0,0,0,c,s,0,0,-s,c,0,-dx,-1.2*c,-1.2*s,1];const v={projectionMatrix:[1.4,0,0,0,0,2.1,0,0,0,0,-1.002,-1,0,0,-.2,0],transform:{inverse:{matrix:V}}};arTargets=O.draw(v,art.world.position,art.world.scale.x,g?.objects||[],'playing');return arTargets},
