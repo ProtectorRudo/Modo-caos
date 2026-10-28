@@ -30,7 +30,7 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   console.log('QA BEGIN STATE',JSON.stringify(await page.evaluate(()=>({state:window.__frutaQA.state(),hud:document.getElementById('hud').style.display,ready:document.getElementById('readyOverlay').style.display,handler:typeof document.getElementById('goBtn').onclick,btn:document.getElementById('goBtn').outerHTML}))),errors);
   assert(await page.locator('#hud').isVisible());
   await page.waitForFunction(()=>window.__frutaQA.state().elapsed>1,null,{timeout:14000});
-  const t=Number(await page.locator('#hudTime').textContent());assert(t<54&&t>=36,'core clock runs during AR simulation: '+t);
+  const t=Number(await page.locator('#hudTime').textContent());assert(t<60&&t>=40,'60-second core clock runs during AR simulation: '+t);
   const before=await page.evaluate(()=>window.__frutaQA.previewWorld(0));
   assert(before.length>=1,'sky fruit is projected from physical XR coordinates');
   assert((await page.locator('#arWorld g').count())>=1,'AR SVG contains visible sky fruit');
