@@ -197,7 +197,13 @@ test('connected territory is converted to coherent vector boundary loops',()=>{
  for(const q of loops[0]){assert.ok(Number.isFinite(q.x));assert.ok(Number.isFinite(q.y));}
 });
 
-test('reference HUD includes best score, transparent layout and a subtle paper grid',()=>{assert.match(source,/id="bestCurrent"/);assert.match(source,/class="best-live"/);assert.match(source,/const tileStep=74/);assert.doesNotMatch(source,/const dotStep=84/);});
+test('circular arena keeps its geometry while premium floor gets cached hex lighting',()=>{
+ assert.match(source,/id="bestCurrent"/);
+ assert.match(source,/const cvFloorPattern=c.createPattern/);
+ assert.match(source,/c\.arc\(CX,CY,R\+21,0,Math.PI\*2\)/);
+ assert.match(source,/c\.arc\(storm.x,storm.y,storm.radius,0,Math.PI\*2\)/);
+ assert.match(source,/const land=new Uint8Array\(SIZE\)/);
+});
 
 test('battle royale minimap previews the next safe area and displays live counts',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(10);
@@ -208,12 +214,13 @@ test('battle royale minimap previews the next safe area and displays live counts
  assert.match(source,/zone\.next/);
  assert.match(g.get('zonePhaseLabel').textContent,/ZONA 0\/7/);
 });
-test('chibi character and layered neon trails use original vector rendering',()=>{
+test('chibi characters retain fallback while energy trails and circular radar gain richer VFX',()=>{
  assert.match(source,/function paintChibi\(p,hero,col\)/);
  assert.match(source,/drawOutfit\(p\)/);
- assert.match(source,/#2448b5/);
- assert.match(source,/procedural motif/);
- assert.match(source,/function drawMini\(\)/);
+ assert.match(source,/c\.shadowColor=trailCol/);
+ assert.match(source,/c\.lineTo\(p.x,p.y\)/);
+ assert.match(source,/mc\.arc\(91,91,80,0,Math.PI\*2\)/);
+ assert.match(source,/function drawPowerBoxes\(\)/);
 });
 
 test('reward thresholds unlock exactly once, with real effects',()=>{
