@@ -417,3 +417,36 @@ test('VS picks the true standing idle instead of crouched idle across Styloo for
  assert.equal(choose(regular,'emote').name,'anim_push');
  assert.equal(choose(ninja,'run').name,'runanim_');
 });
+
+test('home menu no longer includes retired square avatar and showcases live 3D chibi',()=>{
+ const g=boot(419);
+ assert.doesNotMatch(source,/class="avatarDemo"/);
+ assert.doesNotMatch(source,/class="preview"><div class="trace"/);
+ assert.match(source,/id="menuHeroStage"/);
+ assert.match(source,/id="menuFallbackCanvas"/);
+ assert.match(source,/function drawMenuHeroFallback\(/);
+ assert.equal(g.win.Paper3DState().menuing,true);
+ assert.equal(g.win.Paper3DState().menuHero,0);
+ g.tick(10);
+ assert.equal(g.win.territoryQA.mode,'home');
+});
+test('hero selection updates game character and the new menu name plate',()=>{
+ const g=boot(419),h=g.win.__paperTest;
+ assert.equal(h.setHero(3),true);
+ assert.equal(g.get('menuCharacterLabel').textContent,'RAYO');
+ assert.equal(g.get('menuCharacterTagline').textContent,'¡Velocidad total!');
+ assert.equal(g.win.Paper3DState().menuHero,3);
+ assert.equal(h.setHero(2),true);
+ assert.equal(g.get('menuCharacterLabel').textContent,'KIRA');
+});
+test('3D stage is reparented between menu and versus without creating additional renderers',()=>{
+ const module=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ assert.match(source,/id="versusStage"/);
+ assert.match(source,/id="menuHeroStage"/);
+ assert.match(module,/function attachShowcase\(target,cssClass\)/);
+ assert.match(module,/attachShowcase\('menuHeroStage','menuPosition'\)/);
+ assert.match(module,/attachShowcase\('versusStage','vsPosition'\)/);
+ assert.match(module,/window\.PaperMenuReady=true/);
+ assert.match(module,/state\.menuing/);
+ assert.equal((module.match(/new THREE\.WebGLRenderer\(/g)||[]).length,2); // gameplay + shared menu/VS
+});
