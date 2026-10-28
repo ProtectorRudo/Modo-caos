@@ -248,6 +248,40 @@ input[type=text]:focus{border-color:#42bcca}
 .heroMini3 .miniFace{background:radial-gradient(circle at 35% 20%,#e9ffe3,#c1f8dc 70%,#60bb8e)}
 .heroMini3 .miniEyes:before,.heroMini3 .miniEyes:after{background:#79ffb9;border:1px solid #2b635a}
 @media(max-height:740px){.heroMini{height:50px;transform:scale(.75);transform-origin:center top;margin-bottom:-13px}}
+
+/* Premium pre-match showdown: independent from game physics and shop wallet. */
+#versus{z-index:18;padding:0;background:radial-gradient(circle at 50% 44%,#3144a9,#0e1752 62%,#080f32);color:#fff;overflow-y:auto;align-items:center}
+#versus.hidden{display:none}
+.versusPanel{width:min(100%,540px);padding:max(12px,env(safe-area-inset-top)) 14px max(15px,env(safe-area-inset-bottom));margin:auto;display:flex;flex-direction:column;gap:8px}
+.vsTopline{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.vsGameTag{font-size:11px;font-weight:950;letter-spacing:1.5px;color:#fff}.vsGameTag b{display:inline-block;padding:4px 6px;border-radius:4px;margin-left:3px;background:#fbd148;color:#0b295a;font-size:9px;letter-spacing:.5px}
+.vsFightTag{font-size:9px;letter-spacing:.5px;font-weight:950;color:#c7d9ff;border:1px solid #6d85f5;padding:6px 7px;border-radius:6px;white-space:nowrap}
+.versusHeader{text-align:center;margin-top:5px}
+.versusHeader h2{font-size:clamp(27px,7vw,43px);margin:0;color:white;font-weight:1000;letter-spacing:-1px;text-shadow:0 3px 0 #10286a}
+.versusHeader p{margin:2px 0 0;font-size:11px;font-weight:650;color:#becbfa}
+.versusStage{position:relative;width:100%;height:clamp(320px,58dvh,530px);border:2px solid #687ad0;border-radius:22px;overflow:hidden;background:radial-gradient(circle at 55% 42%,#5063c4,#202a79 64%,#101a4f);box-shadow:inset 0 0 70px #07104b99,0 10px 30px #080d3399}
+#versusCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:auto}
+.vsNamePlate{position:absolute;bottom:12px;width:40%;display:flex;flex-direction:column;gap:1px;padding:8px 10px;border-radius:10px;border:1px solid #fff7;backdrop-filter:blur(4px);box-shadow:0 4px 12px #0b174f88}
+.vsNameLeft{left:7px;background:linear-gradient(90deg,#1685c8d9,#275caaab)}
+.vsNameRight{right:7px;text-align:right;background:linear-gradient(90deg,#ad4d7da6,#a73765d9)}
+.vsNamePlate small{font-size:8px;color:#e1f5ff;font-weight:800;letter-spacing:.5px}
+.vsNamePlate strong{font-size:clamp(18px,5vw,25px);font-weight:1000;letter-spacing:-.7px;color:#fff}
+.vsNamePlate span{font-size:10px;color:#e5e9ff}
+.vsFooter{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:2px 0}
+.vsFestejo{display:flex;gap:8px;align-items:center;min-width:0}
+.vsFestejo strong{display:block;color:#ffe267;font-size:12px;letter-spacing:.8px}
+.vsFestejo small{display:block;color:#c7d5f5;font-size:9px;line-height:1.3}
+.vsFire{font-size:28px;color:#ffe267;text-shadow:0 0 18px #fada58}
+.vsCountdown{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.vsCountdown span{color:#c6d5ff;font-weight:900;font-size:9px}
+.vsCountdown strong{font-weight:1000;color:#ffe365;font-size:25px;min-width:26px;text-align:center}
+.vsTrack{width:100%;height:5px;background:#8795f347;border-radius:3px;overflow:hidden}
+#vsTrackFill{display:block;width:0;height:100%;background:linear-gradient(90deg,#44dcff,#fce766);border-radius:3px}
+.vsPlayNow{width:100%;min-height:51px;border:1px solid #fff8b5;border-bottom:4px solid #c28a25;border-radius:14px;background:linear-gradient(150deg,#ffe97c,#ffbd3f);color:#183c87;font-size:17px;font-weight:1000;letter-spacing:.1px;cursor:pointer}
+.vsPlayNow:active{transform:translateY(2px);border-bottom-width:2px}
+.vsInfo{text-align:center;font-size:9px;color:#a9bce8;font-weight:750;line-height:1.5}
+@media(max-height:690px){.versusPanel{gap:5px;padding-top:5px;padding-bottom:6px}.versusStage{height:clamp(270px,49dvh,390px)}.versusHeader h2{font-size:26px}.vsPlayNow{min-height:43px}}
+@media(prefers-reduced-motion:reduce){#vsTrackFill{transition:none!important}}
 </style>
 </head>
 <body>
@@ -268,6 +302,24 @@ input[type=text]:focus{border-color:#42bcca}
  <div id="rank"></div><div id="rewardToast" aria-live="polite"><span id="rewardIcon">✦</span><div><strong id="rewardTitle">RECOMPENSA</strong><small id="rewardDesc">¡Buen trabajo!</small></div></div><canvas id="mini" width="182" height="182"></canvas><button id="pause" aria-label="Pausar partida">Ⅱ</button><button id="emoteButton" aria-label="Hacer gesto de tu personaje">👋</button><div id="msg"></div>
  <div id="controls">ARRASTRÁ PARA DIRIGIR</div>
 </div>
+<section id="versus" class="overlay hidden" aria-label="Presentación de rivales antes de la partida">
+  <div class="versusPanel">
+    <div class="vsTopline"><span class="vsGameTag">TERRITORY LOOP <b>SHOWDOWN</b></span><span class="vsFightTag">ANTES DEL COMBATE</span></div>
+    <div class="versusHeader"><h2>¡CARA A CARA!</h2><p>Dos personajes. Un territorio. Muchos motivos para festejar.</p></div>
+    <div class="versusStage">
+      <canvas id="versusCanvas" width="760" height="790" aria-label="Dos personajes animados haciendo el gesto Six Seven"></canvas>
+      <div class="vsNamePlate vsNameLeft"><small>TU PERSONAJE</small><strong id="vsPlayerName">NOVA</strong><span id="vsPlayerRole">La audaz</span></div>
+      <div class="vsNamePlate vsNameRight"><small>RIVAL DESTACADO</small><strong id="vsRivalName">BOMBO</strong><span id="vsRivalRole">El bromista</span></div>
+    </div>
+    <div class="vsFooter">
+      <div class="vsFestejo"><span class="vsFire">✦</span><div><strong>DESAFÍO SIX SEVEN</strong><small>El gesto viral, con coreografía original para nuestros personajes</small></div></div>
+      <div class="vsCountdown"><span>EMPIEZA EN</span><strong id="vsCountdown">5</strong></div>
+    </div>
+    <div class="vsTrack"><i id="vsTrackFill"></i></div>
+    <button id="vsPlayNow" class="vsPlayNow" aria-label="Entrar a la partida sin esperar">▶ ENTRAR A JUGAR</button>
+    <div class="vsInfo">Vos contra 11 rivales controlados por computadora · La presentación no afecta tus recompensas</div>
+  </div>
+</section>
 <section id="home" class="overlay"><div class="panel">
  <div class="brand">MODO CAOS · ARCADE ORIGINAL</div><h1>TERRITORY <em>LOOP</em></h1>
  <p class="description">Pintá el mapa, cerrá circuitos y cortá las estelas enemigas. Si alguien toca tu estela mientras estás afuera, perdés.</p>
