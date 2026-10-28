@@ -372,7 +372,7 @@ input[type=text]:focus{border-color:#42bcca}
 #menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
 #menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
-<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"></head>
+<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"></head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <canvas id="characterStage" aria-hidden="true"></canvas>
@@ -1666,13 +1666,17 @@ window.Paper3DState=()=>({
  previewEmote:shopCategory==='emote'?shopPreviewId:'idle',
  vsEmote:wardrobe.equipped.emote==='emote_hello'?'emote_sixseven':wardrobe.equipped.emote,
  people:game?game.people.map(p=>({
-  id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,
+  id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,scale:powerScale(p),shielded:clock<p.shieldUntil,
   hero:p.id===0?wardrobe.hero:p.id===1?vsRival:p.id%HEROES.length,
   emoting:p.id===0&&clock<emoteUntil,emoteId:p.id===0?wardrobe.equipped.emote:''
  })):[]
 });
 // Read-only diagnostics: ?qa=1 exposes counters to automated smoke tests.
-if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'territoryQA',{get:()=>game?{mode,area:game.people[0].score,alive:game.people[0].alive,players:game.people.filter(p=>p.alive).length,clock:clock,kills:game.kills,tiles:game.people[0].area,x:game.people[0].x,y:game.people[0].y,angle:game.people[0].angle,outside:game.people[0].outside,trail:game.people[0].trailCells.length,botTerritory:game.people.slice(1).reduce((n,p)=>n+p.area,0),defeated:game.defeated.size,rewards:game.rewards.size,epicTrail:game.epicTrail,crowned:game.crowned,edgeCharge:game.people[0].edgeCharge,boosting:clock<game.people[0].boostUntil,particleCount:particles.length}: {mode}});
+if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'territoryQA',{get:()=>game?{mode,area:game.people[0].score,alive:game.people[0].alive,players:game.people.filter(p=>p.alive).length,clock:clock,kills:game.kills,tiles:game.people[0].area,x:game.people[0].x,y:game.people[0].y,angle:game.people[0].angle,outside:game.people[0].outside,trail:game.people[0].trailCells.length,botTerritory:game.people.slice(1).reduce((n,p)=>n+p.area,0),defeated:game.defeated.size,rewards:game.rewards.size,epicTrail:game.epicTrail,crowned:game.crowned,edgeCharge:game.people[0].edgeCharge,boosting:clock<game.people[0].boostUntil,particleCount:particles.length,
+ storm:{radius:game.storm.radius,x:game.storm.x,y:game.storm.y,remaining:game.storm.remaining},
+ power:{kind:game.people[0].powerKind,until:game.people[0].powerUntil,shieldUntil:game.people[0].shieldUntil},
+ boxes:game.boxes.filter(b=>b.active).map(b=>({type:b.type,x:b.x,y:b.y,drop:b.drop,collectible:clock>=b.collectAt})),
+ landCount,atEdge:!inside(game.people[0].x,game.people[0].y)}:{mode}});
 })();
 </script>
 <!-- Pinned ES modules: if CDN is blocked the original chibi canvas game still plays. -->
