@@ -55,6 +55,11 @@ try{
   const metrics=Array.from(document.querySelectorAll('#survivalPanel .miniMetric')).map(el=>el.getBoundingClientRect().toJSON());
   return {panel:panel?.toJSON(),map:map?.toJSON(),stats:stats?.toJSON(),canvas:canvas?.toJSON(),metrics,
    text:document.getElementById('nextZoneLabel')?.textContent,
+   background:[...cvPrepareMiniBackground().getContext('2d').getImageData(12,12,1,1).data],
+   labels:Array.from(document.querySelectorAll('#survivalPanel .miniMetricLabel')).map(el=>({
+    text:el.textContent,font:parseFloat(getComputedStyle(el).fontSize),width:el.clientWidth,scrollWidth:el.scrollWidth
+   })),
+   statsFont:parseFloat(getComputedStyle(document.getElementById('survivalKills')).fontSize),
    viewport:window.innerWidth};
  });
  assert.ok(compactHUD.map&&compactHUD.stats,'mini map and status strip must render');
@@ -64,6 +69,13 @@ try{
  assert.ok(compactHUD.panel.height<178,'combined HUD must occupy less than 178px');
  assert.ok(compactHUD.viewport-compactHUD.panel.right<=16,'map must sit in top-right corner');
  assert.equal(compactHUD.metrics.length,3,'clock, live players, and eliminations on a single strip');
+ assert.deepEqual(compactHUD.background,[255,255,255,255],'the mini map ground must stay pure white');
+ assert.ok(compactHUD.stats.width>=143,'3 metric ribbon must be wide enough to read: '+compactHUD.stats.width);
+ assert.ok(compactHUD.statsFont>=13,'elimination count must be clearly readable');
+ assert.deepEqual(compactHUD.labels.map(x=>x.text),['TORMENTA','VIVOS','BAJAS']);
+ assert.ok(compactHUD.labels.every(x=>x.font>=7.5&&x.scrollWidth<=x.width+1),'all metric names fit without clipping');
+ assert.ok(compactHUD.stats.right<=compactHUD.viewport-4,'expanded ribbon must remain on screen');
+ for(let i=0;i<2;i++)assert.ok(compactHUD.metrics[i].right<=compactHUD.metrics[i+1].left+1,'HUD metrics must not overlap');
  assert.match(compactHUD.text||'',/^\d+:\d{2}$/,'the zone countdown must fit mm:ss');
  console.log('CIVIDOM_COMPACT_HUD='+JSON.stringify(compactHUD));
  const elapsed=(Date.now()-started)/1000;
