@@ -57,4 +57,43 @@ assert {"index.html", "meteoros.html", "meteoros-runtime.js", "meteoros-core.js"
 assert 'src="/Modo-caos/engine.js' in (TARGET / "meteoros.html").read_text()
 assert 'href="/Modo-caos/meteoros.html' in (TARGET / "index.html").read_text()
 assert 'src="/engine.js' not in (TARGET / "meteoros.html").read_text()
+# Machine-checkable CIVIDOM deployment diagnostic; do not report ready just
+# because the HTML exists. Every licensed GLB must pass its pinned Git SHA1.
+import hashlib
+import json
+import os
+import struct
+pins = {
+    "ninja": ("68c43531042e519d079db40d5f1ca82cb175b01f", 3255296),
+    "archer": ("f6f2bab6bc937e5e8423500e822e769099013dd9", 3601824),
+    "student": ("945cc37277f0ee612af455f860d57f5d97c7c6f0", 3753900),
+    "merchant": ("2e2ea24996f16c11a10b124c4785edbc9667acf8", 3412152),
+    "knight": ("3b4d673565c0c521c7391295d23cd9d9ae2b8e3b", 7007020),
+}
+validated_models = {}
+for name, (digest, size) in pins.items():
+    file = TARGET / "assets" / "styloo" / (name + ".glb")
+    valid = False
+    if file.is_file() and file.stat().st_size == size:
+        data = file.read_bytes()
+        try:
+            magic, version, declared = struct.unpack_from("<III", data)
+            sha = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\\0" + data).hexdigest()
+            valid = magic == 0x46546c67 and version == 2 and declared == size and sha == digest
+        except (ValueError, struct.error):
+            valid = False
+    validated_models[name] = valid
+client_ready = all((TARGET / x).is_file() for x in ("paper.html", "paper-3d.mjs", "paper-chibi.mjs", "paper-fashion.mjs", "paper-mascots.mjs"))
+status = {
+    "game": "CIVIDOM",
+    "art_direction": "rayo-nova-styloo-chibi",
+    "source_commit": os.getenv("GITHUB_SHA", "unavailable"),
+    "page_present": client_ready,
+    "models": validated_models,
+    "ready_assets": client_ready and all(validated_models.values()),
+    "note": "Asset integrity only; visual Android QA is a separate requirement."
+}
+(TARGET / "cividom-health.json").write_text(json.dumps(status, indent=2) + "\\n", encoding="utf-8")
+print("CIVIDOM verified release assets:", status["ready_assets"], validated_models)
+
 print("Pages static build OK:", len(published), "safe public files; prefix", PREFIX)
