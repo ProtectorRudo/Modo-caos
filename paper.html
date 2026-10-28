@@ -397,9 +397,9 @@ input[type=text]:focus{border-color:#42bcca}
     <div class="versusHeader"><h2>¡DOS CAMPEONES, UN TERRITORIO!</h2><p>Tu personaje frente a su próximo rival. ¡Que empiece el show!</p></div>
     <div id="versusStage" class="versusStage">
       <canvas id="versusCanvas" width="760" height="790" aria-label="Presentación animada Six Seven"></canvas>
- <div id="vsPortraits" class="vsPortraits" aria-label="Personajes originales Styloo">
-  <img id="vsPortraitPlayer" src="./assets/styloo/portraits/archer.png" alt="Tu personaje Styloo" width="230" height="300">
-  <img id="vsPortraitOpponent" src="./assets/styloo/portraits/merchant.png" alt="Rival Styloo" width="230" height="300">
+ <div id="vsPortraits" class="vsPortraits" aria-label="Personajes originales CVDOM">
+  <img id="vsPortraitPlayer" src="" alt="Tu mascota campeona" width="230" height="300">
+  <img id="vsPortraitOpponent" src="" alt="Mascota rival" width="230" height="300">
  </div><canvas id="versus3dCanvas" aria-hidden="true"></canvas>
       <div class="vsNamePlate vsNameLeft"><small>TU PERSONAJE</small><strong id="vsPlayerName">NOVA</strong><span id="vsPlayerRole">La audaz</span></div>
       <div class="vsNamePlate vsNameRight"><small>RIVAL DESTACADO</small><strong id="vsRivalName">BOMBO</strong><span id="vsRivalRole">El bromista</span></div>
@@ -419,7 +419,7 @@ input[type=text]:focus{border-color:#42bcca}
  <div id="menuHeroStage" class="menuHeroStage">
  <div class="menuSparks" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>
  <canvas id="menuFallbackCanvas" width="500" height="390" aria-label="Vista previa del personaje seleccionado"></canvas>
- <img id="menuHeroPortrait" src="./assets/styloo/portraits/archer.png" alt="NOVA, modelo Styloo original en 3D" width="260" height="260" fetchpriority="high">
+ <img id="menuHeroPortrait" src="" alt="Vista previa del personaje original en 3D" width="260" height="260" fetchpriority="high">
  <div id="menuModelLoader" class="menuModelLoader"><span class="loaderPulse"></span>PREPARANDO TU PERSONAJE 3D</div>
  <span class="menuFloor" aria-hidden="true"></span>
  <div class="menuHeroStamp"><strong id="menuCharacterLabel">NOVA</strong><small id="menuCharacterTagline">¡A por todo!</small></div>
@@ -540,12 +540,18 @@ function refreshWallet(){
 }
 // Vector portraits created for Territory Loop. Real animal GLBs load in parallel.
 function portraitURL(i){
+ // Locally generated SVG thumbnails: each represents the SAME species as the live 3D model.
  const h=HEROES[i]||HEROES[0],kind=h.model,c=h.color;
- const ears=kind==='fox'?'<path d="M29 66L14 14Q40 21 53 45H81Q104 10 119 14L105 67Z" fill="#e87734" stroke="#5e3540" stroke-width="4"/>':kind==='koala'?'<circle cx="20" cy="62" r="26" fill="#94adb0" stroke="#5b7382" stroke-width="5"/><circle cx="112" cy="62" r="26" fill="#94adb0" stroke="#5b7382" stroke-width="5"/>':kind==='penguin'||kind==='platypus'?'':'<circle cx="29" cy="64" r="18" fill="'+c+'" stroke="#55435b" stroke-width="3"/><circle cx="103" cy="64" r="18" fill="'+c+'" stroke="#55435b" stroke-width="3"/>';
- const snout=kind==='penguin'?'<path d="M51 92L66 108 83 92Z" fill="#ffc248" stroke="#bb7535" stroke-width="2"/>':kind==='platypus'?'<ellipse cx="66" cy="97" rx="29" ry="12" fill="#e9b36f" stroke="#8c654d" stroke-width="3"/>':'<ellipse cx="66" cy="96" rx="23" ry="14" fill="#f9e8d2"/><path d="M58 88Q66 83 74 88L66 96Z" fill="#433944"/>';
- const stripes=kind==='tiger'?'<path d="M42 53L32 69 45 71M92 53L102 69 88 71M66 34L56 53 75 53Z" fill="#52392c"/>':'';
- const face=kind==='penguin'?'#253856':kind==='koala'?'#b8c4c8':kind==='platypus'?'#b7adcf':c;
- const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 160"><defs><radialGradient id="g" cx=".2" cy=".16" r=".9"><stop stop-color="#fff" stop-opacity=".62"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><ellipse cx="66" cy="150" rx="40" ry="6" fill="#041b3e" opacity=".23"/><path d="M35 117Q66 105 97 117L104 158H28Z" fill="'+c+'" stroke="#263451" stroke-width="3"/><path d="M42 122L66 137 90 122" fill="none" stroke="#fff" stroke-width="6"/>'+ears+'<ellipse cx="66" cy="78" rx="52" ry="52" fill="'+face+'" stroke="#273651" stroke-width="4"/>'+stripes+'<ellipse cx="66" cy="78" rx="52" ry="52" fill="url(#g)"/><ellipse cx="46" cy="76" rx="8" ry="11" fill="#1b283e"/><ellipse cx="86" cy="76" rx="8" ry="11" fill="#1b283e"/><circle cx="43" cy="72" r="3" fill="#fff"/><circle cx="83" cy="72" r="3" fill="#fff"/>'+snout+'<path d="M58 109Q66 114 74 109" fill="none" stroke="#6d4550" stroke-width="3" stroke-linecap="round"/></svg>';
+ const roundEars=['capybara','raccoon','bear'].includes(kind);
+ const triangleEars=['redpanda','fox'].includes(kind);
+ let ears=roundEars?'<circle cx="30" cy="53" r="19" fill="'+c+'" stroke="#3b435e" stroke-width="3"/><circle cx="102" cy="53" r="19" fill="'+c+'" stroke="#3b435e" stroke-width="3"/>':triangleEars?'<path d="M29 66L14 8Q43 19 54 43H78Q98 8 121 8L105 67Z" fill="'+c+'" stroke="#3d435c" stroke-width="3"/>':'';
+ if(kind==='axolotl')ears='<g fill="#e67bac" stroke="#aa4e8b" stroke-width="2"><rect x="3" y="34" width="37" height="12" rx="6" transform="rotate(-22 3 34)"/><rect x="2" y="52" width="35" height="12" rx="6"/><rect x="4" y="73" width="36" height="12" rx="6" transform="rotate(18 4 73)"/><rect x="93" y="34" width="37" height="12" rx="6" transform="rotate(22 93 34)"/><rect x="96" y="52" width="35" height="12" rx="6"/><rect x="94" y="73" width="36" height="12" rx="6" transform="rotate(-18 94 73)"/></g>';
+ if(kind==='frog')ears='<circle cx="36" cy="38" r="20" fill="'+c+'" stroke="#457b45" stroke-width="3"/><circle cx="96" cy="38" r="20" fill="'+c+'" stroke="#457b45" stroke-width="3"/>';
+ const muzzle=kind==='penguin'?'<path d="M48 96L66 111 84 96Z" fill="#ffc354" stroke="#ad7e3f" stroke-width="2"/>':kind==='frog'?'<path d="M40 100Q66 118 92 100" fill="none" stroke="#277e32" stroke-width="5" stroke-linecap="round"/>':kind==='axolotl'?'<path d="M48 100Q66 113 84 100" fill="none" stroke="#c96592" stroke-width="4"/>':'<ellipse cx="66" cy="94" rx="25" ry="18" fill="#f9e7d8"/><path d="M58 88Q66 84 74 88L66 98Z" fill="#4b3541"/>';
+ const mask=kind==='raccoon'?'<ellipse cx="42" cy="78" rx="23" ry="20" fill="#485064"/><ellipse cx="90" cy="78" rx="23" ry="20" fill="#485064"/>':kind==='redpanda'?'<ellipse cx="39" cy="80" rx="24" ry="26" fill="#ffe8c9"/><ellipse cx="93" cy="80" rx="24" ry="26" fill="#ffe8c9"/>':'';
+ const cheeks=kind==='fox'?'<ellipse cx="33" cy="102" rx="18" ry="15" fill="#fff0db"/><ellipse cx="99" cy="102" rx="18" ry="15" fill="#fff0db"/>':'';
+ const face=kind==='penguin'?'#203954':c;
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 160"><defs><radialGradient id="headGlow" cx=".2" cy=".15" r=".95"><stop stop-color="#ffffff" stop-opacity=".7"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient><linearGradient id="suit" x2="1" y2="1"><stop stop-color="#ffffff" stop-opacity=".8"/><stop offset=".36" stop-color="'+h.color+'"/><stop offset="1" stop-color="#163b88"/></linearGradient></defs><ellipse cx="66" cy="154" rx="42" ry="5" fill="#010b24" opacity=".35"/><path d="M31 119Q66 102 101 119L108 158H24Z" fill="url(#suit)" stroke="#243b79" stroke-width="3"/><path d="M48 122L66 140 83 122" fill="none" stroke="#ffffff" stroke-width="4"/>'+ears+'<ellipse cx="66" cy="79" rx="52" ry="50" fill="'+face+'" stroke="#273853" stroke-width="3"/>'+mask+cheeks+'<ellipse cx="66" cy="77" rx="52" ry="50" fill="url(#headGlow)"/><ellipse cx="45" cy="77" rx="8" ry="11" fill="#17283c"/><ellipse cx="87" cy="77" rx="8" ry="11" fill="#17283c"/><circle cx="42" cy="73" r="3" fill="#fff"/><circle cx="84" cy="73" r="3" fill="#fff"/>'+muzzle+'</svg>';
  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 function renderHeroPicker(){
@@ -1295,7 +1301,7 @@ function drawVersus(ms){
   ctx.fillStyle=i%2?'#ffffff20':'#b6f4ff38';ctx.beginPath();ctx.arc(x,y,1.3+(i%4),0,7);ctx.fill();
  }
  const pulse=Math.sin(sec*8),arriving=Math.min(1,sec/.55);
- // Official Styloo portraits appear first and transition to their identical live 3D models.
+ // Illustrated character fallback portraits appear first and transition to their identical live 3D models.
  // Keep the character portraits animating as fallback until 3D pixel coverage is proven.
  $('vsPortraits').style.opacity='1';
  // VS badge, bounce each other beat.
