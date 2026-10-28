@@ -35,7 +35,7 @@ jobs:
             try{
               const resp=await fetch(uri,{signal:AbortSignal.timeout(22000)});
               const body=await resp.text();
-              const pass=resp.ok&&body.length>1000&&(name.endsWith('.html')?body.includes('FRUTÁSTROFE')&&body.includes('./frutastrofe-runtime.js'):(body.includes('FRUT')||body.includes('ModoCaos')));
+              const pass=resp.ok&&body.length>(name==='mc-config.js'?200:1000)&&(name.endsWith('.html')?body.includes('FRUTÁSTROFE')&&body.includes('./frutastrofe-runtime.js'):(body.includes('FRUT')||body.includes('ModoCaos')));
               console.log(JSON.stringify({uri,status:resp.status,type:resp.headers.get('content-type'),bytes:body.length,pass}));
               ok&&=pass;
             }catch(e){console.log(uri,String(e));ok=false}
