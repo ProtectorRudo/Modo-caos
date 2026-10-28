@@ -12,10 +12,10 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const canvas=document.getElementById('characterStage');
 const getState=()=>typeof window.Paper3DState==='function'?window.Paper3DState():null;
-const relative='./assets/styloo/';
-const models=['archer.glb','merchant.glb','student.glb','ninja.glb'];
-const backupBase='https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/main/addons/kaykit_character_pack_adventures/Characters/gltf/';
-const backupModels=['Knight.glb','Barbarian.glb','Mage.glb','Rogue.glb'];
+const relative='./assets/mascots/';
+const models=['marmot.glb','fox.glb','platypus.glb','penguin.glb','seaotter.glb','koala.glb','corgi.glb','tiger.glb'];
+const backupBase='./assets/styloo/';
+const backupModels=['archer.glb','merchant.glb','student.glb','ninja.glb','archer.glb','merchant.glb','student.glb','ninja.glb'];
 const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
 const RIG_HEIGHT=80;
 const gltfLoader=new GLTFLoader();
@@ -131,7 +131,7 @@ function loadModel(index){
  return new Promise(resolve=>{
   gltfLoader.load(relative+models[index],gltf=>{sourceAssets[index]=gltf;resolve(true);},
    undefined,err=>{
-    console.warn('Styloo GLB unavailable; checking KayKit CC0 fallback:',models[index]);
+    console.warn('Animal GLB unavailable; checking Styloo CC0 fallback:',models[index]);
     gltfLoader.load(backupBase+backupModels[index],gltf=>{sourceAssets[index]=gltf;resolve(true);},
      undefined,error=>{console.warn('3D failed; canvas chibi stays available',index);resolve(false);});
    });
@@ -326,7 +326,9 @@ function syncVS(state,dt){
    actor.root.scale.setScalar(sizeFactor);
    actor.root.position.set(side*(width*.27+arrival*width*.36),-height*.18+Math.sin(state.vsSeconds*7+i)*3,0);
    actor.root.rotation.y=(i===0?-.13:.13)+Math.sin(state.vsSeconds*3.5+i)*.12;
-   actor.root.rotation.z=Math.sin(state.vsSeconds*(actor.hero===3?9:6.6)+i)*.045;
+   // Gentle whole-body six-seven sway; never accumulate limb rotations.
+   actor.root.rotation.z=Math.sin(state.vsSeconds*4.6+i*Math.PI)*.10;
+   actor.root.rotation.x=Math.sin(state.vsSeconds*3.4+i)*.045;
    if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
    danceBones(actor,state.vsSeconds,i===1);
    if(i===0)updateOutfit(actor,state.outfit);
