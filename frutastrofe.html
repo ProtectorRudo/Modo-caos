@@ -115,7 +115,9 @@
 #onlineResult strong{display:block;font-size:16px}
 #onlineResult span{display:block;font-size:11px;margin-top:5px}
 @media(max-width:760px){#onlineHud{top:152px;padding:6px 9px;max-width:150px}#onlineHud strong{font-size:20px}#onlinePanel.in-ar .onlineGlass{max-height:58svh}}
-</style></head><body>
+#onlinePanel [hidden]{display:none!important}
+#onlineHud{top:255px!important}
+@media(max-width:760px){#onlineHud{top:250px!important}}</style></head><body>
 <div id="view" aria-label="Escena tridimensional de frutas"></div><svg id="arWorld" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;overflow:visible"></svg>
 <div id="home" class="shell">
  <header class="top"><a class="logo" href="./index.html">◈ MODO <b>CAOS</b></a><div class="top-links"><span class="chip coin" id="coinsHome">◉ 0</span><button id="soundHome" class="chip" aria-label="Activar o silenciar música">♫ SONIDO</button></div></header>
@@ -194,10 +196,10 @@
   </div>
  </section>
  <aside id="onlineHud" aria-live="polite" style="display:none"><span id="onlineNet">○</span><span id="onlineRivalName">RIVAL</span><strong id="onlineRivalScore">0</strong></aside>
- <div id="onlineResult" style="display:none"><strong id="onlineResultTitle">ESPERANDO AL RIVAL…</strong><span id="onlineResultScores"></span></div>
+ 
  <div id="readyOverlay" class="shell"><div class="modal"><div class="eyebrow" id="readyEyebrow">NIVEL 01</div><h2 id="readyTitle">PRIMER CHORRO</h2><p id="readyDescription">Apuntá y dispará. ¡Tres frutas iguales hacen un combo!</p><button id="goBtn" class="cta">▶ ¡VAMOS!</button><button id="readyBack" class="cta alt">‹ VOLVER AL MENÚ</button></div></div>
 <div id="pausePanel" class="shell"><div class="modal"><div class="eyebrow">DESCANSO TÉCNICO</div><h2>EN PAUSA</h2><p>Respirá, elegí tu próxima combinación y volvé por más jugo.</p><button id="resumeBtn" class="cta">▶ CONTINUAR</button><button id="quitBtn" class="cta alt">SALIR AL MENÚ</button></div></div>
-<div id="results" class="shell"><div class="modal"><div class="eyebrow" id="resultTop">RONDA FINALIZADA</div><div class="stars" id="resultStars">★★★</div><h2 id="resultTitle">¡QUÉ JUGADA!</h2><div id="resultScore" class="resultScore">0</div><div class="awardRow"><div>PRECISIÓN<b id="resultAccuracy">0%</b></div><div>CADENAS<b id="resultChains">0</b></div><div>MONEDAS<b id="resultCoins">+0</b></div></div><button id="nextBtn" class="cta">▶ SIGUIENTE NIVEL</button><button id="replayBtn" class="cta secondary">↻ REVANCHA</button><button id="shareBtn" class="cta alt">↗ COMPARTIR RETO</button><button id="menuBtn" class="cta alt">VOLVER AL MENÚ</button></div></div>
+<div id="results" class="shell"><div class="modal"><div class="eyebrow" id="resultTop">RONDA FINALIZADA</div><div class="stars" id="resultStars">★★★</div><h2 id="resultTitle">¡QUÉ JUGADA!</h2><div id="resultScore" class="resultScore">0</div><div id="onlineResult" style="display:none"><strong id="onlineResultTitle">ESPERANDO AL RIVAL…</strong><span id="onlineResultScores"></span></div><div class="awardRow"><div>PRECISIÓN<b id="resultAccuracy">0%</b></div><div>CADENAS<b id="resultChains">0</b></div><div>MONEDAS<b id="resultCoins">+0</b></div></div><button id="nextBtn" class="cta">▶ SIGUIENTE NIVEL</button><button id="replayBtn" class="cta secondary">↻ REVANCHA</button><button id="shareBtn" class="cta alt">↗ COMPARTIR RETO</button><button id="menuBtn" class="cta alt">VOLVER AL MENÚ</button></div></div>
 <div id="arPanel" class="shell"><div class="modal"><div class="eyebrow">REALIDAD AUMENTADA</div><h2 id="arTitle">BUSCÁ EL PISO</h2><div class="arTarget" id="arReticle"></div><p id="arMessage">Mové lentamente el celular hacia una superficie despejada. Una vez detectada, fijá la arena.</p><button id="arLock" class="cta" disabled>◉ FIJAR ARENA</button><button id="arCancel" class="cta alt">SALIR DE AR</button></div></div>
 <div id="toast" class="toast" aria-live="polite"></div>
 <script src="./mc-config.js"></script><script src="./mc-rooms-client.js"></script><script src="./frutastrofe-core.js"></script><script src="./frutastrofe-art.js"></script><script src="./frutastrofe-ar-projection.js"></script><script src="./frutastrofe-premium-art.js"></script><script src="./frutastrofe-ar-overlay.js"></script><script type="module" src="./frutastrofe-runtime.js"></script>
