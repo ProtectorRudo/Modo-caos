@@ -627,3 +627,40 @@ test('Android performance guardrails preserve gameplay physics and reduce GPU co
  assert.match(three,/const inView=p\.id===0\|\|/);
  assert.match(three,/snapsho[t]?ChibiPortraits\(\)/);
 });
+
+test('WebGL Android regression: resizing buffers only when the viewport changes',()=>{
+ const fs=require('node:fs');
+ const source=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ const begin=source.indexOf('let gameSurfaceWidth=0,gameSurfaceHeight=0,gameSurfaceResizes=0;');
+ const end=source.indexOf('let lastActorRender=',begin);
+ assert.ok(begin>=0&&end>begin,'game resize helper should exist');
+ const code=source.slice(begin,end);
+ const mainCalls=[];
+ const fn=new Function('renderer',code+';return {adjustSize,stats:()=>gameSurfaceResizes}');
+ const helpers=fn({setSize:(w,h)=>mainCalls.push([w,h])});
+ for(let i=0;i<250;i++)helpers.adjustSize(412,844);
+ assert.equal(mainCalls.length,1,'mobile 3D must not resize every render frame');
+ helpers.adjustSize(844,412);
+ assert.equal(mainCalls.length,2,'actual orientation change must resize once');
+
+ const v1=source.indexOf('let vsSurfaceWidth=0,vsSurfaceHeight=0,vsSurfaceResizes=0;');
+ const v2=source.indexOf('function vsCreate(){',v1);
+ assert.ok(v1>=0&&v2>v1,'VS resize helper should exist');
+ const vsCalls=[];
+ const vs=new Function('vsRenderer',source.slice(v1,v2)+';return {sizeVS,stats:()=>vsSurfaceResizes}')({
+  setSize:(w,h)=>vsCalls.push([w,h])
+ });
+ for(let i=0;i<250;i++)vs.sizeVS(380,530);
+ assert.equal(vsCalls.length,1,'versus 3D must not resize on each frame');
+ vs.sizeVS(380,570);
+ assert.equal(vsCalls.length,2);
+});
+test('game RAF loop self-schedules before risky canvas painting',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'..','paper.html'),'utf8');
+ const start=source.indexOf('function frame(t){');
+ const stop=source.indexOf('requestAnimationFrame(frame);',start);
+ assert.ok(start>=0&&stop>start);
+ assert.match(source.slice(start,stop+40),/requestAnimationFrame\(frame\)/);
+ assert.match(source.slice(start,start+2200),/catch\(e\)/);
+ assert.match(source,/window\.CividomPerformance=/);
+});
