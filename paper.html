@@ -1235,17 +1235,15 @@ function showHud(){
 function safe(s){return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function drawMini(){
  const w=182;mc.clearRect(0,0,w,w);mc.save();
- // A clean blue contour over the actual arena; the minimap has no opaque plate.
- mc.strokeStyle='#1646b1';mc.lineWidth=4.2;mc.lineJoin='round';mc.beginPath();
- for(let i=0;i<=96;i++){
-  const a=i/96*Math.PI*2,r=79+Math.sin(a*7)*2.4+Math.cos(a*12)*1.3;
-  const x=91+Math.cos(a)*r,y=91+Math.sin(a)*r;
-  if(i===0)mc.moveTo(x,y);else mc.lineTo(x,y);
- }
- mc.closePath();mc.stroke();
- mc.save();mc.beginPath();mc.arc(91,91,78,0,7);mc.clip();
+ // Show the same moving, shrinking circle as the actual playfield.
+ const a=arenaState(),arenaMx=9+a.x/WORLD*164,arenaMy=9+a.y/WORLD*164,arenaRad=a.radius/WORLD*164;
+ mc.strokeStyle='#173b9a88';mc.lineWidth=4.5;mc.beginPath();mc.arc(91,91,79,0,Math.PI*2);mc.stroke();
+ mc.strokeStyle=clock>=18?'#54edfa':'#1646b1';mc.lineWidth=4.5;
+ mc.beginPath();mc.arc(arenaMx,arenaMy,arenaRad,0,Math.PI*2);mc.stroke();
+ mc.save();mc.beginPath();mc.arc(arenaMx,arenaMy,arenaRad,0,Math.PI*2);mc.clip();
  mc.globalAlpha=.91;mc.imageSmoothingEnabled=true;
  mc.drawImage(terrainCanvas,9,9,164,164);mc.globalAlpha=1;
+ for(const box of game.boxes){if(!box.active)continue;const px=9+box.x/WORLD*164,py=9+box.y/WORLD*164;mc.fillStyle=POWER_COLORS[box.type];mc.strokeStyle='#162c79';mc.lineWidth=1.3;mc.fillRect(px-2.5,py-2.5,5,5);mc.strokeRect(px-2.5,py-2.5,5,5);}
  for(const p of game.people){
   if(!p.alive||p.id===0)continue;
   const x=9+p.x/WORLD*164,y=9+p.y/WORLD*164;
@@ -1340,7 +1338,7 @@ function paintChibi(p,hero,col){
 
 function paintMascotCanvas(p,hero,color){
  const k=HEROES[hero]||HEROES[0],animal=k.model;
- c.save();c.translate(p.x,p.y);
+ c.save();c.translate(p.x,p.y);c.scale(powerScale(p),powerScale(p));
  const bob=Math.sin(clock*8+p.id)*1.8;c.translate(0,bob);
  c.fillStyle='#1a375a40';c.beginPath();c.ellipse(1,11,18,7,0,0,7);c.fill();
  // Short hoodie, feet and paws.
@@ -1396,6 +1394,10 @@ function drawUnit(p){
  // Render the original 2D fallback ONLY when WebGL has not loaded a mascot.
  // The previous 72% overlap made old avatars appear underneath the new 3D actors.
  if(!has3D)paintMascotCanvas(p,hero,col);
+ if(clock<p.shieldUntil){
+  c.save();c.strokeStyle='#65eff7';c.globalAlpha=.57+.2*Math.sin(clock*7);
+  c.lineWidth=3.2;c.beginPath();c.arc(p.x,p.y-17,50*powerScale(p),0,Math.PI*2);c.stroke();c.restore();
+ }
 
  // Text stays readable without putting a huge comic heading over the actor.
  c.font='900 14px system-ui';c.textAlign='center';c.lineWidth=3.6;c.strokeStyle='#153da7';
@@ -1415,8 +1417,10 @@ function render(){
  zoom=clamp(ref/520,.68,1.12);
  c.save();c.translate(screenW/2,screenH/2);c.scale(zoom,zoom);c.translate(-camX,-camY);
  // Ocean and map boundary, matching the soft arcade look.
- c.fillStyle='#e5fff4';c.beginPath();c.arc(CX,CY,R+4,0,7);c.fill();
- c.save();c.beginPath();c.arc(CX,CY,R,0,7);c.clip();
+ const storm=arenaState();
+ c.fillStyle='#b6bbd8';c.beginPath();c.arc(CX,CY,R+4,0,Math.PI*2);c.fill();
+ c.save();c.beginPath();c.arc(storm.x,storm.y,storm.radius,0,Math.PI*2);c.clip();
+ c.fillStyle='#eafff7';c.fill();
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
  // Very low-contrast floor markings leave the visual focus on the territories.
  const tileStep=74;
@@ -1428,10 +1432,9 @@ function render(){
  for(let j=minY;j<=maxY;j++){c.moveTo(Math.max(0,minX*tileStep),j*tileStep);c.lineTo(Math.min(WORLD,maxX*tileStep),j*tileStep);}
  c.stroke();
  c.restore();
- c.strokeStyle='rgba(102,149,137,.32)';c.lineWidth=2;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
- drawEffects();paintCelebrations();
+ drawEffects();paintCelebrations();drawPowerBoxes();
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
- drawUnit(game.people[0]);c.restore();
+ drawUnit(game.people[0]);drawStorm();c.restore();
 }
 function end(win){
  if(mode!=='play')return;mode='result';countAreas();let p=game.people[0],best=Math.max(readBest(),p.score);
