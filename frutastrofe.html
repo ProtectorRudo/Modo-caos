@@ -77,12 +77,50 @@
  #hud .bottomHud{gap:5px!important}
  #hud .fire{width:81px!important;height:81px!important}
 }
+
+/* Frutástrofe 1v1 multiplayer: mobile-first room/lobby and unobtrusive in-game rival HUD */
+#onlinePanel{position:fixed;inset:0;z-index:45;display:none;align-items:center;justify-content:center;padding:12px;background:#041122b8;overflow-y:auto;backdrop-filter:blur(8px);pointer-events:auto}
+#onlinePanel.in-ar{background:transparent;align-items:flex-end;backdrop-filter:none;pointer-events:none}
+#onlinePanel .onlineGlass{pointer-events:auto;width:min(440px,100%);max-height:96svh;overflow-y:auto;border:1px solid #7df0e879;background:linear-gradient(150deg,#0b2437ef,#0c1530ef);border-radius:23px;padding:19px;box-shadow:0 18px 45px #02091688,inset 0 1px #ecfff630;color:#f1fffc}
+#onlinePanel.in-ar .onlineGlass{max-height:61svh;background:linear-gradient(140deg,#071e35eb,#091627ef);padding:13px;border-radius:19px}
+.onlineHeading{display:flex;align-items:center;justify-content:space-between;gap:9px;font-size:13px;letter-spacing:1px;font-weight:900;color:#a7f3ed}
+.onlineHeading b{color:#dfff8c}
+#onlineBack{font-size:20px;min-width:37px;min-height:36px;background:#1e4660;border:1px solid #90f2f24d;color:#eafffd;border-radius:10px}
+#onlineNotice{color:#d1e5ea;font-size:12px;line-height:1.45;margin:10px 0;padding:9px 10px;background:#0a324b9e;border:1px solid #56a6bb65;border-radius:10px}
+#onlineNotice.error{color:#ffcad7;border-color:#ff7892}
+#onlinePanel label{display:block;margin:14px 0 5px;font-size:10px;font-weight:900;letter-spacing:1.2px;color:#b4fbe7}
+#onlinePanel input{width:100%;box-sizing:border-box;border-radius:10px;border:1px solid #7bd9d471;background:#061a32;color:#f0fff8;padding:13px;font-size:16px;min-height:44px}
+#onlinePanel button{font-family:inherit;cursor:pointer;font-weight:900}
+#onlinePanel button:disabled{opacity:.38;cursor:not-allowed}
+#onlinePanel .onlinePrimary,#onlinePanel .onlineSub{display:block;width:100%;margin:10px 0;border:0;border-radius:12px;min-height:44px;padding:10px 13px;font-size:13px}
+#onlinePanel .onlinePrimary{background:linear-gradient(105deg,#5beadf,#d5ff87);color:#092e32}
+#onlinePanel .onlineSub{background:#183b57;border:1px solid #629ca5;color:#e2fbff}
+.onlineOr{text-align:center;font-size:10px;font-weight:800;letter-spacing:1.4px;color:#8eb9c6;margin-top:14px}
+.onlineCodeLabel{text-align:center;color:#90b9c6;font-size:10px;font-weight:900;letter-spacing:1.5px;margin-top:10px}
+#onlineCode{text-align:center;font-weight:1000;font-size:clamp(28px,8vw,41px);letter-spacing:6px;color:#c4ff83;margin:6px 0}
+.onlineTwin{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.onlineTwin button{border-radius:10px;border:1px solid #55bdb4;background:#174451;color:#c6fff1;min-height:40px;font-size:12px}
+#onlineConnection{text-align:center;color:#8af8de;margin:10px 0;font-size:10px;font-weight:900;letter-spacing:1px}
+#onlineRoster{display:grid;gap:6px}
+.online-person{display:flex;align-items:center;justify-content:space-between;border-radius:10px;border:1px solid #4a82946f;background:#081e38be;padding:11px;font-size:12px}
+.online-person .ready{color:#c5ff83;font-size:10px;font-weight:1000}
+.online-person .waiting{color:#d3af73;font-size:10px;font-weight:900}
+#onlineStage{text-align:center;color:#d3ff8f;font-weight:1000;font-size:18px;margin:12px 0 3px}
+#onlineHint{font-size:11px;line-height:1.4;color:#c2dce4;text-align:center}
+.onlineFoot{font-size:10px;line-height:1.4;color:#8fbac5;margin:12px 0 0}
+#onlineHud{position:fixed;top:188px;right:8px;z-index:20;align-items:center;gap:8px;border-radius:13px;background:#061e37dc;border:1px solid #90f5dd92;padding:7px 11px;box-shadow:0 4px 16px #0009;font-weight:1000;font-size:11px;max-width:190px;pointer-events:none}
+#onlineHud strong{font-size:23px;color:#d6ff8e}
+#onlineNet{color:#64f8dd}
+#onlineResult{margin:8px auto;padding:11px;background:#0d3640d9;border:1px solid #95f3c9;border-radius:12px;max-width:320px;text-align:center;color:#eaffed}
+#onlineResult strong{display:block;font-size:16px}
+#onlineResult span{display:block;font-size:11px;margin-top:5px}
+@media(max-width:760px){#onlineHud{top:152px;padding:6px 9px;max-width:150px}#onlineHud strong{font-size:20px}#onlinePanel.in-ar .onlineGlass{max-height:58svh}}
 </style></head><body>
 <div id="view" aria-label="Escena tridimensional de frutas"></div><svg id="arWorld" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;overflow:visible"></svg>
 <div id="home" class="shell">
  <header class="top"><a class="logo" href="./index.html">◈ MODO <b>CAOS</b></a><div class="top-links"><span class="chip coin" id="coinsHome">◉ 0</span><button id="soundHome" class="chip" aria-label="Activar o silenciar música">♫ SONIDO</button></div></header>
  <div class="hero"><section class="hero-main"><div class="eyebrow">EL ARCADE MÁS JUGOSO</div><h1 class="heading"><span class="pink">FRUTÁ</span><br/><span class="lime">STROFE</span><span aria-hidden="true">!</span></h1><p class="tagline">Dispará a las frutas. Encadená combos imposibles. ¡Pero ni se te ocurra acertarle a las bombas!</p><div class="labels"><span>✦ 10 NIVELES</span><span>◉ EXCLUSIVO AR</span><span>⚡ COMBOS</span><span>♛ JEFE FINAL</span></div>
- <div class="actions"><button id="campaign" class="cta"><span class="spark">◉</span> CAMPAÑA EN AR</button><button id="arcade" class="cta secondary"><span class="spark">⚡</span> ARCADE EN AR · 60 SEGUNDOS</button><button id="versus" class="cta alt">♛ DUELO AR LOCAL · POR TURNOS</button></div><p class="subtle">Exclusivo realidad aumentada. Requiere Chrome Android con ARCore, cámara y superficie despejada. Duelo local por turnos; online en tiempo real todavía no disponible.</p></section>
+ <div class="actions"><button id="campaign" class="cta"><span class="spark">◉</span> CAMPAÑA EN AR</button><button id="arcade" class="cta secondary"><span class="spark">⚡</span> ARCADE EN AR · 60 SEGUNDOS</button><button id="versus" class="cta alt">♛ DUELO AR LOCAL · POR TURNOS</button><button id="onlineBtn" class="cta" style="background:linear-gradient(110deg,#6afee4,#c9ff79);color:#082e2b">⚔️ DUELO ONLINE · INVITÁ A ALGUIEN</button></div><p class="subtle">Exclusivo realidad aumentada. Requiere Chrome Android con ARCore, cámara y superficie despejada. Duelo local por turnos; online en tiempo real todavía no disponible.</p></section>
  <div class="hero-side"><div class="fake-pill">COMBO <b>×5</b> ⚡</div><div class="side-bottom"><b>APUNTÁ · DISPARÁ</b><br/>¡HACÉ EXPLOTAR EL JUGO!</div></div></div>
  <footer class="pageFoot"><span>HECHO PARA MODO CAOS · EDICIÓN JUICE FEVER</span><span>10 NIVELES · PROGRESO GUARDADO EN ESTE DISPOSITIVO</span></footer>
 </div>
@@ -127,10 +165,40 @@
 <div class="gun-name">JUICE BLASTER <b>∞</b></div>
 </div>
 <div id="hud" class="shell"><div><div class="hudTop"><div class="hudCard"><small>PUNTOS</small><strong class="yellow" id="hudScore">0</strong></div><div class="hudCard"><small>COMBO</small><strong id="hudCombo">×1</strong></div><div class="hudCard"><small>TIEMPO</small><strong id="hudTime">60</strong></div><div class="hudCard"><small>RÉCORD</small><strong id="hudBest">0</strong></div></div><div class="hudGoal"><div class="goalLabel"><span id="goalName">OBJETIVO</span><span id="goalNums">0 / 0</span></div><div class="meter"><i id="goalBar"></i></div></div></div><div id="crosshair"></div><div id="floating"></div><div class="bottomHud"><div><button id="pauseBtn" class="quietBtn">Ⅱ PAUSA</button><button id="recenterBtn" class="quietBtn" style="display:none;margin-left:6px">⌖ RECENTRAR</button><div class="infoBox" id="playTip">TOCÁ UNA FRUTA PARA DISPARAR · EVITÁ LAS BOMBAS</div></div><button id="fireBtn" class="fire" aria-label="Disparar; mantené presionado para ráfaga">¡PUM!</button></div></div>
-<div id="readyOverlay" class="shell"><div class="modal"><div class="eyebrow" id="readyEyebrow">NIVEL 01</div><h2 id="readyTitle">PRIMER CHORRO</h2><p id="readyDescription">Apuntá y dispará. ¡Tres frutas iguales hacen un combo!</p><button id="goBtn" class="cta">▶ ¡VAMOS!</button><button id="readyBack" class="cta alt">‹ VOLVER AL MENÚ</button></div></div>
+<section id="onlinePanel" aria-label="Frutástrofe duelo online" style="display:none">
+  <div class="onlineGlass">
+   <div class="onlineHeading"><span>🍓 FRUTÁSTROFE <b>1 VS 1 ONLINE</b></span><button id="onlineBack" type="button" aria-label="Cerrar">✕</button></div>
+   <div id="onlineNotice" role="status">Creá una sala o entrá con un enlace. Cada persona juega desde su propio AR.</div>
+   <div id="onlineChoice">
+    <label for="onlineName">TU APODO</label><input id="onlineName" type="text" maxlength="24" autocomplete="nickname" placeholder="¿Cómo te llamamos?">
+    <button id="onlineCreate" class="onlinePrimary" type="button">+ CREAR SALA DE 2</button>
+    <div class="onlineOr">O UNITE A OTRA SALA</div>
+    <label for="onlineJoinCode">CÓDIGO DEL RIVAL</label><input id="onlineJoinCode" type="text" maxlength="8" autocomplete="off" autocapitalize="characters" placeholder="A1B2C3D4">
+    <button id="onlineJoin" class="onlineSub" type="button">ENTRAR AL DUELO</button>
+   </div>
+   <div id="onlineRoom" hidden>
+    <div class="onlineCodeLabel">CÓDIGO DE TU SALA</div>
+    <div id="onlineCode">────────</div>
+    <div class="onlineTwin"><button id="onlineShare" type="button">WhatsApp</button><button id="onlineCopy" type="button">Copiar enlace</button></div>
+    <div id="onlineConnection">○ CONECTANDO</div>
+    <div id="onlineRoster"></div>
+    <div id="onlineStage">Esperando segundo jugador…</div>
+    <p id="onlineHint">Primero colocá la arena en el piso.</p>
+    <button id="onlineCalibrate" class="onlinePrimary" type="button">◎ ABRIR CÁMARA Y FIJAR ARENA</button>
+    <button id="onlineReady" class="onlinePrimary" type="button" hidden>✓ ESTOY LISTO PARA JUGAR</button>
+    <button id="onlineStart" class="onlinePrimary" type="button" hidden>▶ INICIAR AMBOS JUNTOS</button>
+    <button id="onlineRematch" class="onlinePrimary" type="button" hidden>↻ REVANCHA</button>
+    <button id="onlineExit" class="onlineSub" type="button">SALIR AL MENÚ</button>
+   </div>
+   <p class="onlineFoot">60 segundos, mismo lanzamiento y cuenta regresiva. Cada teléfono ancla su propia arena. Duelo casual beta: los puntos todavía no están verificados contra trampas por un servidor.</p>
+  </div>
+ </section>
+ <aside id="onlineHud" aria-live="polite" style="display:none"><span id="onlineNet">○</span><span id="onlineRivalName">RIVAL</span><strong id="onlineRivalScore">0</strong></aside>
+ <div id="onlineResult" style="display:none"><strong id="onlineResultTitle">ESPERANDO AL RIVAL…</strong><span id="onlineResultScores"></span></div>
+ <div id="readyOverlay" class="shell"><div class="modal"><div class="eyebrow" id="readyEyebrow">NIVEL 01</div><h2 id="readyTitle">PRIMER CHORRO</h2><p id="readyDescription">Apuntá y dispará. ¡Tres frutas iguales hacen un combo!</p><button id="goBtn" class="cta">▶ ¡VAMOS!</button><button id="readyBack" class="cta alt">‹ VOLVER AL MENÚ</button></div></div>
 <div id="pausePanel" class="shell"><div class="modal"><div class="eyebrow">DESCANSO TÉCNICO</div><h2>EN PAUSA</h2><p>Respirá, elegí tu próxima combinación y volvé por más jugo.</p><button id="resumeBtn" class="cta">▶ CONTINUAR</button><button id="quitBtn" class="cta alt">SALIR AL MENÚ</button></div></div>
 <div id="results" class="shell"><div class="modal"><div class="eyebrow" id="resultTop">RONDA FINALIZADA</div><div class="stars" id="resultStars">★★★</div><h2 id="resultTitle">¡QUÉ JUGADA!</h2><div id="resultScore" class="resultScore">0</div><div class="awardRow"><div>PRECISIÓN<b id="resultAccuracy">0%</b></div><div>CADENAS<b id="resultChains">0</b></div><div>MONEDAS<b id="resultCoins">+0</b></div></div><button id="nextBtn" class="cta">▶ SIGUIENTE NIVEL</button><button id="replayBtn" class="cta secondary">↻ REVANCHA</button><button id="shareBtn" class="cta alt">↗ COMPARTIR RETO</button><button id="menuBtn" class="cta alt">VOLVER AL MENÚ</button></div></div>
 <div id="arPanel" class="shell"><div class="modal"><div class="eyebrow">REALIDAD AUMENTADA</div><h2 id="arTitle">BUSCÁ EL PISO</h2><div class="arTarget" id="arReticle"></div><p id="arMessage">Mové lentamente el celular hacia una superficie despejada. Una vez detectada, fijá la arena.</p><button id="arLock" class="cta" disabled>◉ FIJAR ARENA</button><button id="arCancel" class="cta alt">SALIR DE AR</button></div></div>
 <div id="toast" class="toast" aria-live="polite"></div>
-<script src="./frutastrofe-core.js"></script><script src="./frutastrofe-art.js"></script><script src="./frutastrofe-ar-projection.js"></script><script src="./frutastrofe-premium-art.js"></script><script src="./frutastrofe-ar-overlay.js"></script><script type="module" src="./frutastrofe-runtime.js"></script>
+<script src="./mc-config.js"></script><script src="./mc-rooms-client.js"></script><script src="./frutastrofe-core.js"></script><script src="./frutastrofe-art.js"></script><script src="./frutastrofe-ar-projection.js"></script><script src="./frutastrofe-premium-art.js"></script><script src="./frutastrofe-ar-overlay.js"></script><script type="module" src="./frutastrofe-runtime.js"></script>
 </body></html>
