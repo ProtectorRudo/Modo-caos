@@ -60,6 +60,11 @@ try{
     text:el.textContent,font:parseFloat(getComputedStyle(el).fontSize),width:el.clientWidth,scrollWidth:el.scrollWidth
    })),
    statsFont:parseFloat(getComputedStyle(document.getElementById('survivalKills')).fontSize),
+   values:Array.from(document.querySelectorAll('#survivalPanel .miniMetricValue')).map(el=>({
+    rect:el.getBoundingClientRect().toJSON(),
+    scrollWidth:el.scrollWidth,
+    clientWidth:el.clientWidth
+   })),
    viewport:window.innerWidth};
  });
  assert.ok(compactHUD.map&&compactHUD.stats,'mini map and status strip must render');
@@ -73,6 +78,10 @@ try{
  assert.ok(compactHUD.stats.width>=143,'3 metric ribbon must be wide enough to read: '+compactHUD.stats.width);
  assert.ok(compactHUD.statsFont>=13,'elimination count must be clearly readable');
  assert.deepEqual(compactHUD.labels.map(x=>x.text),['TORMENTA','VIVOS','BAJAS']);
+ assert.equal(compactHUD.values.length,3);
+ assert.ok(compactHUD.values.every(x=>x.scrollWidth<=x.clientWidth+1),'numbers and icons must not clip');
+ assert.ok(compactHUD.values.every((x,i)=>x.rect.left>=compactHUD.metrics[i].left-2&&
+  x.rect.right<=compactHUD.metrics[i].right+2),'legacy icon paddings must not overflow metric cells');
  assert.ok(compactHUD.labels.every(x=>x.font>=7.5&&x.scrollWidth<=x.width+1),'all metric names fit without clipping');
  assert.ok(compactHUD.stats.right<=compactHUD.viewport-4,'expanded ribbon must remain on screen');
  for(let i=0;i<2;i++)assert.ok(compactHUD.metrics[i].right<=compactHUD.metrics[i+1].left+1,'HUD metrics must not overlap');
