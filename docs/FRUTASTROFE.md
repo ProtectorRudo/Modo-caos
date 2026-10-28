@@ -59,3 +59,15 @@ Nuevos mundos y cosméticos; análisis de packs GLB CC0 con medición de FPS; on
 - Se mantuvo modo únicamente AR, progreso y niveles; los juegos existentes no se tocaron.
 - Se auditaron Kenney Food Kit CC0 y Poly Haven CC0; no se incorporaron modelos externos porque la ruta WebGL-AR mostraba objetos invisibles en el teléfono y porque los recursos pesados elevan el costo en móviles. Se priorizó render reproducible en el DOM-overlay anclado al espacio real.
 - CI: `tests/frutastrofe.test.cjs`, `tests/frutastrofe-ar.test.cjs`, prueba Playwright en dispositivo emulado con escenas y capturas de caída densa, arma, reacción de disparo, pausa y retorno. **No sustituye prueba física ARCore**.
+
+## Cambio a LLUVIA DESDE EL CIELO — 28/10/2026
+Tras probar el reactor terrestre en Android, se detectó: las frutas salían del piso y se apilaban. Se rediseñó de nuevo el origen de la acción:
+- Portal `SKY JUICE PORTAL` físicamente anclado al mundo XR, elevado alrededor de 1,8 m sobre la plataforma; ya no existe lanzador terrestre.
+- Cada fruta nace a altura mundial 9.25–9.67, lleva velocidad vertical inicial descendente y cae por gravedad con pequeño desplazamiento lateral. `baseY` permite una estela de caída, sin inventar trayectorias en píxeles.
+- Cinco carriles separados, paso coprimo para que el carril siguiente quede lejos del anterior. Oleadas iniciales y de combo programadas en cola con 0,52–0,57 s entre frutas; grupos separados en vez de aparecer simultáneamente.
+- Ritmo de lluvia moderado, máximo 13 objetos activos, no saturar el teléfono; el sistema de combos mantiene oportunidades de tres iguales.
+- Frutas y portal usan una escala vertical AR coherente de 0,23×0,80, distinta de la anterior 0,23×0,46 que comprimía demasiado el espacio.
+- Explosión con fruta visualmente cortada en dos, destello, ondas superpuestas, 12 chorros direccionales, partículas de jugo y puntuación flotante; efectos proyectados desde el mundo físico con WebXR. Caídas fallidas dejan salpicaduras pequeñas sobre la plataforma.
+- Se recomienda levantar ligeramente la cámara para seguir la lluvia del cielo; se añadieron instrucciones en juego. Los gráficos AR usan vectores estilizados, NO se debe anunciar realismo 3D fotográfico todavía.
+- `tests/frutastrofe-sky.test.cjs`: validación de altura, cinco carriles, gravedad, límites de densidad y oleadas. Chromium verifica imágenes de la lluvia y un disparo con fruta realmente partida.
+- Las pruebas Chromium/CI y CDN aprobadas no equivalen a una prueba de ARCore físico. Mantener preview aislada de producción principal hasta aprobación y pruebas Android.
