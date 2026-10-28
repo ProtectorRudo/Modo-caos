@@ -13,7 +13,7 @@ permissions:
 jobs:
   static-cdn:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 12
     steps:
       - name: Check publicly accessible version-locked playable HTML and dependencies
         env:
@@ -34,3 +34,12 @@ jobs:
           }
           if(!ok)process.exitCode=1;
           NODE
+
+      - name: Install headless Chromium for real public game QA
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Play a real round from the public immutable CDN
+        env:
+          FRUTA_BROWSER_BASE: https://rawcdn.githack.com/ProtectorRudo/Modo-caos/${{ github.sha }}
+        run: node tests/frutastrofe-browser.cjs
