@@ -11,6 +11,9 @@ on:
       - 'tests/frutastrofe-sky.test.cjs'
       - 'tests/frutastrofe-balance.test.cjs'
       - 'tests/frutastrofe-timed.test.cjs'
+      - 'tests/frutastrofe-online.test.cjs'
+      - 'mc-config.js'
+      - 'mc-rooms-client.js'
       - '.github/workflows/frutastrofe-tests.yml'
   pull_request:
     paths:
@@ -34,9 +37,11 @@ jobs:
       - run: node tests/frutastrofe-sky.test.cjs
       - run: node tests/frutastrofe-balance.test.cjs
       - run: node tests/frutastrofe-timed.test.cjs
+      - run: node tests/frutastrofe-online.test.cjs
       - run: node --check frutastrofe-ar-projection.js
       - run: node --check frutastrofe-ar-overlay.js
       - run: node --check frutastrofe-premium-art.js
+      - run: node --check frutastrofe-online.js
 
   mobile-browser:
     runs-on: ubuntu-latest
