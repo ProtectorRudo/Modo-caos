@@ -372,7 +372,7 @@ input[type=text]:focus{border-color:#42bcca}
 #menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
 #menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
-</head>
+<link rel="stylesheet" href="./paper-animals.css?v=1"></head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <canvas id="characterStage" aria-hidden="true"></canvas>
@@ -394,7 +394,7 @@ input[type=text]:focus{border-color:#42bcca}
 <section id="versus" class="overlay hidden" aria-label="Presentación de rivales antes de la partida">
   <div class="versusPanel">
     <div class="vsTopline"><span class="vsGameTag">TERRITORY LOOP <b>SHOWDOWN</b></span><span class="vsFightTag">ANTES DEL COMBATE</span></div>
-    <div class="versusHeader"><h2>¡CARA A CARA!</h2><p>Dos personajes. Un territorio. Muchos motivos para festejar.</p></div>
+    <div class="versusHeader"><h2>¡DUELO DE MASCOTAS!</h2><p>Dos campeones. Un mapa. Una coreografía original.</p></div>
     <div id="versusStage" class="versusStage">
       <canvas id="versusCanvas" width="760" height="790" aria-label="Presentación animada Six Seven"></canvas>
  <div id="vsPortraits" class="vsPortraits" aria-label="Personajes originales Styloo">
@@ -405,7 +405,7 @@ input[type=text]:focus{border-color:#42bcca}
       <div class="vsNamePlate vsNameRight"><small>RIVAL DESTACADO</small><strong id="vsRivalName">BOMBO</strong><span id="vsRivalRole">El bromista</span></div>
     </div>
     <div class="vsFooter">
-      <div class="vsFestejo"><span class="vsFire">✦</span><div><strong>DESAFÍO SIX SEVEN</strong><small>El gesto viral, con coreografía original para nuestros personajes</small></div></div>
+      <div class="vsFestejo"><span class="vsFire">✦</span><div><strong>SHOW SIX SEVEN</strong><small>El gesto viral, con coreografía original para nuestros personajes</small></div></div>
       <div class="vsCountdown"><span>EMPIEZA EN</span><strong id="vsCountdown">5</strong></div>
     </div>
     <div class="vsTrack"><i id="vsTrackFill"></i></div>
@@ -414,8 +414,8 @@ input[type=text]:focus{border-color:#42bcca}
   </div>
 </section>
 <section id="home" class="overlay"><div class="panel">
- <div class="brand">MODO CAOS · ARCADE ORIGINAL</div><h1>TERRITORY <em>LOOP</em></h1>
- <p class="description">Pintá el mapa, cerrá circuitos y cortá las estelas enemigas. Si alguien toca tu estela mientras estás afuera, perdés.</p>
+ <div class="brand">✦ MODO CAOS · EDICIÓN MASCOTAS ✦</div><h1>♛ TERRITORY <em>LOOP</em></h1><div class="lobbyTag">CONQUISTÁ · DOMINÁ · FESTEJÁ</div>
+ <p class="description">Ocho mascotas. Ocho personalidades. Un solo campeón del mapa.</p>
  <div id="menuHeroStage" class="menuHeroStage">
  <div class="menuSparks" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>
  <canvas id="menuFallbackCanvas" width="500" height="390" aria-label="Vista previa del personaje seleccionado"></canvas>
@@ -426,7 +426,7 @@ input[type=text]:focus{border-color:#42bcca}
  <span id="menu3dStatus" class="menuStatus">VISTA PREVIA ANIMADA</span>
 </div>
  <input id="nick" maxlength="16" type="text" placeholder="Tu nombre" value="VOS" aria-label="Nombre de jugador">
- <div class="colors" id="colors"></div><div class="heroRosterHead">ELEGÍ UN PERSONAJE CON PERSONALIDAD</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
+ <div class="colors" id="colors"></div><div class="heroRosterHead">ELEGÍ TU CAMPEÓN · COLECCIÓN DE 8</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
  <button class="primary" id="start">▶ JUGAR AHORA</button>
  <div class="best" id="best"></div><div class="mini-label">PERSONAJE SELECCIONADO: <b id="heroName">NOVA</b></div><div class="subline">Vos contra 11 rivales IA · movimiento continuo · móvil y PC · sin descargas</div>
  <div class="rowbtn"><button class="secondary" id="mutebtn">🔊 Sonido activado</button><button class="secondary" id="homeback">↩ Modo Caos</button></div>
