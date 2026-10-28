@@ -1,0 +1,39 @@
+/* CIVIDOM ORIGINALS · Premium fashion studio and reliable 3D showdown */
+#shop{background:radial-gradient(ellipse at 48% 0%,#2d4c91 0%,#101e47 54%,#060e28 100%);color:#fff;overflow:auto;overscroll-behavior:contain}
+#shop .panel{width:min(100%,590px);margin:auto;padding:15px 14px 18px;max-height:none;background:#0f2252;border:1px solid #638bcb;border-radius:21px;box-shadow:0 18px 48px #01081dc9;text-align:left;color:#fff;overflow:visible}
+#shop .shopHead .brand{font-size:10px;letter-spacing:2.6px;color:#90eaff}
+#shop .shopHead h2{color:#ffe07c;font-weight:1000;font-size:clamp(24px,6.2vw,35px);letter-spacing:-1px}
+#shop .shopClose{background:#203b73;color:#fff;border:1px solid #6c91c8}
+#shop .walletBar{background:#152f63;border:1px solid #537db0;color:#ffe5a3;padding:8px 12px}
+#shop .walletBar b{color:#ffe66b}
+#shop .shopHeroStage{position:relative;height:clamp(192px,30dvh,270px);margin:10px 0 12px;border-radius:18px;border:2px solid #638de6;overflow:hidden;touch-action:pan-y;background:radial-gradient(ellipse at 50% 74%,#3765a6 0%,#1d356b 49%,#0b1d46 100%);box-shadow:inset 0 0 32px #040f37,0 5px 16px #050e3b66}
+#shop .shopHeroStage:before{content:"";position:absolute;left:10%;right:10%;bottom:3%;height:18%;border:2px solid #84e8ff7b;border-radius:50%;transform:perspective(230px) rotateX(72deg);box-shadow:0 0 28px #5ccafa70;pointer-events:none}
+#shop .shopShowroomGlow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 49%,#a9ccff38,transparent 55%),linear-gradient(125deg,transparent 42%,#ffffff09 45%,transparent 49%)}
+#shopHeroStage canvas#versus3dCanvas.shopPosition{position:absolute;inset:0;width:100%;height:100%;z-index:2;display:block;pointer-events:none}
+#shop .shopShowroomLegend{position:absolute;left:12px;right:12px;bottom:10px;z-index:4;display:flex;align-items:flex-end;justify-content:space-between;gap:5px;pointer-events:none;text-shadow:0 2px 5px #00153b}
+#shop .shopShowroomLegend b{font-size:12px;color:#ffe77e;max-width:60%;line-height:1.1}
+#shop .shopShowroomLegend span{font-size:8px;font-weight:900;color:#a8dff3;text-align:right;letter-spacing:.35px}
+#shop .shopTabs{display:flex;overflow-x:auto;scroll-snap-type:x proximity;overscroll-behavior-x:contain;gap:6px;margin:6px -3px 12px;padding:5px 3px 7px;scrollbar-width:thin}
+#shop .shopTab{flex:0 0 auto;min-width:87px;padding:9px 8px;scroll-snap-align:start;white-space:nowrap;background:#253d6d;color:#cfddff;border:1px solid #5c7eab;border-radius:11px;font-size:10px;box-shadow:0 2px #061635}
+#shop .shopTab.active{background:#ffe07b;border-color:#fff3bb;color:#163b70;box-shadow:0 3px #bd8c2e}
+#shop .shopGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:none;overflow:visible;text-align:center}
+#shop .shopItem{min-width:0;padding:8px;background:linear-gradient(165deg,#1f376b,#142751);border:2px solid #4e6da6;border-radius:15px;display:flex;flex-direction:column;align-items:stretch;gap:7px}
+#shop .shopItem.previewed{border-color:#ffe47b;box-shadow:0 0 0 1px #ffdf6966,0 3px 14px #ffd46b2a}
+#shop .shopItem.equipped{background:linear-gradient(160deg,#205b5c,#163f56);border-color:#5be3ba}
+#shop .shopPreviewChoice{border:0;display:flex;flex:1;flex-direction:column;align-items:center;gap:4px;padding:4px 1px;background:transparent;color:#fff;cursor:pointer;min-width:0}
+#shop .shopPreviewChoice .itemArt{width:58px;height:50px;display:grid;place-items:center;background:radial-gradient(circle at 50% 24%,#e0f3ff,#5088d4 77%,#26528c);border-radius:12px;box-shadow:0 2px 0 #0a183e;font-size:30px;line-height:1}
+#shop .shopPreviewChoice strong{color:#f8f5ed;font-size:12px;line-height:1.16}
+#shop .shopPreviewChoice small{font-size:9px;color:#b6ccef;min-height:23px;line-height:1.2}
+#shop .buyItem{font-size:10px;min-height:36px;background:linear-gradient(145deg,#ffdf73,#ffb949);color:#20376b;border:1px solid #fff0a1;border-bottom:3px solid #bb812d;border-radius:10px}
+#shop .buyItem:disabled{background:#276f69;color:#d8ffdf;border:1px solid #63d7bd;cursor:default}
+#shop #shopNotice{font-size:11px;line-height:1.4;color:#d6e8fc;min-height:30px;font-weight:700}
+#shop #backFromShop{width:100%;margin-top:3px;background:#233f70;color:#eef6ff;border:1px solid #6181b8}
+#versus #versusStage.is-3d #vsPortraits{opacity:0!important;visibility:hidden!important}
+#versus #versusStage:not(.is-3d) #vsPortraits{visibility:visible!important}
+@media(max-width:385px){
+ #shop .panel{padding:11px 9px 15px}
+ #shop .shopTab{min-width:74px;font-size:9px}
+ #shop .shopPreviewChoice strong{font-size:11px}
+ #shop .shopShowroomLegend span{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){#shop *{animation-duration:0.01ms!important}}
