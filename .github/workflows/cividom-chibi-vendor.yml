@@ -41,7 +41,8 @@ jobs:
             for name in goal:
               matches=[p for p in models if re.search(r'(^|[^a-z])'+name+r'([^a-z]|$)',p.lower())]
               assert matches, f'No official {name} GLB'
-              matches.sort(key=lambda p:(('allinone' in p.lower())+('all_in_one' in p.lower()),-p.count('/'),len(p)),reverse=True)
+              matches.sort(key=lambda p:(('allinone' in p.lower()) or ('all_in_one' in p.lower()),len(p.split('/')[-1]),p.count('/')))
+              # Prefer the individual ready-to-play GLB, not the editing all-in-one mix.
               selected=matches[0]
               data=z.read(selected)
               assert len(data)>10000 and len(data)<35000000, f'Unexpected asset size {name}'
