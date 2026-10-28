@@ -109,25 +109,84 @@ function drawDeck(c,pos,t){
  for(let i=0;i<8;i++){const a=p[i],b=p[(i+1)%8];disc(c,(a.x+b.x)/2,(a.y+b.y)/2,3,i%2?'#fff2ae':'#8bffe5')}
  c.restore();return true;
 }
-function drawPortal(c,pos,t){
- const ring=[];for(let i=0;i<=40;i++){const a=i*TAU/40;ring.push(pos(Math.cos(a)*2.4,9.46+.1*Math.sin(a*3),-.32+Math.sin(a)*.64))}
- c.save();c.beginPath();let prev=false;for(const p of ring){if(!p){prev=false;continue}prev?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y);prev=true}
- c.lineWidth=12;c.strokeStyle='rgba(51,234,231,.23)';c.stroke();c.lineWidth=4;c.strokeStyle='#9bffee';c.stroke();
- c.lineWidth=2;c.setLineDash([14,13]);c.lineDashOffset=-t*38;c.strokeStyle='#e4ff99';c.stroke();c.setLineDash([]);
- // Orbital electro-mechanical fins: every segment is anchored at the same sky height.
- for(let i=0;i<12;i++){
-  const a=i*TAU/12+t*.12;
-  const q=pos(Math.cos(a)*2.36,9.46+.1*Math.sin(3*a),-.32+Math.sin(a)*.64);
-  const r=pos(Math.cos(a)*2.60,9.46+.1*Math.sin(3*a),-.32+Math.sin(a)*.70);
-  if(!q||!r)continue;
-  c.strokeStyle=i%3?'rgba(175,248,254,.85)':'rgba(239,255,135,.94)';
-  c.lineWidth=i%3?2.3:3.6;c.beginPath();c.moveTo(q.x,q.y);c.lineTo(r.x,r.y);c.stroke();
+function drawPortal(c,pos,t,phase=1,fever=false){
+ // APÓCALIPSIS CORE: a suspended 5-chamber fruit machine instead of a huge thin ring.
+ // All housing, doors and lights live in world coordinates over the arena.
+ const Y=9.46,Z=-.35,heat=clamp((phase-1)/5+(fever?.55:0),0,1.5),spin=t*(.36+heat*.24);
+ const hull=[
+  pos(-1.64,Y+.22,Z-.38),pos(1.64,Y+.22,Z-.38),
+  pos(1.79,Y-.27,Z-.38),pos(-1.79,Y-.27,Z-.38)
+ ];
+ const lower=[
+  pos(-1.64,Y+.22,Z+.24),pos(1.64,Y+.22,Z+.24),
+  pos(1.79,Y-.27,Z+.24),pos(-1.79,Y-.27,Z+.24)
+ ];
+ c.save();c.lineJoin='round';
+ if(hull.every(Boolean)&&lower.every(Boolean)){
+  const metal=grad(c,hull[0].x,hull[0].y,hull[2].x,hull[2].y,
+    '#a8c1c8','#2a4b66','#061a30');
+  poly(c,[hull[0],hull[1],hull[2],hull[3]],metal,'#b6d7e2',2.2);
+  poly(c,[lower[3],lower[2],hull[2],hull[3]],'#112b40','#3eb9c4',1.6);
+  poly(c,[lower[0],lower[1],hull[1],hull[0]],'#24415a','#8fbdcb',1.7);
+  // Armored front has 3 bevel insets, with changing light levels as the round escalates.
+  for(let i=0;i<3;i++){
+   const X=(i-1)*.92;
+   const plate=[pos(X-.35,Y+.07,Z-.407),pos(X+.35,Y+.07,Z-.407),
+      pos(X+.35,Y-.12,Z-.407),pos(X-.35,Y-.12,Z-.407)];
+   if(plate.every(Boolean)){
+    poly(c,plate,'rgba(7,29,52,.82)',i===1?'#96ffe8':'#53859a',1.25);
+    const led=pos(X,Y-.03,Z-.42);
+    if(led){disc(c,led.x,led.y,2.6+i*.4,i===1?'#d8ff83':'#81f0ef')}
+   }
+  }
  }
- const cp=pos(0,9.46,-.32);if(cp&&cp.y>-90&&cp.y<innerHeight+90){
-  const g=c.createRadialGradient(cp.x,cp.y,0,cp.x,cp.y,72);g.addColorStop(0,'rgba(230,255,211,.7)');g.addColorStop(.33,'rgba(55,233,217,.25)');g.addColorStop(1,'rgba(44,212,242,0)');
-  disc(c,cp.x,cp.y,72,g);
-  c.fillStyle='#ecfff8';c.textAlign='center';c.font='900 10px system-ui';c.fillText('JUICE GATE',cp.x,cp.y-28)
- }c.restore()
+ // Main reactor turbine: elliptical rings with visible rear rim and rotating fan.
+ const outer=[],inner=[];
+ for(let i=0;i<=28;i++){const angle=i*TAU/28;
+  outer.push(pos(Math.cos(angle)*.94,Y+.14*Math.sin(angle),Z-.49+Math.sin(angle)*.52));
+  inner.push(pos(Math.cos(angle)*.68,Y+.11*Math.sin(angle),Z-.54+Math.sin(angle)*.35));
+ }
+ const ring=(pts,col,w)=>{c.beginPath();let prev=false;
+  for(const p of pts){if(!p){prev=false;continue}prev?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y);prev=true}
+  c.strokeStyle=col;c.lineWidth=w;c.stroke()};
+ ring(outer,'rgba(7,19,39,.98)',13);
+ ring(outer,fever?'#ffb967':'#77ebdf',4);
+ ring(inner,'rgba(193,244,255,.77)',2);
+ const center=pos(0,Y,Z-.55);
+ if(center&&center.y>-90&&center.y<innerHeight+85){
+  const rad=Math.max(19,Math.min(48,Math.abs((pos(.7,Y,Z-.55)||center).x-center.x)*.94));
+  const glow=c.createRadialGradient(center.x,center.y,2,center.x,center.y,rad);
+  glow.addColorStop(0,fever?'rgba(255,238,135,.84)':'rgba(235,255,225,.83)');
+  glow.addColorStop(.25,'rgba(54,229,210,.42)');glow.addColorStop(1,'rgba(20,190,230,0)');
+  disc(c,center.x,center.y,rad,glow);
+  for(let i=0;i<5;i++){
+   const a=spin+i*TAU/5,tip=pos(Math.cos(a)*.62,Y+.09*Math.sin(a),Z-.53+Math.sin(a)*.26);
+   if(!tip)continue;
+   c.beginPath();c.moveTo(center.x,center.y);c.lineTo(tip.x,tip.y);
+   c.strokeStyle=i%2?'#b1ffd7':'#dffe92';c.lineWidth=2.8;c.stroke();
+  }
+  c.fillStyle='#e3f9f6';c.textAlign='center';c.font='900 10px system-ui';
+  c.fillText(fever?'CORE CRÍTICO':'JUICE CORE',center.x,center.y-15);
+ }
+ // Five visibly separate hatches correspond to the game's five deterministic lanes.
+ // Rather than a single ring spanning the entire camera, they explain the spread.
+ for(let i=0;i<5;i++){
+  const x=(i-2)*1.05,slot=pos(x,Y-.29,-.55),neck=pos(x,Y-.52,-.5);
+  if(!slot||!neck)continue;
+  const r=clamp(Math.abs((pos(x+.20,Y-.29,-.55)||slot).x-slot.x)*.95,3.6,12);
+  c.beginPath();c.moveTo(slot.x,slot.y);c.lineTo(neck.x,neck.y);
+  c.strokeStyle='#203f50';c.lineWidth=Math.max(4,r*1.7);c.stroke();
+  disc(c,neck.x,neck.y,r+2,'#071b31');
+  disc(c,neck.x,neck.y,r,fever?'#f4a65e':'#43e3db');
+  disc(c,neck.x,neck.y,r*.44,'#efffcb');
+ }
+ // Narrow downward electrostatic sparks telegraph the next wave without occluding fruits.
+ const beat=(Math.sin(t*(2.4+heat*2))+1)/2;
+ for(let i=0;i<3;i++){
+  const a=spin+i*TAU/3,p=pos(Math.cos(a)*1.1,Y-.2,Z+Math.sin(a)*.45);
+  if(!p)continue;c.globalAlpha=.22+beat*.25;disc(c,p.x,p.y,2.7,i%2?'#a9fbff':'#eeffae');
+ }
+ c.globalAlpha=1;c.restore();
 }
 function installGun(){
  const el=document.getElementById('weapon');if(!el||el.dataset.v3)return;
