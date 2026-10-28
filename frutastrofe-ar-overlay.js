@@ -187,7 +187,7 @@ function draw(view,origin,scale,objects,kind='playing'){
   // CSS weapon uses viewport width 35%, left 43% and bottom 2px.
   // This projected muzzle stays at exactly the same virtual geometry,
   // without invoking getBoundingClientRect during every WebXR frame.
-  const sx=width*.43,sy=height-2-gunWidth*(298/240);
+  const sx=width*.43,sy=height-14-gunWidth*(298/240);
   const dx=p.x-sx,dy=p.y-sy,d=Math.hypot(dx,dy)||1;
   const head=clamp(k*1.45,0,1);
   const px=sx+dx*head,py=sy+dy*head;
