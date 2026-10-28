@@ -7,7 +7,7 @@ const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const palette={strawberry:['#ff9ba8','#ef2454','#921035'],apple:['#ffd0c5','#f63b4b','#8d112a'],orange:['#ffe3aa','#ff9833','#b34e13'],watermelon:['#b1ffe1','#34c786','#086c48'],lemon:['#ffffce','#ffe749','#bb8d08'],gold:['#fff4b8','#fbc03e','#a06612'],ice:['#f5ffff','#71d5ff','#2181b3'],rainbow:['#faeaff','#a685fa','#6d43a9'],rotten:['#b9cb6b','#6c8540','#2f4122'],bomb:['#9aa4bf','#2d344f','#0c1125'],boss:['#ccffe2','#3bd48c','#07643d']};
 const LAYER_ID='frutastrofe-canvas';
 let canvas=null,ctx=null,width=0,height=0,sprites={},targets=[],mode='idle',renders=0,costMs=0;
-const particles=[],splashes=[],shots=[],scores=[],puddles=[];
+const particles=[],splashes=[],shots=[],scores=[],puddles=[];let shotsEver=0;
 function now(){return performance.now()/1000}
 function layer(){
  if(!canvas){
@@ -153,9 +153,10 @@ function draw(view,origin,scale,objects,kind='playing'){
   c.globalAlpha=1-age/p.life;circle(c,q.x,q.y,3.3,p.color);c.globalAlpha=1;
  }
  for(let i=shots.length-1;i>=0;i--){
-  const p=shots[i],age=t-p.at;if(age>.13){shots.splice(i,1);continue}
-  const a=1-age/.13,gun=$('weapon'),rect=gun?.getBoundingClientRect();
-  const sx=rect?rect.left+rect.width*.49:width*.48,sy=rect?rect.top+rect.width*.18:height*.82;
+  const p=shots[i],age=t-p.at;if(age>.22){shots.splice(i,1);continue}
+  const a=1-age/.22,gunWidth=Math.min(195,Math.max(153,width*.46));
+  // Never request layout while drawing: muzzle position follows the HUD's fixed CSS geometry.
+  const sx=width*.45,sy=height+19-gunWidth*1.08;
   c.lineCap='round';
   c.globalAlpha=a*.5;line(c,sx,sy,p.x,p.y,'#20cde8',12);c.globalAlpha=a;
   line(c,sx,sy,p.x,p.y,'#f3fff9',3);
@@ -184,7 +185,7 @@ function impact(p,kind='apple',combo=false){
  }
  if(particles.length>24)particles.splice(0,particles.length-24);
 }
-function shot(x,y,hit=true){shots.push({x:x??width/2,y:y??height*.48,hit,at:now()});if(shots.length>2)shots.shift()}
+function shot(x,y,hit=true){shotsEver++;shots.push({x:x??width/2,y:y??height*.48,hit,at:now()});if(shots.length>2)shots.shift()}
 function popup(p,value){if(p)scores.push({...p,value:Math.round(value),at:now()});if(scores.length>5)scores.shift()}
 function land(p){if(p){puddles.push({...p,color:palette[p.kind]?.[1]||'#84ffff',at:now()});if(puddles.length>6)puddles.shift()}}
 function emerge(){}
@@ -194,5 +195,5 @@ function clear(){
 }
 root.FrutaAROverlay={draw,clear,impact,shot,popup,land,emerge,
  get targets(){return targets},get state(){return mode},
- get diagnostics(){return {engine:'canvas2d',sprites:Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
+ get diagnostics(){return {engine:'canvas2d',sprites:Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
 })(typeof window!=='undefined'?window:globalThis);
