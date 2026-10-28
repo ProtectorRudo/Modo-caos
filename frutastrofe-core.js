@@ -22,7 +22,7 @@ function challengeSeed(date){const s=String(date||new Date().toISOString().slice
 function create(opts={}){
  const mode=opts.mode==='arcade'?'arcade':'campaign',level=clamp(Math.floor(opts.level||1),1,10),cfg=mode==='arcade'?{name:'MODO ARCADE',goal:'score',target:1250,duration:60,rank:[1250,2100,3200],speed:1.18,rate:.72,trap:.09,special:.105}:LEVELS[level-1];
  const seed=(Number(opts.seed)||((Date.now()^0x73b91c)>>>0))>>>0,rng=seeded(seed);
- const g={mode,level,seed,cfg,elapsed:0,duration:cfg.duration,state:'ready',score:0,shots:0,hits:0,misses:0,errors:0,combo:0,maxCombo:0,chains:0,citrus:0,bossHits:0,streakType:null,streakCount:0,streakUntil:0,multiplier:1,slowUntil:0,fever:false,nextSpawn:.3,objects:[],events:[],nextId:1,goalsMet:false,stars:0,best:0,locked:false};
+ const g={mode,level,seed,cfg,elapsed:0,duration:cfg.duration,state:'ready',score:0,shots:0,hits:0,misses:0,errors:0,combo:0,maxCombo:0,chains:0,citrus:0,bossHits:0,streakType:null,streakCount:0,streakUntil:0,multiplier:1,slowUntil:0,fever:false,nextSpawn:.3,nextCluster:7,objects:[],events:[],nextId:1,goalsMet:false,stars:0,best:0,locked:false};
  const emit=(type,extra={})=>g.events.push(Object.assign({type,at:g.elapsed},extra));
  function spawn(override){
   const r=rng(),kind=override|| (r<cfg.trap?'bomb':r<cfg.trap+.045?'rotten':r<cfg.trap+cfg.special+.045?pick(['gold','ice','rainbow'],rng):pick(TYPES,rng));
@@ -91,10 +91,11 @@ function create(opts={}){
   if(g.state!=='playing')return g;
   dt=clamp(Number(dt)||0,0,.07);g.elapsed+=dt;g.fever=g.elapsed>=g.duration-12;
   if(g.elapsed>=g.duration){finish(g.goalsMet||g.mode==='arcade');return g;}
-  const slow=g.elapsed<g.slowUntil?.48:1;
+  const slow=g.elapsed<g.slowUntil ? 0.48 : 1;
+  if(g.elapsed>=g.nextCluster&&g.cfg.goal!=='boss'){const choice=pick(TYPES,rng),base=(rng()-.5)*2.6;for(let j=0;j<3;j++){const q=spawn(choice);q.x=base+(j-1)*.55;q.y=3.25+.14*j;q.vy=Math.max(.7,q.vy*.84)}emit('opportunity',{kind:choice});g.nextCluster+=9.5}
   if(g.elapsed>=g.nextSpawn){
    spawn();
-   const period=Math.max(.32,cfg.rate*(g.fever?.58:1));
+   const period=Math.max(.32,cfg.rate*(g.fever ? 0.58 : 1));
    g.nextSpawn=g.elapsed+period*(.7+rng()*.56);
    // Periodic guaranteed same-fruit clusters provide real strategic combo opportunities.
    if(g.elapsed>8&&Math.floor(g.elapsed)%13===0){const fruit=pick(TYPES,rng);spawn(fruit);spawn(fruit)}
