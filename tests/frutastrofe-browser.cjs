@@ -49,7 +49,7 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   await page.evaluate(()=>window.__frutaQA.previewWorld());
   assert(await page.locator('#frutastrofe-canvas').isVisible(),'impact should be drawn on canvas');
   const fx=await page.evaluate(()=>window.__frutaQA.diagnostics());
-  assert(fx.particles>=4&&fx.particles<=24&&fx.shots>=1&&fx.svgNodes===0,'canvas blast must render without an SVG subtree '+JSON.stringify(fx));
+  assert(fx.particles>=4&&fx.particles<=24&&fx.shotsEver>=1&&fx.svgNodes===0,'canvas blast must render without an SVG subtree '+JSON.stringify(fx));
   await page.screenshot({path:'frutastrofe-ar-impact-mobile.png',animations:'disabled'});
   // Real pointer hold on the actual button, not a simulated direct core call.
   const beforeShots=await page.evaluate(()=>window.__frutaQA.state().shots);
@@ -65,7 +65,7 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   await page.mouse.down();await page.waitForTimeout(1800);await page.mouse.up();
   const perfAfter=await page.evaluate(()=>({elapsed:window.__frutaQA.state().elapsed,render:window.__frutaQA.diagnostics().renders,fx:window.__frutaQA.diagnostics()}));
   assert(perfAfter.elapsed-perfBefore.elapsed>=1.15,'game simulation must continue during extended rapid fire '+JSON.stringify({perfBefore,perfAfter}));
-  assert(perfAfter.fx.svgNodes===0&&perfAfter.fx.particles<=24&&perfAfter.fx.shots<=2,'long burst must not accumulate effects');
+  assert(perfAfter.fx.svgNodes===0&&perfAfter.fx.particles<=24&&perfAfter.fx.shots<=2&&perfAfter.fx.averageDrawMs<20,'long burst must not accumulate effects or slow painting '+JSON.stringify(perfAfter.fx));
   console.log('AR CANVAS RAPID FIRE METRICS',JSON.stringify({perfBefore,perfAfter}));
   await page.locator('#pauseBtn').click();
   assert(await page.locator('#pausePanel').isVisible());
