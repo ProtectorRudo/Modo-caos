@@ -99,7 +99,11 @@ export function initializeNativeFashion(THREE,actor,config={}){
   const root=new THREE.Group();root.name='CVIDOM_Native_Accessory';
   root.add(node);bone.add(root);actor.nativeWear.push(root);return node;
  };
- const hat=config.headwear||'head_none';
+ // Each champion has a signature silhouette by default; player-bought hats override it.
+ const requestedHat=config.headwear||'head_none';
+ const hat=requestedHat==='head_none'?
+  (actor.hero===0?'head_cap':actor.hero===1?'head_crown':actor.hero===2?'head_headphones':'head_beanie'):
+  requestedHat;
  if(hat==='head_cap'){
   mesh('head',new THREE.SphereGeometry(.187,22,14,0,Math.PI*2,0,Math.PI*.45),pal[1],0,.17,0);
   mesh('head',new THREE.BoxGeometry(.35,.026,.11),pal[2],0,.155,.16);
@@ -113,6 +117,15 @@ export function initializeNativeFashion(THREE,actor,config={}){
   const band=mesh('head',new THREE.TorusGeometry(.225,.023,8,26,Math.PI),pal[1],0,.045,0);
   if(band)band.rotation.z=Math.PI/2;
   for(const side of [-1,1])mesh('head',new THREE.BoxGeometry(.07,.15,.12),pal[2],side*.2,0,0);
+ }
+ // BYTE's signature visor and REX's playful horns are part of their identities.
+ if(actor.hero===2&&config.eyewear!=='eyes_shades'&&config.eyewear!=='eyes_star')
+  mesh('head',new THREE.BoxGeometry(.32,.055,.033),'#57ffdd',0,.042,.182);
+ if(actor.hero===3){
+  for(const side of [-1,1]){
+   const horn=mesh('head',new THREE.ConeGeometry(.052,.15,9),'#f3c890',side*.13,.278,0);
+   if(horn)horn.rotation.z=-side*.3;
+  }
  }
  if((config.eyewear||'')==='eyes_shades'||config.eyewear==='eyes_star'){
   const m=config.eyewear==='eyes_star'?pal[2]:'#182e40';
