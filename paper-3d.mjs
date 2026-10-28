@@ -9,11 +9,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import {buildMascot,animateMascot,MASCOT_DATA} from './paper-mascots.mjs';
 
 const canvas=document.getElementById('characterStage');
 const getState=()=>typeof window.Paper3DState==='function'?window.Paper3DState():null;
 const relative='./assets/mascots/';
-const models=['marmot.glb','fox.glb','platypus.glb','penguin.glb','seaotter.glb','koala.glb','corgi.glb','tiger.glb'];
+const models=MASCOT_DATA.map(x=>x.species+'.procedural');
 const backupBase='./assets/styloo/';
 const backupModels=['archer.glb','merchant.glb','student.glb','ninja.glb','archer.glb','merchant.glb','student.glb','ninja.glb'];
 const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
@@ -102,7 +103,8 @@ function instantiate(person){
  const hero=person.hero;
  const asset=sourceAssets[hero];if(!asset)return null;
  const root=new THREE.Group();root.name='Hero_'+person.id;
- const base=SkeletonUtils.clone(asset.scene);
+ const kit=asset.procedural?buildMascot(THREE,hero):null;
+ const base=kit?kit.root:SkeletonUtils.clone(asset.scene);
  const bounds=new THREE.Box3().setFromObject(base),size=bounds.getSize(new THREE.Vector3());
  if(!size.y||!Number.isFinite(size.y))return null;
  const factor=RIG_HEIGHT/size.y;
@@ -115,7 +117,7 @@ function instantiate(person){
  const actions={};
  if(mixer)for(const [key,clip] of [['run',run],['idle',idle],['emote',emote]])if(clip){actions[key]=mixer.clipAction(clip);actions[key].setLoop(THREE.LoopRepeat);}
  const rig=findArmRig(base);
- const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,restPose:captureRestPose(rig.arms,rig.forearms)};
+ const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null};
  scene.add(root);instances.set(person.id,instance);
  window.Paper3DReady[person.id]=true;
  return instance;
@@ -138,10 +140,12 @@ function loadModel(index){
  });
 }
 function startLoading(){
- if(started||failed)return;started=true;
- // Four animated GLBs, loaded lazily once the user actually starts playing.
- for(let i=0;i<models.length;i++)loadModel(i).catch(()=>false);
+ if(started||failed)return;
+ started=true;
+ // Eight original models are generated locally: no missing mascot GLB URLs.
+ for(let i=0;i<MASCOT_DATA.length;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
 }
+
 function adjustSize(width,height){
  if(canvas.width!==Math.round(width*Math.min(devicePixelRatio||1,1.5))||canvas.height!==Math.round(height*Math.min(devicePixelRatio||1,1.5))){
   renderer.setSize(width,height,false);
@@ -180,7 +184,8 @@ function sync(dt){
     else if(action.isRunning())action.stop();
    }
   }else{item.root.position.y+=Math.sin(state.clock*9+item.phase)*1.8;}
-  if(p.id===0){updateOutfit(item,state.outfit);if(p.emoting&&p.emoteId==='emote_sixseven')danceBones(item,state.clock,false);}
+  if(item.mascotRig)animateMascot(item,state.clock,p.emoting&&p.emoteId==='emote_sixseven'?'dance':'run');
+  if(p.id===0){updateOutfit(item,state.outfit);if(!item.mascotRig&&p.emoting&&p.emoteId==='emote_sixseven')danceBones(item,state.clock,false);}
  }
  for(const id of instances.keys())if(!all.has(id))destroyInstance(id);
  renderer.render(scene,camera);
@@ -209,7 +214,9 @@ function vsCreate(){
 }
 function vsActor(hero){
  if(!sourceAssets[hero])return null;
- const asset=sourceAssets[hero],root=new THREE.Group(),mesh=SkeletonUtils.clone(asset.scene);
+ const asset=sourceAssets[hero],root=new THREE.Group();
+ const kit=asset.procedural?buildMascot(THREE,hero):null;
+ const mesh=kit?kit.root:SkeletonUtils.clone(asset.scene);
  const box=new THREE.Box3().setFromObject(mesh),size=box.getSize(new THREE.Vector3());
  if(size.y<=0||!Number.isFinite(size.y))return null;
  const factor=RIG_HEIGHT/size.y;mesh.scale.setScalar(factor);
@@ -220,7 +227,7 @@ function vsActor(hero){
  const action=mixer&&clip?mixer.clipAction(clip):null;
  if(action)action.play();
  const {arms,forearms}=findArmRig(mesh);
- return {hero,root,mesh,mixer,action,arms,forearms,dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6};
+ return {hero,root,mesh,mixer,action,arms,forearms,dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6,mascotRig:kit?.rig||null};
 }
 function clearVSActors(){
  for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();vsScene?.remove(item.root);}
@@ -289,6 +296,7 @@ function syncMenu(state,dt){
   actor.root.rotation.y=Math.sin(t*.9)*.2;
   actor.root.rotation.z=Math.sin(t*1.8)*.015;
   if(actor.mixer)actor.mixer.update(Math.min(dt,.04));
+  if(actor.mascotRig)animateMascot(actor,t,'idle');
   updateOutfit(actor,state.outfit);
   vsRenderer.render(vsScene,vsCamera);
   window.PaperMenuReady=true;
@@ -333,7 +341,8 @@ function syncVS(state,dt){
    actor.root.rotation.z=Math.sin(state.vsSeconds*4.6+i*Math.PI)*.10;
    actor.root.rotation.x=Math.sin(state.vsSeconds*3.4+i)*.045;
    if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
-   danceBones(actor,state.vsSeconds,i===1);
+   if(actor.mascotRig)animateMascot(actor,state.vsSeconds,'dance',i===1);
+   else danceBones(actor,state.vsSeconds,i===1);
    if(i===0)updateOutfit(actor,state.outfit);
   }
   window.PaperVSReady=true;vsCanvas.style.opacity='1';
