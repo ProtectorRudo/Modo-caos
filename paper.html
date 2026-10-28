@@ -1077,19 +1077,25 @@ function paintMascotCanvas(p,hero,color){
  c.fillStyle=color;c.strokeStyle='#28446a';c.lineWidth=2;c.beginPath();c.roundRect(-15,-8,30,24,10);c.fill();c.stroke();
  c.fillStyle='#fff2ce';for(const xx of [-14,14]){c.beginPath();c.arc(xx,1,5,0,7);c.fill();}
  c.fillStyle='#283c59';for(const xx of [-7,7]){c.beginPath();c.ellipse(xx,17,5,3,0,0,7);c.fill();}
- if(animal==='fox'||animal==='tiger'){
+ if(animal==='fox'||animal==='redpanda'){
   c.fillStyle=color;c.beginPath();c.moveTo(-19,-28);c.lineTo(-13,-49);c.lineTo(-1,-34);c.moveTo(19,-28);c.lineTo(13,-49);c.lineTo(1,-34);c.fill();
- }else if(animal==='koala'||animal==='marmot'||animal==='seaotter'||animal==='corgi'){
+ }else if(animal==='capybara'||animal==='raccoon'||animal==='bear'){
   c.fillStyle=color;c.beginPath();c.arc(-17,-30,10,0,7);c.arc(17,-30,10,0,7);c.fill();
  }
  c.beginPath();c.ellipse(0,-29,23,23,0,0,7);
- c.fillStyle=animal==='penguin'?'#243650':animal==='koala'?'#afc2c3':k.color;c.strokeStyle='#2c4167';c.fill();c.stroke();
- if(animal==='tiger'){
+ c.fillStyle=animal==='penguin'?'#243650':animal==='raccoon'?'#85939d':k.color;c.strokeStyle='#2c4167';c.fill();c.stroke();
+ if(animal==='raccoon'){
   c.fillStyle='#533929';c.beginPath();c.moveTo(-18,-41);c.lineTo(-8,-28);c.lineTo(-18,-30);c.moveTo(18,-41);c.lineTo(8,-28);c.lineTo(18,-30);c.moveTo(0,-49);c.lineTo(-6,-38);c.lineTo(7,-38);c.fill();
  }
- c.fillStyle='#111b36';c.beginPath();c.ellipse(-9,-30,4,6,0,0,7);c.ellipse(9,-30,4,6,0,0,7);c.fill();
+ if(animal==='axolotl'){
+  c.fillStyle='#ef80b2';for(const side of [-1,1])for(const yy of [-44,-33,-22]){c.beginPath();c.ellipse(side*24,yy,12,4,side*.20,0,7);c.fill();}
+ }
+ if(animal==='frog'){
+  c.fillStyle=k.color;c.beginPath();c.arc(-14,-47,10,0,7);c.arc(14,-47,10,0,7);c.fill();
+ }
+  c.fillStyle='#111b36';c.beginPath();c.ellipse(-9,-30,4,6,0,0,7);c.ellipse(9,-30,4,6,0,0,7);c.fill();
  c.fillStyle='#fff';c.beginPath();c.arc(-10,-33,2,0,7);c.arc(8,-33,2,0,7);c.fill();
- c.fillStyle=animal==='platypus'||animal==='penguin'?'#f7b449':'#f4ded2';c.beginPath();c.ellipse(0,-20,animal==='platypus'?16:11,7,0,0,7);c.fill();
+ c.fillStyle=animal==='axolotl'||animal==='penguin'?'#f7b449':'#f4ded2';c.beginPath();c.ellipse(0,-20,animal==='axolotl'?16:11,7,0,0,7);c.fill();
  c.strokeStyle='#563d4e';c.lineWidth=1.8;c.beginPath();c.arc(0,-20,4,0,Math.PI);c.stroke();
  if(p.id===0){c.fillStyle='#fff5a4';c.beginPath();c.arc(17,-45,3,0,7);c.fill();}
  c.restore();
@@ -1117,8 +1123,9 @@ function drawUnit(p){
  // anatomically legible, animated original chibi people — never robot cubes.
  const hero=p.id===0?selectedSkin:p.id===1?vsRival:p.id%HEROES.length;
  const has3D=!!(window.Paper3DReady&&window.Paper3DReady[p.id]);
- // Keep a visible, cheap mascot under the 3D character in case WebGL compositing stalls.
- c.save();c.globalAlpha=has3D?.72:1;paintMascotCanvas(p,hero,col);c.restore();
+ // Render the original 2D fallback ONLY when WebGL has not loaded a mascot.
+ // The previous 72% overlap made old avatars appear underneath the new 3D actors.
+ if(!has3D)paintMascotCanvas(p,hero,col);
 
  // Text stays readable without putting a huge comic heading over the actor.
  c.font='900 14px system-ui';c.textAlign='center';c.lineWidth=3.6;c.strokeStyle='#153da7';
