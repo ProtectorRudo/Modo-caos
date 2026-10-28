@@ -37,6 +37,13 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   const after=await page.evaluate(()=>window.__frutaQA.previewWorld(.3));
   assert(after.length>=1&&after[0].x<before[0].x,'moving viewer changes image projection, never world placement');
   assert((await page.evaluate(()=>window.__frutaQA.diagnostics())).engine==='canvas2d','canvas compositor replaces DOM-intensive SVG');
+  const premium=await page.evaluate(()=>{
+   const art=window.FrutaPremiumArt;if(!art)return null;
+   const types=['strawberry','orange','apple','watermelon','lemon','bomb','rotten','gold','ice','rainbow','boss'];
+   return {types:types.map(type=>{const image=art.sprite(type);return {type,w:image.width,h:image.height}}),count:art.stats().spriteCount};
+  });
+  assert(premium&&premium.count===11&&premium.types.every(x=>x.w>=256&&x.h>=256),'all premium offline prelit sprites must exist at full 256px resolution '+JSON.stringify(premium));
+
   assert.equal(await page.locator('#arWorld #fx-scene').count(),0,'no rebuilt SVG scene remains');
   assert(await page.locator('#weapon').isVisible(),'first-person Juice Blaster must be visible');
   await page.screenshot({path:'frutastrofe-ar-world-projection-mobile.png',animations:'disabled'});
