@@ -34,7 +34,7 @@ function progressUI(){
 function alertTxt(text,ms=1350){$('toast').textContent=text;$('toast').classList.add('show');toastUntil=performance.now()+ms}
 function tone(freq=600,duration=.10,type='sine',vol=.08,offset=0){
  if(!musicEnabled)return;
- try{musicCtx=musicCtx||new(window.AudioContext||window.webkitAudioContext)();musicCtx.resume?.();const t=musicCtx.currentTime+offset,osc=musicCtx.createOscillator(),gain=musicCtx.createGain();osc.type=type;osc.frequency.setValueAtTime(freq,t);osc.frequency.exponentialRampToValueAtTime(Math.max(80,freq*.67),t+duration);gain.gain.setValueAtTime(vol,t);gain.gain.exponentialRampToValueAtTime(.0002,t+duration);osc.connect(gain);gain.connect(musicCtx.destination);osc.start(t);osc.stop(t+duration+.01)}catch(e){}
+ try{musicCtx=musicCtx||new(window.AudioContext||window.webkitAudioContext)();if(musicCtx.state==='suspended')musicCtx.resume?.();const t=musicCtx.currentTime+offset,osc=musicCtx.createOscillator(),gain=musicCtx.createGain();osc.type=type;osc.frequency.setValueAtTime(freq,t);osc.frequency.exponentialRampToValueAtTime(Math.max(80,freq*.67),t+duration);gain.gain.setValueAtTime(vol,t);gain.gain.exponentialRampToValueAtTime(.0002,t+duration);osc.connect(gain);gain.connect(musicCtx.destination);osc.start(t);osc.stop(t+duration+.01)}catch(e){}
 }
 let cachedSplashNoise=null;
 function juicePop(){
@@ -122,8 +122,8 @@ function startPlay(){if(!g)return;if(isAR&&!placement){alertTxt('FIJÁ LA ARENA 
 function fireAt(x,y){
  if(!g||g.state!=='playing'||paused||view!=='hud')return;
  const now=performance.now();if(now-lastFireAt<104)return;lastFireAt=now;
- point.set(x,y);const cam=isAR&&renderer.xr.isPresenting?renderer.xr.getCamera(art.camera):art.camera;
- ray.setFromCamera(point,cam);
+ point.set(x,y);const cam=!isAR?art.camera:null;
+ if(cam)ray.setFromCamera(point,cam);
  let id=null;
  if(!isAR){const targets=[...art.bodies.values()];const hits=ray.intersectObjects(targets,true);if(hits.length)id=hits[0].object.userData.targetId;}
  if(isAR&&arTargets.length){const sx=(x+1)*innerWidth*.5,sy=(1-y)*innerHeight*.5;let dist=Infinity;for(const q of arTargets){const d=Math.hypot(q.x-sx,q.y-sy);if(d<=Math.max(26,q.r*1.3)&&d<dist){id=q.id;dist=d}}}
@@ -142,11 +142,11 @@ function cursorShoot(e){if(view!=='hud'||isAR)return;const rect=renderer.domElem
 renderer.domElement.addEventListener('pointerdown',cursorShoot);
 renderer.domElement.addEventListener('pointermove',e=>{if(isAR||view!=='hud')return;const rect=renderer.domElement.getBoundingClientRect();touchAim.set((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height*2-1));const h=$('crosshair');h.style.left=e.clientX+'px';h.style.top=e.clientY+'px'});
 // Tap = a precise single shot; hold = responsive auto-blaster, 8 rounds per second.
-function stopAutoFire(){if(autoFireTimer!==null){clearInterval(autoFireTimer);autoFireTimer=null}$('fireBtn').classList.remove('is-firing')}
+function stopAutoFire(){if(autoFireTimer!==null){clearInterval(autoFireTimer);autoFireTimer=null}$('fireBtn').classList.remove('is-firing');$('weapon').classList.remove('is-firing','firing')}
 function startAutoFire(e){
  if(e){e.preventDefault();$('fireBtn').setPointerCapture?.(e.pointerId)}
  stopAutoFire();if(view!=='hud'||!g||g.state!=='playing')return;
- $('fireBtn').classList.add('is-firing');
+ $('fireBtn').classList.add('is-firing');$('weapon').classList.add('is-firing');
  fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y);
  autoFireTimer=setInterval(()=>{if(view!=='hud'||paused||g?.state!=='playing'){stopAutoFire();return}fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y)},120);
 }
@@ -220,7 +220,7 @@ function arFrame(frame){
  }else{glHit=false;arHitResult=null;arMarker.visible=false;$('arLock').disabled=true;$('arTitle').textContent='BUSCÁ EL PISO'}
 }
 function onFrame(t,frame){
- const sec=t/1000,dt=clamp(lastTime?sec-lastTime:0,0,.35);lastTime=sec;
+ const sec=t/1000,dt=clamp(lastTime?sec-lastTime:0,0,.95);lastTime=sec;
  if(isAR)arFrame(frame);
  if(g&&view==='hud'&&g.state==='playing'&&!paused){let simulationRemaining=dt;while(simulationRemaining>.0001&&g.state==='playing'){const step=Math.min(.05,simulationRemaining);g.update(step);simulationRemaining-=step}events();if(t-lastHud>95){hudUpdate();lastHud=t}moodMusic(sec)}
  if(!g&&view==='home'&&!isAR){
