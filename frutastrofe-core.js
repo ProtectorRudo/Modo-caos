@@ -21,8 +21,8 @@ const pick=(a,rng)=>a[Math.floor(rng()*a.length)];
 function challengeSeed(date){const s=String(date||new Date().toISOString().slice(0,10));let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
 function create(opts={}){
  const mode=opts.mode==='arcade'?'arcade':'campaign',level=clamp(Math.floor(opts.level||1),1,10),cfg=mode==='arcade'?{name:'MODO ARCADE',goal:'score',target:1250,duration:60,rank:[1250,2100,3200],speed:1.18,rate:.72,trap:.095,rotten:.09,special:.105}:LEVELS[level-1];
- const seed=(Number(opts.seed)||((Date.now()^0x73b91c)>>>0))>>>0,rng=seeded(seed);
- const g={mode,level,seed,cfg,elapsed:0,duration:cfg.duration,phase:1,phaseAt:0,state:'ready',score:0,shots:0,hits:0,misses:0,errors:0,combo:0,maxCombo:0,chains:0,citrus:0,bossHits:0,streakType:null,streakCount:0,streakUntil:0,multiplier:1,slowUntil:0,fever:false,nextSpawn:1.65,nextCluster:8.5,nextBomb:6.1,nextRotten:10.4,launchQueue:[],launchIndex:0,objects:[],events:[],nextId:1,goalsMet:false,stars:0,best:0,locked:false};
+ const seed=(opts.seed===undefined||opts.seed===null?((Date.now()^0x73b91c)>>>0):Number(opts.seed))>>>0,rng=seeded(seed),bonusRng=seeded(seed^0xDA27C0DE);
+ const g={mode,level,seed,syncWave:!!opts.syncWave,cfg,elapsed:0,duration:cfg.duration,phase:1,phaseAt:0,state:'ready',score:0,shots:0,hits:0,misses:0,errors:0,combo:0,maxCombo:0,chains:0,citrus:0,bossHits:0,streakType:null,streakCount:0,streakUntil:0,multiplier:1,slowUntil:0,fever:false,nextSpawn:1.65,nextCluster:8.5,nextBomb:6.1,nextRotten:10.4,launchQueue:[],launchIndex:0,objects:[],events:[],nextId:1,goalsMet:false,stars:0,best:0,locked:false};
  const emit=(type,extra={})=>g.events.push(Object.assign({type,at:g.elapsed},extra));
  function spawn(override){
   const r=rng(),kind=override||(r<cfg.trap?'bomb':r<cfg.trap+(cfg.rotten||.075)?'rotten':r<cfg.trap+cfg.special+(cfg.rotten||.075)?pick(['gold','ice','rainbow'],rng):pick(TYPES,rng));
@@ -80,7 +80,7 @@ function create(opts={}){
   award(base,o.kind,o.x,o.y,o.z);emit('hit',{id:o.id,kind:o.kind,x:o.x,y:o.y,z:o.z});
   if(o.kind==='ice'){g.slowUntil=g.elapsed+5;emit('slow',{until:g.slowUntil})}
   if(o.kind==='rainbow'){
-   const same=pick(TYPES,rng);for(const t of g.objects){if(!t.dead&&t.kind===same){t.dead=true;award(36,'rainbow',t.x,t.y,t.z);emit('splash',{id:t.id,kind:t.kind,x:t.x,y:t.y,z:t.z})}}
+   const same=pick(TYPES,g.syncWave?bonusRng:rng);for(const t of g.objects){if(!t.dead&&t.kind===same){t.dead=true;award(36,'rainbow',t.x,t.y,t.z);emit('splash',{id:t.id,kind:t.kind,x:t.x,y:t.y,z:t.z})}}
    emit('rainbow',{kind:same})
   }
   if(o.kind==='gold'){g.multiplier=clamp(g.multiplier+1,1,5);emit('gold')}
@@ -128,14 +128,14 @@ function create(opts={}){
    emit('opportunity',{kind:fruit});g.nextCluster+=8.5;
   }
   // Guaranteed, spaced warnings: bombs and rotten fruit cannot disappear by bad RNG.
-  if(g.elapsed>=g.nextBomb){if(g.objects.length<12)spawn('bomb');g.nextBomb+=13.0;}
-  if(g.elapsed>=g.nextRotten){if(g.objects.length<12)spawn('rotten');g.nextRotten+=15.6;}
+  if(g.elapsed>=g.nextBomb){if(g.syncWave||g.objects.length<12)spawn('bomb');g.nextBomb+=13.0;}
+  if(g.elapsed>=g.nextRotten){if(g.syncWave||g.objects.length<12)spawn('rotten');g.nextRotten+=15.6;}
   if(g.elapsed>=g.nextSpawn){
-   if(g.objects.length<13&&g.launchQueue.length<7)spawn();
+   if((g.syncWave||g.objects.length<13)&&g.launchQueue.length<7)spawn();
    const period=Math.max(.30,cfg.rate*.48*(1-.075*(g.phase-1))*(g.fever ? .80 : 1));
    g.nextSpawn=g.elapsed+period*(.88+rng()*.29);
   }
-  while(g.launchQueue.length&&g.launchQueue[0].at<=g.elapsed&&g.objects.length<13){
+  while(g.launchQueue.length&&g.launchQueue[0].at<=g.elapsed&&(g.syncWave||g.objects.length<13)){
    const wave=g.launchQueue.shift();spawn(wave.kind);
   }
   for(const o of g.objects){
