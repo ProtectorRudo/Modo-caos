@@ -52,6 +52,8 @@ function fxSound(type){if(type==='shot')tone(280,.085,'triangle',.07);if(type===
 function moodMusic(t){if(!musicEnabled||!g||g.state!=='playing'||t-lastMusic<.34)return;lastMusic=t;const beat=Math.floor(g.elapsed*3);if(beat%2===0)tone([220,247,277,330][Math.floor(beat/2)%4],.07,'triangle',.018)}
 function events(){
  if(!g)return;for(const ev of g.events.splice(0)){
+  if(ev.type==='spawn'&&isAR)O.emerge(ev);
+  if(ev.type==='drop'&&isAR)O.land(ev);
   if(ev.type==='points'&&isAR&&Number.isFinite(ev.x)&&Number.isFinite(ev.y))O.popup(ev,ev.points);
   if(ev.type==='hit'){if(!isAR)art.burst(ev.x,ev.y,ev.z,ev.kind,14);if(isAR)O.impact(ev,ev.kind);fxSound('hit')}
   if(ev.type==='splash'){if(!isAR)art.burst(ev.x,ev.y,ev.z,ev.kind,9);if(isAR)O.impact(ev,ev.kind)}
@@ -71,8 +73,8 @@ function createGame(mode='campaign',level=selected,seed){
  g=C.create({mode,level,seed:seed??getSeed()});art.reset();if(isAR)O.clear();paused=false;lastHud=0;
  $('readyEyebrow').textContent=mode==='arcade'?'DESAFÍO ARCADE':'NIVEL '+String(level).padStart(2,'0');
  $('readyTitle').textContent=duel?'JUGADOR '+duel.turn+' · '+g.cfg.name:g.cfg.name;
- $('readyDescription').textContent=g.cfg.goal==='boss'?'La Sandía Gigante tiene 12 puntos débiles. ¡Apuntá con precisión!':g.cfg.goal==='combos'?'¡Conseguí '+g.cfg.target+' cadenas de tres frutas iguales!':'Dispará a las frutas, encadená tres iguales y evitá las bombas. ¡Completá el objetivo antes de que acabe el tiempo!';
- $('playTip').textContent='MIRÁ LA ARENA · APUNTÁ A LAS FRUTAS · ¡PUM!';$('recenterBtn').style.display=isAR?'inline-block':'none';
+ $('readyDescription').textContent=g.cfg.goal==='boss'?'La Sandía Gigante flota sobre la arena. Levantá la mira y acertale 12 disparos.':g.cfg.goal==='combos'?'¡Conseguí '+g.cfg.target+' cadenas de tres frutas iguales!':'¡Las frutas caen desde un portal EN EL CIELO! Apuntá hacia arriba, seguí su caída y dispará antes de que toquen la plataforma. Encadená tres iguales.';
+ $('playTip').textContent='MIRÁ ARRIBA: LAS FRUTAS CAEN DEL CIELO · ¡PUM!';$('recenterBtn').style.display=isAR?'inline-block':'none';
  $('hudBest').textContent=number(progress.best);
  show('readyOverlay');
 }
@@ -222,7 +224,7 @@ function onFrame(t,frame){
     if(origin){
      const overlayMode=placement&&g?.state==='playing'?'playing':'search';
      arTargets=O.draw(vr,origin,art.world.scale.x,overlayMode==='playing'?g.objects:[],overlayMode);
-     if(view==='hud'&&t-lastHud<130)$('playTip').textContent=arTargets.length?'APUNTÁ A LAS FRUTAS · TOCÁ ¡PUM!':'NO HAY FRUTAS A LA VISTA · LEVANTÁ SUAVEMENTE EL CELULAR';
+     if(view==='hud'&&t-lastHud<130)$('playTip').textContent=arTargets.length?'SEGUÍ LA LLUVIA Y DISPARÁ · ¡PUM!':'LAS FRUTAS CAEN DESDE ARRIBA · LEVANTÁ LA MIRA';
     }
    }
   }catch(error){console.warn('AR overlay:',error.message)}
