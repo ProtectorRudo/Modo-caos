@@ -117,6 +117,26 @@ try{
   const crateStatus=await page.evaluate(()=>window.PaperCrate3DStatus);
   console.log('CIVIDOM_CRATE_GLBS='+JSON.stringify({status:crateStatus,assets:licensedCrates}));
   assert.equal(crateStatus,'ready','both CC0 GLB crates must parse inside the same Three.js scene');
+  // Visual-only injection: supplies a test crate to the 3D state accessor,
+  // never alters the actual game's power boxes, pickup radius or world state.
+  await page.evaluate(()=>{
+   window.CividomOriginalThreeState=window.Paper3DState;
+   window.Paper3DState=()=>{
+    const data=window.CividomOriginalThreeState();
+    if(data.playing){
+     data.powerBoxes=[{x:data.camX+54,y:data.camY+44,type:'SORPRESA',key:'QA_GLBCHEST',ready:true,age:2}];
+    }
+    return data;
+   };
+  });
+  await page.waitForFunction(()=>window.PaperCrate3DReady?.has('QA_GLBCHEST')&&
+   window.PaperMascotQA?.().crateActors>=1,{timeout:14000});
+  const created=await page.evaluate(()=>window.PaperMascotQA());
+  console.log('CIVIDOM_CRATE_SCENE='+JSON.stringify({actors:created.crateActors,status:created.crateStatus,
+   models:created.crateModels,limit:created.crateMaxActors}));
+  assert.ok(created.crateActors>=1&&created.crateActors<=5,'crate clones must use the original capped WebGL scene');
+  await page.evaluate(()=>{window.Paper3DState=window.CividomOriginalThreeState;});
+
  }
  const elapsed=(Date.now()-started)/1000;
  const frames=await page.evaluate(async()=>new Promise(resolve=>{
