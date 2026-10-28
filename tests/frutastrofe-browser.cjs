@@ -33,11 +33,11 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   const t=Number(await page.locator('#hudTime').textContent());assert(t<60&&t>=40,'60-second core clock runs during AR simulation: '+t);
   const before=await page.evaluate(()=>window.__frutaQA.previewWorld(0));
   assert(before.length>=1,'sky fruit is projected from physical XR coordinates');
-  assert((await page.locator('#arWorld g').count())>=1,'AR SVG contains visible sky fruit');
+  assert(await page.locator('#frutastrofe-canvas').isVisible(),'spatial Canvas 2D compositor must appear');
   const after=await page.evaluate(()=>window.__frutaQA.previewWorld(.3));
   assert(after.length>=1&&after[0].x<before[0].x,'moving viewer changes image projection, never world placement');
-  assert((await page.locator('#arWorld').innerHTML()).includes('SKY JUICE PORTAL'),'the fruit source is overhead, not on the floor');
-  assert((await page.locator('#arWorld').innerHTML()).includes('fp-deck'),'reactor platform is rendered');
+  assert((await page.evaluate(()=>window.__frutaQA.diagnostics())).engine==='canvas2d','canvas compositor replaces DOM-intensive SVG');
+  assert.equal(await page.locator('#arWorld #fx-scene').count(),0,'no rebuilt SVG scene remains');
   assert(await page.locator('#weapon').isVisible(),'first-person Juice Blaster must be visible');
   await page.screenshot({path:'frutastrofe-ar-world-projection-mobile.png',animations:'disabled'});
   await page.waitForFunction(()=>window.__frutaQA.state().elapsed>7,null,{timeout:16000});
@@ -47,10 +47,9 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   assert(await page.evaluate(()=>window.__frutaQA.shootTest()),'hitting a spawned fruit in AR must succeed');
   await page.waitForTimeout(135);
   await page.evaluate(()=>window.__frutaQA.previewWorld());
-  const sliced=await page.locator('#arWorld').innerHTML();
-  assert(sliced.includes('clip-path="url(#slice-'),'each fruit explosion must show visibly split halves');
+  assert(await page.locator('#frutastrofe-canvas').isVisible(),'impact should be drawn on canvas');
   const fx=await page.evaluate(()=>window.__frutaQA.diagnostics());
-  assert(fx.particles>=10&&fx.particles<=42&&fx.shots>=1&&fx.svgNodes<220,'optimized FX must still render without excessive SVG DOM '+JSON.stringify(fx));
+  assert(fx.particles>=4&&fx.particles<=24&&fx.shots>=1&&fx.svgNodes===0,'canvas blast must render without an SVG subtree '+JSON.stringify(fx));
   await page.screenshot({path:'frutastrofe-ar-impact-mobile.png',animations:'disabled'});
   // Real pointer hold on the actual button, not a simulated direct core call.
   const beforeShots=await page.evaluate(()=>window.__frutaQA.state().shots);
@@ -62,6 +61,12 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   assert(afterShots-beforeShots>=3,'holding the trigger should emit a real rapid barrage: '+(afterShots-beforeShots));
   await page.waitForTimeout(200);
   assert(!await page.locator('#fireBtn').evaluate(el=>el.classList.contains('is-firing')),'auto fire must stop after release');
+  const perfBefore=await page.evaluate(()=>({elapsed:window.__frutaQA.state().elapsed,render:window.__frutaQA.diagnostics().renders}));
+  await page.mouse.down();await page.waitForTimeout(1800);await page.mouse.up();
+  const perfAfter=await page.evaluate(()=>({elapsed:window.__frutaQA.state().elapsed,render:window.__frutaQA.diagnostics().renders,fx:window.__frutaQA.diagnostics()}));
+  assert(perfAfter.elapsed-perfBefore.elapsed>=1.15,'game simulation must continue during extended rapid fire '+JSON.stringify({perfBefore,perfAfter}));
+  assert(perfAfter.fx.svgNodes===0&&perfAfter.fx.particles<=24&&perfAfter.fx.shots<=2,'long burst must not accumulate effects');
+  console.log('AR CANVAS RAPID FIRE METRICS',JSON.stringify({perfBefore,perfAfter}));
   await page.locator('#pauseBtn').click();
   assert(await page.locator('#pausePanel').isVisible());
   const paused=await page.locator('#hudTime').textContent();await page.waitForTimeout(250);assert.equal(await page.locator('#hudTime').textContent(),paused);
