@@ -372,7 +372,7 @@ input[type=text]:focus{border-color:#42bcca}
 #menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
 #menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
-<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"><link rel="stylesheet" href="./paper-survival.css?v=1"></head>
+<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"><link rel="stylesheet" href="./paper-survival.css?v=1"><link rel="stylesheet" href="./paper-ultra.css?v=1"></head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <canvas id="characterStage" aria-hidden="true"></canvas>
@@ -715,6 +715,30 @@ let landCount=0, terrainCanvas=document.createElement('canvas');terrainCanvas.wi
 const terrainCtx=terrainCanvas.getContext('2d',{alpha:true});
 let mapCanvas=document.createElement('canvas');mapCanvas.width=WORLD;mapCanvas.height=WORLD;
 const mapCtx=mapCanvas.getContext('2d',{alpha:true});
+
+/* Visual-only procedural materials. Nothing here changes land[], boundaries or physics. */
+const cvFloorTile=document.createElement('canvas');cvFloorTile.width=240;cvFloorTile.height=240;
+const cvFloorBrush=cvFloorTile.getContext('2d');
+const cvFloorGrad=cvFloorBrush.createLinearGradient(0,0,240,240);
+cvFloorGrad.addColorStop(0,'#193e65');cvFloorGrad.addColorStop(.56,'#173454');cvFloorGrad.addColorStop(1,'#0f2949');
+cvFloorBrush.fillStyle=cvFloorGrad;cvFloorBrush.fillRect(0,0,240,240);
+const cvDetailTile=document.createElement('canvas');cvDetailTile.width=240;cvDetailTile.height=240;
+const cvDetailBrush=cvDetailTile.getContext('2d');
+function cvHex(ctx,x,y,rad){ctx.beginPath();for(let q=0;q<6;q++){const a=q*Math.PI/3+Math.PI/6;const px=x+Math.cos(a)*rad,py=y+Math.sin(a)*rad;if(q)ctx.lineTo(px,py);else ctx.moveTo(px,py);}ctx.closePath();}
+for(let row=-1;row<=5;row++)for(let col=-1;col<=5;col++){
+ const x=col*76+(row%2)*38,y=row*66;
+ cvHex(cvFloorBrush,x,y,42);
+ cvFloorBrush.strokeStyle='rgba(105,194,245,.13)';cvFloorBrush.lineWidth=1.5;cvFloorBrush.stroke();
+ cvHex(cvDetailBrush,x,y,42);
+ cvDetailBrush.strokeStyle='rgba(255,255,255,.16)';cvDetailBrush.lineWidth=1;cvDetailBrush.stroke();
+ if((row*7+col*11)%7===0){
+  cvFloorBrush.fillStyle='rgba(108,238,255,.18)';cvFloorBrush.beginPath();cvFloorBrush.arc(x,y,2.5,0,7);cvFloorBrush.fill();
+  cvDetailBrush.fillStyle='rgba(255,255,255,.35)';cvDetailBrush.beginPath();cvDetailBrush.arc(x,y,2,0,7);cvDetailBrush.fill();
+ }
+}
+const cvFloorPattern=c.createPattern(cvFloorTile,'repeat');
+const cvTerritoryPattern=mapCtx.createPattern(cvDetailTile,'repeat');
+
 for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=(x+.5)*CELL-CX,dy=(y+.5)*CELL-CY,k=y*N+x;if(dx*dx+dy*dy<(R-5)*(R-5)){inArena[k]=1;landCount++;}}
 function idx(x,y){let gx=Math.floor(x/CELL),gy=Math.floor(y/CELL);return gx<0||gy<0||gx>=N||gy>=N?-1:gy*N+gx;}
 // Runtime storm is a nested circular playfield. It pushes characters inward,
@@ -874,29 +898,43 @@ function slideStormWall(p,x,y,dt){
  }
  return{x:a.x+nx*safe,y:a.y+ny*safe};
 }
+
 function drawPowerBoxes(){
  if(!game?.boxes)return;
  for(const box of game.boxes){
   if(!box.active)continue;
-  const t=clock-box.spawnAt,bright=clock>=box.collectAt;
-  const a=Math.min(1,t/.32),bob=Math.sin(clock*3.6+box.x*.02)*3.1;
-  const col=POWER_COLORS[box.type],sz=16;
-  c.save();c.translate(box.x,box.y+bob);c.globalAlpha=a;
-  c.fillStyle='#092e6950';c.beginPath();c.ellipse(0,18,22,8,0,0,7);c.fill();
-  c.strokeStyle=col;c.lineWidth=2;c.globalAlpha=a*(.45+.24*Math.sin(clock*5));
-  c.beginPath();c.ellipse(0,16,25,10,0,0,7);c.stroke();c.globalAlpha=a;
-  // Top face with CIVIDOM crown; coloured side faces show identical power glyph.
-  c.beginPath();c.moveTo(0,-23);c.lineTo(sz,-16);c.lineTo(0,-7);c.lineTo(-sz,-16);c.closePath();
-  c.fillStyle='#fff7d8';c.fill();c.strokeStyle='#24539d';c.lineWidth=2;c.stroke();
-  c.beginPath();c.moveTo(-sz,-16);c.lineTo(0,-7);c.lineTo(0,16);c.lineTo(-sz,7);c.closePath();
-  c.fillStyle=col;c.fill();c.stroke();
-  c.beginPath();c.moveTo(0,-7);c.lineTo(sz,-16);c.lineTo(sz,7);c.lineTo(0,16);c.closePath();
-  c.fillStyle=col;c.fill();c.stroke();
-  c.textAlign='center';c.font='900 13px system-ui';c.fillStyle='#173974';
-  c.fillText('♛',0,-11);
-  c.font='1000 14px system-ui';c.fillStyle='#153671';c.fillText(POWER_SYMBOLS[box.type],-8,3);c.fillText(POWER_SYMBOLS[box.type],8,3);
-  c.font='900 9px system-ui';c.fillStyle='#184376';c.fillText(box.type,0,29);
-  if(!bright){c.fillStyle='#ffffff70';c.fillRect(-18,-24,36,38);}
+  const t=clock-box.spawnAt,ready=clock>=box.collectAt;
+  const alpha=Math.min(1,Math.max(0,t/.36)),bob=Math.sin(clock*3.3+box.x*.012)*3.5;
+  const col=POWER_COLORS[box.type]||'#63e6fc';
+  c.save();c.translate(box.x,box.y+bob);c.globalAlpha=alpha;
+  const outer=25,osc=.7+.3*Math.sin(clock*4+box.y);
+  // Circular collectible pad, shadow and vertical loot beam.
+  c.fillStyle='#03132d88';c.beginPath();c.ellipse(1,23,26,9,0,0,7);c.fill();
+  const halo=c.createRadialGradient(0,13,0,0,13,44);halo.addColorStop(0,col+'88');halo.addColorStop(1,col+'00');
+  c.fillStyle=halo;c.beginPath();c.arc(0,13,43,0,7);c.fill();
+  c.lineWidth=2.4;c.strokeStyle=col;c.globalAlpha=alpha*osc;c.beginPath();c.ellipse(0,20,31,11,0,0,7);c.stroke();c.globalAlpha=alpha;
+  if(ready){
+   const beam=c.createLinearGradient(0,-80,0,-18);beam.addColorStop(0,col+'00');beam.addColorStop(.7,col+'22');beam.addColorStop(1,col+'77');
+   c.fillStyle=beam;c.beginPath();c.moveTo(-14,-19);c.lineTo(-9,-76);c.lineTo(9,-76);c.lineTo(14,-19);c.fill();
+  }
+  // Machine-cut metallic supply chest with lighting on each face.
+  c.shadowColor=col;c.shadowBlur=ready?13:4;
+  c.beginPath();c.moveTo(-22,-18);c.lineTo(0,-29);c.lineTo(22,-18);c.lineTo(0,-7);c.closePath();
+  let top=c.createLinearGradient(-12,-30,20,-6);top.addColorStop(0,'#effaff');top.addColorStop(.38,'#6686ad');top.addColorStop(1,'#223e6f');
+  c.fillStyle=top;c.strokeStyle='#0b1e4d';c.lineWidth=3;c.fill();c.stroke();
+  c.beginPath();c.moveTo(-22,-18);c.lineTo(0,-7);c.lineTo(0,18);c.lineTo(-22,6);c.closePath();
+  const left=c.createLinearGradient(-22,-16,0,16);left.addColorStop(0,'#405b88');left.addColorStop(1,'#101d3c');
+  c.fillStyle=left;c.fill();c.stroke();
+  c.beginPath();c.moveTo(0,-7);c.lineTo(22,-18);c.lineTo(22,6);c.lineTo(0,18);c.closePath();
+  const right=c.createLinearGradient(0,0,22,20);right.addColorStop(0,'#47628d');right.addColorStop(1,'#101b3e');
+  c.fillStyle=right;c.fill();c.stroke();c.shadowBlur=0;
+  c.strokeStyle=col;c.lineWidth=2.9;
+  c.beginPath();c.moveTo(-19,-14);c.lineTo(0,-4);c.lineTo(19,-14);c.moveTo(0,-4);c.lineTo(0,15);c.stroke();
+  c.strokeStyle='#eefaffdd';c.lineWidth=1.1;c.beginPath();c.moveTo(-17,-18);c.lineTo(0,-26);c.lineTo(16,-18);c.stroke();
+  c.fillStyle=col;c.shadowColor=col;c.shadowBlur=9;c.fillRect(-14,-2,8,6);c.fillRect(8,-2,8,6);
+  c.shadowBlur=0;c.fillStyle='#fff5dc';c.textAlign='center';c.font='1000 15px system-ui';
+  c.fillText(POWER_SYMBOLS[box.type]||'✦',0,3);
+  if(!ready){c.fillStyle='#11275185';c.beginPath();c.roundRect(-24,-29,48,48,4);c.fill();}
   c.restore();
  }
 }
@@ -975,9 +1013,9 @@ function contourPath(ctx,loops,ox=0,oy=0){
   ctx.closePath();
  }
 }
+
 function updateMap(){
- // Capture physics keeps the accurate occupancy grid. Presentation uses smooth
- // connected vector contours rather than thousands of low-res circular stamps.
+ // Exact same territory contour geometry and occupancy grid. Only surface shading changes.
  const data=terrainCtx.createImageData(N,N),buf=data.data,active=new Uint8Array(12);
  for(let k=0;k<SIZE;k++){
   const v=land[k];if(!inArena[k]||!v)continue;
@@ -985,37 +1023,29 @@ function updateMap(){
   buf[o]=rgb[0];buf[o+1]=rgb[1];buf[o+2]=rgb[2];buf[o+3]=255;
  }
  terrainCtx.putImageData(data,0,0);
- mapCtx.clearRect(0,0,WORLD,WORLD);
- mapCtx.lineJoin='round';mapCtx.lineCap='round';
+ mapCtx.clearRect(0,0,WORLD,WORLD);mapCtx.lineJoin='round';mapCtx.lineCap='round';
  for(let v=1;v<=12;v++){
   if(!active[v-1])continue;
   const loops=territoryLoops(v);if(!loops.length)continue;
-  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]);
-  contourPath(mapCtx,loops,0,7);
-  mapCtx.fillStyle='rgba('+Math.floor(rgb[0]*.77)+','+Math.floor(rgb[1]*.77)+','+Math.floor(rgb[2]*.77)+',1)';
-  mapCtx.fill('evenodd');
-  contourPath(mapCtx,loops);
-  mapCtx.fillStyle=COLORS[(v-1+settingColor)%12];mapCtx.fill('evenodd');
-  // Intricate but subtle procedural motif, clipped inside owned territory.
-  // No copyrighted sprite sheets, no image downloads, no noisy background.
+  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),col=COLORS[(v-1+settingColor)%12];
+  const dark='rgb('+Math.round(rgb[0]*.39)+','+Math.round(rgb[1]*.39)+','+Math.round(rgb[2]*.52)+')';
+  // Beveled, grounded side wall under the unmodified round contour.
+  contourPath(mapCtx,loops,0,10);mapCtx.fillStyle='#061c35a6';mapCtx.fill('evenodd');
+  contourPath(mapCtx,loops,0,7);mapCtx.fillStyle=dark;mapCtx.fill('evenodd');
+  contourPath(mapCtx,loops,0,0);mapCtx.fillStyle=col;mapCtx.fill('evenodd');
+  // Soft diagonal directional lighting, translucent hex engraving.
   mapCtx.save();contourPath(mapCtx,loops);mapCtx.clip('evenodd');
-  mapCtx.strokeStyle='rgba(255,255,255,.20)';mapCtx.fillStyle='rgba(255,255,255,.20)';
-  for(let gy=92;gy<WORLD;gy+=172)for(let gx=85;gx<WORLD;gx+=178){
-   const ix=idx(gx,gy);if(ix<0||land[ix]!==v)continue;
-   const twist=(v*29+gx*3+gy)%7,rad=18+twist*2;
-   mapCtx.lineWidth=2.3;mapCtx.beginPath();mapCtx.arc(gx,gy,rad,.35,5.1);mapCtx.stroke();
-   mapCtx.lineWidth=1.4;mapCtx.beginPath();mapCtx.arc(gx,gy,rad*.63,0,Math.PI*1.7);mapCtx.stroke();
-   mapCtx.beginPath();mapCtx.roundRect(gx-9,gy-9,18,18,5);mapCtx.stroke();
-   for(let j=0;j<4;j++){
-    const a=j*Math.PI/2+twist*.14;
-    const nx=gx+Math.cos(a)*(rad+10),ny=gy+Math.sin(a)*(rad+10);
-    mapCtx.beginPath();mapCtx.arc(nx,ny,2.8,0,Math.PI*2);mapCtx.fill();
-   }
-  }
+  const light=mapCtx.createLinearGradient(0,0,WORLD,WORLD);
+  light.addColorStop(0,'rgba(255,255,255,.26)');
+  light.addColorStop(.48,'rgba(255,255,255,.065)');
+  light.addColorStop(1,'rgba(5,20,60,.17)');
+  mapCtx.fillStyle=light;mapCtx.fillRect(0,0,WORLD,WORLD);
+  if(cvTerritoryPattern){mapCtx.globalAlpha=.44;mapCtx.fillStyle=cvTerritoryPattern;mapCtx.fillRect(0,0,WORLD,WORLD);}
   mapCtx.restore();
-  contourPath(mapCtx,loops);mapCtx.strokeStyle='rgba(23,57,107,.25)';mapCtx.lineWidth=2.1;mapCtx.stroke();
-  contourPath(mapCtx,loops,0,-1.7);
-  mapCtx.strokeStyle='rgba(255,255,255,.12)';mapCtx.lineWidth=2;mapCtx.stroke();
+  // Firm shadow and precise neon rim. Keeps every enemy trail visibly distinct.
+  contourPath(mapCtx,loops,0,2);mapCtx.lineWidth=7;mapCtx.strokeStyle='rgba(6,18,47,.42)';mapCtx.stroke();
+  contourPath(mapCtx,loops);mapCtx.lineWidth=4.5;mapCtx.strokeStyle=col;mapCtx.stroke();
+  contourPath(mapCtx,loops,0,-1.4);mapCtx.lineWidth=1.7;mapCtx.strokeStyle='rgba(255,255,255,.76)';mapCtx.stroke();
  }
 }
 function burstAt(x,y,color,count=16,strength=85){
@@ -1038,10 +1068,29 @@ function tickEffects(dt){
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=1-dt*2.5;p.vy*=1-dt*2.5;if(p.age>=p.life)particles.splice(i,1);}
  for(let i=bursts.length-1;i>=0;i--){bursts[i].age+=dt;if(bursts[i].age>=bursts[i].life)bursts.splice(i,1);}
 }
+
 function drawEffects(){
- c.save();
- for(const b of bursts){if(b.points.length<2)continue;const f=1-b.age/b.life;c.globalAlpha=Math.max(0,f*.68);c.strokeStyle='#ffffff';c.lineJoin='round';c.lineCap='round';c.lineWidth=4+(1-f)*16;c.beginPath();c.moveTo(b.points[0].x,b.points[0].y);for(let k=1;k<b.points.length;k++)c.lineTo(b.points[k].x,b.points[k].y);c.stroke();}
- for(const p of particles){c.globalAlpha=Math.max(0,1-p.age/p.life);c.fillStyle=p.color;c.save();c.translate(p.x,p.y);c.rotate(p.spin*p.age);c.fillRect(-p.size/2,-p.size/2,p.size,p.size);c.restore();}
+ c.save();c.lineCap='round';c.lineJoin='round';
+ for(const b of bursts){
+  if(b.points.length<2)continue;
+  const f=Math.max(0,1-b.age/b.life);
+  c.save();c.globalAlpha=f;
+  c.beginPath();c.moveTo(b.points[0].x,b.points[0].y);
+  for(let k=1;k<b.points.length;k++)c.lineTo(b.points[k].x,b.points[k].y);
+  c.shadowColor=b.color;c.shadowBlur=19*f;c.strokeStyle=b.color;c.lineWidth=15*(1-f)+4;c.stroke();
+  c.shadowBlur=0;c.strokeStyle='#fffefa';c.lineWidth=2.4*f;c.stroke();
+  c.restore();
+ }
+ for(const p of particles){
+  const f=Math.max(0,1-p.age/p.life);
+  c.save();c.translate(p.x,p.y);c.rotate(p.spin*p.age);c.globalAlpha=f;
+  c.shadowColor=p.color;c.shadowBlur=8*f;c.fillStyle=p.color;
+  const size=p.size*(.65+f*.4);
+  if(p.size>4.5){c.beginPath();c.moveTo(0,-size);c.lineTo(size*.6,0);c.lineTo(0,size);c.lineTo(-size*.6,0);c.closePath();c.fill();}
+  else{c.beginPath();c.arc(0,0,size*.55,0,7);c.fill();}
+  if(p.size>5){c.fillStyle='#fff';c.globalAlpha=f*.8;c.beginPath();c.arc(0,0,1.25,0,7);c.fill();}
+  c.restore();
+ }
  c.restore();
 }
 
@@ -1300,53 +1349,41 @@ function showHud(){
  drawMini();
 }
 function safe(s){return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+
 function drawMini(){
  const w=182;mc.clearRect(0,0,w,w);mc.save();
  const zone=stormZoneState(),current=arenaState(),next=zone.next;
- const mapX=x=>9+x/WORLD*164,mapY=y=>9+y/WORLD*164,rad=r=>r/WORLD*164;
- // Every part of the map is visible. The storm covers the unsafe outer region
- // with a readable purple mask, exactly like the familiar battle-royale maps.
- mc.save();mc.beginPath();mc.roundRect(7,7,168,168,10);mc.clip();
- mc.fillStyle='#dffbf0';mc.fillRect(7,7,168,168);
- mc.imageSmoothingEnabled=true;mc.drawImage(terrainCanvas,9,9,164,164);
+ const mapX=x=>10+x/WORLD*162,mapY=y=>10+y/WORLD*162,rad=r=>r/WORLD*162;
+ mc.beginPath();mc.arc(91,91,80,0,Math.PI*2);mc.clip();
+ const bg=mc.createRadialGradient(88,66,10,91,91,92);
+ bg.addColorStop(0,'#244774');bg.addColorStop(1,'#081a39');mc.fillStyle=bg;mc.fillRect(0,0,w,w);
+ mc.imageSmoothingEnabled=true;mc.drawImage(terrainCanvas,10,10,162,162);
  const cx=mapX(current.x),cy=mapY(current.y),r=rad(current.radius);
- mc.fillStyle='rgba(119,65,183,.68)';
- mc.beginPath();mc.rect(7,7,168,168);mc.arc(cx,cy,r,0,Math.PI*2,true);
- mc.fill('evenodd');
- // A blue ring is the ACTUAL safe boundary; a dashed white ring is the NEXT
- // safe area. Its displaced position changes from game to game.
- mc.strokeStyle='#1151de';mc.lineWidth=3.5;mc.beginPath();mc.arc(cx,cy,r,0,7);mc.stroke();
+ mc.beginPath();mc.rect(9,9,164,164);mc.arc(cx,cy,r,0,Math.PI*2,true);
+ mc.fillStyle='rgba(19,26,67,.77)';mc.fill('evenodd');
+ mc.strokeStyle='#58dbff';mc.lineWidth=4;mc.beginPath();mc.arc(cx,cy,r,0,Math.PI*2);mc.stroke();
  if(next){
   const nx=mapX(next.x),ny=mapY(next.y),nr=rad(next.radius);
-  mc.setLineDash([5,4]);mc.strokeStyle='#fff';mc.lineWidth=3.6;
-  mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();mc.setLineDash([]);
-  mc.strokeStyle='#163577';mc.lineWidth=1;mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();
-  mc.fillStyle='#ffe77c';mc.beginPath();mc.arc(nx,ny,3.8,0,7);mc.fill();
-  const me=game.people[0],out=Math.hypot(me.x-next.x,me.y-next.y)>next.radius-22;
-  if(out&&me.alive){
-   mc.save();mc.setLineDash([4,4]);mc.strokeStyle='#ffef86';mc.lineWidth=1.8;
+  mc.save();mc.setLineDash([5,4]);mc.strokeStyle='#fff1a7';mc.lineWidth=3;
+  mc.beginPath();mc.arc(nx,ny,nr,0,Math.PI*2);mc.stroke();mc.restore();
+  mc.fillStyle='#ffe8a2';mc.beginPath();mc.arc(nx,ny,3,0,7);mc.fill();
+  const me=game.people[0];
+  if(me.alive&&Math.hypot(me.x-next.x,me.y-next.y)>next.radius-22){
+   mc.save();mc.setLineDash([4,5]);mc.strokeStyle='#ffeaa1';mc.lineWidth=1.7;
    mc.beginPath();mc.moveTo(mapX(me.x),mapY(me.y));mc.lineTo(nx,ny);mc.stroke();mc.restore();
   }
  }
- for(const box of game.boxes){
-  if(!box.active)continue;
-  const x=mapX(box.x),y=mapY(box.y);
-  mc.fillStyle=POWER_COLORS[box.type];mc.strokeStyle='#203f80';mc.lineWidth=1.1;
-  mc.fillRect(x-2.2,y-2.2,4.4,4.4);mc.strokeRect(x-2.2,y-2.2,4.4,4.4);
- }
- for(const p of game.people){
-  if(!p.alive||p.id===0)continue;
-  const x=mapX(p.x),y=mapY(p.y);
-  mc.fillStyle=COLORS[(p.id+settingColor)%12];
-  mc.strokeStyle='#142e76';mc.lineWidth=1.15;
-  mc.beginPath();mc.arc(x,y,3.2,0,7);mc.fill();mc.stroke();
- }
+ for(const box of game.boxes){if(!box.active)continue;mc.fillStyle=POWER_COLORS[box.type];mc.strokeStyle='#0e1c43';
+  mc.beginPath();mc.arc(mapX(box.x),mapY(box.y),2.6,0,7);mc.fill();mc.lineWidth=1.1;mc.stroke();}
+ for(const p of game.people){if(!p.alive||p.id===0)continue;
+  mc.fillStyle=COLORS[(p.id+settingColor)%12];mc.strokeStyle='#ffffffcc';mc.lineWidth=1.1;
+  mc.beginPath();mc.arc(mapX(p.x),mapY(p.y),3.2,0,7);mc.fill();mc.stroke();}
  const player=game.people[0];
  mc.save();mc.translate(mapX(player.x),mapY(player.y));mc.rotate(player.angle+Math.PI/2);
- mc.fillStyle='#fff';mc.strokeStyle='#113da5';mc.lineWidth=2.5;
- mc.beginPath();mc.moveTo(0,-9);mc.lineTo(6.3,7);mc.lineTo(-6.3,7);mc.closePath();mc.fill();mc.stroke();mc.restore();
+ mc.fillStyle='#fffaf0';mc.strokeStyle='#122451';mc.lineWidth=2.5;
+ mc.beginPath();mc.moveTo(0,-10);mc.lineTo(6.7,6);mc.lineTo(-6.7,6);mc.closePath();mc.fill();mc.stroke();mc.restore();
  mc.restore();
- mc.strokeStyle='#bedfff';mc.lineWidth=2;mc.strokeRect(8,8,166,166);
+ mc.strokeStyle='#b9eaff';mc.lineWidth=3;mc.beginPath();mc.arc(91,91,79,0,Math.PI*2);mc.stroke();
  mc.restore();
 }
 function paintChibi(p,hero,col){
@@ -1465,20 +1502,31 @@ function paintMascotCanvas(p,hero,color){
 function drawUnit(p){
  if(!p.alive)return;
  const col=COLORS[(p.id+settingColor)%12];
+
  if(p.outside&&p.trailPoints.length){
-  // Raised, neon-rimmed ribbons: visually continuous even through a sharp turn.
-  c.beginPath();c.moveTo(p.trailPoints[0].x,p.trailPoints[0].y);
+  // Same vulnerable trail geometry: premium energized ribbon is presentation only.
+  const trailCol=p.id===0&&wardrobe.equipped.trail==='trail_rainbow'
+   ?COLORS[Math.floor(clock*6)%COLORS.length]:col;
+  c.save();c.beginPath();c.moveTo(p.trailPoints[0].x,p.trailPoints[0].y);
   for(let i=1;i<p.trailPoints.length;i++)c.lineTo(p.trailPoints[i].x,p.trailPoints[i].y);
-  c.lineTo(p.x,p.y);
-  c.lineCap='round';c.lineJoin='round';
-  c.save();c.translate(0,5);c.strokeStyle='rgba(21,52,94,.22)';c.lineWidth=16.5;c.stroke();c.restore();
-  c.strokeStyle='#2448b5';c.lineWidth=17;c.stroke();
-  c.strokeStyle=p.id===0&&wardrobe.equipped.trail==='trail_rainbow'?COLORS[Math.floor(clock*6)%COLORS.length]:col;c.lineWidth=12.5;c.stroke();
-  c.strokeStyle=(p.id===0&&game&&game.epicTrail)?'#fff0a0':'#ffffffb5';c.lineWidth=(p.id===0&&game&&game.epicTrail)?3.4:2.0;c.stroke();
-  if(p.id===0&&game&&game.epicTrail){
-   c.save();c.strokeStyle='#fff8d2';c.lineWidth=1.35;c.globalAlpha=.72;
-   c.setLineDash([15,31]);c.lineDashOffset=-clock*80;c.stroke();c.restore();
+  c.lineTo(p.x,p.y);c.lineCap='round';c.lineJoin='round';
+  c.save();c.translate(0,5);c.strokeStyle='#03163383';c.lineWidth=20;c.stroke();c.restore();
+  c.shadowColor=trailCol;c.shadowBlur=p.id===0?19:11;
+  c.strokeStyle=trailCol;c.lineWidth=17;c.stroke();
+  c.shadowBlur=0;c.strokeStyle='#122550ab';c.lineWidth=12;c.stroke();
+  c.strokeStyle=trailCol;c.lineWidth=9.8;c.stroke();
+  c.strokeStyle='#fffaff';c.lineWidth=2.6;c.globalAlpha=.93;c.stroke();
+  c.globalAlpha=1;
+  if(p.id===0){
+   const flicker=(Math.sin(clock*15)+1)*.5;
+   c.fillStyle='#fffdf6';c.shadowColor=trailCol;c.shadowBlur=12;
+   for(let j=Math.max(0,p.trailPoints.length-4);j<p.trailPoints.length;j+=2){
+    const q=p.trailPoints[j];c.globalAlpha=.4+flicker*.45;
+    c.beginPath();c.arc(q.x+Math.sin(clock*8+j)*5,q.y+Math.cos(clock*6+j)*5,1.7,0,7);c.fill();
+   }
+   c.globalAlpha=1;c.shadowBlur=0;
   }
+  c.restore();
  }
  // Actual 3D actors take over when their GLB has loaded. Otherwise use
  // anatomically legible, animated original chibi people — never robot cubes.
@@ -1497,34 +1545,35 @@ function drawUnit(p){
  // No floating username on top of characters: silhouette stays readable.
  if(p.id===0&&clock<emoteUntil){
   const yy=p.y-133,cx=p.x;
-  c.save();c.fillStyle='#fffffff2';c.strokeStyle='#2c5dc0';c.lineWidth=2;c.beginPath();
+  c.save();c.fillStyle='#132d59e8';c.strokeStyle='#b9e5ff';c.lineWidth=1.5;c.beginPath();
   c.roundRect(cx-67,yy-16,134,33,10);c.fill();c.stroke();
-  c.fillStyle='#2047a3';c.font='900 11px system-ui';c.fillText(emoteLabel,cx,yy+5);c.restore();
+  c.fillStyle='#fff0b8';c.font='900 11px system-ui';c.fillText(emoteLabel,cx,yy+5);c.restore();
  }
 }
+
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
- c.fillStyle=game&&clock>=STORM_INTERVAL?'#c7cedf':'#e5fff4';c.fillRect(0,0,screenW,screenH);
+ const screenLight=c.createLinearGradient(0,0,screenW,screenH);
+ screenLight.addColorStop(0,'#183f68');screenLight.addColorStop(.55,'#09284b');screenLight.addColorStop(1,'#0a1938');
+ c.fillStyle=screenLight;c.fillRect(0,0,screenW,screenH);
  if(!game)return;
- const ref=Math.min(screenW,screenH*0.75);
- zoom=clamp(ref/520,.68,1.12);
+ const ref=Math.min(screenW,screenH*.75);zoom=clamp(ref/520,.68,1.12);
  c.save();c.translate(screenW/2,screenH/2);c.scale(zoom,zoom);c.translate(-camX,-camY);
- // Ocean and map boundary, matching the soft arcade look.
  const storm=arenaState();
- c.fillStyle='#b6bbd8';c.beginPath();c.arc(CX,CY,R+4,0,Math.PI*2);c.fill();
+ // Original ROUND arena. No square or island collision changes.
+ c.beginPath();c.arc(CX,CY,R+21,0,Math.PI*2);c.fillStyle='#061124';c.fill();
+ c.beginPath();c.arc(CX,CY,R+12,0,Math.PI*2);c.fillStyle='#336f97';c.fill();
  c.save();c.beginPath();c.arc(storm.x,storm.y,storm.radius,0,Math.PI*2);c.clip();
- c.fillStyle='#eafff7';c.fill();
+ c.fillStyle=cvFloorPattern||'#18395d';c.fillRect(0,0,WORLD,WORLD);
+ // Ambient light anchors the currently active part of the map.
+ const glow=c.createRadialGradient(storm.x-280,storm.y-320,40,storm.x,storm.y,Math.max(120,storm.radius));
+ glow.addColorStop(0,'rgba(111,210,255,.18)');glow.addColorStop(1,'rgba(4,15,38,.2)');
+ c.fillStyle=glow;c.fillRect(0,0,WORLD,WORLD);
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
- // Very low-contrast floor markings leave the visual focus on the territories.
- const tileStep=74;
- c.strokeStyle='rgba(112,164,153,0.014)';c.lineWidth=1;
- const minX=Math.max(0,Math.floor((camX-screenW/zoom)/tileStep)-1),maxX=Math.min(35,Math.ceil((camX+screenW/zoom)/tileStep)+1);
- const minY=Math.max(0,Math.floor((camY-screenH/zoom)/tileStep)-1),maxY=Math.min(35,Math.ceil((camY+screenH/zoom)/tileStep)+1);
- c.beginPath();
- for(let i=minX;i<=maxX;i++){c.moveTo(i*tileStep,Math.max(0,minY*tileStep));c.lineTo(i*tileStep,Math.min(WORLD,maxY*tileStep));}
- for(let j=minY;j<=maxY;j++){c.moveTo(Math.max(0,minX*tileStep),j*tileStep);c.lineTo(Math.min(WORLD,maxX*tileStep),j*tileStep);}
- c.stroke();
  c.restore();
+ // Energy lens is a distinct signal at the REAL safe zone boundary.
+ c.beginPath();c.arc(storm.x,storm.y,storm.radius,0,Math.PI*2);
+ c.strokeStyle='#76ddff50';c.lineWidth=18;c.stroke();
  drawEffects();paintCelebrations();drawPowerBoxes();
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
  drawUnit(game.people[0]);drawStorm();c.restore();
