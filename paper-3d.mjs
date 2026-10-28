@@ -324,7 +324,7 @@ function syncMenu(state,dt){
   vsCanvas.style.opacity='1';
   const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='0';
   const status=document.getElementById('menu3dStatus');
-  if(status)status.textContent=actor.humanBones?'PERSONAJE 3D · RIG PROFESIONAL':'PERSONAJE 3D ORIGINAL';
+  if(status)status.textContent=actor.nativeOutfit?'QUATERNIUS · CONJUNTO 3D ORIGINAL':actor.humanBones?'HUMANOIDE 3D':'PERSONAJE 3D';
   document.getElementById('menuModelLoader')?.classList.add('loaded');
  }catch(error){
   console.warn('Menu GLB preview fallback enabled',error);
@@ -387,6 +387,9 @@ if(new URLSearchParams(location.search).has('qa')){
  window.PaperMascotQA=()=>({
   models:sourceAssets.filter(x=>x?.procedural).length,
    quaternius:window.PaperQuaterniusStatus||'none',
+   nativeOutfitActors:[...instances.values()].filter(x=>x.nativeOutfit).length,
+   nativeOutfitPreview:vsCharacters.filter(x=>x?.nativeOutfit).length,
+   syncedHeadPreview:vsCharacters.filter(x=>x?.headOverlay).length,
    riggedActors:[...instances.values()].filter(x=>x.humanBones).length,
    humanoidPreview:vsCharacters.filter(x=>x?.humanBones).length,
   menuReady:window.PaperMenuReady,
