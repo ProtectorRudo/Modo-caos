@@ -776,7 +776,7 @@ function spawnArenaBox(){
 function dropMystery(p){
  // One collectible drop at the exact defeat point, including bot-vs-bot kills.
  // 350ms grace before pickup; the player's own death does not spawn a crate.
- if(!game?.boxes||p.id===0||!inside(p.x,p.y,23))return;
+ if(!game?.boxes||p.id===0)return;
  game.boxes.push({x:p.x,y:p.y,type:'SORPRESA',drop:true,active:true,spawnAt:clock,
  collectAt:clock+.35,expiresAt:clock+17});
 }
@@ -1129,7 +1129,7 @@ function move(p,dt){
  if(p.id===0){p.edgeCharge=(edge<68&&tangent)?Math.min(1,p.edgeCharge+dt*2.4):Math.max(0,p.edgeCharge-dt*2.5);
  if(p.edgeCharge>=.7&&clock>=p.boostUntil){p.boostUntil=clock+1.1;burstAt(p.x,p.y,COLORS[settingColor],10,36);}}
  const boosting=p.id===0&&clock<p.boostUntil;
- const step=p.speed*powerMultiplier(p)*(boosting?1.32:1)*dt;
+ const step=p.speed*Math.min(1.65,powerMultiplier(p)*(boosting?1.32:1))*dt;
  let x=prevX+Math.cos(p.angle)*step,y=prevY+Math.sin(p.angle)*step;
  const slid=slideStormWall(p,x,y,dt);x=slid.x;y=slid.y;
  const sections=Math.max(1,Math.ceil(step/(CELL*.3)));
@@ -1411,7 +1411,7 @@ function drawUnit(p){
 }
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
- c.fillStyle='#e5fff4';c.fillRect(0,0,screenW,screenH);
+ c.fillStyle=game&&clock>=18?'#c7cedf':'#e5fff4';c.fillRect(0,0,screenW,screenH);
  if(!game)return;
  const ref=Math.min(screenW,screenH*0.75);
  zoom=clamp(ref/520,.68,1.12);
