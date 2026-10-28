@@ -29,7 +29,7 @@ function boot(seed=419,query='?qa=1'){
  const loc={search:query,href:'https://example.test/paper.html'};
  const storage=new Map();
  // Instrument test sandbox only; production game source remains unchanged.
- const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,idx,CX,CY,R,territoryLoops,updateMap,grantRewards,REWARDS,buyOrEquip,awardCoins,setHero,saveWardrobe,loadWardrobe,wardrobe,SHOP_ITEMS,celebrateAt,showVS,launchMatch,drawVersus,getFeatured:()=>vsRival};\\n// Read-only diagnostics:'.replace('\\n','\n'));
+ const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,cutExposedTrails,createStormStages,stormZoneState,updateStorm,setClock:t=>{clock=t;},idx,CX,CY,R,territoryLoops,updateMap,grantRewards,REWARDS,buyOrEquip,awardCoins,setHero,saveWardrobe,loadWardrobe,wardrobe,SHOP_ITEMS,celebrateAt,showVS,launchMatch,drawVersus,getFeatured:()=>vsRival};\\n// Read-only diagnostics:'.replace('\\n','\n'));
  const browser=Function('document','window','location','performance','requestAnimationFrame','innerWidth','innerHeight','devicePixelRatio','localStorage','navigator','setTimeout','URLSearchParams','Math',instrumented);
  browser(doc,win,loc,{now:()=>now},fn=>frame=fn,430,850,1,
   {getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))},{vibrate(){}},()=>{},URLSearchParams,fakeMath);
@@ -93,16 +93,26 @@ test('crossing your own exposed trail no longer eliminates your character',()=>{
  assert.equal(p.trailCells.length,2);
  assert.equal(g.win.territoryQA.mode,'play');
 });
-test('cutting an enemy trail eliminates the enemy and awards a kill',()=>{
+test('touching the visible part of an enemy trail kills the enemy and counts one elimination',()=>{
  const g=boot(419);g.get('start').onclick();
- const h=g.win.__paperTest,game=h.getGame(),enemy=game.people[1],player=game.people[0],k=h.idx(1400,1118);
- enemy.protectedUntil=-1;
+ const h=g.win.__paperTest,game=h.getGame(),enemy=game.people[1],player=game.people[0];
+ const x=1398,y=1118,k=h.idx(x,y);
+ enemy.x=x+22;enemy.y=y;enemy.outside=true;enemy.trailPoints=[{x:x-33,y},{x,y}];
  h.markTrail(enemy,k);
- h.markTrail(player,k);
+ h.cutExposedTrails(player,x+3,y+12); // 12px from the drawn ribbon, not exact grid cell.
  assert.equal(enemy.alive,false);
  assert.equal(player.alive,true);
  assert.equal(game.kills,1);
  assert.equal(game.defeated.has(enemy.id),true);
+});
+test('a near miss outside the visible trail does not eliminate anyone',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const h=g.win.__paperTest,enemy=h.getGame().people[1],player=h.getGame().people[0];
+ const x=1398,y=1118;
+ enemy.x=x+22;enemy.y=y;enemy.outside=true;enemy.trailPoints=[{x:x-33,y},{x,y}];
+ h.markTrail(enemy,h.idx(x,y));
+ h.cutExposedTrails(player,x+3,y+35);
+ assert.equal(enemy.alive,true);
 });
 test('moving along the circular border builds and activates speed boost',()=>{
  const g=boot(419);g.get('start').onclick();
@@ -119,9 +129,51 @@ test('eliminating all rival identities ends the match with victory',()=>{
  for(const rival of game.people.slice(1)){rival.protectedUntil=-1;h.death(rival,0);}
  assert.equal(game.defeated.size,11);
  assert.equal(g.win.territoryQA.mode,'result');
- assert.match(g.get('finaltitle').textContent,/DERROTASTE A TODOS/);
+ assert.match(g.get('finaltitle').textContent,/ÚLTIMO SUPERVIVIENTE/);
 });
 
+test('seven shifting safe circles remain nested and land in variable locations',()=>{
+ const g=boot(71);g.get('start').onclick();
+ const h=g.win.__paperTest,game=h.getGame(),stages=game.storm.stages;
+ assert.equal(stages.length,7);
+ assert.deepEqual(stages.map(z=>z.at),[15,30,45,60,75,90,105]);
+ let previous={x:h.CX,y:h.CY,radius:h.R};
+ for(const stage of stages){
+  assert.ok(stage.radius<previous.radius);
+  assert.ok(Math.hypot(stage.x-previous.x,stage.y-previous.y)+stage.radius<=previous.radius+1);
+  previous=stage;
+ }
+ assert.ok(stages[6].radius<h.R*.1);
+ const alternate=h.createStormStages();
+ assert.ok(Math.hypot(alternate[6].x-stages[6].x,alternate[6].y-stages[6].y)>30,'final zone should vary between rounds');
+});
+test('first shrink happens at 15s and the next safe zone is previewed accurately',()=>{
+ const g=boot(71);g.get('start').onclick();
+ const h=g.win.__paperTest,game=h.getGame();
+ h.setClock(14.8);h.updateStorm(0);
+ assert.equal(h.stormZoneState().phase,0);
+ assert.equal(game.storm.radius,h.R);
+ h.setClock(17.5);h.updateStorm(0);
+ assert.equal(h.stormZoneState().phase,1);
+ assert.ok(game.storm.radius<h.R);
+ assert.ok(game.storm.next.radius<game.storm.radius);
+ h.setClock(20.1);h.updateStorm(0);
+ assert.equal(game.storm.closing,false);
+ assert.equal(Math.round(game.storm.radius),Math.round(game.storm.stages[0].radius));
+ assert.equal(h.stormZoneState().next.at,30);
+});
+test('permanently defeated bots do not respawn and 100% conquest cannot grant victory',()=>{
+ const g=boot(994);g.get('start').onclick();
+ const h=g.win.__paperTest,game=h.getGame(),victim=game.people[1];
+ h.death(victim,0);
+ assert.equal(victim.alive,false);
+ assert.equal(game.people.filter(p=>p.alive).length,11);
+ assert.equal(g.win.territoryQA.mode,'play');
+ game.people[0].score=100;
+ h.setClock(3);h.step(1/60);
+ assert.equal(victim.alive,false);
+ assert.equal(g.win.territoryQA.mode,'play');
+});
 test('premium render uses world-size sharp canvas without magnified low resolution terrain',()=>{
  assert.match(source,/mapCanvas\.width=WORLD;mapCanvas\.height=WORLD;/);
  assert.match(source,/function territoryLoops\(v\)/);
@@ -129,15 +181,14 @@ test('premium render uses world-size sharp canvas without magnified low resoluti
  assert.doesNotMatch(source,/const rad=CELL\*\.74/);
  assert.doesNotMatch(source,/mapCanvas\.width=N\*3/);
 });
-test('arcade HUD ranks four players, with own rank always visible',()=>{
+test('survival HUD shows eliminations and players alive, never a ranking by area',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(20);
- const markup=g.get('rank').innerHTML;
- assert.equal((markup.match(/class="rankrow /g)||[]).length,4);
- assert.match(markup,/VOS/);
- assert.equal(String(g.get('killCount').textContent),'0');
- assert.match(g.get('bestCurrent').textContent,/%/);
+ assert.equal(g.get('rank').innerHTML,'');
+ assert.equal(String(g.get('survivorsCount').textContent),'12');
+ assert.equal(String(g.get('survivalKills').textContent),'0');
+ assert.match(g.get('nextZoneLabel').textContent,/SIGUIENTE ZONA/);
+ assert.match(source,/id="survivalPanel"/);
 });
-
 test('connected territory is converted to coherent vector boundary loops',()=>{
  const g=boot(419);g.get('start').onclick();
  const loops=g.win.__paperTest.territoryLoops(1);
@@ -148,16 +199,14 @@ test('connected territory is converted to coherent vector boundary loops',()=>{
 
 test('reference HUD includes best score, transparent layout and a subtle paper grid',()=>{assert.match(source,/id="bestCurrent"/);assert.match(source,/class="best-live"/);assert.match(source,/const tileStep=74/);assert.doesNotMatch(source,/const dotStep=84/);});
 
-test('arcade progression rail, milestones and portraits render on initial game',()=>{
+test('battle royale minimap previews the next safe area and displays live counts',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(10);
- assert.match(source,/id="progressRail"/);
- assert.match(source,/id="railPercent"/);
- assert.match(source,/class="milestone m1"/);
- assert.match(source,/id="recordPointer"/);
- assert.match(source,/class="killIcon"/);
- assert.match(g.get('railPercent').textContent,/%$/);
- assert.match(g.get('rank').innerHTML,/rankAvatar/);
- assert.match(g.get('rank').innerHTML,/rankPlace/);
+ assert.match(source,/id="survivalPanel"/);
+ assert.match(source,/id="zonePhaseLabel"/);
+ assert.match(source,/id="survivorsCount"/);
+ assert.match(source,/mc\.fill\('evenodd'\)/);
+ assert.match(source,/zone\.next/);
+ assert.match(g.get('zonePhaseLabel').textContent,/ZONA 0\/7/);
 });
 test('chibi character and layered neon trails use original vector rendering',()=>{
  assert.match(source,/function paintChibi\(p,hero,col\)/);
@@ -197,15 +246,13 @@ test('earned milestones and boosts reset on the next match',()=>{
  assert.equal(h.getGame().crowned,false);
  assert.equal(g.win.territoryQA.rewards,0);
 });
-test('arcade portraits and fallback chibi people are original vector and CSS geometry',()=>{
+test('avatar fallback still renders, but game labels do not clutter the playfield',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(10);
- assert.match(g.get('rank').innerHTML,/rankAnimal/);
  assert.match(source,/const zoomHero=p\.id===0\?1\.16:1\.0/);
- assert.match(source,/rankAnimalHolder/);
+ assert.doesNotMatch(source,/c\.strokeText\(p\.name/);
+ assert.match(source,/const yy=p\.y-133/);
  assert.match(source,/#rewardToast\.visible/);
- assert.match(source,/id="railTarget"|class="railTarget"/);
 });
-
 test('original heroes each have a distinct identity and can be selected',()=>{
  const g=boot(419);
  for(const name of ['RAYO','NOVA','GLITCH','LUNA','KIRO','MIMO','VOLT','NIX'])assert.ok(source.includes("name:'"+name+"'"));
@@ -240,7 +287,7 @@ test('wardrobe balance and equipped emote persist into fresh match',()=>{
  g.get('start').onclick();
  assert.equal(h.getGame().people.length,12);
  assert.equal(h.wardrobe.equipped.emote,'emote_laugh');
- assert.match(g.get('rank').innerHTML,/rankAnimal/);
+ assert.equal(g.get('rank').innerHTML,'');
 });
 test('game grants currency on conquest and elimination, without real-money checkout',()=>{
  const g=boot(419);g.get('start').onclick();
@@ -494,13 +541,12 @@ test('Six Seven no longer accumulates uncontrolled bone angles',()=>{
  assert.match(module,/const tempo=2\*Math\.PI/);
 });
 
-test('leaderboard always has an available portrait even before its GLB loads',()=>{
+test('the survivor count remains valid even before the GLB assets load',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(7);
- const html=g.get('rank').innerHTML;
- assert.match(html,/rankAnimal/);
- assert.match(html,/data:image\/svg\+xml/);
+ assert.equal(g.get('rank').innerHTML,'');
+ assert.equal(g.get('survivorsCount').textContent,12);
+ assert.match(g.get('nextZoneLabel').textContent,/ZONA/);
 });
-
 test('original fallbacks remain available while the official CIVIDOM Chibi collection is featured',()=>{
  const mascots=fs.readFileSync(path.join(__dirname,'..','paper-mascots.mjs'),'utf8');
  for(const species of ['capybara','redpanda','axolotl','penguin','raccoon','banana','screen','bull'])
