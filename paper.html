@@ -382,6 +382,7 @@ const SHOP_ITEMS=[
  {id:'outfit_ears',category:'outfit',name:'Orejas locas',icon:'🐰',price:170,desc:'Orejas largas que se mueven'},
  {id:'emote_hello',category:'emote',name:'¡Hola!',icon:'👋',price:0,desc:'Saludá al conquistar'},
  {id:'emote_laugh',category:'emote',name:'Carcajada',icon:'😄',price:85,desc:'Una risa imposible de ignorar'},
+ {id:'emote_sixseven',category:'emote',name:'Six Seven',icon:'🙌',price:145,desc:'Manos alternadas, hombros y ritmo viral'},
  {id:'emote_flex',category:'emote',name:'Soy imparable',icon:'💪',price:115,desc:'Mostrá tus músculos'},
  {id:'emote_heart',category:'emote',name:'Corazón',icon:'💖',price:135,desc:'Contagiá amor a los rivales'},
  {id:'emote_dance',category:'emote',name:'Bailecito',icon:'🕺',price:180,desc:'Baile de triunfo al conquistar'},
@@ -459,8 +460,8 @@ function renderShop(){
 function emoteFor(p,reason='capture'){
  if(p.id!==0)return;
  const id=wardrobe.equipped.emote;
- emoteLabel=id==='emote_laugh'?'JAJA!':id==='emote_flex'?'¡IMPARABLE!':id==='emote_heart'?'♥ ♥ ♥':id==='emote_dance'?'♪ ¡VAMOS! ♪':HEROES[wardrobe.hero].motto;
- emoteUntil=clock+(reason==='kill'?1.8:1.2);
+ emoteLabel=id==='emote_sixseven'?'SIX SEVEN!':id==='emote_laugh'?'JAJA!':id==='emote_flex'?'¡IMPARABLE!':id==='emote_heart'?'♥ ♥ ♥':id==='emote_dance'?'♪ ¡VAMOS! ♪':HEROES[wardrobe.hero].motto;
+ emoteUntil=clock+(id==='emote_sixseven'?2.7:reason==='kill'?1.8:1.2);
 }
 function celebrateAt(p,reason='capture'){
  if(p.id!==0)return;
@@ -882,7 +883,7 @@ function paintChibi(p,hero,col){
  }
  if(hero===3){c.strokeStyle='#1c7a5e';c.lineWidth=3;c.beginPath();c.moveTo(-9,-17);c.lineTo(10,-7);c.stroke();}
  for(const side of [-1,1]){
-  c.save();c.translate(side*15,-24);c.rotate(side*(Math.sin(t)*.36+.15));
+  c.save();c.translate(side*15,-24);const sixseven=p.id===0&&clock<emoteUntil&&wardrobe.equipped.emote==='emote_sixseven';c.rotate(sixseven?side*(Math.sin(clock*11+(side===1?Math.PI:0))*.85+.55):side*(Math.sin(t)*.36+.15));
   c.fillStyle=outfitColor;c.beginPath();c.roundRect(-5,0,10,20,5);c.fill();
   c.fillStyle='#fff4e6';c.beginPath();c.ellipse(0,20,5,6,0,0,7);c.fill();c.restore();
  }
@@ -1009,8 +1010,155 @@ function end(win){
  $('result').classList.remove('hidden');$('hud').style.display='none';
 }
 function readBest(){try{return Number(localStorage.getItem('territoryloop_best'))||0;}catch(e){return 0;}}
-function start(){selectedSkin=wardrobe.hero;reset();audio('start');}
-function goHome(){mode='home';game=null;renderHeroPicker();refreshWallet();$('hud').style.display='none';$('result').classList.add('hidden');$('paused').classList.add('hidden');$('home').classList.remove('hidden');$('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';}
+
+const VS_DURATION=5800;
+let vsStartedAt=0,vsRival=1,vsLastBeat=-1,vsLastElapsed=0;
+function vsHeroPreview(index){
+ const h=HEROES[index];
+ return {name:h.name,role:h.role,color:h.color,index};
+}
+function showVS(){
+ if(mode==='play')return false;
+ const player=wardrobe.hero;
+ vsRival=(player+1+Math.floor(Math.random()*3))%HEROES.length;
+ vsStartedAt=performance.now();vsLastBeat=-1;vsLastElapsed=0;
+ const you=vsHeroPreview(player),rival=vsHeroPreview(vsRival);
+ $('vsPlayerName').textContent=you.name;
+ $('vsPlayerRole').textContent=you.role;
+ $('vsRivalName').textContent=rival.name;
+ $('vsRivalRole').textContent=rival.role;
+ $('vsCountdown').textContent='5';
+ $('vsTrackFill').style.width='0%';
+ $('versus').classList.remove('hidden');
+ $('home').classList.add('hidden');$('result').classList.add('hidden');$('paused').classList.add('hidden');$('shop').classList.add('hidden');
+ $('hud').style.display='none';
+ mode='versus';
+ return true;
+}
+function launchMatch(){
+ if(mode!=='versus')return false;
+ $('versus').classList.add('hidden');
+ selectedSkin=wardrobe.hero;reset();audio('start');
+ return true;
+}
+function vsGradient(ctx,x,y,r,inside,outside){
+ const g=ctx.createRadialGradient(x-r*.33,y-r*.36,2,x,y,r);
+ g.addColorStop(0,inside);g.addColorStop(1,outside);return g;
+}
+function versusActor(ctx,index,x,y,scale,elapsed,flipped,wear){
+ const hero=HEROES[index],col=hero.color,beat=elapsed*6.6,bounce=Math.sin(beat)*6;
+ ctx.save();ctx.translate(x,y+bounce);ctx.scale(scale*(flipped?-1:1),scale);
+ // Floor contact and a star-shaped aura behind every hero.
+ ctx.fillStyle='#0913436b';ctx.beginPath();ctx.ellipse(0,12,43,10,0,0,7);ctx.fill();
+ const halo=ctx.createRadialGradient(0,-42,5,0,-42,100);
+ halo.addColorStop(0,col+'70');halo.addColorStop(.7,col+'19');halo.addColorStop(1,col+'00');
+ ctx.fillStyle=halo;ctx.beginPath();ctx.arc(0,-42,100,0,7);ctx.fill();
+ // Long bouncy legs, independent running steps.
+ for(const sign of [-1,1]){
+  ctx.save();ctx.translate(sign*13,-5);ctx.rotate(Math.sin(beat*.65+(sign===1?Math.PI:0))*.28);
+  ctx.fillStyle=index===2?'#713bae':index===3?'#265b41':index===1?'#dc6f2a':'#3474e2';
+  ctx.strokeStyle='#223a81';ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.roundRect(-8,0,16,34,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#eff7fc';ctx.beginPath();ctx.roundRect(-11,23,23,11,5);ctx.fill();ctx.stroke();ctx.restore();
+ }
+ // Arms perform original Six-Seven. Opposing palms rise and fall on alternating beats.
+ for(const sign of [-1,1]){
+  const lift=Math.sin(beat+(sign===1?Math.PI:0)),push=-18-lift*22;
+  const wristX=sign*(38+Math.cos(beat)*5),wristY=-61+push;
+  ctx.strokeStyle='#293d80';ctx.lineWidth=16;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(sign*23,-66);ctx.lineTo(wristX,wristY);ctx.stroke();
+  ctx.strokeStyle=col;ctx.lineWidth=12;ctx.stroke();
+  ctx.save();ctx.translate(wristX,wristY);ctx.rotate(sign*(lift*.27));
+  ctx.fillStyle='#f9eef2';ctx.strokeStyle='#687fb5';ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.ellipse(0,-3,11,8,.1,0,7);ctx.fill();ctx.stroke();
+  for(let j=-2;j<=2;j++){ctx.beginPath();ctx.moveTo(j*3.5,-8);ctx.lineTo(j*3.9,-17);ctx.lineWidth=2;ctx.stroke();}
+  ctx.restore();
+ }
+ // Outfit volume.
+ let shirt=ctx.createLinearGradient(-20,-65,24,-23);
+ shirt.addColorStop(0,'#ffffff');shirt.addColorStop(.23,col);shirt.addColorStop(1,'#283c94');
+ ctx.fillStyle=shirt;ctx.strokeStyle='#162c78';ctx.lineWidth=2.5;
+ ctx.beginPath();ctx.roundRect(-26,-72,52,68,16);ctx.fill();ctx.stroke();
+ ctx.fillStyle='#fff8';ctx.beginPath();ctx.ellipse(-12,-61,7,14,-.25,0,7);ctx.fill();
+ if(index===2){ctx.fillStyle='#513196';ctx.beginPath();ctx.moveTo(-23,-47);ctx.lineTo(-38,5);ctx.lineTo(38,5);ctx.lineTo(22,-47);ctx.closePath();ctx.fill();ctx.stroke();}
+ // Big glossy skull and expressive face.
+ ctx.fillStyle='#1b315c75';ctx.beginPath();ctx.ellipse(1,-112,39,42,0,0,7);ctx.fill();
+ ctx.fillStyle=vsGradient(ctx,0,-113,42,'#ffffff',index===3?'#9dc8b3':'#bbcee4');ctx.strokeStyle='#29458f';ctx.lineWidth=3.3;
+ ctx.beginPath();ctx.ellipse(0,-115,38,42,0,0,7);ctx.fill();ctx.stroke();
+ // Different eye shapes and personalities.
+ if(index===3){ctx.fillStyle='#244b45';ctx.beginPath();ctx.roundRect(-32,-125,64,22,7);ctx.fill();
+  ctx.fillStyle='#b9ffad';for(const q of [-15,15]){ctx.beginPath();ctx.ellipse(q,-114,8,6,0,0,7);ctx.fill();}
+ }else{
+  ctx.fillStyle='#243b6a';
+  for(const q of [-15,15]){ctx.beginPath();ctx.ellipse(q,-118,index===2?6:9,index===1?8:12,0,0,7);ctx.fill();}
+  ctx.fillStyle='#fff';for(const q of [-17,13]){ctx.beginPath();ctx.arc(q,-122,3.3,0,7);ctx.fill();}
+ }
+ ctx.strokeStyle=index===1?'#b75d61':'#d87a9a';ctx.lineWidth=3;
+ ctx.beginPath();ctx.arc(0,-98,index===1?9:7,0.2,Math.PI-.2);ctx.stroke();
+ ctx.fillStyle='#e889ae77';ctx.beginPath();ctx.ellipse(-29,-102,7,3,0,0,7);ctx.ellipse(29,-102,7,3,0,0,7);ctx.fill();
+ // Identifiable headwear independent of the purchased wardrobe.
+ if(index===0){ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(-35,-143);ctx.quadraticCurveTo(-8,-173,28,-144);ctx.lineTo(32,-133);ctx.lineTo(-31,-133);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle='#fff5a0';ctx.beginPath();ctx.arc(0,-152,7,0,7);ctx.fill();}
+ else if(index===1){ctx.fillStyle='#f7a246';ctx.beginPath();ctx.ellipse(0,-146,40,14,0,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(0,-148,23,Math.PI,0);ctx.fill();ctx.stroke();}
+ else if(index===2){ctx.fillStyle='#703bc4';ctx.beginPath();ctx.moveTo(-28,-143);ctx.lineTo(2,-204);ctx.lineTo(28,-143);ctx.closePath();ctx.fill();ctx.stroke();ctx.beginPath();ctx.ellipse(0,-144,51,10,0,0,7);ctx.fill();ctx.stroke();
+ ctx.strokeStyle='#ffd17b';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-27,-147);ctx.lineTo(29,-147);ctx.stroke();}
+ else{ctx.fillStyle='#315d43';ctx.beginPath();ctx.moveTo(-31,-142);ctx.lineTo(-22,-159);ctx.lineTo(8,-164);ctx.lineTo(31,-141);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle='#aaffb5';ctx.beginPath();ctx.arc(0,-156,7,0,7);ctx.fill();}
+ // Purchased wardrobe is showcased in the actual VS pose.
+ if(wear==='outfit_cap'){ctx.fillStyle='#fb557c';ctx.strokeStyle='#fcfffc';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-30,-158,60,18,7);ctx.fill();ctx.stroke();}
+ if(wear==='outfit_shades'){ctx.fillStyle='#171e48';ctx.beginPath();ctx.roundRect(-27,-120,24,13,4);ctx.roundRect(3,-120,24,13,4);ctx.fill();ctx.fillRect(-4,-116,8,4);}
+ if(wear==='outfit_ears'){ctx.fillStyle='#fff1f9';ctx.strokeStyle='#a963d1';ctx.lineWidth=2;for(const q of [-22,22]){ctx.beginPath();ctx.ellipse(q,-167,8,29,q<0?-.25:.25,0,7);ctx.fill();ctx.stroke();}}
+ if(wear==='outfit_armor'){ctx.fillStyle='#f8d34b';ctx.strokeStyle='#bf861a';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-24,-68,48,53,9);ctx.fill();ctx.stroke();}
+ if(wear==='outfit_scarf'){ctx.fillStyle='#f9597f';ctx.beginPath();ctx.roundRect(-27,-75,54,12,4);ctx.fill();ctx.fillRect(24,-70,11,34);}
+ ctx.restore();
+}
+function drawVersus(ms){
+ if(mode!=='versus')return;
+ const cv=$('versusCanvas'),ctx=cv.getContext('2d');if(!ctx)return;
+ const sec=Math.max(0,(ms-vsStartedAt)/1000);
+ vsLastElapsed=sec;
+ const w=760,h=790;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);
+ const bg=ctx.createLinearGradient(0,0,w,h);
+ bg.addColorStop(0,'#142d79');bg.addColorStop(.48,'#384da2');bg.addColorStop(1,'#5b2f83');
+ ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+ const ring=(cx,cy,col)=>{
+  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=7;ctx.globalAlpha=.3;
+  for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(cx,cy,150+i*28+Math.sin(sec*3+i)*7,0,7);ctx.stroke();}
+  ctx.restore();
+ };
+ ring(170,408,'#58d9ff');ring(590,408,'#ff98bd');
+ // Diagonal energy split and scratch streaks.
+ ctx.save();ctx.strokeStyle='#ffe884';ctx.lineWidth=3;ctx.shadowColor='#ffe886';ctx.shadowBlur=30;
+ ctx.beginPath();ctx.moveTo(560,-20);ctx.lineTo(220,810);ctx.stroke();ctx.restore();
+ for(let i=0;i<35;i++){
+  const x=(i*167.31+Math.sin(sec+i)*22)%w,y=(i*137.13+sec*14*(i%2?1:-1)+2400)%h;
+  ctx.fillStyle=i%2?'#ffffff20':'#b6f4ff38';ctx.beginPath();ctx.arc(x,y,1.3+(i%4),0,7);ctx.fill();
+ }
+ const pulse=Math.sin(sec*8),arriving=Math.min(1,sec/.55);
+ versusActor(ctx,wardrobe.hero,168+(1-arriving)*-240,570,2.02,sec,false,wardrobe.equipped.outfit);
+ versusActor(ctx,vsRival,592+(1-arriving)*240,570,2.02,sec+.36,true,'outfit_base');
+ // VS badge, bounce each other beat.
+ const vy=308+Math.sin(sec*7)*5;
+ ctx.save();ctx.translate(380,vy);ctx.rotate(Math.sin(sec*3)*.035);
+ ctx.shadowColor='#fcf0a7';ctx.shadowBlur=31;ctx.textAlign='center';ctx.lineJoin='round';
+ ctx.font='1000 117px system-ui';ctx.strokeStyle='#172a74';ctx.lineWidth=17;ctx.strokeText('VS',0,0);
+ ctx.fillStyle='#ffdd61';ctx.fillText('VS',0,0);ctx.restore();
+ if(sec>1.1&&sec<4.9){
+  ctx.save();ctx.textAlign='center';ctx.font='1000 34px system-ui';
+  ctx.strokeStyle='#132873';ctx.lineWidth=7;ctx.fillStyle='#fff';
+  const txt=Math.floor(sec*2)%2===0?'SIX':'SEVEN';
+  ctx.strokeText(txt,380,390);ctx.fillText(txt,380,390);ctx.restore();
+ }
+ if(sec>4.15){ctx.save();ctx.textAlign='center';ctx.font='1000 35px system-ui';
+  ctx.fillStyle='#fdf2a3';ctx.fillText('¡QUE EMPIECE EL CAOS!',380,480);ctx.restore();}
+ $('vsCountdown').textContent=String(Math.max(1,Math.ceil((VS_DURATION-ms+vsStartedAt)/1000)));
+ $('vsTrackFill').style.width=Math.min(100,sec/(VS_DURATION/1000)*100)+'%';
+ const beat=Math.floor(sec*2.1);if(beat!==vsLastBeat){vsLastBeat=beat;if(beat<11&&navigator.vibrate&&beat%2===0)navigator.vibrate(12);}
+ if(ms-vsStartedAt>=VS_DURATION)launchMatch();
+}
+
+function start(){if(new URLSearchParams(location.search).has('qa')){selectedSkin=wardrobe.hero;reset();audio('start');return;}showVS();}
+function goHome(){mode='home';game=null;$('versus').classList.add('hidden');renderHeroPicker();refreshWallet();$('hud').style.display='none';$('result').classList.add('hidden');$('paused').classList.add('hidden');$('home').classList.remove('hidden');$('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';}
 function pause(){if(mode!=='play')return;mode='pause';$('paused').classList.remove('hidden');}
 function resume(){mode='play';$('paused').classList.add('hidden');}
 function fit(){screenW=innerWidth;screenH=innerHeight;dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(screenW*dpr);canvas.height=Math.round(screenH*dpr);}
@@ -1022,10 +1170,10 @@ canvas.addEventListener('pointermove',e=>{if(mode!=='play')return;
 });
 canvas.addEventListener('pointerup',e=>{if(pointer&&pointer.id===e.pointerId)pointer=null;});
 canvas.addEventListener('pointercancel',e=>{if(pointer&&pointer.id===e.pointerId)pointer=null;});
-document.addEventListener('keydown',e=>{if(/^(Arrow|KeyW|KeyA|KeyS|KeyD|Space)/.test(e.code)){keys[e.code]=true;e.preventDefault();}if(e.code==='Escape'){if(mode==='play')pause();else if(mode==='pause')resume();}});
+document.addEventListener('keydown',e=>{if(/^(Arrow|KeyW|KeyA|KeyS|KeyD|Space)/.test(e.code)){keys[e.code]=true;e.preventDefault();}if(e.code==='Escape'){if(mode==='play')pause();else if(mode==='pause')resume();else if(mode==='versus')launchMatch();}});
 document.addEventListener('keyup',e=>{keys[e.code]=false;});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='play')pause();});
-$('start').onclick=start;$('again').onclick=start;$('restart').onclick=start;
+$('start').onclick=start;$('again').onclick=start;$('restart').onclick=start;$('vsPlayNow').onclick=launchMatch;
 $('pause').onclick=pause;$('resume').onclick=resume;
 $('emoteButton').onclick=()=>{if(mode!=='play'||!game||!game.people[0].alive)return;if(clock<emoteUntil)return;emoteFor(game.people[0],'manual');};
 $('leave').onclick=goHome;$('tohome').onclick=goHome;
@@ -1045,7 +1193,7 @@ COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.s
 $('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';
 fit();window.addEventListener('resize',fit);
 let last=performance.now(),acc=0;
-function frame(t){const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;if(mode==='play'&&game){acc=Math.min(acc+dt,.13);let loops=0;while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}}else acc=0;render();requestAnimationFrame(frame);}
+function frame(t){const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;if(mode==='versus')drawVersus(t);if(mode==='play'&&game){acc=Math.min(acc+dt,.13);let loops=0;while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}}else acc=0;render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 // The 3D renderer is a separate, optional visual layer. Expose only the
 // lightweight read-only coordinates it needs; all gameplay stays unchanged.
