@@ -1142,12 +1142,43 @@ function capture(p){
  if(points>=.15){popup('+'+points.toFixed(1)+'%');audio('capture');vibrate(25);}if(game.people[0].score>game.record)game.record=game.people[0].score;
  /* No win based on conquered area. */}
 }
+// The render ribbon is 17 world units wide, but old collisions required
+// hitting one exact 13px grid tile. Use swept movement and actual polyline
+// proximity so a visually successful cut reliably eliminates its owner.
+const TRAIL_HIT_RADIUS=18;
+function segmentDist2(px,py,ax,ay,bx,by){
+ const vx=bx-ax,vy=by-ay,den=vx*vx+vy*vy;
+ const t=den?clamp(((px-ax)*vx+(py-ay)*vy)/den,0,1):0;
+ const dx=px-ax-vx*t,dy=py-ay-vy*t;
+ return dx*dx+dy*dy;
+}
+function cutExposedTrails(attacker,x,y){
+ const gx=Math.floor(x/CELL),gy=Math.floor(y/CELL);let mask=0;
+ for(let oy=-2;oy<=2;oy++)for(let ox=-2;ox<=2;ox++){
+  const yy=gy+oy,xx=gx+ox;
+  if(yy>=0&&yy<N&&xx>=0&&xx<N)mask|=trails[yy*N+xx];
+ }
+ mask&=~(1<<attacker.id);
+ if(!mask)return;
+ const hit2=TRAIL_HIT_RADIUS*TRAIL_HIT_RADIUS;
+ for(const enemy of game.people){
+  if(!(mask&(1<<enemy.id))||!enemy.alive||!enemy.outside||enemy.trailPoints.length===0)continue;
+  let previous=enemy.trailPoints[0],hit=false;
+  for(let i=1;i<=enemy.trailPoints.length;i++){
+   const current=i===enemy.trailPoints.length?enemy:enemy.trailPoints[i];
+   if(Math.abs(x-previous.x)<=TRAIL_HIT_RADIUS+Math.abs(current.x-previous.x)&&
+      Math.abs(y-previous.y)<=TRAIL_HIT_RADIUS+Math.abs(current.y-previous.y)&&
+      segmentDist2(x,y,previous.x,previous.y,current.x,current.y)<=hit2){hit=true;break;}
+   previous=current;
+  }
+  if(hit)death(enemy,attacker.id);
+ }
+}
 function markTrail(p,k){
  if(p.lastCell===k)return;
  // Crossing your own exposed trail is allowed; its cells remain vulnerable
  // until the entire loop reconnects to claimed territory.
- const mask=trails[k],other=mask&~(1<<p.id);
- if(other){for(let i=0;i<12;i++)if(other&(1<<i))death(game.people[i],p.id);}
+ cutExposedTrails(p,(k%N+.5)*CELL,((k/N|0)+.5)*CELL);
  if(!p.alive)return;
  if(!p.trailSeen.has(k)){p.trailSeen.set(k,p.trailCells.length);p.trailCells.push(k);trails[k]|=1<<p.id;}
  p.lastCell=k;
@@ -1166,8 +1197,7 @@ function move(p,dt){
  const sections=Math.max(1,Math.ceil(step/(CELL*.3)));
  for(let i=1;i<=sections;i++){
   const px=prevX+(x-prevX)*i/sections,py=prevY+(y-prevY)*i/sections,k=idx(px,py);if(k<0||!inArena[k])continue;
-  const enemyMask=trails[k]&~(1<<p.id);
-  if(enemyMask){for(let j=0;j<12;j++)if(enemyMask&(1<<j))death(game.people[j],p.id);}
+  cutExposedTrails(p,px,py);
   if(!p.alive)return;
   if(land[k]===p.id+1){
    if(p.outside){capture(p);if(!p.alive||mode!=='play')return;}
