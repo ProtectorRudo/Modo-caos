@@ -22,17 +22,19 @@ function challengeSeed(date){const s=String(date||new Date().toISOString().slice
 function create(opts={}){
  const mode=opts.mode==='arcade'?'arcade':'campaign',level=clamp(Math.floor(opts.level||1),1,10),cfg=mode==='arcade'?{name:'MODO ARCADE',goal:'score',target:1250,duration:60,rank:[1250,2100,3200],speed:1.18,rate:.72,trap:.09,special:.105}:LEVELS[level-1];
  const seed=(Number(opts.seed)||((Date.now()^0x73b91c)>>>0))>>>0,rng=seeded(seed);
- const g={mode,level,seed,cfg,elapsed:0,duration:cfg.duration,state:'ready',score:0,shots:0,hits:0,misses:0,errors:0,combo:0,maxCombo:0,chains:0,citrus:0,bossHits:0,streakType:null,streakCount:0,streakUntil:0,multiplier:1,slowUntil:0,fever:false,nextSpawn:.3,nextCluster:7,objects:[],events:[],nextId:1,goalsMet:false,stars:0,best:0,locked:false};
+ const g={mode,level,seed,cfg,elapsed:0,duration:cfg.duration,state:'ready',score:0,shots:0,hits:0,misses:0,errors:0,combo:0,maxCombo:0,chains:0,citrus:0,bossHits:0,streakType:null,streakCount:0,streakUntil:0,multiplier:1,slowUntil:0,fever:false,nextSpawn:.3,nextCluster:5.5,objects:[],events:[],nextId:1,goalsMet:false,stars:0,best:0,locked:false};
  const emit=(type,extra={})=>g.events.push(Object.assign({type,at:g.elapsed},extra));
  function spawn(override){
   const r=rng(),kind=override|| (r<cfg.trap?'bomb':r<cfg.trap+.045?'rotten':r<cfg.trap+cfg.special+.045?pick(['gold','ice','rainbow'],rng):pick(TYPES,rng));
   // Targets are spread through a frontal 3D curtain and deliberately remain shootable.
-  const x=(rng()-.5)*3.62,z=(rng()-.5)*.80,y=3.45+rng()*.35;
-  const obj={id:g.nextId++,kind,x,y,z,r:.25+(rng()*.10),vy:cfg.speed*(.82+rng()*.38),age:0,rot:rng()*Math.PI*2,spin:(rng()-.5)*2.3,dead:false};
-  if(kind==='boss'){obj.x=0;obj.y=2.55;obj.z=0;obj.r=.82;obj.vy=0;obj.hp=12;obj.spin=.35}
-  g.objects.push(obj);emit('spawn',{id:obj.id,kind});return obj;
+  // JUICE REACTOR: every fruit begins inside the same visible launcher, then flies
+  // on a deterministic parabola. It never materializes at a random sky position.
+  const x=(rng()-.5)*.28,z=-1.15+(rng()-.5)*.12,y=2.76;
+  const obj={id:g.nextId++,kind,x,y,z,baseY:y,r:.26+(rng()*.10),vx:(rng()-.5)*3.7,vy:2.1+rng()*.65,vz:.58+rng()*.4,gravity:4.7*cfg.speed,age:0,rot:rng()*Math.PI*2,spin:(rng()-.5)*2.3,dead:false};
+  if(kind==='boss'){obj.x=0;obj.y=2.65;obj.z=-.35;obj.r=.82;obj.vx=0;obj.vy=0;obj.gravity=0;obj.hp=12;obj.spin=.35}
+  g.objects.push(obj);emit('spawn',{id:obj.id,kind,x:obj.x,y:obj.y,z:obj.z});return obj;
  }
- function begin(){if(g.state==='ready'){g.state='playing';emit('start');if(g.level===10&&g.mode==='campaign')spawn('boss');else{const intro=pick(TYPES,rng);for(let j=0;j<3;j++){const f=spawn(intro);f.x=(j-1)*1.12;f.y=3.2+.10*j;f.vy=cfg.speed*.86}g.nextSpawn=1.05}}return g}
+ function begin(){if(g.state==='ready'){g.state='playing';emit('start');if(g.level===10&&g.mode==='campaign')spawn('boss');else{const intro=pick(TYPES,rng);for(let j=0;j<3;j++){const f=spawn(intro);f.x=(j-1)*.07;f.vx=(j-1)*1.7;f.vy=2.6+.22*j;f.gravity=4.2}g.nextSpawn=1.05}}return g}
  function remove(o){o.dead=true}
  function award(points,reason,x,y,z){const n=Math.round(points*g.multiplier*(g.fever?2:1));g.score+=n;emit('points',{points:n,reason,x,y,z});return n}
  function punish(o){g.errors++;g.combo=0;g.streakCount=0;g.streakType=null;g.multiplier=1;g.score=Math.max(0,g.score-(o.kind==='bomb'?85:40));emit('trap',{kind:o.kind,score:g.score,x:o.x,y:o.y,z:o.z});if(g.cfg.goal==='clean'&&g.errors>g.cfg.maxErrors)finish(false)}
@@ -93,20 +95,20 @@ function create(opts={}){
   dt=clamp(Number(dt)||0,0,.07);g.elapsed+=dt;g.fever=g.elapsed>=g.duration-12;
   if(g.elapsed>=g.duration){finish(g.goalsMet||g.mode==='arcade');return g;}
   const slow=g.elapsed<g.slowUntil ? 0.48 : 1;
-  if(g.elapsed>=g.nextCluster&&g.cfg.goal!=='boss'){const choice=pick(TYPES,rng),base=(rng()-.5)*2.0;for(let j=0;j<3;j++){const q=spawn(choice);q.x=base+(j-1)*.55;q.y=3.25+.14*j;q.vy=Math.max(.7,q.vy*.84)}emit('opportunity',{kind:choice});g.nextCluster+=9.5}
+  if(g.elapsed>=g.nextCluster&&g.cfg.goal!=='boss'){const choice=pick(TYPES,rng),base=(rng()-.5)*1.1;for(let j=0;j<3;j++){const q=spawn(choice);q.vx=base+(j-1)*1.4;q.vy=2.7+.25*j;q.gravity=4.3}emit('opportunity',{kind:choice});g.nextCluster+=7.7}
   if(g.elapsed>=g.nextSpawn){
-   spawn();
-   const period=Math.max(.29,cfg.rate*.68*(g.fever ? 0.58 : 1));
+   if(g.objects.length<26)spawn();
+   const period=Math.max(.19,cfg.rate*.44*(g.fever ? 0.58 : 1));
    g.nextSpawn=g.elapsed+period*(.7+rng()*.56);
    // Periodic guaranteed same-fruit clusters provide real strategic combo opportunities.
-   if(g.elapsed>8&&Math.floor(g.elapsed)%13===0){const fruit=pick(TYPES,rng);spawn(fruit);spawn(fruit)}
+   if(g.elapsed>8&&Math.floor(g.elapsed)%13===0&&g.objects.length<19){const fruit=pick(TYPES,rng);spawn(fruit);spawn(fruit)}
   }
   for(const o of g.objects){
    if(o.dead)continue;
    o.age+=dt;o.rot+=dt*o.spin;
-   if(o.kind==='boss'){o.x=Math.sin(g.elapsed*.75)*1.5;o.y=2.45+Math.sin(g.elapsed*1.6)*.28;continue}
-   o.y-=o.vy*slow*dt;
-   if(o.y<-.65){remove(o);emit('drop',{kind:o.kind});}
+   if(o.kind==='boss'){o.x=Math.sin(g.elapsed*.75)*1.35;o.y=2.65+Math.sin(g.elapsed*1.6)*.23;continue}
+   const d=dt*slow;o.x+=o.vx*d;o.z+=o.vz*d;o.y+=o.vy*d;o.vy-=o.gravity*d;
+   if(o.y<.12){remove(o);emit('drop',{kind:o.kind,x:o.x,y:0,z:o.z});}
   }
   g.objects=g.objects.filter(o=>!o.dead);
   if(g.goalsMet&&g.mode==='campaign'&&g.cfg.goal!=='boss')finish(true);
