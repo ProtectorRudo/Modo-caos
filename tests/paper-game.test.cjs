@@ -615,7 +615,8 @@ test('Six Seven entrance never snaps on slow 270ms mobile frames',async()=>{
   }
  }
 });
-\ntest('Android performance guardrails preserve gameplay physics and reduce GPU contention',()=>{
+
+test('Android performance guardrails preserve gameplay physics and reduce GPU contention',()=>{
  assert.match(source,/while\(acc>=RUN&&loops<7\)/);
  assert.match(source,/if\(t-lastVisualFrame>=32\)/);
  assert.match(source,/dpr=Math\.min\(1\.25,devicePixelRatio\|\|1\)/);
@@ -625,4 +626,4 @@ test('Six Seven entrance never snaps on slow 270ms mobile frames',async()=>{
  assert.match(three,/ms-lastActorRender<38/);
  assert.match(three,/const inView=p\.id===0\|\|/);
  assert.match(three,/snapsho[t]?ChibiPortraits\(\)/);
-});\n
+});
