@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {buildMascot,animateMascot,MASCOT_DATA} from './paper-mascots.mjs';
+import {setFashion} from './paper-fashion.mjs';
 
 const canvas=document.getElementById('characterStage');
 const getState=()=>typeof window.Paper3DState==='function'?window.Paper3DState():null;
@@ -41,36 +42,6 @@ try{
 }catch(e){failed=true;console.warn('3D not available, using original chibi fallback',e);}
 const material=(color,metalness=0,roughness=.34)=>new THREE.MeshStandardMaterial({color,metalness,roughness});
 const addMesh=(group,geometry,mat,x,y,z=0)=>{const m=new THREE.Mesh(geometry,mat);m.position.set(x,y,z);group.add(m);return m;};
-function makeOutfit(itemId){
- const group=new THREE.Group();
- if(itemId==='outfit_base')return group;
- const navy=material('#29498c',.18),gold=material('#ffe081',.4),white=material('#f8ffff',.15),pink=material('#ff658c',.1);
- if(itemId==='outfit_cap'){
-  addMesh(group,new THREE.SphereGeometry(16,16,10,0,Math.PI*2,0,Math.PI/2),pink,0,75,0);
-  addMesh(group,new THREE.BoxGeometry(33,3,12),navy,0,73,11);
-  addMesh(group,new THREE.SphereGeometry(4,10,8),gold,0,89,0);
- }else if(itemId==='outfit_shades'){
-  for(const x of [-9,9]){
-   addMesh(group,new THREE.BoxGeometry(15,9,3),navy,x,62,17);
-   addMesh(group,new THREE.BoxGeometry(12,6,1),material('#54cfff',.8),x,62,19);
-  }
-  addMesh(group,new THREE.BoxGeometry(7,2,3),gold,0,64,17);
- }else if(itemId==='outfit_scarf'){
-  const ring=addMesh(group,new THREE.TorusGeometry(12,4,9,24),pink,0,44,0);
-  ring.rotation.x=Math.PI/2;
-  addMesh(group,new THREE.BoxGeometry(6,25,3),pink,10,34,4);
- }else if(itemId==='outfit_armor'){
-  addMesh(group,new THREE.BoxGeometry(34,32,18),gold,0,32,4);
-  addMesh(group,new THREE.BoxGeometry(10,18,2),material('#4a89ff',.5),0,34,14);
-  addMesh(group,new THREE.SphereGeometry(5,12,10),white,0,34,17);
- }else if(itemId==='outfit_ears'){
-  for(const x of [-11,11]){
-   const ear=addMesh(group,new THREE.CapsuleGeometry(5,20,6,10),white,x,88,0);ear.rotation.z=x<0?.22:-.22;
-   const inner=addMesh(group,new THREE.CapsuleGeometry(2.4,16,5,8),material('#f6a1d2'),x,89,4);inner.rotation.z=x<0?.22:-.22;
-  }
- }
- return group;
-}
 function destroyInstance(id){
  const item=instances.get(id);if(!item)return;
  if(item.mixer)item.mixer.stopAllAction();
@@ -123,12 +94,8 @@ function instantiate(person){
  window.Paper3DReady[person.id]=true;
  return instance;
 }
-function updateOutfit(instance,itemId){
- if(instance.outfit===itemId)return;
- instance.outfit=itemId;
- for(const child of [...instance.root.children])if(child.name==='PlayerClothes')instance.root.remove(child);
- const clothing=makeOutfit(itemId);clothing.name='PlayerClothes';
- instance.root.add(clothing);
+function updateOutfit(instance,equipment){
+ setFashion(THREE,instance,equipment||{});
 }
 function loadModel(index){
  return new Promise(resolve=>{
@@ -155,7 +122,7 @@ function adjustSize(width,height){
 function sync(dt){
  if(failed)return;
  const state=getState();
- if(state&&(state.playing||state.previewing||state.menuing))startLoading();
+ if(state&&(state.playing||state.previewing||state.menuing||state.shopping))startLoading();
  if(!state||!state.playing){
   // Avoid a second full-screen WebGL clear every VS frame on mobile devices.
   // One clear is enough when leaving the match, freeing GPU for smooth dancing.
@@ -188,8 +155,8 @@ function sync(dt){
     else if(action.isRunning())action.stop();
    }
   }else{item.root.position.y+=Math.sin(state.clock*9+item.phase)*1.8;}
-  if(item.mascotRig)animateMascot(item,state.clock,p.emoting&&p.emoteId==='emote_sixseven'?'dance':'run');
-  if(p.id===0){updateOutfit(item,state.outfit);if(!item.mascotRig&&p.emoting&&p.emoteId==='emote_sixseven')danceBones(item,state.clock,false);}
+  if(item.mascotRig)animateMascot(item,state.clock,p.emoting?p.emoteId:'run');
+  if(p.id===0){updateOutfit(item,state.equipment);if(!item.mascotRig&&p.emoting&&p.emoteId==='emote_sixseven')danceBones(item,state.clock,false);}
  }
  for(const id of instances.keys())if(!all.has(id))destroyInstance(id);
  renderer.render(scene,camera);
@@ -275,12 +242,13 @@ function attachShowcase(target,cssClass){
  if(vsCanvas.className!==cssClass)vsCanvas.className=cssClass;
 }
 function syncMenu(state,dt){
- if(!state?.menuing)return;
+ if(!state?.menuing&&!state?.shopping)return;
  vsCreate();if(vsFailure||!vsRenderer)return;
  const hero=state.menuHero;
  if(!sourceAssets[hero]){window.PaperMenuReady=false;document.getElementById('menuHeroStage')?.classList.remove('model-loaded');const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='1';return;}
  try{
-  attachShowcase('menuHeroStage','menuPosition');
+  const inShop=!!state.shopping;
+  attachShowcase(inShop?'shopHeroStage':'menuHeroStage',inShop?'shopPosition':'menuPosition');
   const previous=vsCharacters[0];
   if(vsCharacters.length!==1||!previous||previous.hero!==hero){
    clearVSActors();vsCharacters=[vsActor(hero)];
@@ -295,16 +263,17 @@ function syncMenu(state,dt){
   vsCamera.top=height/2;vsCamera.bottom=-height/2;vsCamera.updateProjectionMatrix();
   const t=performance.now()/1000;
   actor.root.visible=true;
-  actor.root.scale.setScalar(height*.70/RIG_HEIGHT);
-  actor.root.position.set(0,-height*.34+Math.sin(t*2.3)*2,0);
-  actor.root.rotation.y=Math.sin(t*.9)*.2;
+  actor.root.scale.setScalar(height*(inShop?.78:.70)/RIG_HEIGHT);
+  actor.root.position.set(0,-height*(inShop?.36:.34)+Math.sin(t*2.3)*2,0);
+  actor.root.rotation.y=inShop?(state.previewYaw||0):Math.sin(t*.9)*.2;
   actor.root.rotation.z=Math.sin(t*1.8)*.015;
   if(actor.mixer)actor.mixer.update(Math.min(dt,.04));
-  if(actor.mascotRig)animateMascot(actor,t,'idle');
-  updateOutfit(actor,state.outfit);
+  if(actor.mascotRig)animateMascot(actor,t,inShop?(state.previewEmote||'idle'):'idle');
+  updateOutfit(actor,inShop?(state.previewEquipment||state.equipment):state.equipment);
   vsRenderer.render(vsScene,vsCamera);
   window.PaperMenuReady=true;
-  document.getElementById('menuHeroStage')?.classList.add('model-loaded');
+  if(!inShop)document.getElementById('menuHeroStage')?.classList.add('model-loaded');
+  else document.getElementById('shopHeroStage')?.classList.add('model-loaded');
   vsCanvas.style.opacity='1';
   const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='0';
   const status=document.getElementById('menu3dStatus');
@@ -345,9 +314,9 @@ function syncVS(state,dt){
    actor.root.rotation.z=Math.sin(state.vsSeconds*2.1+i*Math.PI)*.045;
    actor.root.rotation.x=Math.sin(state.vsSeconds*1.9+i)*.025;
    if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
-   if(actor.mascotRig)animateMascot(actor,state.vsSeconds,'dance',i===1);
+   if(actor.mascotRig)animateMascot(actor,state.vsSeconds,i===0?(state.vsEmote||'emote_sixseven'):'emote_sixseven',i===1);
    else danceBones(actor,state.vsSeconds,i===1);
-   if(i===0)updateOutfit(actor,state.outfit);
+   if(i===0)updateOutfit(actor,state.equipment);
   }
   window.PaperVSReady=true;vsCanvas.style.opacity='1';
   // Skip frames where possible to avoid competing with the gameplay canvas on 4G devices.
@@ -361,7 +330,7 @@ function syncVS(state,dt){
 function frame(ms){
  requestAnimationFrame(frame);
  const dt=Math.min(.06,(ms-last)/1000||0);last=ms;
- if(!failed)try{const state=getState();sync(dt);if(state?.menuing)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
+ if(!failed)try{const state=getState();sync(dt);if(state?.menuing||state?.shopping)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
   for(const k of Object.keys(window.Paper3DReady))delete window.Paper3DReady[k];
   canvas.style.display='none';}
 }
@@ -371,7 +340,9 @@ if(new URLSearchParams(location.search).has('qa')){
   menuReady:window.PaperMenuReady,
   vsReady:window.PaperVSReady,
   versus:vsCharacters.map(x=>x?.mascotRig?{hero:x.hero,left:x.mascotRig.left.rotation.z,right:x.mascotRig.right.rotation.z}:null),
-  gameCharacters:instances.size
+  gameCharacters:instances.size,
+  showroomFashion:vsCharacters[0]?.fashionKey||'',
+  showroomRig:!!vsCharacters[0]?.mascotRig
  });
 }
 if(!failed)requestAnimationFrame(frame);
