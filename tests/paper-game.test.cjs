@@ -314,7 +314,7 @@ test('wardrobe overlays remain assigned to humanoid heads and torsos',()=>{
 });
 
 test('VS opens before a normal game and shows animated Six Seven performers',()=>{
- const g=boot(419,'?play=1');
+ const g=boot(419,'?qa=1&vs=1');
  assert.equal(g.win.territoryQA.mode,'home');
  g.get('start').onclick();
  assert.equal(g.win.territoryQA.mode,'versus');
@@ -328,7 +328,7 @@ test('VS opens before a normal game and shows animated Six Seven performers',()=
  assert.match(source,/id="vsPlayNow"/);
 });
 test('VS skip starts a playable game with the featured rival correctly represented',()=>{
- const g=boot(2024,'?normal=1');
+ const g=boot(2024,'?qa=1&vs=1');
  g.get('start').onclick();
  const name=g.get('vsRivalName').textContent;
  assert.ok(name);
@@ -339,14 +339,14 @@ test('VS skip starts a playable game with the featured rival correctly represent
  assert.equal(g.win.Paper3DState().people[1].hero,g.win.__paperTest.getFeatured());
 });
 test('VS automatically proceeds to the match after the choreographed countdown',()=>{
- const g=boot(419,'?normal=1');
+ const g=boot(419,'?qa=1&vs=1');
  g.get('start').onclick();
  g.tick(365);
  assert.equal(g.win.territoryQA.mode,'play');
  assert.equal(g.win.territoryQA.players,12);
 });
 test('replay displays another versus intro rather than bypassing the fight presentation',()=>{
- const g=boot(419,'?normal=1');
+ const g=boot(419,'?qa=1&vs=1');
  g.get('start').onclick();g.get('vsPlayNow').onclick();
  g.win.__paperTest.death(g.win.__paperTest.getGame().people[0]);
  assert.equal(g.win.territoryQA.mode,'result');
