@@ -142,6 +142,8 @@ function sync(dt){
   item.root.visible=!!p.alive;
   if(!p.alive)continue;
   item.root.position.set(p.x,-p.y+7,0);
+  // BIG / SMOLL use the same gameplay modifier in 2D and in the WebGL actors.
+  item.root.scale.setScalar(Math.max(.65,Math.min(1.7,p.scale||1)));
   // Always show faces and outfit silhouettes while hinting at turning.
   item.root.rotation.y=Math.sin(p.angle)*.45;
   if(item.mixer){
