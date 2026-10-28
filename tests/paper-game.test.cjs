@@ -519,3 +519,27 @@ test('Six-Seven can be evaluated twice at the same time without any limb drift',
  assert.ok(Math.abs(rig.left.rotation.z)<2.2);
  assert.ok(Math.abs(rig.right.rotation.z)<2.2);
 });
+
+test('Six Seven shoulder motion is frame-to-frame smooth and palms reset',async()=>{
+ const {animateMascot}=await import(require('node:url').pathToFileURL(path.join(__dirname,'..','paper-mascots.mjs')).href);
+ const node=()=>({rotation:{x:0,z:0}});
+ const rig={left:node(),right:node(),leftPalm:node(),rightPalm:node(),head:node(),body:node(),feet:[{node:node(),side:-1},{node:node(),side:1}]};
+ const actor={mascotRig:rig};
+ let previous=null,maxDelta=0;
+ for(let i=0;i<=480;i++){
+  const t=i/60;animateMascot(actor,t,'dance',false);
+  for(const x of [rig.left.rotation.z,rig.right.rotation.z,rig.leftPalm.rotation.z,rig.rightPalm.rotation.z]){
+   assert.ok(Number.isFinite(x));
+   assert.ok(Math.abs(x)<2,'joint exceeds reasonable pose range');
+  }
+  if(previous){
+   const diff=Math.max(...[rig.left,rig.right,rig.leftPalm,rig.rightPalm].map((v,j)=>Math.abs(v.rotation.z-previous[j])));
+   maxDelta=Math.max(maxDelta,diff);
+  }
+  previous=[rig.left.rotation.z,rig.right.rotation.z,rig.leftPalm.rotation.z,rig.rightPalm.rotation.z];
+ }
+ assert.ok(maxDelta<.13,'Six-Seven movement jumps too fast between 60 FPS frames: '+maxDelta);
+ animateMascot(actor,8.1,'idle',false);
+ assert.equal(rig.leftPalm.rotation.z,0);assert.equal(rig.rightPalm.rotation.z,0);
+ assert.ok(Math.abs(rig.left.rotation.z)<.2);
+});
