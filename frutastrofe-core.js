@@ -83,7 +83,8 @@ function create(opts={}){
   if(g.state!=='playing')return;
   g.state='finished';g.goalsMet=!!win;
   const value=g.cfg.goal==='combos'?g.chains:g.cfg.goal==='citrus'?g.citrus:g.cfg.goal==='boss'?g.bossHits:g.score;
-  g.stars=win?1+(value>=g.cfg.rank[1]?1:0)+(value>=g.cfg.rank[2]?1:0):0;
+  const accuracy=g.hits/Math.max(1,g.shots);
+  g.stars=win?1+(g.elapsed<=g.duration*.62||accuracy>=.80?1:0)+(g.elapsed<=g.duration*.42&&g.errors===0&&accuracy>=.70?1:0):0;
   if(g.cfg.goal==='boss'&&win)g.stars=3;
   emit('finish',{win,stars:g.stars,score:g.score});
  }
