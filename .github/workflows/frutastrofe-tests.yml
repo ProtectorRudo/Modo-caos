@@ -1,0 +1,27 @@
+name: Frutastrofe QA
+on:
+  push:
+    branches: [feat/frutastrofe-premium]
+    paths:
+      - 'frutastrofe-*.js'
+      - 'frutastrofe.html'
+      - 'tests/frutastrofe.test.cjs'
+      - '.github/workflows/frutastrofe-tests.yml'
+  pull_request:
+    paths:
+      - 'frutastrofe-*.js'
+      - 'frutastrofe.html'
+      - 'tests/frutastrofe.test.cjs'
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node --check frutastrofe-core.js
+      - run: node --check frutastrofe-art.js
+      - run: node tests/frutastrofe.test.cjs
