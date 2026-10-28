@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),C=require('../frutastrofe-core.js');
 const make=()=>C.create({mode:'arcade',level:1,seed:3892026409,syncWave:true});
 const a=make(),b=make();a.begin();b.begin();
 let listA=[],listB=[],maxA=0,maxB=0;
-for(let tick=0;tick<1200;tick++){
+for(let tick=0;tick<1210;tick++){
  a.update(.05);b.update(.05);
  // A plays aggressively. B does not shoot. Spawn timeline MUST stay equal.
  if(tick%4===0){
