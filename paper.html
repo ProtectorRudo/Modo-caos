@@ -223,10 +223,18 @@ input[type=text]:focus{border-color:#42bcca}
 
 #hud #emoteButton{position:absolute;right:60px;bottom:max(19px,env(safe-area-inset-bottom) + 8px);pointer-events:auto;width:42px;height:42px;border:2px solid #4a65b9;border-radius:13px;background:linear-gradient(#ffffffef,#d9f4ffdf);box-shadow:0 2px 0 #3257a287,0 3px 10px #234da12a;font-size:22px;cursor:pointer;display:grid;place-items:center}
 #hud #emoteButton:active{transform:translateY(2px);box-shadow:0 1px 0 #3257a287}
+
+/* Character renderer: 3D rigged models enhance this canvas; fallback art is fully animated chibi. */
+#game{position:relative;z-index:0}
+#characterStage{position:fixed;inset:0;z-index:2;pointer-events:none;display:block;user-select:none}
+#hud{z-index:5}
+.overlay{z-index:10}
+#shop{z-index:13}
 </style>
 </head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
+<canvas id="characterStage" aria-hidden="true"></canvas>
 <div id="hud">
  <div id="progressRail" aria-label="Recompensas por conquista hasta 25% del mapa">
   <div class="railTrack"><div id="railFill"></div></div>
@@ -779,6 +787,86 @@ function drawMini(){
  mc.beginPath();mc.moveTo(0,-10);mc.lineTo(7,8);mc.lineTo(-7,8);mc.closePath();mc.fill();mc.stroke();
  mc.restore();mc.restore();
 }
+function paintChibi(p,hero,col){
+ const t=clock*7+p.id*.7,bob=Math.sin(t)*1.7,step=Math.sin(t*1.4)*4,blush=hero===1?'#efac94':'#f6c4bb';
+ c.save();c.translate(p.x,p.y+bob);
+ const zoomHero=p.id===0?1.16:1.0;c.scale(zoomHero,zoomHero);
+ // Shadow grounds the sprite at its actual collider location.
+ c.fillStyle='#38535e2c';c.beginPath();c.ellipse(0,9,16,7,0,0,Math.PI*2);c.fill();
+ // Legs / boots independently sway as the character runs.
+ for(const side of [-1,1]){
+  c.save();c.translate(side*6,-1);c.rotate(side*step*.03);
+  c.fillStyle=hero===3?'#23433a':hero===2?'#58368a':hero===1?'#a85524':'#1d62b7';
+  c.beginPath();c.roundRect(-4,-4,8,18,3);c.fill();
+  c.fillStyle='#263651';c.beginPath();c.ellipse(0,13,5,4,0,0,Math.PI*2);c.fill();c.restore();
+ }
+ // Garments with light-catching volumes and differentiated silhouettes.
+ const outfitColor=['#46c9e6','#ffad54','#9767d4','#50d788'][hero];
+ let grad=c.createLinearGradient(-15,-24,16,4);
+ grad.addColorStop(0,'#ffffff');grad.addColorStop(.18,outfitColor);grad.addColorStop(.78,col);grad.addColorStop(1,'#3659a0');
+ c.fillStyle=grad;c.strokeStyle='#243f8099';c.lineWidth=1.5;
+ c.beginPath();c.roundRect(-14,-30,28,31,9);c.fill();c.stroke();
+ if(hero===2){ // Kira has a long mystic coat / witch outfit
+  c.fillStyle='#542895';c.beginPath();c.moveTo(-12,-14);c.lineTo(-19,3);c.lineTo(19,3);c.lineTo(12,-14);c.closePath();c.fill();
+  c.strokeStyle='#b98efa';c.stroke();
+ }
+ if(hero===3){c.strokeStyle='#1c7a5e';c.lineWidth=3;c.beginPath();c.moveTo(-9,-17);c.lineTo(10,-7);c.stroke();}
+ for(const side of [-1,1]){
+  c.save();c.translate(side*15,-24);c.rotate(side*(Math.sin(t)*.36+.15));
+  c.fillStyle=outfitColor;c.beginPath();c.roundRect(-5,0,10,20,5);c.fill();
+  c.fillStyle='#fff4e6';c.beginPath();c.ellipse(0,20,5,6,0,0,7);c.fill();c.restore();
+ }
+ // Giant, distinct head: soft rim, dimensional mask, big expressive eyes.
+ c.fillStyle='#263d73aa';c.beginPath();c.ellipse(0,-42,21,20,0,0,7);c.fill();
+ grad=c.createRadialGradient(-9,-52,2,0,-43,22);
+ grad.addColorStop(0,'#fff');grad.addColorStop(.55,'#fff9f5');grad.addColorStop(1,hero===3?'#b8eccc':'#c4d5f2');
+ c.fillStyle=grad;c.strokeStyle='#315aa4';c.lineWidth=2;
+ c.beginPath();c.ellipse(0,-43,20,20,0,0,7);c.fill();c.stroke();
+ // Each one's face communicates personality, without requiring the name label.
+ c.fillStyle='#1d3157';
+ if(hero===0){ // Nova: alert, enthusiastic
+  c.beginPath();c.ellipse(-7,-44,4.8,6.5,0,0,7);c.ellipse(7,-44,4.8,6.5,0,0,7);c.fill();
+  c.fillStyle='#fff';c.beginPath();c.arc(-8.5,-46,1.5,0,7);c.arc(5.6,-46,1.5,0,7);c.fill();
+  c.strokeStyle='#e7768b';c.lineWidth=2;c.beginPath();c.arc(0,-36,5,.1,Math.PI-.1);c.stroke();
+ }else if(hero===1){ // Bombo: sleepy mischievous wink
+  c.beginPath();c.ellipse(-6,-44,5,5.5,0,0,7);c.fill();
+  c.strokeStyle='#182b54';c.lineWidth=2.3;c.beginPath();c.moveTo(4,-45);c.quadraticCurveTo(8,-49,12,-44);c.stroke();
+  c.strokeStyle='#bd5662';c.beginPath();c.arc(0,-34,4.5,-.1,Math.PI+.1);c.stroke();
+ }else if(hero===2){ // Kira: clever eyes, composed mouth
+  c.beginPath();c.ellipse(-7,-44,4,6,0,0,7);c.ellipse(7,-44,4,6,0,0,7);c.fill();
+  c.strokeStyle='#532f95';c.lineWidth=2;c.beginPath();c.moveTo(-11,-52);c.lineTo(-4,-50);c.moveTo(4,-50);c.lineTo(11,-52);c.stroke();
+  c.fillStyle='#dd6c99';c.beginPath();c.ellipse(1,-34,3,1.5,0,0,7);c.fill();
+ }else{ // Rayo: determined ninja mask
+  c.fillStyle='#345b5a';c.beginPath();c.roundRect(-17,-48,34,13,5);c.fill();
+  c.fillStyle='#f7ffea';c.beginPath();c.ellipse(-7,-42,4,3,0,0,7);c.ellipse(7,-42,4,3,0,0,7);c.fill();
+  c.fillStyle='#1e3843';c.fillRect(-8,-43,2.4,3);c.fillRect(6,-43,2.4,3);
+ }
+ if(hero!==3){c.fillStyle=blush;c.globalAlpha=.54;c.beginPath();c.ellipse(-14,-36,3,2,0,0,7);c.ellipse(14,-36,3,2,0,0,7);c.fill();c.globalAlpha=1;}
+ // Silhouette-defining hats and headwear.
+ if(hero===0){
+  c.fillStyle='#3dd7ef';c.strokeStyle='#2257bc';c.lineWidth=2;c.beginPath();
+  c.moveTo(-17,-57);c.quadraticCurveTo(-2,-76,17,-57);c.lineTo(15,-51);c.quadraticCurveTo(0,-59,-15,-51);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#fff1a4';c.beginPath();c.arc(0,-61,4,0,7);c.fill();
+ }else if(hero===1){
+  c.fillStyle='#ffa447';c.strokeStyle='#a65627';c.lineWidth=2;c.beginPath();
+  c.roundRect(-19,-61,38,11,5);c.fill();c.stroke();
+  c.beginPath();c.arc(0,-61,10,Math.PI,Math.PI*2);c.fill();
+  c.fillStyle='#fcdf92';c.fillRect(-12,-61,23,3);
+ }else if(hero===2){
+  c.fillStyle='#6943af';c.strokeStyle='#382a78';c.lineWidth=2;
+  c.beginPath();c.moveTo(-14,-57);c.lineTo(3,-89);c.lineTo(16,-56);c.closePath();c.fill();c.stroke();
+  c.beginPath();c.ellipse(0,-56,25,6,-.07,0,7);c.fill();c.stroke();
+  c.strokeStyle='#dcb165';c.lineWidth=3;c.beginPath();c.moveTo(-12,-58);c.lineTo(13,-58);c.stroke();
+ }else{
+  c.fillStyle='#334e41';c.strokeStyle='#1d373e';c.lineWidth=2;
+  c.beginPath();c.moveTo(-17,-56);c.lineTo(-13,-66);c.lineTo(0,-69);c.lineTo(14,-65);c.lineTo(17,-56);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#9efa76';c.beginPath();c.arc(0,-64,4,0,7);c.fill();
+ }
+ // Wardrobe garments and props are attached to this human-like doll.
+ if(p.id===0)drawOutfit(p);
+ c.restore();
+}
+
 function drawUnit(p){
  if(!p.alive)return;
  const col=COLORS[(p.id+settingColor)%12];
@@ -797,57 +885,15 @@ function drawUnit(p){
    c.setLineDash([15,31]);c.lineDashOffset=-clock*80;c.stroke();c.restore();
   }
  }
- const theme=p.id===0?selectedSkin:p.id%4;
- const pulse=1+Math.sin(clock*6+p.id)*.06;
- c.save();c.translate(p.x,p.y);c.rotate(p.angle+Math.PI/2);c.scale(p.id===0?1.82:1.42,p.id===0?1.82:1.42);
- c.fillStyle='rgba(21,52,67,.19)';c.beginPath();c.ellipse(3,13,19,10,0,0,Math.PI*2);c.fill();
- // Six-point lens flare: drawn beneath the hero, not as a screen overlay.
- if(p.id===0){c.globalAlpha=.28+.14*Math.sin(clock*5);c.strokeStyle=col;c.lineWidth=2.3;c.beginPath();c.arc(0,0,18*pulse,0,Math.PI*2);c.stroke();c.globalAlpha=1;}
- // Extruded underside and cobalt outer frame.
- c.fillStyle='#1c3777';c.beginPath();c.roundRect(-14,-10,28,30,5);c.fill();
- c.fillStyle='#eef8ff';c.beginPath();c.roundRect(-15,-15,30,29,6);c.fill();
- c.fillStyle='#1837b0';c.beginPath();c.roundRect(-13,-13,26,25,4.6);c.fill();
- c.fillStyle=col;c.beginPath();c.roundRect(-10.5,-10.5,21,20,3.3);c.fill();
- // Metallic roof bevel and four gold hardware caps.
- c.fillStyle='rgba(255,255,255,.70)';c.beginPath();c.moveTo(-9,-9);c.lineTo(9,-9);c.lineTo(6,-5);c.lineTo(-6,-5);c.closePath();c.fill();
- c.fillStyle='#f9dc64';c.strokeStyle='#fffaaf';c.lineWidth=.65;
- for(const xx of [-10,10])for(const yy of [-10,9]){c.beginPath();c.roundRect(xx-2.5,yy-2.5,5,5,1);c.fill();c.stroke();}
- // Individual skins are original geometric machines, not copied character art.
- if(theme===0){
-  c.fillStyle='#c4ff77';c.beginPath();c.roundRect(-7,-6,14,14,3);c.fill();
-  c.strokeStyle='#2a9c6c';c.lineWidth=1.6;c.stroke();
-  c.fillStyle='#5aca38';c.beginPath();c.arc(0,0,4.4,0,Math.PI*2);c.fill();
-  c.fillStyle='#ffffffeb';c.beginPath();c.arc(-1.5,-1.8,1.5,0,Math.PI*2);c.fill();
-  c.fillStyle='#fe72bd';c.fillRect(-9,-3,2.4,5);c.fillRect(7,-3,2.4,5);
- }else if(theme===1){
-  c.fillStyle='#fff7bb';c.beginPath();c.roundRect(-8,-7,16,15,5);c.fill();
-  c.fillStyle='#2453cb';c.beginPath();c.arc(-3.2,-1,2.2,0,7);c.arc(3.2,-1,2.2,0,7);c.fill();
-  c.strokeStyle='#f2a545';c.lineWidth=1.5;c.beginPath();c.arc(0,2,4,-.2,Math.PI+.2);c.stroke();
- }else if(theme===2){
-  c.fillStyle='#ffdb74';c.beginPath();c.moveTo(0,-9);c.lineTo(7,-2);c.lineTo(3,8);c.lineTo(-6,2);c.closePath();c.fill();
-  c.fillStyle='#f7ffff';c.beginPath();c.arc(0,0,3.5,0,7);c.fill();
- }else{
-  c.fillStyle='#e0f9ff';c.beginPath();c.arc(0,0,8,0,7);c.fill();
-  c.strokeStyle='#39a4ff';c.lineWidth=2.2;c.stroke();
-  c.fillStyle='#1d69a1';c.fillRect(-4,-2,8,4);
- }
- // Crown unlock from 25% conquered area: exclusive, on-model, earned in this run.
- if(p.id===0&&game&&game.crowned){
-  c.save();c.translate(0,-19);c.fillStyle='#ffd74d';c.strokeStyle='#1f42b0';c.lineWidth=1.8;
-  c.beginPath();c.moveTo(-10,5);c.lineTo(-11,-4);c.lineTo(-5,0);c.lineTo(0,-10);c.lineTo(5,0);c.lineTo(11,-4);c.lineTo(10,5);c.closePath();c.fill();c.stroke();c.restore();
- }
- // Side stabilizers and rear jet on the player's craft.
- if(p.id===0){
-  c.fillStyle='#f4ffff';c.strokeStyle='#5ca8de';c.lineWidth=1.4;
-  for(const xx of [-1,1]){c.save();c.scale(xx,1);c.beginPath();c.moveTo(12,-7);c.lineTo(17,-3);c.lineTo(17,7);c.lineTo(12,9);c.closePath();c.fill();c.stroke();c.restore();}
-  c.fillStyle='#ffe768';c.beginPath();c.moveTo(-5,16);c.lineTo(0,21);c.lineTo(5,16);c.closePath();c.fill();
- }
- drawOutfit(p);
- if(p.id===0&&clock<p.boostUntil){c.strokeStyle='#fff1a6';c.lineWidth=2;c.beginPath();c.roundRect(-18,-18,36,35,6);c.stroke();}
- c.restore();
+ // Actual 3D actors take over when their GLB has loaded. Otherwise use
+ // anatomically legible, animated original chibi people — never robot cubes.
+ const hero=p.id===0?selectedSkin:p.id%4;
+ const has3D=!!(window.Paper3DReady&&window.Paper3DReady[hero]);
+ if(!has3D)paintChibi(p,hero,col);
+
  // Text stays readable without putting a huge comic heading over the actor.
  c.font='900 14px system-ui';c.textAlign='center';c.lineWidth=3.6;c.strokeStyle='#153da7';
- c.strokeText(p.name,p.x,p.y-(p.id===0?43:34));c.fillStyle='#fff';c.fillText(p.name,p.x,p.y-(p.id===0?43:34));
+ c.strokeText(p.name,p.x,p.y-(p.id===0?84:75));c.fillStyle='#fff';c.fillText(p.name,p.x,p.y-(p.id===0?84:75));
  if(p.id===0&&clock<emoteUntil){
   const yy=p.y-80,cx=p.x;
   c.save();c.fillStyle='#fffffff2';c.strokeStyle='#2c5dc0';c.lineWidth=2;c.beginPath();
