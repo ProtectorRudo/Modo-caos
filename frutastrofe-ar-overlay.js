@@ -169,30 +169,34 @@ function draw(view,origin,scale,objects,kind='playing'){
   c.globalAlpha=1-age/p.life;circle(c,q.x,q.y,3.3,p.color);c.globalAlpha=1;
  }
  for(let i=shots.length-1;i>=0;i--){
-  const p=shots[i],age=t-p.at;if(age>.112){shots.splice(i,1);continue}
-  const k=clamp(age/.112,0,1),alpha=1-k,gunWidth=clamp(width*.37,118,158);
-  // Calculated from fixed viewport gun placement. No forced DOM measurement.
-  const sx=width*.43,sy=height+37-gunWidth*1.22,tx=p.x,ty=p.y;
-  const dx=tx-sx,dy=ty-sy,d=Math.hypot(dx,dy)||1,nx=-dy/d,ny=dx/d;
-  // Energy pulse travels rapidly; never a persistent full-screen laser column.
-  const head=clamp(k*1.55,.02,1),tail=clamp(head-.28,0,1);
-  const x1=sx+dx*tail,y1=sy+dy*tail,x2=sx+dx*head,y2=sy+dy*head;
-  c.lineCap='round';
-  c.globalAlpha=alpha*.54;line(c,x1,y1,x2,y2,'#16d6ef',10*alpha+2);c.globalAlpha=alpha;
-  line(c,x1,y1,x2,y2,'#e8fff6',3.0*alpha+1);
-  const flare=c.createRadialGradient(sx,sy,0,sx,sy,22+alpha*12);
-  flare.addColorStop(0,'rgba(255,255,215,.89)');flare.addColorStop(.34,'rgba(77,248,224,.53)');flare.addColorStop(1,'rgba(46,191,232,0)');
-  c.globalAlpha=alpha;circle(c,sx,sy,22+alpha*12,flare);
-  // Small sparks burst out of muzzle only, not across the full camera.
-  for(let j=0;j<4;j++){
-   const angle=j*TAU/4+p.at*5,len=8+alpha*(8+j*2);
-   line(c,sx+Math.cos(angle)*5,sy+Math.sin(angle)*5,
-     sx+Math.cos(angle)*len,sy+Math.sin(angle)*len,j%2?'#9fffe5':'#eaffae',1.3+alpha);
+  const p=shots[i],age=t-p.at;
+  // High-speed juice plasma bolts: short LOCAL streaks moving toward the real target,
+  // never a full-screen vertical line obscuring the player's room.
+  if(age>.095){shots.splice(i,1);continue}
+  const k=clamp(age/.095,0,1),alpha=1-k,gunWidth=clamp(width*.35,119,144);
+  // CSS weapon uses viewport width 35%, left 43% and bottom 2px.
+  // This projected muzzle stays at exactly the same virtual geometry,
+  // without invoking getBoundingClientRect during every WebXR frame.
+  const sx=width*.43,sy=height-gunWidth*(1.04*(335/240))+2;
+  const dx=p.x-sx,dy=p.y-sy,d=Math.hypot(dx,dy)||1;
+  const head=clamp(k*1.45,0,1);
+  const px=sx+dx*head,py=sy+dy*head;
+  const unitX=dx/d,unitY=dy/d;
+  const streak=Math.min(48,d*.24);
+  const tailX=px-unitX*streak,tailY=py-unitY*streak;
+  c.save();c.lineCap='round';
+  c.globalAlpha=alpha*.50;line(c,tailX,tailY,px,py,'#24d8ec',9);c.globalAlpha=alpha;
+  line(c,tailX,tailY,px,py,'#f5fff0',3.1);
+  const light=c.createRadialGradient(px,py,0,px,py,13);
+  light.addColorStop(0,'rgba(255,255,245,.94)');light.addColorStop(.44,'rgba(131,255,217,.54)');light.addColorStop(1,'rgba(25,184,222,0)');
+  circle(c,px,py,13,light);
+  // The muzzle flashes for the initial 30ms; no disembodied light beam to the floor.
+  if(k<.37){const flare=c.createRadialGradient(sx,sy,0,sx,sy,19);
+   flare.addColorStop(0,'rgba(255,255,231,.95)');flare.addColorStop(.33,'rgba(122,255,224,.46)');flare.addColorStop(1,'rgba(18,180,232,0)');
+   c.globalAlpha=(.37-k)/.37;circle(c,sx,sy,19,flare);
   }
-  if(p.hit&&head>.8){
-    c.globalAlpha=alpha*.8;strokeCircle(c,tx,ty,7+(head-.8)*42,'#efffa5',2.4);c.globalAlpha=1;
-  }
-  c.globalAlpha=1;
+  if(p.hit&&head>.91){c.globalAlpha=alpha*.8;strokeCircle(c,p.x,p.y,5+(head-.91)*90,'#dfff93',2.7)}
+  c.restore();
  }
  for(let i=scores.length-1;i>=0;i--){
   const p=scores[i],age=t-p.at;if(age>.75){scores.splice(i,1);continue}
@@ -228,5 +232,5 @@ function clear(){
 root.FrutaAROverlay={draw,clear,impact,shot,popup,land,emerge,
  setStage(phase,isFever){stage=clamp(Number(phase)||1,1,6);fever=!!isFever},
  get targets(){return targets},get state(){return mode},
- get diagnostics(){return {engine:'canvas2d',premium:true,sprites:root.FrutaPremiumArt?.stats().spriteCount||Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
+ get diagnostics(){return {engine:'canvas2d',boltDurationMs:95,boltMaxStreakPx:48,premium:true,sprites:root.FrutaPremiumArt?.stats().spriteCount||Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
 })(typeof window!=='undefined'?window:globalThis);
