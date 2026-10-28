@@ -37,3 +37,14 @@ No declarar AR físicamente probado ni multiplayer online funcional mientras fal
 
 ## Camino de evolución
 Nuevos mundos y cosméticos; análisis de packs GLB CC0 con medición de FPS; online con backend autoritativo y revisión de la seguridad de Auth compartida.
+
+## Corrección AR-only: evidencia de cámara sin objetos (28/10/2026)
+- Se quitó la entrada a modos 2D/3D. Campaña, arcade y duelo local ahora requieren iniciar WebXR y fijar una pista; los menús pueden seguir mostrando decoración 3D.
+- Problema informado: la cámara y el HUD funcionaban, pero arena y frutas no aparecían en la sesión real.
+- Se redujo la escala física de la escena a 0,23 para que frutas y piso estén dentro del campo visual habitual al apuntar al suelo.
+- Se incorporaron `frutastrofe-ar-projection.js` (matemática en coordenadas de piso) y `frutastrofe-ar-overlay.js` (frutas y contorno SVG proyectados en DOM-overlay, independientemente de que Three componga o no sus mallas en el XR framebuffer). Se usa la pose XR real de cada fotograma; las frutas NO se fijan a píxeles de pantalla.
+- Los disparos se alinean con las frutas proyectadas, además de conservar raycast a las mallas 3D.
+- Preview de fijación muestra contorno anclado; juego muestra frutas, bomba y suelo. El tracking se conserva al recenter sin reiniciar puntos.
+- Se eliminó la sonda asíncrona XR antes de `requestSession()` para preservar la activación de usuario en Chrome Android.
+- Tests de proyección física simulada de cámara, perspectiva y visibilidad: `node tests/frutastrofe-ar.test.cjs`. Smoke de navegador móvil con simulación de cámara: `tests/frutastrofe-browser.cjs`.
+- **Límite de verificación:** simulación no equivale a prueba física Android/ARCore. Una captura sin geometría fue el motivo de esta revisión; debe comprobarse con teléfono antes de afirmar que está totalmente resuelto.
