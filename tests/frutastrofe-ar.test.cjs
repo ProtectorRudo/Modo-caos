@@ -18,5 +18,5 @@ assert.equal(data.length,2,'fruit and bomb projected from fixed world');
 assert.notEqual(data[0].x,data[1].x,'objects independently positioned');
 const ring=P.floorOutline(camera,origin,.23,3.35,400,800);
 assert.equal(ring.length,48,'floor ring has world-space vertices even if some are offscreen');
-assert(P.projection(camera,origin,.23,{x:0,y:1,z:8},400,800)===null,'behind-camera objects are hidden');
+assert(P.projection(camera,origin,.23,{x:0,y:1,z:20},400,800)===null,'behind-camera objects are hidden');
 console.log('PASS FRUTÁSTROFE AR projection: floor world-lock, camera relative parallax, fruit sizes and visibility');
