@@ -81,5 +81,5 @@
   else next.phase++;
   return next;
  }
- root.PenalesCore=Object.freeze({clamp,createMatch,activeSide,resolve,apply,aiAim,aiSave,seeded,makeCup,cupStage,cupOpponent});
+ root.PenalesCore=Object.freeze({clamp,createMatch,activeSide,resolve,apply,aiAim,aiSave,seeded,makeCup,cupStage,cupOpponent,recordCup});
 })(typeof window!=='undefined'?window:globalThis);
