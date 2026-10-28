@@ -372,7 +372,7 @@ input[type=text]:focus{border-color:#42bcca}
 #menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
 #menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
-<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"><link rel="stylesheet" href="./paper-survival.css?v=1"></head>
+<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"><link rel="stylesheet" href="./paper-survival.css?v=1"><link rel="stylesheet" href="./paper-mini-hud.css?v=1"></head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <canvas id="characterStage" aria-hidden="true"></canvas>
@@ -389,11 +389,16 @@ input[type=text]:focus{border-color:#42bcca}
    <div id="kills"><span class="killIcon">☠</span><b id="killCount">0</b></div>
  </div>
  <div id="rank" aria-hidden="true"></div><div id="rewardToast" aria-live="polite"><span id="rewardIcon">✦</span><div><strong id="rewardTitle">RECOMPENSA</strong><small id="rewardDesc">¡Buen trabajo!</small></div></div>
-  <aside id="survivalPanel" aria-label="Mapa de zonas seguras, eliminaciones y jugadores vivos">
-   <div class="survivalStats"><span>☠ <b id="survivalKills">0</b> BAJAS</span><span>♥ <b id="survivorsCount">12</b> VIVOS</span></div>
-   <canvas id="mini" width="182" height="182" aria-label="Minimapa con tormenta actual y próxima zona segura"></canvas>
-   <div class="survivalNext" id="nextZoneLabel">SIGUIENTE ZONA · 15s</div>
-   <div class="survivalPhase" id="zonePhaseLabel">ZONA 0/7</div>
+  <aside id="survivalPanel" aria-label="Minimapa táctico y estado de partida">
+   <div class="cvMiniMapFrame">
+    <canvas id="mini" width="182" height="182" aria-label="Mapa cuadrado: zona segura azul, siguiente zona blanca, tormenta violeta y posiciones de jugadores"></canvas>
+    <div class="survivalPhase" id="zonePhaseLabel">ZONA 0/7</div>
+   </div>
+   <div class="survivalStats" aria-label="Tiempo para el cierre, jugadores vivos y eliminaciones">
+    <span class="miniMetric miniMetricTimer" id="miniTimeMetric" title="Tiempo hasta la próxima zona"><span class="miniMetricIcon" aria-hidden="true">◷</span><b id="nextZoneLabel">0:45</b></span>
+    <span class="miniMetric" title="Jugadores vivos"><span class="miniMetricIcon" aria-hidden="true">♟</span><b id="survivorsCount">25</b></span>
+    <span class="miniMetric" title="Eliminaciones"><span class="miniMetricIcon" aria-hidden="true">☠</span><b id="survivalKills">0</b></span>
+   </div>
   </aside><button id="pause" aria-label="Pausar partida">Ⅱ</button><button id="emoteButton" aria-label="Hacer gesto de tu personaje">👋</button><div id="msg"></div>
  <div id="controls">ARRASTRÁ PARA DIRIGIR</div><div id="stormStatus" aria-live="off">⚡ TORMENTA EN 18s</div><div id="powerStatus" aria-live="polite">🎁 CAJAS CON PODERES</div>
 </div>
@@ -1341,59 +1346,123 @@ function showHud(){
  $('survivalKills').textContent=cvRole==='guest'?p.kills:game.kills;
  $('survivorsCount').textContent=game.people.filter(q=>q.alive).length;
  const zone=stormZoneState();
- $('nextZoneLabel').textContent=zone.active?'⚡ CERRANDO · '+Math.ceil(zone.remaining)+'s':zone.next?'SIGUIENTE ZONA · '+Math.ceil(zone.remaining)+'s':'⚡ ZONA FINAL';
+ const remaining=Math.max(0,Math.ceil(zone.remaining||0));
+ $('nextZoneLabel').textContent=zone.next||zone.active?Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0'):'0:00';
+ $('miniTimeMetric').classList.toggle('closing',!!zone.active);
  $('zonePhaseLabel').textContent='ZONA '+zone.phase+'/'+STORM_FRACTIONS.length;
  $('rank').innerHTML=''; // No leaderboard: only survival matters.
  drawMini();
 }
 function safe(s){return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+// Cached cartographic artwork. It is intentionally a lightweight visual map,
+// NOT level geometry: no fictional roads, trees or water affect collisions.
+let cvMiniBackground=null;
+function cvPrepareMiniBackground(){
+ if(cvMiniBackground)return cvMiniBackground;
+ const off=document.createElement('canvas');off.width=off.height=182;
+ const p=off.getContext('2d');
+ const base=p.createLinearGradient(0,0,182,182);
+ base.addColorStop(0,'#9cb575');base.addColorStop(.52,'#85a96c');base.addColorStop(1,'#628e6b');
+ p.fillStyle=base;p.fillRect(0,0,182,182);
+ // Deterministic low-detail foliage and topography: generated only once.
+ for(let i=0;i<80;i++){
+  const x=12+((i*73+19)%163),y=9+((i*97+47)%164);
+  const r=3+(i*13%8);
+  p.fillStyle=i%4===0?'rgba(24,78,62,.28)':i%3===0?'rgba(205,221,144,.32)':'rgba(59,122,69,.25)';
+  p.beginPath();p.ellipse(x,y,r,r*(.45+(i%4)*.12),((i*41)%170)*.02,0,Math.PI*2);p.fill();
+ }
+ // Cartographic river and winding landmarks, subdued below territory overlays.
+ p.beginPath();p.moveTo(-10,38);p.bezierCurveTo(26,66,47,22,72,45);
+ p.bezierCurveTo(108,69,118,110,196,87);
+ p.strokeStyle='rgba(26,92,99,.63)';p.lineWidth=11;p.stroke();
+ p.strokeStyle='rgba(103,184,167,.65)';p.lineWidth=5;p.stroke();
+ p.beginPath();p.moveTo(-12,143);p.bezierCurveTo(44,119,76,150,110,112);
+ p.bezierCurveTo(141,79,151,69,196,22);
+ p.strokeStyle='rgba(68,91,65,.26)';p.lineWidth=8;p.stroke();
+ p.strokeStyle='rgba(240,228,180,.72)';p.lineWidth=4;p.stroke();
+ // Soft scatter/dots for the familiar illustrated-map feeling.
+ for(let i=0;i<70;i++){
+  const x=((i*61+31)%178)+2,y=((i*43+7)%178)+2;
+  p.fillStyle=i%3?'rgba(39,80,43,.29)':'rgba(221,227,155,.44)';
+  p.beginPath();p.arc(x,y,.65+(i%3)*.35,0,Math.PI*2);p.fill();
+ }
+ cvMiniBackground=off;
+ return off;
+}
+function cvMiniArrow(x,y,angle,color,large=false){
+ mc.save();mc.translate(x,y);mc.rotate(angle+Math.PI/2);
+ mc.shadowColor='rgba(5,15,37,.8)';mc.shadowBlur=large?4:2;
+ mc.beginPath();
+ const size=large?7:5.1;
+ mc.moveTo(0,-size);mc.lineTo(size*.73,size*.66);
+ mc.lineTo(0,size*.20);mc.lineTo(-size*.73,size*.66);mc.closePath();
+ mc.fillStyle=color;mc.strokeStyle='#10243c';mc.lineWidth=large?1.75:1.3;
+ mc.fill();mc.stroke();mc.shadowBlur=0;
+ mc.strokeStyle='rgba(255,255,255,.82)';mc.lineWidth=.8;
+ mc.beginPath();mc.moveTo(0,-size+2);mc.lineTo(0,size*.2);mc.stroke();
+ mc.restore();
+}
 function drawMini(){
- const w=182;mc.clearRect(0,0,w,w);mc.save();
+ if(!game)return;
+ const w=182,pad=7,extent=w-pad*2;
+ mc.setTransform(1,0,0,1,0,0);mc.clearRect(0,0,w,w);
+ mc.save();
+ mc.beginPath();mc.roundRect(2,2,w-4,w-4,4);mc.clip();
+ mc.drawImage(cvPrepareMiniBackground(),0,0,w,w);
+ const mapX=x=>pad+x/WORLD*extent,mapY=y=>pad+y/WORLD*extent;
+ const rad=r=>r/WORLD*extent;
+ mc.save();mc.beginPath();mc.rect(pad,pad,extent,extent);mc.clip();
+ // Actual territory ownership is taken from the same real gameplay grid.
+ mc.globalAlpha=.71;mc.imageSmoothingEnabled=true;
+ mc.drawImage(terrainCanvas,pad,pad,extent,extent);mc.globalAlpha=1;
  const zone=stormZoneState(),current=arenaState(),next=zone.next;
- const mapX=x=>9+x/WORLD*164,mapY=y=>9+y/WORLD*164,rad=r=>r/WORLD*164;
- // Every part of the map is visible. The storm covers the unsafe outer region
- // with a readable purple mask, exactly like the familiar battle-royale maps.
- mc.save();mc.beginPath();mc.roundRect(7,7,168,168,10);mc.clip();
- mc.fillStyle='#dffbf0';mc.fillRect(7,7,168,168);
- mc.imageSmoothingEnabled=true;mc.drawImage(terrainCanvas,9,9,164,164);
  const cx=mapX(current.x),cy=mapY(current.y),r=rad(current.radius);
- mc.fillStyle='rgba(119,65,183,.68)';
- mc.beginPath();mc.rect(7,7,168,168);mc.arc(cx,cy,r,0,Math.PI*2,true);
- mc.fill('evenodd');
- // A blue ring is the ACTUAL safe boundary; a dashed white ring is the NEXT
- // safe area. Its displaced position changes from game to game.
- mc.strokeStyle='#1151de';mc.lineWidth=3.5;mc.beginPath();mc.arc(cx,cy,r,0,7);mc.stroke();
+ // Violet storm paints everything OUTSIDE the genuinely playable circle.
+ mc.beginPath();mc.rect(pad,pad,extent,extent);
+ mc.arc(cx,cy,r,0,Math.PI*2,true);
+ mc.fillStyle='rgba(153,55,186,.77)';mc.fill('evenodd');
+ // Saturated blue current safe-circle perimeter.
+ mc.beginPath();mc.arc(cx,cy,r,0,Math.PI*2);
+ mc.strokeStyle='#0b286f';mc.lineWidth=4.4;mc.stroke();
+ mc.strokeStyle='#35a6fa';mc.lineWidth=2.5;mc.stroke();
+ // Next safe-circle is white. It can be off-centre (actual storm rules).
  if(next){
   const nx=mapX(next.x),ny=mapY(next.y),nr=rad(next.radius);
-  mc.setLineDash([5,4]);mc.strokeStyle='#fff';mc.lineWidth=3.6;
-  mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();mc.setLineDash([]);
-  mc.strokeStyle='#163577';mc.lineWidth=1;mc.beginPath();mc.arc(nx,ny,nr,0,7);mc.stroke();
-  mc.fillStyle='#ffe77c';mc.beginPath();mc.arc(nx,ny,3.8,0,7);mc.fill();
-  const me=cvLocalPlayer(),out=Math.hypot(me.x-next.x,me.y-next.y)>next.radius-22;
-  if(out&&me.alive){
-   mc.save();mc.setLineDash([4,4]);mc.strokeStyle='#ffef86';mc.lineWidth=1.8;
+  mc.beginPath();mc.arc(nx,ny,nr,0,Math.PI*2);
+  mc.strokeStyle='#162c67';mc.lineWidth=4.4;mc.stroke();
+  mc.strokeStyle='#f6fcff';mc.lineWidth=2.5;mc.stroke();
+  const me=cvLocalPlayer();
+  if(me?.alive&&Math.hypot(me.x-next.x,me.y-next.y)>next.radius-22){
+   mc.save();mc.setLineDash([3,4]);mc.strokeStyle='#fff3bc';mc.lineWidth=1.5;
    mc.beginPath();mc.moveTo(mapX(me.x),mapY(me.y));mc.lineTo(nx,ny);mc.stroke();mc.restore();
   }
  }
+ // Collectibles are diamonds, never confuse them with player-direction arrows.
  for(const box of game.boxes){
   if(!box.active)continue;
   const x=mapX(box.x),y=mapY(box.y);
-  mc.fillStyle=POWER_COLORS[box.type];mc.strokeStyle='#203f80';mc.lineWidth=1.1;
-  mc.fillRect(x-2.2,y-2.2,4.4,4.4);mc.strokeRect(x-2.2,y-2.2,4.4,4.4);
+  mc.fillStyle='#ffdf83';mc.strokeStyle='#393052';mc.lineWidth=.7;
+  mc.beginPath();mc.moveTo(x,y-2.5);mc.lineTo(x+2.5,y);mc.lineTo(x,y+2.5);mc.lineTo(x-2.5,y);
+  mc.closePath();mc.fill();mc.stroke();
  }
+ const own=cvLocalId();
+ // Every rival is a tiny colored dot. Friend has a conspicuous yellow arrow.
  for(const p of game.people){
-  if(!p.alive||p.id===cvLocalId())continue;
+  if(!p.alive||p.id===own)continue;
   const x=mapX(p.x),y=mapY(p.y);
+  if(cvRole!=='solo'&&(p.id===0||p.id===1)){
+   cvMiniArrow(x,y,p.angle,'#ffe174',false);continue;
+  }
   mc.fillStyle=COLORS[(p.id+settingColor)%COLORS.length];
-  mc.strokeStyle='#142e76';mc.lineWidth=1.15;
-  mc.beginPath();mc.arc(x,y,3.2,0,7);mc.fill();mc.stroke();
+  mc.strokeStyle='#0c2b3e';mc.lineWidth=.7;
+  mc.beginPath();mc.arc(x,y,2.05,0,Math.PI*2);mc.fill();mc.stroke();
  }
- const player=cvLocalPlayer();
- mc.save();mc.translate(mapX(player.x),mapY(player.y));mc.rotate(player.angle+Math.PI/2);
- mc.fillStyle='#fff';mc.strokeStyle='#113da5';mc.lineWidth=2.5;
- mc.beginPath();mc.moveTo(0,-9);mc.lineTo(6.3,7);mc.lineTo(-6.3,7);mc.closePath();mc.fill();mc.stroke();mc.restore();
+ const me=cvLocalPlayer();
+ if(me?.alive)cvMiniArrow(mapX(me.x),mapY(me.y),me.angle,'#66f5f1',true);
  mc.restore();
- mc.strokeStyle='#bedfff';mc.lineWidth=2;mc.strokeRect(8,8,166,166);
+ // Crisp matte frame, tiny 1px outer edge rather than a bulky glass panel.
+ mc.strokeStyle='rgba(238,252,255,.75)';mc.lineWidth=1;
+ mc.strokeRect(2.5,2.5,w-5,w-5);
  mc.restore();
 }
 function paintChibi(p,hero,col){
