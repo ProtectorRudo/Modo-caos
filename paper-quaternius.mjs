@@ -351,6 +351,8 @@ export function initializeHumanRig(base,heroIndex=0,nativeOutfit=false){
  const palette=HUMAN_HEROES[Math.max(0,Math.min(HUMAN_HEROES.length-1,heroIndex|0))];
  base.traverse(n=>{
   if(!n.isSkinnedMesh)return;
+  // Native mesh material remains shared until its first customizable wardrobe pass.
+  if(nativeOutfit)return;
   const original=n.material;
   const tint=(m)=>{
    const c=m.clone();if(!nativeOutfit&&c.color)c.color.set(palette.skin);
