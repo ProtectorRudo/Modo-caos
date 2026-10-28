@@ -7,6 +7,7 @@ on:
       - 'frutastrofe.html'
       - 'tests/frutastrofe.test.cjs'
       - 'tests/frutastrofe-browser.cjs'
+      - 'tests/frutastrofe-ar.test.cjs'
       - '.github/workflows/frutastrofe-tests.yml'
   pull_request:
     paths:
@@ -26,6 +27,9 @@ jobs:
       - run: node --check frutastrofe-core.js
       - run: node --check frutastrofe-art.js
       - run: node tests/frutastrofe.test.cjs
+      - run: node tests/frutastrofe-ar.test.cjs
+      - run: node --check frutastrofe-ar-projection.js
+      - run: node --check frutastrofe-ar-overlay.js
 
   mobile-browser:
     runs-on: ubuntu-latest
