@@ -372,7 +372,7 @@ input[type=text]:focus{border-color:#42bcca}
 #menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
 #menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
-<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"><link rel="stylesheet" href="./paper-survival.css?v=1"><link rel="stylesheet" href="./paper-mini-hud.css?v=1"></head>
+<link rel="stylesheet" href="./paper-animals.css?v=1"><link rel="stylesheet" href="./paper-wardrobe.css?v=1"><link rel="stylesheet" href="./paper-arena.css?v=1"><link rel="stylesheet" href="./paper-quaternius.css?v=1"><link rel="stylesheet" href="./paper-chibi.css?v=2"><link rel="stylesheet" href="./paper-survival.css?v=1"><link rel="stylesheet" href="./paper-mini-hud.css?v=2"></head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <canvas id="characterStage" aria-hidden="true"></canvas>
@@ -394,10 +394,16 @@ input[type=text]:focus{border-color:#42bcca}
     <canvas id="mini" width="182" height="182" aria-label="Mapa cuadrado: zona segura azul, siguiente zona blanca, tormenta violeta y posiciones de jugadores"></canvas>
     <div class="survivalPhase" id="zonePhaseLabel">ZONA 0/7</div>
    </div>
-   <div class="survivalStats" aria-label="Tiempo para el cierre, jugadores vivos y eliminaciones">
-    <span class="miniMetric miniMetricTimer" id="miniTimeMetric" title="Tiempo hasta la próxima zona"><span class="miniMetricIcon" aria-hidden="true">◷</span><b id="nextZoneLabel">0:45</b></span>
-    <span class="miniMetric" title="Jugadores vivos"><span class="miniMetricIcon" aria-hidden="true">♟</span><b id="survivorsCount">25</b></span>
-    <span class="miniMetric" title="Eliminaciones"><span class="miniMetricIcon" aria-hidden="true">☠</span><b id="survivalKills">0</b></span>
+   <div class="survivalStats" aria-label="Tormenta, jugadores vivos y eliminaciones">
+    <span class="miniMetric miniMetricTimer" id="miniTimeMetric" title="Tiempo restante hasta la tormenta">
+     <small class="miniMetricLabel">TORMENTA</small><span class="miniMetricValue"><span class="miniMetricIcon" aria-hidden="true">◷</span><b id="nextZoneLabel">0:45</b></span>
+    </span>
+    <span class="miniMetric" title="Jugadores vivos">
+     <small class="miniMetricLabel">VIVOS</small><span class="miniMetricValue"><span class="miniMetricIcon" aria-hidden="true">●</span><b id="survivorsCount">25</b></span>
+    </span>
+    <span class="miniMetric" title="Jugadores eliminados por vos">
+     <small class="miniMetricLabel">BAJAS</small><span class="miniMetricValue"><span class="miniMetricIcon" aria-hidden="true">☠</span><b id="survivalKills">0</b></span>
+    </span>
    </div>
   </aside><button id="pause" aria-label="Pausar partida">Ⅱ</button><button id="emoteButton" aria-label="Hacer gesto de tu personaje">👋</button><div id="msg"></div>
  <div id="controls">ARRASTRÁ PARA DIRIGIR</div><div id="stormStatus" aria-live="off">⚡ TORMENTA EN 18s</div><div id="powerStatus" aria-live="polite">🎁 CAJAS CON PODERES</div>
@@ -1360,46 +1366,36 @@ let cvMiniBackground=null;
 function cvPrepareMiniBackground(){
  if(cvMiniBackground)return cvMiniBackground;
  const off=document.createElement('canvas');off.width=off.height=182;
- const p=off.getContext('2d');
- const base=p.createLinearGradient(0,0,182,182);
- base.addColorStop(0,'#9cb575');base.addColorStop(.52,'#85a96c');base.addColorStop(1,'#628e6b');
- p.fillStyle=base;p.fillRect(0,0,182,182);
- // Deterministic low-detail foliage and topography: generated only once.
- for(let i=0;i<80;i++){
-  const x=12+((i*73+19)%163),y=9+((i*97+47)%164);
-  const r=3+(i*13%8);
-  p.fillStyle=i%4===0?'rgba(24,78,62,.28)':i%3===0?'rgba(205,221,144,.32)':'rgba(59,122,69,.25)';
-  p.beginPath();p.ellipse(x,y,r,r*(.45+(i%4)*.12),((i*41)%170)*.02,0,Math.PI*2);p.fill();
- }
- // Cartographic river and winding landmarks, subdued below territory overlays.
- p.beginPath();p.moveTo(-10,38);p.bezierCurveTo(26,66,47,22,72,45);
- p.bezierCurveTo(108,69,118,110,196,87);
- p.strokeStyle='rgba(26,92,99,.63)';p.lineWidth=11;p.stroke();
- p.strokeStyle='rgba(103,184,167,.65)';p.lineWidth=5;p.stroke();
- p.beginPath();p.moveTo(-12,143);p.bezierCurveTo(44,119,76,150,110,112);
- p.bezierCurveTo(141,79,151,69,196,22);
- p.strokeStyle='rgba(68,91,65,.26)';p.lineWidth=8;p.stroke();
- p.strokeStyle='rgba(240,228,180,.72)';p.lineWidth=4;p.stroke();
- // Soft scatter/dots for the familiar illustrated-map feeling.
- for(let i=0;i<70;i++){
-  const x=((i*61+31)%178)+2,y=((i*43+7)%178)+2;
-  p.fillStyle=i%3?'rgba(39,80,43,.29)':'rgba(221,227,155,.44)';
-  p.beginPath();p.arc(x,y,.65+(i%3)*.35,0,Math.PI*2);p.fill();
- }
+ const ctx=off.getContext('2d');
+ // CIVIDOM is an abstract territory arena, not a natural Fortnite island.
+ // Clean pure-white ground with no decorative foliage, roads or water.
+ ctx.fillStyle='#ffffff';ctx.fillRect(0,0,182,182);
  cvMiniBackground=off;
  return off;
 }
 function cvMiniArrow(x,y,angle,color,large=false){
  mc.save();mc.translate(x,y);mc.rotate(angle+Math.PI/2);
- mc.shadowColor='rgba(5,15,37,.8)';mc.shadowBlur=large?4:2;
+ const size=large?8.6:6.8;
  mc.beginPath();
- const size=large?7:5.1;
- mc.moveTo(0,-size);mc.lineTo(size*.73,size*.66);
- mc.lineTo(0,size*.20);mc.lineTo(-size*.73,size*.66);mc.closePath();
- mc.fillStyle=color;mc.strokeStyle='#10243c';mc.lineWidth=large?1.75:1.3;
- mc.fill();mc.stroke();mc.shadowBlur=0;
- mc.strokeStyle='rgba(255,255,255,.82)';mc.lineWidth=.8;
- mc.beginPath();mc.moveTo(0,-size+2);mc.lineTo(0,size*.2);mc.stroke();
+ mc.moveTo(0,-size);mc.lineTo(size*.76,size*.69);
+ mc.lineTo(0,size*.12);mc.lineTo(-size*.76,size*.69);mc.closePath();
+ // Distinctive luminous human arrows, with dual-contrast silhouette on any territory.
+ mc.strokeStyle='#ffffff';mc.lineWidth=large?4.6:3.6;mc.stroke();
+ mc.fillStyle=color;mc.fill();
+ mc.strokeStyle='#152b49';mc.lineWidth=large?1.8:1.55;mc.stroke();
+ mc.strokeStyle='#ffffff';mc.lineWidth=.8;
+ mc.beginPath();mc.moveTo(0,-size+2.5);mc.lineTo(0,size*.1);mc.stroke();
+ mc.restore();
+}
+function cvMiniEnemyMarker(x,y,color){
+ // White outer keyline separates rivals from saturated conquered territory;
+ // dark center contrasts with the white CIVIDOM floor.
+ mc.save();mc.beginPath();mc.arc(x,y,4.8,0,Math.PI*2);
+ mc.fillStyle='#15304e';mc.fill();
+ mc.strokeStyle='#ffffff';mc.lineWidth=2.2;mc.stroke();
+ mc.beginPath();mc.arc(x,y,2.45,0,Math.PI*2);
+ mc.fillStyle=color;mc.fill();
+ mc.strokeStyle='rgba(255,255,255,.92)';mc.lineWidth=.65;mc.stroke();
  mc.restore();
 }
 function drawMini(){
@@ -1413,14 +1409,14 @@ function drawMini(){
  const rad=r=>r/WORLD*extent;
  mc.save();mc.beginPath();mc.rect(pad,pad,extent,extent);mc.clip();
  // Actual territory ownership is taken from the same real gameplay grid.
- mc.globalAlpha=.71;mc.imageSmoothingEnabled=true;
+ mc.globalAlpha=.82;mc.imageSmoothingEnabled=true;
  mc.drawImage(terrainCanvas,pad,pad,extent,extent);mc.globalAlpha=1;
  const zone=stormZoneState(),current=arenaState(),next=zone.next;
  const cx=mapX(current.x),cy=mapY(current.y),r=rad(current.radius);
  // Violet storm paints everything OUTSIDE the genuinely playable circle.
  mc.beginPath();mc.rect(pad,pad,extent,extent);
  mc.arc(cx,cy,r,0,Math.PI*2,true);
- mc.fillStyle='rgba(153,55,186,.77)';mc.fill('evenodd');
+ mc.fillStyle='rgba(141,65,187,.65)';mc.fill('evenodd');
  // Saturated blue current safe-circle perimeter.
  mc.beginPath();mc.arc(cx,cy,r,0,Math.PI*2);
  mc.strokeStyle='#0b286f';mc.lineWidth=4.4;mc.stroke();
@@ -1453,9 +1449,7 @@ function drawMini(){
   if(cvRole!=='solo'&&(p.id===0||p.id===1)){
    cvMiniArrow(x,y,p.angle,'#ffe174',false);continue;
   }
-  mc.fillStyle=COLORS[(p.id+settingColor)%COLORS.length];
-  mc.strokeStyle='#0c2b3e';mc.lineWidth=.7;
-  mc.beginPath();mc.arc(x,y,2.05,0,Math.PI*2);mc.fill();mc.stroke();
+  cvMiniEnemyMarker(x,y,COLORS[(p.id+settingColor)%COLORS.length]);
  }
  const me=cvLocalPlayer();
  if(me?.alive)cvMiniArrow(mapX(me.x),mapY(me.y),me.angle,'#66f5f1',true);
