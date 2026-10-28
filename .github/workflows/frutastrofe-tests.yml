@@ -6,6 +6,7 @@ on:
       - 'frutastrofe-*.js'
       - 'frutastrofe.html'
       - 'tests/frutastrofe.test.cjs'
+      - 'tests/frutastrofe-browser.cjs'
       - '.github/workflows/frutastrofe-tests.yml'
   pull_request:
     paths:
@@ -25,3 +26,22 @@ jobs:
       - run: node --check frutastrofe-core.js
       - run: node --check frutastrofe-art.js
       - run: node tests/frutastrofe.test.cjs
+
+  mobile-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/frutastrofe-browser.cjs
+      - name: Retain actual mobile screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: frutastrofe-mobile-screenshots
+          path: frutastrofe-*-mobile.png
+          if-no-files-found: ignore
