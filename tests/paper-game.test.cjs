@@ -13,6 +13,8 @@ function boot(seed=419){
  fakeMath.random=()=>{rng=(Math.imul(rng,1664525)+1013904223)>>>0;return rng/4294967296;};
  function context(){return new Proxy({
    createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),
+   createLinearGradient:()=>({addColorStop(){}}),
+   createRadialGradient:()=>({addColorStop(){}}),
    measureText:()=>({width:12})
  },{get:(o,k)=>k in o?o[k]:()=>{},set:(o,k,v)=>(o[k]=v,true)});}
  function get(id){if(!els.has(id)){
@@ -40,7 +42,8 @@ test('page has complete standalone game and no borrowed external assets',()=>{
  assert.match(source,/function capture\(p\)/);
  assert.match(source,/function death\(p/);
  assert.match(source,/function stepBot\(p/);
- assert.doesNotMatch(source,/<script[^>]+src=/);
+ assert.match(source,/type="module" src="\.\/paper-3d\.mjs"/);
+ assert.match(source,/function paintChibi\(p,hero,col\)/);
 });
 test('12 agents, territory HUD and pause controls initialize',()=>{
  const g=boot();assert.equal(g.win.territoryQA.mode,'home');g.get('start').onclick();
@@ -155,9 +158,9 @@ test('arcade progression rail, milestones and portraits render on initial game',
  assert.match(g.get('rank').innerHTML,/rankAvatar/);
  assert.match(g.get('rank').innerHTML,/rankPlace/);
 });
-test('mechanical character and layered neon trails use original vector rendering',()=>{
- assert.match(source,/Metallic roof bevel/);
- assert.match(source,/raised|Raised/);
+test('chibi character and layered neon trails use original vector rendering',()=>{
+ assert.match(source,/function paintChibi\(p,hero,col\)/);
+ assert.match(source,/drawOutfit\(p\)/);
  assert.match(source,/#2448b5/);
  assert.match(source,/procedural motif/);
  assert.match(source,/function drawMini\(\)/);
@@ -193,10 +196,10 @@ test('earned milestones and boosts reset on the next match',()=>{
  assert.equal(h.getGame().crowned,false);
  assert.equal(g.win.territoryQA.rewards,0);
 });
-test('arcade portraits and player scale are original vector and CSS geometry',()=>{
+test('arcade portraits and fallback chibi people are original vector and CSS geometry',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(10);
  assert.match(g.get('rank').innerHTML,/portraitMech/);
- assert.match(source,/c\.scale\(p\.id===0\?1\.82:1\.42/);
+ assert.match(source,/const zoomHero=p\.id===0\?1\.16:1\.0/);
  assert.match(source,/\.portraitMech\.skin3/);
  assert.match(source,/#rewardToast\.visible/);
  assert.match(source,/id="railTarget"|class="railTarget"/);
@@ -273,4 +276,20 @@ test('equipped gesture can be activated manually from the mobile HUD',()=>{
  g.get('emoteButton').onclick();
  assert.equal(g.win.territoryQA.mode,'play');
  assert.equal(h.wardrobe.equipped.emote,'emote_heart');
+});
+
+test('progressive 3D state is exposed without changing territory physics',()=>{
+ const g=boot(419);g.get('start').onclick();
+ const state=g.win.Paper3DState();
+ assert.equal(state.playing,true);
+ assert.equal(state.people.length,12);
+ assert.equal(state.people[0].hero,0);
+ assert.ok(state.screenW>0&&state.zoom>0);
+ assert.match(source,/three\/addons/);
+});
+test('fallback characters are humanoid and include distinct costumes',()=>{
+ assert.match(source,/Giant, distinct head/);
+ assert.match(source,/Kira has a long mystic coat/);
+ assert.match(source,/Rayo: determined ninja mask/);
+ assert.match(source,/function drawOutfit/);
 });
