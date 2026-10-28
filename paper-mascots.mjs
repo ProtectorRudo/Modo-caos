@@ -12,11 +12,23 @@ export const MASCOT_DATA=[
  {species:'fox',name:'FENIX',fur:'#ed8639',dark:'#965333',light:'#fff0d2',hoodie:'#e65a36',ear:'point'},
  {species:'bear',name:'OSO',fur:'#aa7d52',dark:'#6c472d',light:'#e3c7a0',hoodie:'#ebad2f',ear:'round'}
 ];
+const geometryCache=new WeakMap();
+const materialCache=new WeakMap();
+function getGeom(THREE,type){
+ let c=geometryCache.get(THREE);if(!c){c={sphere:new THREE.SphereGeometry(1,16,12),cone:new THREE.ConeGeometry(1,1,5)};geometryCache.set(THREE,c);}
+ return c[type];
+}
+function getMaterial(THREE,hex,rough=.62,metal=0){
+ let m=materialCache.get(THREE);if(!m){m=new Map();materialCache.set(THREE,m);}
+ const key=hex+'-'+rough+'-'+metal;
+ if(!m.has(key))m.set(key,new THREE.MeshStandardMaterial({color:hex,roughness:rough,metalness:metal}));
+ return m.get(key);
+}
 export function buildMascot(THREE,index){
  const d=MASCOT_DATA[index%MASCOT_DATA.length];
  const root=new THREE.Group();root.name='CVDOM_'+d.name;
  const rig={left:null,right:null,feet:[],eyes:[],head:null,body:null,tail:null};
- const mat=(hex,rough=.62,metal=0)=>new THREE.MeshStandardMaterial({color:hex,roughness:rough,metalness:metal});
+ const mat=(hex,rough=.62,metal=0)=>getMaterial(THREE,hex,rough,metal);
  const m={
   fur:mat(d.fur),dark:mat(d.dark),light:mat(d.light),coat:mat(d.hoodie,.47),
   trim:mat('#faf9ef'),ink:mat('#1a2031',.19),eye:mat('#ffffff',.18),nose:mat('#493132'),
@@ -24,7 +36,7 @@ export function buildMascot(THREE,index){
   mouth:mat('#7b353b')
  };
  function ellipse(parent,material,x,y,z,sx,sy,sz){
-  const obj=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),material);
+  const obj=new THREE.Mesh(getGeom(THREE,'sphere'),material);
   obj.position.set(x,y,z);obj.scale.set(sx,sy,sz);parent.add(obj);return obj;
  }
  function shape(parent,material,r1,r2,h,x,y,z){
@@ -32,7 +44,7 @@ export function buildMascot(THREE,index){
   obj.position.set(x,y,z);parent.add(obj);return obj;
  }
  function cone(parent,material,x,y,z,sx,sy,sz){
-  const obj=new THREE.Mesh(new THREE.ConeGeometry(1,1,5),material);
+  const obj=new THREE.Mesh(getGeom(THREE,'cone'),material);
   obj.position.set(x,y,z);obj.scale.set(sx,sy,sz);parent.add(obj);return obj;
  }
  // Distinctive tail, placed behind the hoodie and head.
@@ -161,8 +173,8 @@ export function animateMascot(actor,seconds,mode='idle',opponent=false){
  // Crucial: absolute angles relative to rest. No cumulative quaternions.
  const rising=Math.sin(phase),falling=Math.sin(phase+Math.PI);
  if(mode==='dance'){
-  rig.left.rotation.z= -.85 + rising*.36;
-  rig.right.rotation.z= .85 - falling*.36;
+  rig.left.rotation.z= -1.55 + rising*.28;
+  rig.right.rotation.z= 1.55 - falling*.28;
   rig.left.rotation.x=.1;rig.right.rotation.x=-.1;
   rig.head.rotation.z=Math.sin(phase*.5)*.035;
   rig.body.rotation.z=Math.sin(phase)*.055;
