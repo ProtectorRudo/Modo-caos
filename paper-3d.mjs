@@ -124,7 +124,15 @@ function loadModel(index){
 function startLoading(){
  if(started||failed)return;
  started=true;
- const getGLB=name=>new Promise((resolve,reject)=>gltfLoader.load('./assets/styloo/'+name+'.glb',resolve,undefined,reject));
+ const getGLB=name=>new Promise((resolve,reject)=>{
+  const local='./assets/styloo/'+name+'.glb';
+  const root='https://cdn.jsdelivr.net/gh/binyoun-cberi/kidscade@a68ea8ac843db770e24172d3319ac6cd07bec97a/assets/game/chibi/ChibiCharactersV1.2/ChibiCharacters/glb/';
+  const remote=root+name+'pr.glb';
+  gltfLoader.load(local,resolve,undefined,()=>{
+   // Immutable upstream CC0 mirror: fallback while the official files are being vendored locally.
+   gltfLoader.load(remote,resolve,undefined,reject);
+  });
+ });
  const unique=[...new Set(CHIBI_ROSTER.map(x=>x.model))];
  Promise.all(unique.map(name=>getGLB(name).then(asset=>({name,asset})))).then(loaded=>{
   const lib=Object.fromEntries(loaded.map(x=>[x.name,x.asset]));
