@@ -1942,7 +1942,9 @@ window.CividomOnlineBridge=Object.freeze({
   cvRole='solo';cvRemoteConnected=false;cvRemoteAim=null;
  },
  state:()=>({role:cvRole,clock,alive:cvLocalPlayer()?.alive??false,rev:cvMapRevision,
-  guestConnected:cvRemoteConnected,seq:cvLastApplied})
+  guestMapRev:cvGuestMapRevision,guestConnected:cvRemoteConnected,seq:cvLastApplied,
+  myTrail:cvLocalPlayer()?.trailPoints.length||0}),
+ checksum:()=>{let h=2166136261;for(let k=0;k<SIZE;k++)h=Math.imul(h^land[k],16777619)>>>0;return h;}
 });
 // Read-only diagnostics: ?qa=1 exposes counters to automated smoke tests.
 if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'territoryQA',{get:()=>game?{mode,area:game.people[0].score,alive:game.people[0].alive,players:game.people.filter(p=>p.alive).length,clock:clock,kills:game.kills,tiles:game.people[0].area,x:game.people[0].x,y:game.people[0].y,angle:game.people[0].angle,outside:game.people[0].outside,trail:game.people[0].trailCells.length,botTerritory:game.people.slice(1).reduce((n,p)=>n+p.area,0),defeated:game.defeated.size,rewards:game.rewards.size,epicTrail:game.epicTrail,crowned:game.crowned,edgeCharge:game.people[0].edgeCharge,boosting:clock<game.people[0].boostUntil,particleCount:particles.length,
