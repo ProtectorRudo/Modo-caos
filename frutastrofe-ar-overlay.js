@@ -113,7 +113,7 @@ function draw(view,origin,scale,objects,kind='playing'){
    const shade=c.createRadialGradient(0,0,1,0,0,rad);
    shade.addColorStop(0,'rgba(3,11,27,'+opacity+')');
    shade.addColorStop(1,'rgba(3,11,27,0)');
-   disc(c,0,0,rad,shade);c.restore();
+   circle(c,0,0,rad,shade);c.restore();
   }
   const mapped=P.targets(view,origin,scale,objects,width,height).sort((a,b)=>b.depth-a.depth);
   for(const q of mapped){
