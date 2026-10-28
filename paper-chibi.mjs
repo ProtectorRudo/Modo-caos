@@ -128,13 +128,19 @@ export function chibiEmote(THREE,actor,t,id='emote_hello',mirror=false){
   emote_hello:[.12+.08*wave,0]
  };
  const poses=gestures[id]||gestures.emote_hello;
- for(const [bone,turn] of [[bones.leftArm,poses[0]],[bones.rightArm,poses[1]]]){
+ const overlays=[
+  [bones.leftArm,poses[0]], [bones.rightArm,poses[1]],
+  [bones.leftForearm,.06*wave],[bones.rightForearm,-.06*wave]
+ ];
+ if(!actor.chibiRestQuaternions)actor.chibiRestQuaternions=new Map();
+ for(const [bone,turn] of overlays){
   if(!bone)continue;
+  // For a model without built-in animation clips, restore a stable rest
+  // quaternion before applying the celebration, preventing cumulative spins.
+  if(!actor.chibiRestQuaternions.has(bone))actor.chibiRestQuaternions.set(bone,bone.quaternion.clone());
+  if(!actor.mixer)bone.quaternion.copy(actor.chibiRestQuaternions.get(bone));
   const delta=new THREE.Quaternion().setFromEuler(new THREE.Euler(.05*Math.sin(phase),0,turn,'XYZ'));
   bone.quaternion.multiply(delta);
- }
- for(const [bone,sign] of [[bones.leftForearm,1],[bones.rightForearm,-1]]){
-  if(bone)bone.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,sign*.06*wave)));
  }
 }
 export function disposeChibi(actor){
@@ -144,4 +150,5 @@ export function disposeChibi(actor){
  }
  for(const entry of actor.chibiMaterials||[])for(const m of entry.materials)m?.dispose?.();
  actor.chibiWear=[];actor.chibiMaterials=[];
+ actor.chibiRestQuaternions?.clear();
 }
