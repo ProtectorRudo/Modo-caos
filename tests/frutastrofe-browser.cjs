@@ -45,7 +45,10 @@ const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://127.0
   assert(wave.objects>=3&&wave.objects<=12,'sky fruit must arrive in spaced manageable waves '+JSON.stringify(wave));
   await page.screenshot({path:'frutastrofe-ar-dense-volley-mobile.png',animations:'disabled'});
   assert(await page.evaluate(()=>window.__frutaQA.shootTest()),'hitting a spawned fruit in AR must succeed');
+  await page.waitForTimeout(135);
   await page.evaluate(()=>window.__frutaQA.previewWorld());
+  const sliced=await page.locator('#arWorld').innerHTML();
+  assert(sliced.includes('clip-path="url(#slice-'),'each fruit explosion must show visibly split halves');
   const fx=await page.evaluate(()=>window.__frutaQA.diagnostics());
   assert(fx.particles>=16&&fx.shots>=1,'juice particles and shot beams must actually exist '+JSON.stringify(fx));
   await page.screenshot({path:'frutastrofe-ar-impact-mobile.png',animations:'disabled'});
