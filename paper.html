@@ -367,6 +367,10 @@ input[type=text]:focus{border-color:#42bcca}
 #versus3dCanvas.vsPosition{z-index:2}
 .vsNamePlate{z-index:4}
 @media(max-width:370px){#home .heroChoice .hero3DThumbnail{height:76px}}
+
+/* Only one body may be visible. Real GLB hides the canvas fallback entirely. */
+#menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
+#menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
 </head>
 <body>
@@ -542,6 +546,8 @@ function renderHeroPicker(){
  $('menuHeroPortrait').src=portraitURL(wardrobe.hero);
  $('menuHeroPortrait').alt=h.name+' modelo Styloo original en 3D';
  $('menuHeroPortrait').style.opacity='1';
+ $('menuHeroStage').classList.remove('model-loaded');
+ $('menuModelLoader').classList.remove('loaded');
  if(window.PaperMenuHeroChanged)window.PaperMenuHeroChanged(h.id);
 }
 function openShop(from='home'){
