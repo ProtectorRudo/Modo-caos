@@ -39,7 +39,7 @@ def validate_glb(raw, asset):
     if not doc.get("meshes") or not doc.get("scenes"):
         raise ValueError("Missing renderable mesh")
     if any(e not in {"KHR_mesh_quantization", "KHR_materials_unlit", "KHR_texture_transform",
-                     "KHR_materials_emissive_strength"} for e in doc.get("extensionsRequired", [])):
+                     "KHR_materials_emissive_strength", "EXT_texture_webp", "KHR_texture_basisu"} for e in doc.get("extensionsRequired", [])):
         raise ValueError("Unsupported required GLB extension")
     return doc
 
