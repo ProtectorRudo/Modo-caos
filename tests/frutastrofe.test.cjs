@@ -24,10 +24,14 @@ const lvl3=sim(C.create({level:3,seed:321}),{fireEvery:12});
 assert.equal(lvl3.goalsMet,true,'three chain level attainable');assert.ok(lvl3.chains>=3);
 const boss=C.create({level:10,seed:7});boss.begin();const giant=boss.objects.find(x=>x.kind==='boss');
 assert.ok(giant);for(let i=0;i<12;i++)boss.shoot(giant.id);
-assert.equal(boss.state,'finished');assert.equal(boss.stars,3);
+assert.equal(boss.state,'playing','boss defeat must not end timed round');
+for(let i=0;i<1250&&boss.state==='playing';i++)boss.update(.05);
+assert.equal(boss.state,'finished');assert.equal(boss.goalsMet,true);assert.equal(boss.stars,3);
 const arcade=sim(C.create({mode:'arcade',seed:42}),{fireEvery:100000});
 assert.equal(arcade.state,'finished');assert.ok(Math.abs(arcade.elapsed-60)<.09);
-const cleaned=C.create({level:5,seed:41});cleaned.begin();cleaned.shoot(cleaned.spawn('bomb').id);cleaned.shoot(cleaned.spawn('bomb').id);assert.equal(cleaned.state,'finished');assert.equal(cleaned.goalsMet,false);
+const cleaned=C.create({level:5,seed:41});cleaned.begin();cleaned.shoot(cleaned.spawn('bomb').id);cleaned.shoot(cleaned.spawn('bomb').id);assert.equal(cleaned.state,'playing','trap should penalize, not end round');
+for(let i=0;i<1250&&cleaned.state==='playing';i++)cleaned.update(.05);
+assert.equal(cleaned.state,'finished');assert.equal(cleaned.goalsMet,false);
 for(let l=1;l<=10;l++){const g=sim(C.create({level:l,seed:123}),{fireEvery:10});assert.equal(g.state,'finished','level '+l+' terminates');assert.ok(Number.isFinite(g.score)&&g.score>=0)}
 const files=['frutastrofe.html','frutastrofe-core.js','frutastrofe-art.js','frutastrofe-runtime.js','index.html'];
 for(const f of files)assert.ok(fs.existsSync(path.join(__dirname,'..',f)),f+' exists');
