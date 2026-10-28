@@ -15,7 +15,7 @@ function projection(view,origin,scale,p,width,height){
  const inv=view.transform?.inverse?.matrix,proj=view.projectionMatrix;
  if(!inv||!proj||!Number.isFinite(origin.x))return null;
  // The game world uses an identity rotation anchored to the physical floor.
- const x=origin.x+p.x*scale,y=origin.y+p.y*scale*.46,z=origin.z+p.z*scale;
+ const x=origin.x+p.x*scale,y=origin.y+p.y*scale*.80,z=origin.z+p.z*scale;
  const a=transform(inv,x,y,z),b=transform(proj,a[0],a[1],a[2]);
  if(b[3]<=.02||!Number.isFinite(b[0]/b[3]))return null;
  const ndcx=b[0]/b[3],ndcy=b[1]/b[3],ndcz=b[2]/b[3];
