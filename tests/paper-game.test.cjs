@@ -366,3 +366,28 @@ test('Six Seven is purchasable with earned in-game currency and equips normally'
  assert.equal(g.get('emoteButton').textContent,'🙌');
  assert.equal(h.wardrobe.equipped.emote,'emote_sixseven');
 });
+
+test('verified Styloo CC0 sources are mapped to all four distinct playable hero GLBs',()=>{
+ const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ for(const name of ['archer.glb','merchant.glb','student.glb','ninja.glb'])
+   assert.match(renderer,new RegExp(name.replace('.','\\.')));
+ assert.match(renderer,/const relative='\.\/assets\/styloo\/'/);
+ assert.match(renderer,/backupModels/);
+ assert.match(renderer,/sourceAssets\[index\]=gltf/);
+});
+test('original Six-Seven dance drives genuine arm bones on two 3D showdown characters',()=>{
+ const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ assert.match(renderer,/function danceBones\(item,seconds,mirror\)/);
+ assert.match(renderer,/upperarm/);
+ assert.match(renderer,/bone\.quaternion\.multiply\(swing\)/);
+ assert.match(renderer,/function syncVS\(state,dt\)/);
+ assert.match(renderer,/window\.PaperVSReady=true/);
+ assert.match(source,/id="versus3dCanvas"/);
+ assert.match(source,/if\(!window\.PaperVSReady\)/);
+});
+test('showdown preloads GLBs while the countdown is running',()=>{
+ const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ assert.match(source,/previewing:mode==='versus'/);
+ assert.match(renderer,/state\.playing\|\|state\.previewing/);
+ assert.match(source,/function launchMatch\(\)/);
+});
