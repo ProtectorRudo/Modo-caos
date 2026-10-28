@@ -92,6 +92,7 @@ function instantiate(person){
  const human=asset.human?initializeHumanRig(base):null;
  const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,
  restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null,...(human||{})};
+ if(instance.humanBones)updateOutfit(instance,{});
  scene.add(root);instances.set(person.id,instance);
  window.Paper3DReady[person.id]=true;
  return instance;
@@ -223,9 +224,11 @@ function vsActor(hero){
  if(action)action.play();
  const {arms,forearms}=findArmRig(mesh);
  const human=asset.human?initializeHumanRig(mesh):null;
- return {hero,root,mesh,base:mesh,mixer,action,arms,forearms,
+ const actor={hero,root,mesh,base:mesh,mixer,action,arms,forearms,
  dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6,
  mascotRig:kit?.rig||null,...(human||{})};
+ if(actor.humanBones)updateOutfit(actor,{});
+ return actor;
 }
 function clearVSActors(){
  for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();vsScene?.remove(item.root);}
