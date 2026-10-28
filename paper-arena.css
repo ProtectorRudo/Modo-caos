@@ -1,0 +1,20 @@
+/* CVDOM PAPER — minimal readable HUD for shrinking energy arena and six crates.
+   All badges are non-interactive, avoiding interference with one-thumb movement. */
+#hud #stormStatus,#hud #powerStatus{
+ position:absolute;z-index:6;pointer-events:none;left:11px;
+ max-width:min(200px,46vw);
+ padding:5px 8px;border:1.5px solid #3e73c3;border-radius:8px;
+ background:#13346cd9;color:#e4f9ff;
+ font:950 10px/1.25 system-ui,-apple-system,Arial,sans-serif;
+ letter-spacing:.35px;text-shadow:0 1px 2px #051e50;
+ box-shadow:0 2px 8px #103b5a40;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#hud #stormStatus{bottom:max(163px,env(safe-area-inset-bottom) + 144px);border-color:#6eeaff;color:#e8ffff}
+#hud #powerStatus{bottom:max(137px,env(safe-area-inset-bottom) + 118px);border-color:#ffd77a;color:#ffeab7}
+#hud #powerStatus.active{background:linear-gradient(120deg,#214e7e,#125981);color:#fff5ce;border-color:#f6da70;box-shadow:0 0 14px #8ef8f74b}
+@media(max-width:380px){
+ #hud #stormStatus,#hud #powerStatus{max-width:142px;font-size:9px;padding:4px 6px}
+ #hud #stormStatus{bottom:max(153px,env(safe-area-inset-bottom) + 136px)}
+ #hud #powerStatus{bottom:max(129px,env(safe-area-inset-bottom) + 112px)}
+}
