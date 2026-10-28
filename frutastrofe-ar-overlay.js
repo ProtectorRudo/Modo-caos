@@ -7,7 +7,7 @@ const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const palette={strawberry:['#ff9ba8','#ef2454','#921035'],apple:['#ffd0c5','#f63b4b','#8d112a'],orange:['#ffe3aa','#ff9833','#b34e13'],watermelon:['#b1ffe1','#34c786','#086c48'],lemon:['#ffffce','#ffe749','#bb8d08'],gold:['#fff4b8','#fbc03e','#a06612'],ice:['#f5ffff','#71d5ff','#2181b3'],rainbow:['#faeaff','#a685fa','#6d43a9'],rotten:['#b9cb6b','#6c8540','#2f4122'],bomb:['#9aa4bf','#2d344f','#0c1125'],boss:['#ccffe2','#3bd48c','#07643d']};
 const LAYER_ID='frutastrofe-canvas';
 let canvas=null,ctx=null,width=0,height=0,sprites={},targets=[],mode='idle',renders=0,costMs=0;
-const particles=[],splashes=[],shots=[],scores=[],puddles=[];let shotsEver=0;
+const particles=[],splashes=[],shots=[],scores=[],puddles=[];let shotsEver=0,stage=1,fever=false;
 function now(){return performance.now()/1000}
 function layer(){
  if(!canvas){
@@ -95,7 +95,7 @@ function draw(view,origin,scale,objects,kind='playing'){
  // They share the same AR view/projection as every falling fruit.
  if(root.FrutaPremiumArt){
   root.FrutaPremiumArt.drawDeck(c,pos,t);
-  root.FrutaPremiumArt.drawPortal(c,pos,t);
+  root.FrutaPremiumArt.drawPortal(c,pos,t,stage,fever);
  }else{
   const corners=[pos(-2.3,-.08,-1.6),pos(2.3,-.08,-1.6),pos(2.3,-.08,1.6),pos(-2.3,-.08,1.6)];
   polygon(c,corners,'rgba(12,28,54,.88)','#58efdd',3);
@@ -115,28 +115,39 @@ function draw(view,origin,scale,objects,kind='playing'){
    shade.addColorStop(1,'rgba(3,11,27,0)');
    circle(c,0,0,rad,shade);c.restore();
   }
+  const byId=new Map((objects||[]).map(o=>[o.id,o]));
   const mapped=P.targets(view,origin,scale,objects,width,height).sort((a,b)=>b.depth-a.depth);
   for(const q of mapped){
    if(q.y<66||q.y>height-86)continue;
    targets.push(q);
-   const r=clamp(q.r,20,86),img=sprite(q.kind);
+   const r=clamp(q.r,20,86),img=sprite(q.kind),o=byId.get(q.id),age=o?.age||0;
+   // Small specular shimmer + readable spin convey movement without more 3D GPU passes.
    c.save();c.translate(q.x,q.y);
-   // A little measured spin makes the real-world fall look volumetric.
-   const o=(objects||[]).find(v=>v.id===q.id);
-   c.rotate(clamp((o?.rot||0)*.055,-.18,.18));
-   c.drawImage(img,-r*1.24,-r*1.36,r*2.48,r*2.70);c.restore();
+   const wobble=1+Math.sin(age*5+q.id)*.018;
+   c.rotate(clamp((o?.rot||0)*.085,-.22,.22));
+   c.scale(wobble,1/wobble);
+   c.drawImage(img,-r*1.18,-r*1.31,r*2.36,r*2.63);
+   c.restore();
+   if(['gold','ice','rainbow'].includes(q.kind)){
+    c.globalAlpha=.36+.20*Math.sin(t*7+q.id);strokeCircle(c,q.x,q.y,r*1.13,'#fff7bb',1.8);c.globalAlpha=1;
+   }
    if(q.kind==='bomb'||q.kind==='rotten'){
-    let danger=q.kind==='bomb',co=danger?'#ff5c73':'#c9ff50';
-    c.globalAlpha=.72+.18*Math.sin(t*11);strokeCircle(c,q.x,q.y,r*1.27,co,3);c.globalAlpha=1;
-    c.font='900 11px system-ui';c.textAlign='center';c.fillStyle=co;c.fillText(danger?'BOMBA':'PODRIDA',q.x,q.y+r+22);
+    const danger=q.kind==='bomb',co=danger?'#ff5872':'#baff66';
+    c.globalAlpha=.68+.22*Math.sin(t*(danger?12:6));strokeCircle(c,q.x,q.y,r*1.21,co,danger?3.3:2.1);c.globalAlpha=1;
+    // Warning by silhouette and colored mechanical pulse, not intrusive red labels.
+    const tagY=q.y+r*1.28;
+    c.fillStyle=danger?'rgba(74,9,31,.90)':'rgba(38,66,21,.90)';
+    c.beginPath();c.roundRect(q.x-18,tagY-8,36,17,7);c.fill();
+    c.font='900 12px system-ui';c.textAlign='center';c.fillStyle='#fff7c9';
+    c.fillText(danger?'!':'☠',q.x,tagY+4);
    }
   }
  }
  // Bounded visual effects; each draws a few canvas primitives, never replaces DOM.
  for(let i=splashes.length-1;i>=0;i--){
-  const p=splashes[i],age=t-p.at;if(age>.48){splashes.splice(i,1);continue}
+  const p=splashes[i],age=t-p.at;if(age>.42){splashes.splice(i,1);continue}
   const q=pos(p.x,p.y,p.z);if(!q)continue;
-  const a=1-age/.48,r=14+age*(p.combo?142:112),co=palette[p.kind]?.[1]||'#91e9ff';
+  const a=1-age/.42,r=11+age*(p.combo?150:110),co=palette[p.kind]?.[1]||'#91e9ff';
   c.globalAlpha=a*.65;softLight(c,q.x,q.y,r*1.4,co,.38*a);
   strokeCircle(c,q.x,q.y,r,co,4*a);strokeCircle(c,q.x,q.y,r*.76,'#fffbc4',2.5*a);
   c.globalAlpha=a;
@@ -156,14 +167,29 @@ function draw(view,origin,scale,objects,kind='playing'){
   c.globalAlpha=1-age/p.life;circle(c,q.x,q.y,3.3,p.color);c.globalAlpha=1;
  }
  for(let i=shots.length-1;i>=0;i--){
-  const p=shots[i],age=t-p.at;if(age>.22){shots.splice(i,1);continue}
-  const a=1-age/.22,gunWidth=Math.min(195,Math.max(153,width*.46));
-  // Never request layout while drawing: muzzle position follows the HUD's fixed CSS geometry.
-  const sx=width*.45,sy=height+19-gunWidth*1.08;
+  const p=shots[i],age=t-p.at;if(age>.112){shots.splice(i,1);continue}
+  const k=clamp(age/.112,0,1),alpha=1-k,gunWidth=clamp(width*.37,118,158);
+  // Calculated from fixed viewport gun placement. No forced DOM measurement.
+  const sx=width*.43,sy=height+37-gunWidth*1.22,tx=p.x,ty=p.y;
+  const dx=tx-sx,dy=ty-sy,d=Math.hypot(dx,dy)||1,nx=-dy/d,ny=dx/d;
+  // Energy pulse travels rapidly; never a persistent full-screen laser column.
+  const head=clamp(k*1.55,.02,1),tail=clamp(head-.28,0,1);
+  const x1=sx+dx*tail,y1=sy+dy*tail,x2=sx+dx*head,y2=sy+dy*head;
   c.lineCap='round';
-  c.globalAlpha=a*.5;line(c,sx,sy,p.x,p.y,'#20cde8',12);c.globalAlpha=a;
-  line(c,sx,sy,p.x,p.y,'#f3fff9',3);
-  softLight(c,sx,sy,30,'#a6f9ff',.6*a);strokeCircle(c,p.x,p.y,10+age*100,'#ddff95',3*a);
+  c.globalAlpha=alpha*.54;line(c,x1,y1,x2,y2,'#16d6ef',10*alpha+2);c.globalAlpha=alpha;
+  line(c,x1,y1,x2,y2,'#e8fff6',3.0*alpha+1);
+  const flare=c.createRadialGradient(sx,sy,0,sx,sy,22+alpha*12);
+  flare.addColorStop(0,'rgba(255,255,215,.89)');flare.addColorStop(.34,'rgba(77,248,224,.53)');flare.addColorStop(1,'rgba(46,191,232,0)');
+  c.globalAlpha=alpha;circle(c,sx,sy,22+alpha*12,flare);
+  // Small sparks burst out of muzzle only, not across the full camera.
+  for(let j=0;j<4;j++){
+   const angle=j*TAU/4+p.at*5,len=8+alpha*(8+j*2);
+   line(c,sx+Math.cos(angle)*5,sy+Math.sin(angle)*5,
+     sx+Math.cos(angle)*len,sy+Math.sin(angle)*len,j%2?'#9fffe5':'#eaffae',1.3+alpha);
+  }
+  if(p.hit&&head>.8){
+    c.globalAlpha=alpha*.8;strokeCircle(c,tx,ty,7+(head-.8)*42,'#efffa5',2.4);c.globalAlpha=1;
+  }
   c.globalAlpha=1;
  }
  for(let i=scores.length-1;i>=0;i--){
@@ -187,6 +213,7 @@ function impact(p,kind='apple',combo=false){
   particles.push({x:p.x,y:p.y,z:p.z,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp+1.1,vz:(Math.random()-.5)*1.6,at,life:.38+Math.random()*.25,color});
  }
  if(particles.length>24)particles.splice(0,particles.length-24);
+ if(kind!=='bomb'&&kind!=='rotten'){puddles.push({x:p.x,z:p.z,kind,color,at});if(puddles.length>6)puddles.shift()}
 }
 function shot(x,y,hit=true){shotsEver++;shots.push({x:x??width/2,y:y??height*.48,hit,at:now()});if(shots.length>2)shots.shift()}
 function popup(p,value){if(p)scores.push({...p,value:Math.round(value),at:now()});if(scores.length>5)scores.shift()}
@@ -197,6 +224,7 @@ function clear(){
  particles.length=splashes.length=shots.length=scores.length=puddles.length=targets.length=0;mode='idle';
 }
 root.FrutaAROverlay={draw,clear,impact,shot,popup,land,emerge,
+ setStage(phase,isFever){stage=clamp(Number(phase)||1,1,6);fever=!!isFever},
  get targets(){return targets},get state(){return mode},
  get diagnostics(){return {engine:'canvas2d',premium:true,sprites:root.FrutaPremiumArt?.stats().spriteCount||Object.keys(sprites).length,renders,averageDrawMs:costMs,particles:particles.length,shots:shots.length,shotsEver,splashes:splashes.length,svgNodes:0,hasSkyPortal:!!canvas}}};
 })(typeof window!=='undefined'?window:globalThis);
