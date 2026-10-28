@@ -718,31 +718,47 @@ function inside(x,y,pad=16){
  const a=arenaState(),safe=Math.max(28,a.radius-pad);
  return (x-a.x)**2+(y-a.y)**2<safe*safe;
 }
-function stormProgress(){
- return Math.max(0,Math.min(1,(clock-18)/145));
+// CIVIDOM Battle Royale: seven nested circles start every 15 seconds.
+// The final location shifts each match, and each upcoming safe zone is announced.
+const STORM_INTERVAL=15,STORM_SHRINK_SECONDS=5;
+const STORM_FRACTIONS=[.77,.56,.39,.27,.19,.13,.09];
+function createStormStages(){
+ const angle=random(-Math.PI,Math.PI),distance=R*random(.21,.49);
+ const final={x:CX+Math.cos(angle)*distance,y:CY+Math.sin(angle)*distance};
+ const steps=[.18,.40,.59,.75,.87,.95,1],stages=[];
+ let previous={x:CX,y:CY,radius:R};
+ for(let i=0;i<STORM_FRACTIONS.length;i++){
+  const radius=R*STORM_FRACTIONS[i],dx=final.x-CX,dy=final.y-CY;
+  const desired={x:CX+dx*steps[i],y:CY+dy*steps[i]};
+  const ox=desired.x-previous.x,oy=desired.y-previous.y,length=Math.hypot(ox,oy);
+  const maxShift=Math.max(0,previous.radius-radius-8),factor=length?Math.min(1,maxShift/length):1;
+  const target={at:(i+1)*STORM_INTERVAL,x:previous.x+ox*factor,y:previous.y+oy*factor,radius};
+  stages.push(target);previous=target;
+ }
+ return stages;
 }
-function stormPlan(t){
- const p=Math.max(0,Math.min(1,t)),ease=p*p*(3-2*p);
- return {x:CX+29*Math.sin(ease*Math.PI*.92),y:CY-22*Math.sin(ease*Math.PI*.66),
- radius:R*(1-.57*ease)};
+function stormZoneState(t=clock){
+ const storm=game?.storm;
+ if(!storm)return{phase:0,active:false,remaining:STORM_INTERVAL,next:null};
+ const stages=storm.stages;let phase=0;
+ while(phase<stages.length&&t>=stages[phase].at)phase++;
+ const from=phase>1?stages[phase-2]:{x:CX,y:CY,radius:R};
+ const active=phase>0&&t<stages[phase-1].at+STORM_SHRINK_SECONDS;
+ const next=active?stages[phase-1]:stages[phase]||null;
+ const nextTime=active?stages[phase-1].at+STORM_SHRINK_SECONDS:next?.at??null;
+ return{phase,active,remaining:nextTime===null?0:Math.max(0,nextTime-t),next,from};
 }
 function updateStorm(dt){
  if(!game?.storm)return;
- const storm=game.storm,target=stormPlan(stormProgress()),oldRadius=storm.radius;
- // Keep the next circle INSIDE the preceding one, including the small center drift.
- const newRadius=Math.min(oldRadius,target.radius);
- const availableShift=Math.max(0,oldRadius-newRadius);
- const dx=target.x-storm.x,dy=target.y-storm.y,shift=Math.hypot(dx,dy);
- const factor=shift>0?Math.min(1,availableShift/shift):0;
- storm.x+=dx*factor;storm.y+=dy*factor;storm.radius=newRadius;
- storm.remaining=Math.max(0,163-clock);
- if(clock>=18&&clock-storm.lastWarning>32&&clock<151){
-  storm.lastWarning=clock;
-  if(game.people[0]?.alive){popup('⚡ LA TORMENTA SE CIERRA');vibrate(22);}
- }
- // Polygon reclassification is throttled; physics always uses the live boundary.
+ const storm=game.storm,oldPhase=storm.phase,zone=stormZoneState();
+ const from=zone.from,target=zone.phase?storm.stages[zone.phase-1]:from;
+ const t=zone.phase?clamp((clock-target.at)/STORM_SHRINK_SECONDS,0,1):0,ease=t*t*(3-2*t);
+ storm.x=from.x+(target.x-from.x)*ease;storm.y=from.y+(target.y-from.y)*ease;
+ storm.radius=from.radius+(target.radius-from.radius)*ease;
+ storm.phase=zone.phase;storm.remaining=zone.remaining;storm.next=zone.next;storm.closing=zone.active;
+ if(storm.phase!==oldPhase&&storm.phase>0&&game.people[0]?.alive){popup('⚡ ZONA '+storm.phase+' EN CIERRE');vibrate(28);}
  if(clock<storm.nextMaskAt)return;
- storm.nextMaskAt=clock+.55;
+ storm.nextMaskAt=clock+.25;
  let changed=false,available=0;
  const bound=Math.max(0,storm.radius-5),rad2=bound*bound;
  for(let k=0;k<SIZE;k++){
@@ -754,12 +770,11 @@ function updateStorm(dt){
  landCount=Math.max(1,available);
  for(const p of game.people){
   if(!p.alive)continue;
-  // Never kill because of the storm. Gently reproject to its legal interior.
-  const safe=Math.max(25,storm.radius-22),dx=p.x-storm.x,dy=p.y-storm.y,dist=Math.hypot(dx,dy);
-  if(dist>safe){
-   p.x=storm.x+(dx/(dist||1))*safe;p.y=storm.y+(dy/(dist||1))*safe;
-   p.angle=Math.atan2(storm.y-p.y,storm.x-p.x);
-   p.goal=null;p.stage=0;p.edgeCharge=0;
+  // The storm is a non-lethal physical wall.
+  const safe=Math.max(19,storm.radius-22),dx=p.x-storm.x,dy=p.y-storm.y,d=Math.hypot(dx,dy);
+  if(d>safe){
+   p.x=storm.x+dx/(d||1)*safe;p.y=storm.y+dy/(d||1)*safe;
+   p.angle=Math.atan2(storm.y-p.y,storm.x-p.x);p.goal=null;p.stage=0;p.edgeCharge=0;
    if(p.outside)clearTrail(p);
    burstAt(p.x,p.y,'#69edff',5,27);
   }else if(p.outside&&p.trailCells.some(k=>!inArena[k]))clearTrail(p);
@@ -881,7 +896,7 @@ function drawPowerBoxes(){
 }
 function drawStorm(){
  if(!game?.storm)return;
- const a=game.storm,r=a.radius,pulse=Math.sin(clock*8),on=clock>=18;
+ const a=game.storm,r=a.radius,pulse=Math.sin(clock*8),on=clock>=STORM_INTERVAL;
  c.save();
  // The old land stays muted outside; only the electric boundary is interactable.
  c.beginPath();c.arc(a.x,a.y,r+11,0,Math.PI*2);
@@ -1060,7 +1075,7 @@ function reset(){
  for(let k=0;k<SIZE;k++){const x=(k%N+.5)*CELL,y=((k/N|0)+.5)*CELL;inArena[k]=(x-CX)**2+(y-CY)**2<(R-5)**2?1:0;}
  landCount=inArena.reduce((n,v)=>n+v,0);
  game={people:[],ordered:[],kills:0,started:0,record:0,lastArea:0,defeated:new Set(),rewards:new Set(),
- epicTrail:false,crowned:false,storm:{x:CX,y:CY,radius:R,remaining:163,nextMaskAt:0,lastWarning:-99},
+ epicTrail:false,crowned:false,storm:{x:CX,y:CY,radius:R,phase:0,closing:false,remaining:STORM_INTERVAL,next:null,stages:createStormStages(),nextMaskAt:0,lastWarning:-99},
  boxes:[],boxSerial:0,nextBoxAt:9,lastPower:null,lastBarrierSound:-9};particles=[];bursts=[];rewardToastUntil=0;$('rewardToast').classList.remove('visible');for(let i=0;i<REWARDS.length;i++)$('milestone'+i).classList.remove('unlocked');let player={x:CX,y:CY};
  game.people.push(makePerson(0,player));game.people[0].angle=-Math.PI/2;game.earnedCoins=0;emoteUntil=0;celebrationBursts=[];base(game.people[0],6);
  for(let i=1;i<12;i++){const pos=spawnPoint();const p=makePerson(i,pos);game.people.push(p);base(p,random(3.5,5)|0);}
@@ -1428,7 +1443,7 @@ function drawUnit(p){
 }
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
- c.fillStyle=game&&clock>=18?'#c7cedf':'#e5fff4';c.fillRect(0,0,screenW,screenH);
+ c.fillStyle=game&&clock>=STORM_INTERVAL?'#c7cedf':'#e5fff4';c.fillRect(0,0,screenW,screenH);
  if(!game)return;
  const ref=Math.min(screenW,screenH*0.75);
  zoom=clamp(ref/520,.68,1.12);
