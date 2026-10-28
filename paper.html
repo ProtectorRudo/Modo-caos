@@ -469,10 +469,14 @@ const colorToRGB=hex=>[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),p
 let screenW=innerWidth, screenH=innerHeight, dpr=1,game=null,mode='home',clock=0,camX=CX,camY=CY,zoom=1,desiredAngle=null,keys={},pointer=null,lastHud=-1,msgTime=0,muted=false,ac=null,settingColor=0,selectedSkin=0,particles=[],bursts=[],rewardToastUntil=0;
 
 const HEROES=[
- {id:'nova',name:'NOVA',role:'La audaz',bio:'Siempre entra primero. Cuando gana, hace su saludo de campeona.',motto:'¡A por todo!',face:'✦',color:'#25d9ef'},
- {id:'bombo',name:'BOMBO',role:'El bromista',bio:'Un tanque pequeño que se cree gigante. Se burla con una sonrisa.',motto:'¡Pum, sorpresa!',face:'◉',color:'#ffae3c'},
- {id:'kira',name:'KIRA',role:'La estratega',bio:'Calculadora, veloz y elegante. Todo territorio tiene un plan.',motto:'Era parte del plan.',face:'◆',color:'#ad75f7'},
- {id:'rayo',name:'RAYO',role:'El hiperactivo',bio:'No sabe quedarse quieto. Celebra como si fuera una final.',motto:'¡Velocidad total!',face:'ϟ',color:'#5ad980'}
+ {id:'momo',name:'MOMO',species:'MARMOTA',role:'Estratega tranquilo',bio:'Conquista con calma: siempre parece dormido, pero nunca pierde el rumbo.',motto:'Todo bajo control.',color:'#b28a5b',model:'marmot'},
+ {id:'zuri',name:'ZURI',species:'ZORRO',role:'Rápida y astuta',bio:'Una sonrisa traviesa antes de conquistar tu territorio.',motto:'¡Te vi venir!',color:'#f18a41',model:'fox'},
+ {id:'platy',name:'PLATY',species:'ORNITORRINCO',role:'Caos adorable',bio:'Su aspecto tierno esconde el festejo más disparatado.',motto:'¡Sorpresa!',color:'#ee83b5',model:'platypus'},
+ {id:'pingo',name:'PINGO',species:'PINGÜINO',role:'Competidor implacable',bio:'Frío para competir; explosivo al ganar.',motto:'¡Sangre fría!',color:'#4b99f1',model:'penguin'},
+ {id:'otto',name:'OTTO',species:'NUTRIA',role:'Pícaro ingenioso',bio:'Tiene un plan para todas tus estelas.',motto:'Me lo llevo.',color:'#ab70d9',model:'seaotter'},
+ {id:'kuma',name:'KUMA',species:'KOALA',role:'El rey del descanso',bio:'Parece relajado hasta que te roba medio mapa.',motto:'Cinco minutitos más.',color:'#9bbc7c',model:'koala'},
+ {id:'coco',name:'COCO',species:'CORGI',role:'Patitas supersónicas',bio:'Pequeño, travieso e increíblemente rápido.',motto:'¡No me alcanzás!',color:'#f6b638',model:'corgi'},
+ {id:'tora',name:'TORA',species:'TIGRE',role:'Fuerza y lealtad',bio:'Feroz cuando compite, adorable cuando festeja.',motto:'¡A conquistar!',color:'#ff7a47',model:'tiger'}
 ];
 const SHOP_ITEMS=[
  {id:'outfit_base',category:'outfit',name:'Look original',icon:'◈',price:0,desc:'El traje con el que nace cada personaje'},
@@ -508,7 +512,7 @@ function loadWardrobe(){
  return{coins:Number.isFinite(raw.coins)?Math.max(0,Math.min(999999,Math.floor(raw.coins))):0,owned,equipped,hero};
 }
 let wardrobe=loadWardrobe(),shopCategory='outfit',shopReturn='home',emoteUntil=0,emoteLabel='',celebrationBursts=[];
-selectedSkin=wardrobe.hero;settingColor=[0,5,3,4][wardrobe.hero];
+selectedSkin=wardrobe.hero;settingColor=[5,4,2,3,7,9,1,11][wardrobe.hero];
 function saveWardrobe(){try{localStorage.setItem(STORE_KEY,JSON.stringify({coins:wardrobe.coins,owned:[...wardrobe.owned],equipped:wardrobe.equipped,hero:wardrobe.hero}));}catch(e){}}
 function awardCoins(amount){
  const n=Math.max(0,Math.min(400,Math.floor(Number(amount)||0)));if(!n)return 0;
@@ -524,7 +528,7 @@ function buyOrEquip(id){
 }
 function setHero(i){
  if(!Number.isInteger(i)||i<0||i>=HEROES.length)return false;
- selectedSkin=i;wardrobe.hero=i;settingColor=[0,5,3,4][i];
+ selectedSkin=i;wardrobe.hero=i;settingColor=[5,4,2,3,7,9,1,11][i];
  const swatches=document.querySelectorAll('#colors button');
  swatches.forEach((el,j)=>{if(j===settingColor)el.classList.add('active');else el.classList.remove('active');});
  saveWardrobe();renderHeroPicker();
@@ -534,17 +538,25 @@ function refreshWallet(){
  const coins=String(wardrobe.coins);
  $('homeCoins').textContent=coins;$('shopCoins').textContent=coins;$('endCoins').textContent=coins;
 }
-const STYLOO_PORTRAITS=['archer','merchant','student','ninja'];
-function portraitURL(i){return './assets/styloo/portraits/'+STYLOO_PORTRAITS[i]+'.png';}
+// Vector portraits created for Territory Loop. Real animal GLBs load in parallel.
+function portraitURL(i){
+ const h=HEROES[i]||HEROES[0],kind=h.model,c=h.color;
+ const ears=kind==='fox'?'<path d="M29 66L14 14Q40 21 53 45H81Q104 10 119 14L105 67Z" fill="#e87734" stroke="#5e3540" stroke-width="4"/>':kind==='koala'?'<circle cx="20" cy="62" r="26" fill="#94adb0" stroke="#5b7382" stroke-width="5"/><circle cx="112" cy="62" r="26" fill="#94adb0" stroke="#5b7382" stroke-width="5"/>':kind==='penguin'||kind==='platypus'?'':'<circle cx="29" cy="64" r="18" fill="'+c+'" stroke="#55435b" stroke-width="3"/><circle cx="103" cy="64" r="18" fill="'+c+'" stroke="#55435b" stroke-width="3"/>';
+ const snout=kind==='penguin'?'<path d="M51 92L66 108 83 92Z" fill="#ffc248" stroke="#bb7535" stroke-width="2"/>':kind==='platypus'?'<ellipse cx="66" cy="97" rx="29" ry="12" fill="#e9b36f" stroke="#8c654d" stroke-width="3"/>':'<ellipse cx="66" cy="96" rx="23" ry="14" fill="#f9e8d2"/><path d="M58 88Q66 83 74 88L66 96Z" fill="#433944"/>';
+ const stripes=kind==='tiger'?'<path d="M42 53L32 69 45 71M92 53L102 69 88 71M66 34L56 53 75 53Z" fill="#52392c"/>':'';
+ const face=kind==='penguin'?'#253856':kind==='koala'?'#b8c4c8':kind==='platypus'?'#b7adcf':c;
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 160"><defs><radialGradient id="g" cx=".2" cy=".16" r=".9"><stop stop-color="#fff" stop-opacity=".62"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><ellipse cx="66" cy="150" rx="40" ry="6" fill="#041b3e" opacity=".23"/><path d="M35 117Q66 105 97 117L104 158H28Z" fill="'+c+'" stroke="#263451" stroke-width="3"/><path d="M42 122L66 137 90 122" fill="none" stroke="#fff" stroke-width="6"/>'+ears+'<ellipse cx="66" cy="78" rx="52" ry="52" fill="'+face+'" stroke="#273651" stroke-width="4"/>'+stripes+'<ellipse cx="66" cy="78" rx="52" ry="52" fill="url(#g)"/><ellipse cx="46" cy="76" rx="8" ry="11" fill="#1b283e"/><ellipse cx="86" cy="76" rx="8" ry="11" fill="#1b283e"/><circle cx="43" cy="72" r="3" fill="#fff"/><circle cx="83" cy="72" r="3" fill="#fff"/>'+snout+'<path d="M58 109Q66 114 74 109" fill="none" stroke="#6d4550" stroke-width="3" stroke-linecap="round"/></svg>';
+ return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+}
 function renderHeroPicker(){
  const h=HEROES[wardrobe.hero];
- $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+'" data-hero="'+i+'" aria-label="Elegir '+x.name+'"><img class="hero3DThumbnail" src="'+portraitURL(i)+'" alt="'+x.name+' modelo Styloo real" width="100" height="115"><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
+ $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+'" data-hero="'+i+'" aria-label="Elegir '+x.name+'"><img class="hero3DThumbnail" src="'+portraitURL(i)+'" alt="'+x.species+' · '+x.name+'" width="100" height="115"><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
  $('heroDetails').innerHTML='<strong>'+h.name+' · '+h.role+'</strong><span>'+h.bio+'</span><i>“'+h.motto+'”</i>';
  $('heroName').textContent=h.name;
  $('menuCharacterLabel').textContent=h.name;
  $('menuCharacterTagline').textContent=h.motto;
  $('menuHeroPortrait').src=portraitURL(wardrobe.hero);
- $('menuHeroPortrait').alt=h.name+' modelo Styloo original en 3D';
+ $('menuHeroPortrait').alt=h.name+' · '+h.species+' en 3D';
  $('menuHeroPortrait').style.opacity='1';
  $('menuHeroStage').classList.remove('model-loaded');
  $('menuModelLoader').classList.remove('loaded');
@@ -938,7 +950,7 @@ function showHud(){
  const ownRank=game.ordered.findIndex(q=>q.id===0);
  const arr=ownRank>=3?[...game.ordered.slice(0,3),game.people[0]]:game.ordered.slice(0,4);
  // CSS-drawn original character portraits; avoid arbitrary unicode placeholders.
- $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="portraitDoll skin'+(q.id===0?wardrobe.hero:q.id===1?vsRival:q.id%4)+'"><i class="eyeL"></i><i class="eyeR"></i></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
+ $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="portraitDoll skin'+(q.id===0?wardrobe.hero:q.id===1?vsRival:q.id%HEROES.length)+'"><i class="eyeL"></i><i class="eyeR"></i></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
  const best=Math.max(readBest(),game.record,p.score);
  $('recordPointer').style.left=clamp(best/25*100,8,92)+'%';
  drawMini();
@@ -1069,7 +1081,7 @@ function drawUnit(p){
  }
  // Actual 3D actors take over when their GLB has loaded. Otherwise use
  // anatomically legible, animated original chibi people — never robot cubes.
- const hero=p.id===0?selectedSkin:p.id===1?vsRival:p.id%4;
+ const hero=p.id===0?selectedSkin:p.id===1?vsRival:p.id%HEROES.length;
  const has3D=!!(window.Paper3DReady&&window.Paper3DReady[p.id]);
  if(!has3D)paintChibi(p,hero,col);
 
@@ -1131,7 +1143,7 @@ function vsHeroPreview(index){
 function showVS(){
  if(mode==='play')return false;
  const player=wardrobe.hero;
- vsRival=(player+1+Math.floor(Math.random()*3))%HEROES.length;
+ vsRival=(player+1+Math.floor(Math.random()*(HEROES.length-1)))%HEROES.length;
  vsStartedAt=performance.now();vsLastBeat=-1;vsLastElapsed=0;
  const you=vsHeroPreview(player),rival=vsHeroPreview(vsRival);
  $('vsPlayerName').textContent=you.name;
@@ -1321,7 +1333,7 @@ window.Paper3DState=()=>({
  outfit:wardrobe.equipped.outfit,
  people:game?game.people.map(p=>({
   id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,
-  hero:p.id===0?wardrobe.hero:p.id===1?vsRival:p.id%4,
+  hero:p.id===0?wardrobe.hero:p.id===1?vsRival:p.id%HEROES.length,
   emoting:p.id===0&&clock<emoteUntil,emoteId:p.id===0?wardrobe.equipped.emote:''
  })):[]
 });
