@@ -198,9 +198,9 @@ test('earned milestones and boosts reset on the next match',()=>{
 });
 test('arcade portraits and fallback chibi people are original vector and CSS geometry',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(10);
- assert.match(g.get('rank').innerHTML,/portraitMech/);
+ assert.match(g.get('rank').innerHTML,/portraitDoll/);
  assert.match(source,/const zoomHero=p\.id===0\?1\.16:1\.0/);
- assert.match(source,/\.portraitMech\.skin3/);
+ assert.match(source,/\.portraitDoll\.skin3/);
  assert.match(source,/#rewardToast\.visible/);
  assert.match(source,/id="railTarget"|class="railTarget"/);
 });
@@ -240,7 +240,7 @@ test('wardrobe balance and equipped emote persist into fresh match',()=>{
  g.get('start').onclick();
  assert.equal(h.getGame().people.length,12);
  assert.equal(h.wardrobe.equipped.emote,'emote_laugh');
- assert.match(g.get('rank').innerHTML,/portraitMech/);
+ assert.match(g.get('rank').innerHTML,/portraitDoll/);
 });
 test('game grants currency on conquest and elimination, without real-money checkout',()=>{
  const g=boot(419);g.get('start').onclick();
