@@ -114,7 +114,8 @@ function instantiate(person){
  const run=chooseAnimation(asset,'run'),idle=chooseAnimation(asset,'idle'),emote=chooseAnimation(asset,'emote');
  const actions={};
  if(mixer)for(const [key,clip] of [['run',run],['idle',idle],['emote',emote]])if(clip){actions[key]=mixer.clipAction(clip);actions[key].setLoop(THREE.LoopRepeat);}
- const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...findArmRig(base)};
+ const rig=findArmRig(base);
+ const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,restPose:captureRestPose(rig.arms,rig.forearms)};
  scene.add(root);instances.set(person.id,instance);
  window.Paper3DReady[person.id]=true;
  return instance;
@@ -219,31 +220,40 @@ function vsActor(hero){
  const action=mixer&&clip?mixer.clipAction(clip):null;
  if(action)action.play();
  const {arms,forearms}=findArmRig(mesh);
- return {hero,root,mesh,mixer,action,arms,forearms,phase:Math.random()*6};
+ return {hero,root,mesh,mixer,action,arms,forearms,restPose:captureRestPose(arms,forearms),phase:Math.random()*6};
 }
 function clearVSActors(){
  for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();vsScene?.remove(item.root);}
  vsCharacters=[];
 }
+// Store a bind/rest orientation once per model. Never multiply incremental angles
+// into last frame's quaternion: that accumulates rotations and makes arms spin.
+function captureRestPose(arms,forearms){
+ const pose={arms:{},forearms:{}};
+ for(const kind of ['arms','forearms']){
+  const map=kind==='arms'?arms:forearms;
+  for(const side of ['left','right'])if(map[side])pose[kind][side]=map[side].quaternion.clone();
+ }
+ return pose;
+}
 function danceBones(item,seconds,mirror){
- const {arms,forearms}=item;
- const tempo=item.hero===3?8.6:item.hero===1?6.3:7.1;
- const motion=seconds*tempo+(mirror?Math.PI*.6:0);
- const axis=new THREE.Vector3(0,0,1);
- for(const [key,bone] of Object.entries(arms)){
-  if(!bone)continue;
-  const side=key==='left'?-1:1;
-  // Both palms balance as if weighing options: opposite rises and falls.
-  const wave=Math.sin(motion+(side===1?Math.PI:0));
-  const angle=side*(1.48+wave*.44);
-  // Lift each upper arm through a full visible arc relative to the rigged idle pose.
-  // The non-axial shoulder twist exposes palms to the camera.
-  const lift=new THREE.Quaternion().setFromEuler(new THREE.Euler(.23+wave*.18,side*.15,angle,'XYZ'));
-  bone.quaternion.premultiply(lift);
-  const elbow=forearms[key];
-  if(elbow){
-   const wrist=new THREE.Quaternion().setFromEuler(new THREE.Euler(-.12,0,-side*(.45+wave*.17)));
-   elbow.quaternion.premultiply(wrist);
+ if(!item.restPose)return;
+ // Six-Seven: alternating palms, smooth slow up/down, no full rotations.
+ const tempo=2*Math.PI*(item.hero===3?.88:.78);
+ const phase=seconds*tempo+(mirror?.45:0);
+ const ease=(1-Math.cos(Math.min(1,Math.max(0,seconds/.5))*Math.PI))*.5;
+ for(const side of ['left','right']){
+  const bone=item.arms?.[side],baseline=item.restPose.arms[side];
+  if(!bone||!baseline)continue;
+  const sign=side==='left'?-1:1,beat=Math.sin(phase+(sign===1?Math.PI:0));
+  const shoulder=new THREE.Quaternion().setFromEuler(new THREE.Euler(.16,sign*.15,sign*(.38+.28*beat),'XYZ'));
+  const desired=baseline.clone().multiply(shoulder);
+  // Absolute orientation per frame, not premultiply from last frame.
+  bone.quaternion.copy(baseline).slerp(desired,ease);
+  const elbow=item.forearms?.[side],restElbow=item.restPose.forearms[side];
+  if(elbow&&restElbow){
+   const bend=new THREE.Quaternion().setFromEuler(new THREE.Euler(.08,0,-sign*(.18+.14*beat),'XYZ'));
+   elbow.quaternion.copy(restElbow).slerp(restElbow.clone().multiply(bend),ease);
   }
  }
 }
