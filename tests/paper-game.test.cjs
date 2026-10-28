@@ -37,7 +37,7 @@ function boot(seed=419,query='?qa=1'){
   for(const fn of listeners['game:pointermove']||[])fn({pointerType:'mouse',clientX:215+130*Math.cos(t),clientY:425+130*Math.sin(t)});}
  return {get,win,aim,tick,storage};
 }
-test('page has complete standalone game and no borrowed external assets',()=>{
+test('page has complete standalone territory game and licensed external character load',()=>{
  assert.match(source,/<canvas id="game"/);
  assert.match(source,/function capture\(p\)/);
  assert.match(source,/function death\(p/);
@@ -207,11 +207,11 @@ test('arcade portraits and fallback chibi people are original vector and CSS geo
 
 test('original heroes each have a distinct identity and can be selected',()=>{
  const g=boot(419);
- for(const name of ['CAPY','RUBY','AXI','PINGO','ROCKY','BRINCO','FÉNIX','OSO'])assert.ok(source.includes("name:'"+name+"'"));
+ for(const name of ['RAYO','NOVA','GLITCH','LUNA','KIRO','MIMO','VOLT','NIX'])assert.ok(source.includes("name:'"+name+"'"));
  const h=g.win.__paperTest;
  assert.equal(h.setHero(2),true);
  assert.equal(h.wardrobe.hero,2);
- assert.match(g.get('heroDetails').innerHTML,/Caos adorable/);
+ assert.match(g.get('heroDetails').innerHTML,/digital/);
  assert.equal(h.setHero(-1),false);
  assert.equal(h.wardrobe.hero,2);
 });
@@ -293,12 +293,12 @@ test('fallback characters are humanoid and include distinct costumes',()=>{
  assert.match(source,/function drawOutfit/);
 });
 
-test('3D renderer uses original eight locally generated animal champions',()=>{
+test('3D renderer uses the original Styloo Chibi assets and preserves local fallback',()=>{
  const module=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
  const mascots=fs.readFileSync(path.join(__dirname,'..','paper-mascots.mjs'),'utf8');
  assert.match(module,/from '\.\/paper-mascots\.mjs'/);
- assert.match(module,/buildMascot\(THREE,hero\)/);
- assert.match(module,/animateMascot\(actor/);
+ assert.match(module,/CHIBI_ROSTER/);
+ assert.match(module,/chibiEmote\(THREE,actor/);
  assert.match(mascots,/capybara/);
  assert.match(mascots,/redpanda/);
  assert.match(mascots,/axolotl/);
@@ -317,8 +317,8 @@ test('VS opens before a normal game and shows animated Six Seven performers',()=
  assert.equal(g.win.territoryQA.mode,'home');
  g.get('start').onclick();
  assert.equal(g.win.territoryQA.mode,'versus');
- assert.equal(g.get('vsPlayerName').textContent,'CAPY');
- assert.notEqual(g.get('vsRivalName').textContent,'CAPY');
+ assert.equal(g.get('vsPlayerName').textContent,'RAYO');
+ assert.notEqual(g.get('vsRivalName').textContent,'RAYO');
  g.tick(10); // canvas renderer must not throw
  assert.equal(g.win.territoryQA.mode,'versus');
  assert.match(source,/function versusActor\(/);
@@ -366,11 +366,11 @@ test('Six Seven is purchasable with earned in-game currency and equips normally'
  assert.equal(h.wardrobe.equipped.emote,'emote_sixseven');
 });
 
-test('no external GLB dependency for eight collectible CVDOM heroes',()=>{
+test('eight collectible chibi champions use genuine licensed GLBs with a graceful fallback',()=>{
  const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
  const mascots=fs.readFileSync(path.join(__dirname,'..','paper-mascots.mjs'),'utf8');
  assert.match(renderer,/sourceAssets\[i\]=\{procedural:true/);
- assert.match(renderer,/const models=MASCOT_DATA\.map/);
+ assert.match(renderer,/const models=CHIBI_ROSTER\.map/);
  assert.match(mascots,/export const MASCOT_DATA=/);
  assert.match(mascots,/export function buildMascot/);
 });
@@ -402,8 +402,8 @@ test('leaderboard portraits and scores stay visible on compact mobile',()=>{
 test('in-game purchased Six Seven forwards emote choice to live 3D arm bones',()=>{
  const mod=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
  assert.match(source,/emoteId:p\.id===0\?wardrobe\.equipped\.emote/);
- assert.match(mod,/p\.emoteId==='emote_sixseven'/);
- assert.match(mod,/findArmRig\(base\)/);
+ assert.match(mod,/chibiEmote\(THREE,item/);
+ assert.match(mod,/getGLB\(name\)/);
 });
 
 test('VS picks the true standing idle instead of crouched idle across Styloo formats',()=>{
@@ -435,11 +435,11 @@ test('home menu no longer includes retired square avatar and showcases live 3D c
 test('hero selection updates game character and the new menu name plate',()=>{
  const g=boot(419),h=g.win.__paperTest;
  assert.equal(h.setHero(3),true);
- assert.equal(g.get('menuCharacterLabel').textContent,'PINGO');
- assert.equal(g.get('menuCharacterTagline').textContent,'¡Sangre fría!');
+ assert.equal(g.get('menuCharacterLabel').textContent,'LUNA');
+ assert.equal(g.get('menuCharacterTagline').textContent,'Siempre un paso adelante.');
  assert.equal(g.win.Paper3DState().menuHero,3);
  assert.equal(h.setHero(2),true);
- assert.equal(g.get('menuCharacterLabel').textContent,'AXI');
+ assert.equal(g.get('menuCharacterLabel').textContent,'GLITCH');
 });
 test('3D stage is reparented between menu and versus without creating additional renderers',()=>{
  const module=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
@@ -450,7 +450,7 @@ test('3D stage is reparented between menu and versus without creating additional
  assert.match(module,/attachShowcase\('versusStage','vsPosition'\)/);
  assert.match(module,/window\.PaperMenuReady=true/);
  assert.match(module,/state\.menuing/);
- assert.equal((module.match(/new THREE\.WebGLRenderer\(/g)||[]).length,2); // gameplay + shared menu/VS
+ assert.equal((module.match(/new THREE\.WebGLRenderer\(/g)||[]).length,3); // gameplay + shared menu/VS + one disposable 3D portrait renderer
 });
 
 test('real generated 3D portraits replace CSS doll tiles and old VS fallback',()=>{
@@ -464,18 +464,18 @@ test('real generated 3D portraits replace CSS doll tiles and old VS fallback',()
  assert.doesNotMatch(source,/versusActor\(ctx,wardrobe\.hero,168/);
  assert.match(fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8'),/document\.getElementById\('menuHeroPortrait'\)/);
 });
-test('changing selected mascot updates its original vector portrait before 3D loads',()=>{
+test('selected champion updates a vector placeholder until its real GLB portrait loads',()=>{
  const g=boot(419),h=g.win.__paperTest;
  h.setHero(2);
  assert.match(g.get('menuHeroPortrait').src,/^data:image\/svg\+xml/);
  h.setHero(3);
  assert.match(g.get('menuHeroPortrait').src,/^data:image\/svg\+xml/);
- assert.match(g.get('heroPicker').innerHTML,/OSO/);
+ assert.match(g.get('heroPicker').innerHTML,/NIX/);
 });
 
-test('eight playable animals have unique, commercial-safe model/portrait choices',()=>{
+test('eight playable chibi champions have selectable names and GLB-linked portraits',()=>{
  const g=boot(419),h=g.win.__paperTest;
- const names=['CAPY','RUBY','AXI','PINGO','ROCKY','BRINCO','FÉNIX','OSO'];
+ const names=['RAYO','NOVA','GLITCH','LUNA','KIRO','MIMO','VOLT','NIX'];
  assert.equal((g.get('heroPicker').innerHTML.match(/data-hero=/g)||[]).length,8);
  for(let i=0;i<8;i++){
   assert.equal(h.setHero(i),true);
@@ -493,18 +493,18 @@ test('Six Seven no longer accumulates uncontrolled bone angles',()=>{
  assert.match(module,/const tempo=2\*Math\.PI/);
 });
 
-test('leaderboard shows species-matched original animal portraits',()=>{
+test('leaderboard always has an available portrait even before its GLB loads',()=>{
  const g=boot(419);g.get('start').onclick();g.tick(7);
  const html=g.get('rank').innerHTML;
  assert.match(html,/rankAnimal/);
  assert.match(html,/data:image\/svg\+xml/);
 });
 
-test('original eight animal species match the reference lineup in CVDOM',()=>{
+test('original fallbacks remain available while the official CIVIDOM Chibi collection is featured',()=>{
  const mascots=fs.readFileSync(path.join(__dirname,'..','paper-mascots.mjs'),'utf8');
- for(const species of ['capybara','redpanda','axolotl','penguin','raccoon','frog','fox','bear'])
+ for(const species of ['capybara','redpanda','axolotl','penguin','raccoon','banana','screen','bull'])
   assert.ok(mascots.includes("species:'"+species+"'"));
- assert.match(source,/<h1 class="cvdomLogo">CV<em>DOM<\/em>/);
+ assert.match(source,/<h1 class="cvdomLogo">CIVI<em>DOM<\/em>/);
 });
 test('Six-Seven can be evaluated twice at the same time without any limb drift',async()=>{
  const {animateMascot}=await import(require('node:url').pathToFileURL(path.join(__dirname,'..','paper-mascots.mjs')).href);
