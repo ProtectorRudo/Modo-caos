@@ -29,7 +29,7 @@ function boot(seed=419,query='?qa=1'){
  const loc={search:query,href:'https://example.test/paper.html'};
  const storage=new Map();
  // Instrument test sandbox only; production game source remains unchanged.
- const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,cutExposedTrails,createStormStages,stormZoneState,updateStorm,step,setClock:t=>{clock=t;},idx,CX,CY,R,territoryLoops,updateMap,grantRewards,REWARDS,buyOrEquip,awardCoins,setHero,saveWardrobe,loadWardrobe,wardrobe,SHOP_ITEMS,celebrateAt,showVS,launchMatch,drawVersus,getFeatured:()=>vsRival};\\n// Read-only diagnostics:'.replace('\\n','\n'));
+ const instrumented=script.replace('// Read-only diagnostics:', 'window.__paperTest={getGame:()=>game,markTrail,move,death,cutExposedTrails,createStormStages,stormZoneState,updateStorm,step,setClock:t=>{clock=t;},idx,CX,CY,R,territoryLoops,updateMap,checkBoxPickup,cvCrateSprite,cvCrateSprites,cvCrateOpenings,cvCrateKey,grantRewards,REWARDS,buyOrEquip,awardCoins,setHero,saveWardrobe,loadWardrobe,wardrobe,SHOP_ITEMS,celebrateAt,showVS,launchMatch,drawVersus,getFeatured:()=>vsRival};\\n// Read-only diagnostics:'.replace('\\n','\n'));
  const browser=Function('document','window','location','performance','requestAnimationFrame','innerWidth','innerHeight','devicePixelRatio','localStorage','navigator','setTimeout','URLSearchParams','Math',instrumented);
  browser(doc,win,loc,{now:()=>now},fn=>frame=fn,430,850,1,
   {getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))},{vibrate(){}},()=>{},URLSearchParams,fakeMath);
@@ -694,4 +694,56 @@ test('R4 storm, alive and kills use readable labels and bold counts under compac
  assert.match(css,/Neutralize legacy padded span rules/);
  assert.match(css,/\.miniMetricValue,\s*\n#hud #survivalPanel \.survivalStats \.miniMetricIcon/);
 
+});
+
+test('licensed GLB crates are authored in one WebGL scene with capped mobile instances and fallback',()=>{
+ const renderer=fs.readFileSync(path.join(__dirname,'..','paper-3d.mjs'),'utf8');
+ const vendor=fs.readFileSync(path.join(__dirname,'..','scripts/vendor-power-crates.py'),'utf8');
+ assert.match(renderer,/cvCrateSources/);
+ assert.match(renderer,/pickup-ammo\.glb/);
+ assert.match(renderer,/elite-locked\.glb/);
+ assert.match(renderer,/cvCrateMaxActors=Math\.max\(3,Math\.min\(5/);
+ assert.match(renderer,/renderer\.render\(scene,camera\)/);
+ assert.match(renderer,/window\.PaperCrate3DReady/);
+ assert.match(renderer,/cvCrateBase\.size===2\?'ready'/);
+ assert.doesNotMatch(renderer,/new THREE\.WebGLRenderer\(\{canvas:.*crate/i);
+ assert.match(vendor,/CC0/);
+ assert.match(vendor,/EXT_texture_webp/);
+ assert.match(source,/cvCrateSprite\(box\.type\)/);
+ assert.match(source,/if\(!loaded\)/);
+});
+test('six premium crate sprites are cached and require no external resource to draw',()=>{
+ const g=boot();const q=g.win.__paperTest;
+ const kinds=['FAST','SLOW','BIG','SMOLL','SHIELD','SORPRESA'];
+ for(const type of kinds){
+  const sprite=q.cvCrateSprite(type);
+  assert.ok(sprite&&sprite.width===144&&sprite.height===144);
+  assert.equal(q.cvCrateSprite(type),sprite,'sprite must be reused, not repainted each frame');
+ }
+ assert.equal(q.cvCrateSprites.size,6);
+});
+test('each existing power crate remains collectible and generates reward animations',()=>{
+ const kinds=['FAST','SLOW','BIG','SMOLL','SHIELD','SORPRESA'];
+ for(const type of kinds){
+  const g=boot(419);g.get('start').onclick();
+  const h=g.win.__paperTest,game=h.getGame(),p=game.people[0];
+  h.setClock(3);
+  const b={x:p.x,y:p.y,type,active:true,spawnAt:0,collectAt:1,expiresAt:30};
+  game.boxes.push(b);
+  h.checkBoxPickup(p);
+  assert.equal(b.active,false,type+' must be collected by same original radius');
+  assert.equal(h.cvCrateOpenings.length,1,type+' must animate once');
+  assert.equal(h.cvCrateOpenings[0].type,type);
+  assert.equal(h.cvCrateOpenings[0].key,h.cvCrateKey(b));
+  assert.ok(p.powerKind&&['FAST','SLOW','BIG','SMOLL','SHIELD'].includes(p.powerKind));
+  assert.ok(p.powerUntil>3);
+  if(type==='SHIELD')assert.equal(p.shieldUntil,p.powerUntil);
+ }
+});
+test('power crate visual effects do not alter pickup radius, loot durations or frequency',()=>{
+ assert.match(source,/const reach=p\.powerKind==='BIG'&&clock<p\.powerUntil\?30:23/);
+ assert.match(source,/const POWER_SECONDS=\{FAST:5,SLOW:5,BIG:10,SMOLL:10,SHIELD:7\}/);
+ assert.match(source,/const POWER_KINDS=\['FAST','SLOW','BIG','SMOLL','SHIELD','SORPRESA'\]/);
+ assert.match(source,/game\.nextBoxAt=clock\+random\(3\.2,4\.5\)/);
+ assert.match(source,/if\(game\.boxes\.length>70\)/);
 });
