@@ -68,8 +68,15 @@ function addBurst(obj,kind='apple',count=22,boost=1){
   particles.push({x:obj.x,y:obj.y,z:obj.z,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd*.86+1.1,vz:(Math.random()-.5)*1.3,life:.45+Math.random()*.45,start:t,r:.025+Math.random()*.05,col:colors[(i%3)+1],shape:i%4===0?'star':'drop'})}
  if(particles.length>130)particles.splice(0,particles.length-130);
 }
-function impact(obj,kind,combo=false){addBurst(obj,kind,combo?48:24,combo?1.3:1);splashes.push({...obj,kind,combo,t:performance.now()/1000});if(splashes.length>9)splashes.shift();
+function impact(obj,kind,combo=false){addBurst(obj,kind,combo?48:24,combo?1.3:1);splashes.push({...obj,kind,combo,t:performance.now()/1000});if(splashes.length>7)splashes.shift();
  if(obj&&kind!=='bomb'&&kind!=='rotten'){puddles.push({...obj,t:performance.now()/1000,col:skins[kind]?.[1]||'#f35a8b'});if(puddles.length>12)puddles.shift()}
+}
+function emerge(obj){if(obj)addBurst(obj,obj.kind,6,.55)}
+function land(obj){
+ if(!obj)return;
+ const t=performance.now()/1000,col=skins[obj.kind]?.[1]||'#69dfff';
+ puddles.push({...obj,t,col});if(puddles.length>16)puddles.shift();
+ addBurst({...obj,y:.3},obj.kind,8,.65);
 }
 function popup(obj,points){if(obj&&Number.isFinite(obj.x)){numbers.push({...obj,text:'+'+Math.round(points),t:performance.now()/1000});if(numbers.length>12)numbers.shift()}}
 function shot(x,y,hit=true,kind='apple'){
@@ -165,16 +172,33 @@ function draw(view,origin,scale,objects,mode='playing'){
    html+='</g>';
   }
  }
- // Explosive juice bloom: a world-locked splash ring, staggered liquid droplets and hit value.
+ // POLISHED EXPLOSIONS: light flash, sliced halves, chromatic shockwave and juicy arcs.
  for(let i=splashes.length-1;i>=0;i--){
-  const b=splashes[i],age=t-b.t;if(age>.65){splashes.splice(i,1);continue}
+  const b=splashes[i],age=t-b.t;
+  if(age>.82){splashes.splice(i,1);continue}
   const q=pos(b.x,b.y,b.z);if(!q)continue;
-  const alpha=clamp(1-age/.65,0,1),rad=8+age*(b.combo?125:78),hue=skins[b.kind]?.[1]||'#f58aff';
-  html+='<circle cx="'+n(q.x)+'" cy="'+n(q.y)+'" r="'+n(rad*1.5)+'" fill="url(#fp-bloom)" opacity="'+n(alpha*.46)+'"/>';
-  html+='<circle cx="'+n(q.x)+'" cy="'+n(q.y)+'" r="'+n(rad)+'" fill="none" stroke="'+hue+'" stroke-width="'+n(4*alpha)+'" opacity="'+n(alpha)+'"/>';
-  for(let k=0;k<9;k++){
-   const a=k*2.39996+b.x*2,rr=rad*(.65+.19*Math.sin(k*1.34)),xx=q.x+Math.cos(a)*rr,yy=q.y+Math.sin(a)*rr*.83;
-   html+='<ellipse cx="'+n(xx)+'" cy="'+n(yy)+'" rx="'+n(6*alpha+1)+'" ry="'+n(10*alpha+1)+'" transform="rotate('+n(a*57.29+90)+' '+n(xx)+' '+n(yy)+')" fill="'+hue+'" stroke="#ffffff" stroke-width=".75" opacity="'+n(alpha)+'"/>';
+  const alpha=clamp(1-age/.82,0,1),boost=b.combo?1.6:1,rad=(12+age*102)*boost,
+     hue=skins[b.kind]?.[1]||'#f58aff',cx=n(q.x),cy=n(q.y);
+  html+='<circle cx="'+cx+'" cy="'+cy+'" r="'+n(rad*1.45)+'" fill="url(#fp-bloom)" opacity="'+n(alpha*.44)+'"/>';
+  // layered shockwave: thick low-energy halo + high-frequency luminous rim
+  html+='<circle cx="'+cx+'" cy="'+cy+'" r="'+n(rad)+'" fill="none" stroke="'+hue+'" stroke-width="'+n((9+4*boost)*alpha)+'" opacity="'+n(alpha*.63)+'"/>';
+  html+='<circle cx="'+cx+'" cy="'+cy+'" r="'+n(rad*.78)+'" fill="none" stroke="#fff9dd" stroke-width="'+n(3.4*alpha)+'" opacity="'+n(alpha*.72)+'"/>';
+  // visibly split the fruit in two; each half tumbles away before fading out
+  if(age<.52&&!['boss','bomb','rotten'].includes(b.kind)){
+   const r=36+(b.combo?14:0),move=age*120;
+   const id='slice-'+i;
+   html+='<defs><clipPath id="'+id+'a"><rect x="-53" y="-60" width="53" height="120"/></clipPath><clipPath id="'+id+'b"><rect x="0" y="-60" width="53" height="120"/></clipPath></defs>';
+   const scales=n(.8+age*.13),pieceAlpha=n(Math.min(1,alpha*1.5));
+   html+='<g transform="translate('+n(q.x-move)+' '+n(q.y-age*75)+') rotate('+n(-age*240)+') scale('+scales+')" clip-path="url(#'+id+'a)" opacity="'+pieceAlpha+'">'+fruitArt(b.kind)+'</g>';
+   html+='<g transform="translate('+n(q.x+move)+' '+n(q.y-age*75)+') rotate('+n(age*220)+') scale('+scales+')" clip-path="url(#'+id+'b)" opacity="'+pieceAlpha+'">'+fruitArt(b.kind)+'</g>';
+  }
+  // Radial spurts with tapered highlight and chunky juice beads
+  for(let k=0;k<12;k++){
+   const a=k*Math.PI/6+.3+b.x*.45,r2=rad*(.77+.2*Math.sin(k*2.4));
+   const x1=q.x+Math.cos(a)*rad*.27,y1=q.y+Math.sin(a)*rad*.27,
+     x2=q.x+Math.cos(a)*r2,y2=q.y+Math.sin(a)*r2;
+   html+='<path d="M'+n(x1)+' '+n(y1)+' Q'+n((x1+x2)/2+Math.sin(a)*4)+' '+n((y1+y2)/2-Math.cos(a)*4)+' '+n(x2)+' '+n(y2)+'" stroke="'+hue+'" stroke-width="'+n((4.5+k%3)*alpha)+'" stroke-linecap="round" fill="none" opacity="'+n(alpha)+'"/>';
+   html+='<ellipse cx="'+n(x2)+'" cy="'+n(y2)+'" rx="'+n(3+6*alpha)+'" ry="'+n(5+10*alpha)+'" transform="rotate('+n(a*57.295+90)+' '+n(x2)+' '+n(y2)+')" fill="'+hue+'" stroke="#fffbed" stroke-width="1.2" opacity="'+n(alpha)+'"/>';
   }
  }
  for(let i=numbers.length-1;i>=0;i--){const m=numbers[i],age=t-m.t;if(age>.85){numbers.splice(i,1);continue}
@@ -202,5 +226,5 @@ function draw(view,origin,scale,objects,mode='playing'){
  svg.innerHTML=html;state=mode;lastView=view;lastOrigin=origin;lastScale=scale;lastTs=t;return seen.slice();
 }
 function clear(){const svg=$('arWorld');if(svg){svg.innerHTML='';svg.style.display='none'}seen.length=0;particles.length=0;shots.length=0;puddles.length=0;splashes.length=0;numbers.length=0;state='idle';lastView=null}
-root.FrutaAROverlay={draw,clear,impact,shot,popup,get targets(){return seen},get state(){return state},get diagnostics(){return {visible:seen.length,particles:particles.length,shots:shots.length,splashes:splashes.length,hasSkyPortal:!!lastView}}};
+root.FrutaAROverlay={draw,clear,impact,shot,popup,emerge,land,get targets(){return seen},get state(){return state},get diagnostics(){return {visible:seen.length,particles:particles.length,shots:shots.length,splashes:splashes.length,hasSkyPortal:!!lastView}}};
 })(typeof window!=='undefined'?window:globalThis);
