@@ -18,7 +18,7 @@ try{const o=JSON.parse(localStorage.getItem('mc-frutastrofe-save-v1')||'{}');if(
 const save=()=>{try{localStorage.setItem('mc-frutastrofe-save-v1',JSON.stringify(progress))}catch(e){}};
 let g=null,view='home',selected=1,isAR=false,arSession=null,hitSource=null,anchor=null,placement=null,reticle=null,glHit=false,arHitResult=null,arViewerSpace=null,arTargets=[],lastOverlay=0,arFrameCount=0;
 let lastTime=0,lastHud=0,toastUntil=0,pulseUntil=0,paused=false,musicEnabled=true,lastMusic=0,wasLost=false,autoFireTimer=null,lastFireAt=-9999,overlayCost=0,overlayInterval=56,lastUiTip='';
-let duel=null,musicCtx=null,touchAim=new THREE.Vector2(0,0),lastPointer=null;
+let duel=null,online=null,onlineMatch=null,musicCtx=null,touchAim=new THREE.Vector2(0,0),lastPointer=null;
 const show=name=>{view=name;for(const n of ['home','selector','hud','readyOverlay','pausePanel','results','arPanel'])$(n).style.display=n===name?'flex':'none';$('weapon').style.display=name==='hud'&&isAR?'block':'none';};
 function progressUI(){
  $('coinsHome').textContent='◉ '+number(progress.coins);
@@ -71,8 +71,8 @@ function events(){
 function getSeed(){const s=params.get('seed');return s&&/^\d+$/.test(s)?Number(s)>>>0:undefined}
 function createGame(mode='campaign',level=selected,seed){
  if(isAR&&arSession&&!placement){throw new Error('Primero fijá la pista AR')}
- g=C.create({mode,level,seed:seed??getSeed()});art.reset();if(isAR)O.clear();paused=false;lastHud=0;lastUiTip='';
- $('readyEyebrow').textContent=mode==='arcade'?'DESAFÍO ARCADE':'NIVEL '+String(level).padStart(2,'0');
+ g=C.create({mode,level,seed:seed??getSeed(),syncWave:!!online?.active});art.reset();if(isAR)O.clear();paused=false;lastHud=0;lastUiTip='';
+ $('readyEyebrow').textContent=online?.active?'DUELO ONLINE 1 VS 1':mode==='arcade'?'DESAFÍO ARCADE':'NIVEL '+String(level).padStart(2,'0');
  $('readyTitle').textContent=duel?'JUGADOR '+duel.turn+' · '+g.cfg.name:g.cfg.name;
  $('readyDescription').textContent=g.cfg.goal==='boss'?'La Sandía Gigante flota sobre la arena. Levantá la mira y acertale 12 disparos.':g.cfg.goal==='combos'?'¡Conseguí '+g.cfg.target+' cadenas de tres frutas iguales!':'¡Las frutas caen desde un portal EN EL CIELO! Apuntá hacia arriba, seguí su caída y dispará antes de que toquen la plataforma. Encadená tres iguales.';
  $('playTip').textContent='MANTENÉ ¡PUM! PARA DISPARAR RÁFAGAS · EVITÁ BOMBAS ROJAS';$('recenterBtn').style.display=isAR?'inline-block':'none';
@@ -98,22 +98,23 @@ function handleFinish(ev){
   const k=g.mode==='arcade'?'arcade':'level'+g.level;progress.scores[k]=Math.max(progress.scores[k]||0,g.score);
   const coins=Math.max(5,Math.floor(g.score/65))+g.stars*12;progress.coins+=coins;save();$('resultCoins').textContent='+'+coins;
  }else{$('resultCoins').textContent='—';if(duel.turn===1){duel.first=g.score}else{duel.second=g.score}}
- $('resultTop').textContent=duel?'DUELO LOCAL · TURNO '+duel.turn:g.mode==='arcade'?'FIN DEL ARCADE':'NIVEL '+g.level+' COMPLETADO';
+ $('resultTop').textContent=online?.active?'DUELO ONLINE · RONDA FINALIZADA':duel?'DUELO LOCAL · TURNO '+duel.turn:g.mode==='arcade'?'FIN DEL ARCADE':'NIVEL '+g.level+' COMPLETADO';
  $('resultStars').textContent=g.stars?'★'.repeat(g.stars)+'☆'.repeat(3-g.stars):'☆☆☆';
  $('resultTitle').textContent=duel&&duel.turn===2?(duel.second===duel.first?'¡EMPATE!':(duel.second>duel.first?'¡GANA JUGADOR 2!':'¡GANA JUGADOR 1!')):ev.win?'¡SÚPER JUGADA!':'¡CASI LO TENÉS!';
  $('resultScore').textContent=number(g.score);$('resultAccuracy').textContent=Math.round(g.hits/Math.max(1,g.shots)*100)+'%';$('resultChains').textContent=g.chains;
  if(duel&&duel.turn===2)$('resultTop').textContent='JUGADOR 1: '+number(duel.first)+' · JUGADOR 2: '+number(duel.second);
- $('nextBtn').style.display=duel&&duel.turn===1?'block':(!duel&&ev.win&&g.mode==='campaign'&&g.level<10?'block':'none');
+ $('nextBtn').style.display=online?.active?'none':duel&&duel.turn===1?'block':(!duel&&ev.win&&g.mode==='campaign'&&g.level<10?'block':'none');
  if(duel&&duel.turn===1)$('nextBtn').textContent='▶ TURNO JUGADOR 2';else $('nextBtn').textContent='▶ SIGUIENTE NIVEL';
- show('results');progressUI();
+ show('results');if(online?.active){$('replayBtn').textContent='↻ REVANCHA ONLINE';online.finish().catch(e=>console.warn('Resultado online:',e))}else $('replayBtn').textContent='↻ REVANCHA';progressUI();
 }
-function resetToMenu(){stopAutoFire();arTargets=[];O.clear();$('weapon').style.display='none';arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
+function resetToMenu(){if(online){online.close().catch(()=>{});online=null;onlineMatch=null}stopAutoFire();arTargets=[];O.clear();$('weapon').style.display='none';arMarker.visible=false;$('recenterBtn').style.display='none';if(arSession){arSession.end().catch(()=>{});arSession=null}isAR=false;placement=null;hitSource=null;anchor=null;duel=null;g=null;paused=false;art.world.scale.setScalar(1);art.world.position.set(0,0,0);renderer.setClearColor(0x070b23,1);art.scene.background=new THREE.Color(0x070b23);art.reset();show('home');}
 function matchFromResults(){
  if(duel&&duel.turn===1){duel.turn=2;createGame('arcade',1,duel.seed);return}
  if(!duel&&g?.mode==='campaign'&&g.level<10){selected=g.level+1;createGame('campaign',selected);return}
  resetToMenu();
 }
 function shareChallenge(){
+ if(online?.active){$('onlineShare').click();return}
  if(!g)return;const link=new URL(location.pathname,location.origin);link.searchParams.set('seed',g.seed);link.searchParams.set('mode',g.mode);if(g.mode==='campaign')link.searchParams.set('level',g.level);
  const txt='🍓 FRUTÁSTROFE · Hice '+number(g.score)+' puntos. ¿Me superás? '+link.toString();
  if(navigator.share){navigator.share({title:'FRUTÁSTROFE',text:txt}).catch(()=>{})}else{navigator.clipboard?.writeText(txt).then(()=>alertTxt('¡RETO COPIADO!',1300)).catch(()=>prompt('Compartí el enlace:',txt))}
@@ -155,7 +156,7 @@ for(const type of ['pointerup','pointercancel','lostpointercapture','pointerleav
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoFire()});
 window.addEventListener('blur',stopAutoFire);
 window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();fireAt(isAR?0:touchAim.x,isAR?0:touchAim.y)}if(e.code==='Escape'&&view==='hud')pauseGame()});
-function pauseGame(){if(!g||g.state!=='playing')return;stopAutoFire();paused=true;show('pausePanel')}
+function pauseGame(){if(online?.playing){alertTxt('DUELO ONLINE: EL RELOJ SIGUE CORRIENDO');return}if(!g||g.state!=='playing')return;stopAutoFire();paused=true;show('pausePanel')}
 $('pauseBtn').onclick=pauseGame;
 $('resumeBtn').onclick=()=>{paused=false;show('hud')};
 $('quitBtn').onclick=resetToMenu;
@@ -168,9 +169,27 @@ $('levelPlay').onclick=()=>startAR('campaign',selected);
 $('goBtn').onclick=startPlay;
 $('readyBack').onclick=resetToMenu;
 $('nextBtn').onclick=matchFromResults;
-$('replayBtn').onclick=()=>{if(duel){duel.turn=1;duel.first=duel.second=0;createGame('arcade',1,duel.seed)}else createGame(g.mode,g.level,g.seed)};
+$('replayBtn').onclick=()=>{if(online?.active){online.requestRematch().catch(e=>alertTxt(e.message));return}if(duel){duel.turn=1;duel.first=duel.second=0;createGame('arcade',1,duel.seed)}else createGame(g.mode,g.level,g.seed)};
 $('menuBtn').onclick=resetToMenu;
 $('shareBtn').onclick=shareChallenge;
+async function openFrutaOnline(){
+ try{
+  if(!online){
+   const mod=await import('./frutastrofe-online.js');
+   online=mod.createFrutaOnline({
+    openAR:()=>startAR('arcade',1),
+    closeOnline:()=>resetToMenu(),
+    begin:match=>{
+     onlineMatch=match;duel=null;createGame('arcade',1,match.seed);startPlay();
+     alertTxt('⚔️ ¡DUELO ONLINE EN MARCHA!',1450);
+    },
+    stats:()=>g?{score:g.score,shots:g.shots,hits:g.hits,chains:g.chains}:null
+   });
+  }
+  show('onlineRoom');online.open();
+ }catch(e){console.warn('No se pudo abrir online:',e);alert('No se pudo conectar al modo online: '+e.message);show('home')}
+}
+$('onlineBtn').onclick=openFrutaOnline;
 let nextAR={mode:'arcade',level:1};
 async function startAR(mode,level){
  nextAR={mode,level};
@@ -189,7 +208,7 @@ async function startAR(mode,level){
   $('arTitle').textContent='BUSCÁ EL PISO';$('arMessage').textContent='Apuntá a un suelo despejado. Cuando aparezca LISTO PARA FIJAR, tocá el botón.';
   Object.assign($('arPanel').style,{background:'transparent',alignItems:'flex-end',backdropFilter:'none'});
   Object.assign($('arPanel').querySelector('.modal').style,{background:'#100c2bd9',maxWidth:'440px',padding:'13px',marginBottom:'12px'});
-  arSession.addEventListener('end',()=>{O.clear();isAR=false;arSession=null;hitSource=null;anchor=null;placement=null;art.world.visible=true;art.world.scale.setScalar(1);art.world.position.set(0,0,0);art.scene.background=new THREE.Color(0x070b23);art.scene.fog=new THREE.FogExp2(0x090d25,.021);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=true;renderer.setPixelRatio(Math.min(1.5,devicePixelRatio||1));$('arPanel').removeAttribute('style');$('arPanel').querySelector('.modal').removeAttribute('style');if(view==='hud'||view==='arPanel'||view==='readyOverlay'||view==='pausePanel')resetToMenu()},{once:true});
+  arSession.addEventListener('end',()=>{O.clear();isAR=false;arSession=null;hitSource=null;anchor=null;placement=null;art.world.visible=true;art.world.scale.setScalar(1);art.world.position.set(0,0,0);art.scene.background=new THREE.Color(0x070b23);art.scene.fog=new THREE.FogExp2(0x090d25,.021);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=true;renderer.setPixelRatio(Math.min(1.5,devicePixelRatio||1));$('arPanel').removeAttribute('style');$('arPanel').querySelector('.modal').removeAttribute('style');if(online?.active||view==='hud'||view==='arPanel'||view==='readyOverlay'||view==='pausePanel')resetToMenu()},{once:true});
  }catch(err){console.warn('Frutástrofe AR:',err);isAR=false;art.world.visible=true;art.scene.background=new THREE.Color(0x070b23);art.world.scale.setScalar(1);renderer.shadowMap.enabled=true;renderer.setPixelRatio(Math.min(1.5,devicePixelRatio||1));alert('No se pudo abrir Frutástrofe AR: '+err.message+'\nNecesitás Chrome Android con ARCore.');show('home')}
 }
 $('arLock').onclick=async()=>{
@@ -198,7 +217,7 @@ $('arLock').onclick=async()=>{
  if(arHitResult&&typeof arHitResult.createAnchor==='function'){try{anchor=await arHitResult.createAnchor()}catch(e){console.warn('Ancla no disponible, usando pose fija del piso:',e.message)}}
  $('arLock').disabled=true;hitSource?.cancel?.();hitSource=null;
  // The scene is fixed in local-floor coordinates; moving the device NEVER rewrites the anchor transform.
- if(g&&paused){paused=false;show('hud');}else createGame(nextAR.mode,nextAR.level,duel?.seed??window.__frutaSharedChallenge?.seed);
+ if(g&&paused){paused=false;show('hud')}else if(online?.active){show('onlineRoom');online.onArenaFixed()}else createGame(nextAR.mode,nextAR.level,duel?.seed??window.__frutaSharedChallenge?.seed);
 };
 $('arCancel').onclick=resetToMenu;
 $('recenterBtn').onclick=async()=>{
@@ -222,7 +241,20 @@ function arFrame(frame){
 function onFrame(t,frame){
  const sec=t/1000,dt=clamp(lastTime?sec-lastTime:0,0,.95);lastTime=sec;
  if(isAR)arFrame(frame);
- if(g&&view==='hud'&&g.state==='playing'&&!paused){let simulationRemaining=dt;while(simulationRemaining>.0001&&g.state==='playing'){const step=Math.min(.05,simulationRemaining);g.update(step);simulationRemaining-=step}events();if(t-lastHud>95){hudUpdate();lastHud=t}moodMusic(sec)}
+ if(online?.active)online.frame();
+ if(g&&view==='hud'&&g.state==='playing'&&online?.playing){
+  // Fixed timestep from the SERVER clock. All online clients simulate exactly
+  // the same launch slots regardless of FPS and independent shot decisions.
+  const target=online.elapsed;let steps=0;
+  while(g.elapsed+.00001<target&&g.state==='playing'&&steps++<34){
+   g.update(Math.min(.05,target-g.elapsed));
+  }
+  events();if(t-lastHud>95){hudUpdate();lastHud=t}moodMusic(sec);
+ }else if(g&&view==='hud'&&g.state==='playing'&&!paused){
+  let simulationRemaining=dt;
+  while(simulationRemaining>.0001&&g.state==='playing'){const step=Math.min(.05,simulationRemaining);g.update(step);simulationRemaining-=step}
+  events();if(t-lastHud>95){hudUpdate();lastHud=t}moodMusic(sec)
+ }
  if(!g&&view==='home'&&!isAR){
   const kinds=['strawberry','orange','watermelon','apple','lemon','gold','ice','rainbow','strawberry','orange','apple','lemon'];
   const mock=kinds.map((kind,i)=>({id:10000+i,kind,x:Math.sin(i*2.4)*2.65,y:1.1+(i%4)*.82+Math.sin(sec*.9+i)*.28,z:Math.cos(i*2.3)*.35,rot:sec*(.42+(i%3)*.14),dead:false}));
@@ -254,6 +286,7 @@ renderer.setAnimationLoop(onFrame);
 function resize(){const w=innerWidth,h=innerHeight;art.camera.aspect=w/h;art.camera.fov=h>w?52:48;art.camera.updateProjectionMatrix();renderer.setSize(w,h);renderer.setPixelRatio(isAR?1:Math.min(devicePixelRatio||1,1.5))}
 addEventListener('resize',resize);resize();
 progressUI();show('home');
+if(params.has('duel')&&/^[0-9a-fA-F]{8}$/.test(params.get('duel')||''))openFrutaOnline();
 if(params.has('qa'))window.__frutaQA={
  state:()=>({view,elapsed:g?.elapsed,score:g?.score,objects:g?.objects.length,status:g?.state,shots:g?.shots,phase:g?.phase,overlayCost,overlayInterval,frames:renderer.info.render.frame,arOnly:isAR,projectedSprites:arTargets.length}),
  finish:()=>g?.finish(true),
