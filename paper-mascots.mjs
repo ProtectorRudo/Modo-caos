@@ -8,9 +8,9 @@ export const MASCOT_DATA=[
  {species:'axolotl',name:'AXI',fur:'#ffa6c8',dark:'#d86c9e',light:'#ffcee4',hoodie:'#bfa4f3',ear:'gill'},
  {species:'penguin',name:'PINGO',fur:'#1e344f',dark:'#101e30',light:'#f8fcfd',hoodie:'#2f88e8',ear:'none'},
  {species:'raccoon',name:'ROCKY',fur:'#7b8190',dark:'#3a4253',light:'#f6f4ef',hoodie:'#874cae',ear:'round'},
- {species:'frog',name:'BRINCO',fur:'#78cf43',dark:'#43982c',light:'#c1f59f',hoodie:'#f0bc31',ear:'frog'},
- {species:'fox',name:'FENIX',fur:'#ed8639',dark:'#965333',light:'#fff0d2',hoodie:'#e65a36',ear:'point'},
- {species:'bear',name:'OSO',fur:'#aa7d52',dark:'#6c472d',light:'#e3c7a0',hoodie:'#ebad2f',ear:'round'}
+ {species:'banana',name:'BANANI',fur:'#ffe04c',dark:'#c58c1c',light:'#fff3a3',hoodie:'#6d4ef4',ear:'banana'},
+ {species:'screen',name:'PIXO',fur:'#6de8f4',dark:'#103c60',light:'#b4ffff',hoodie:'#172a66',ear:'screen'},
+ {species:'bull',name:'TORO',fur:'#bf7b53',dark:'#684838',light:'#f9cfac',hoodie:'#e85b44',ear:'horn'}
 ];
 const geometryCache=new WeakMap();
 const materialCache=new WeakMap();
@@ -89,7 +89,19 @@ export function buildMascot(THREE,index){
  }
  // Giant head, roughly 55% of total character height.
  const head=new THREE.Group();head.position.set(0,4.85,.22);root.add(head);rig.head=head;
- ellipse(head,m.fur,0,0,0,1.47,1.35,1.22);
+ if(d.ear==='screen'){
+  const chassis=shape(head,m.dark,1.45,1.40,2.48,0,0,-.08);
+  chassis.rotation.z=Math.PI/2;
+  ellipse(head,m.fur,0,0,.84,1.30,1.05,.37);
+  ellipse(head,mat('#12243c',.18,.18),0,-.02,1.09,1.14,.87,.24);
+ }else if(d.ear==='banana'){
+  ellipse(head,m.fur,0,0,0,1.17,1.66,1.10);
+  const crest=cone(head,m.fur,-.18,1.50,-.04,.55,1.05,.43);
+  crest.rotation.z=.42;
+  ellipse(head,m.dark,.28,1.80,.1,.16,.24,.14);
+ }else{
+  ellipse(head,m.fur,0,0,0,1.47,1.35,1.22);
+ }
  // Species-specific face outline and ears.
  if(d.ear==='round'){
   for(const side of [-1,1]){
@@ -109,6 +121,14 @@ export function buildMascot(THREE,index){
    const g=ellipse(head,m.dark,side*(1.40+k*.12),.58+(k-1)*.40,.12,.62,.16,.22);
    g.rotation.z=side*(k-1)*.47;
    ellipse(head,m.light,side*(1.8+k*.07),.58+(k-1)*.40,.24,.13,.15,.16);
+  }
+ }
+ if(d.ear==='horn'){
+  for(const side of [-1,1]){
+   ellipse(head,m.fur,side*1.36,.65,-.05,.54,.34,.36);
+   const horn=cone(head,mat('#fff1d1'),side*1.08,1.31,-.18,.40,.92,.40);
+   horn.rotation.z=-side*.24;
+   ellipse(head,m.dark,side*1.30,.35,.55,.24,.18,.10);
   }
  }
  if(d.ear==='frog'){
@@ -134,9 +154,9 @@ export function buildMascot(THREE,index){
  }
  // Facial expression: eyes are deliberately large and glossy.
  for(const side of [-1,1]){
-  const xx=side*.59,yy=d.species==='frog'?.48:.20,zz=d.species==='frog'?1.30:1.08;
+  const xx=side*.59,yy=d.species==='frog'?.48:.20,zz=d.species==='screen'?1.39:d.species==='frog'?1.30:1.08;
   ellipse(head,m.eye,xx,yy,zz,.36,.46,.22);
-  const pupil=ellipse(head,m.ink,xx+side*.035,yy-.025,zz+.205,.225,.29,.13);
+  const pupil=ellipse(head,d.species==='screen'?mat('#52f6ff',.12,.20):m.ink,xx+side*.035,yy-.025,zz+.205,.225,.29,.13);
   ellipse(head,m.shine,xx-.095,yy+.11,zz+.32,.085,.11,.06);
   rig.eyes.push({node:pupil,side});
  }
@@ -147,6 +167,13 @@ export function buildMascot(THREE,index){
  }else if(d.species==='frog'){
   const smile=ellipse(head,m.mouth,0,-.54,1.07,.63,.15,.13);
   ellipse(head,m.light,0,-.48,1.20,.56,.09,.08);
+ }else if(d.species==='screen'){
+  const smile=new THREE.Mesh(new THREE.TorusGeometry(.31,.07,8,20,Math.PI),mat('#4ff8f4',.2,.22));head.add(smile);smile.position.set(0,-.44,1.48);
+  smile.rotation.z=Math.PI;
+ }else if(d.species==='banana'){
+  ellipse(head,m.mouth,0,-.54,1.02,.34,.085,.07);
+  ellipse(head,mat('#f5a3af'),-.85,-.40,.88,.22,.11,.06);
+  ellipse(head,mat('#f5a3af'),.85,-.40,.88,.22,.11,.06);
  }else if(d.species==='axolotl'){
   ellipse(head,m.light,0,-.54,1.06,.62,.31,.18);
   ellipse(head,m.mouth,0,-.62,1.23,.39,.09,.045);
@@ -159,6 +186,7 @@ export function buildMascot(THREE,index){
   ellipse(head,m.light,-.85,-.49,.97,.21,.12,.07);
   ellipse(head,m.light,.85,-.49,.97,.21,.12,.07);
  }
+ if(d.species==='bull'){ellipse(head,m.light,0,-.49,1.13,.83,.54,.48);ellipse(head,m.dark,-.32,-.39,1.54,.13,.11,.08);ellipse(head,m.dark,.32,-.39,1.54,.13,.11,.08);}
  if(d.species==='bear'){
   ellipse(head,m.light,0,-.35,1.16,.76,.55,.33);
  }
@@ -169,15 +197,18 @@ export function buildMascot(THREE,index){
   ellipse(head,m.trim,0,1.07,.72,1.3,.10,.12);
  }
  if(d.species==='raccoon')ellipse(head,m.coat,0,1.24,-.22,1.17,.19,.67);
+ if(d.species==='screen'){for(const side of [-1,1])ellipse(head,m.light,side*1.29,-.37,.24,.15,.33,.34);}
+ if(d.species==='banana')ellipse(head,mat('#fff0aa'),0,-1.13,.45,.70,.28,.45);
  return{root,rig,data:d,modelHeight:6.9};
 }
 export function animateMascot(actor,seconds,mode='idle',opponent=false){
  const rig=actor.mascotRig;if(!rig)return;
  // Absolute, time-derived poses. Nothing is multiplied onto last frame.
  const t=Math.max(0,Number.isFinite(seconds)?seconds:0);
- const speed=mode==='dance'?2*Math.PI*.76:mode==='run'?8.4:1.9;
+ const dancing=mode==='dance'||mode==='emote_sixseven';
+ const speed=dancing?2*Math.PI*.76:mode==='run'?8.4:mode==='emote_dance'?6.8:3.5;
  const phase=t*speed+(opponent?.30:0);
- if(mode==='dance'){
+ if(dancing){
   // Six-Seven: alternating, open palms moving gently in opposite directions.
   // Shoulders stay above the waist and within safe anatomical rotation limits.
   const wave=Math.sin(phase);
@@ -194,6 +225,20 @@ export function animateMascot(actor,seconds,mode='idle',opponent=false){
   rig.body.rotation.z=Math.sin(phase)*.038;
   rig.feet[0].node.rotation.x=Math.sin(phase*.5)*.055;
   rig.feet[1].node.rotation.x=Math.sin(phase*.5+Math.PI)*.055;
+ }else if(mode.startsWith('emote_')){
+  const wave=Math.sin(phase),power=Math.sin(phase*.5),side=mode==='emote_flex'?.95:.4;
+  rig.left.rotation.z=-.3-side*Math.abs(power);
+  rig.right.rotation.z=.3+side*Math.abs(power);
+  rig.left.rotation.x=mode==='emote_heart'?.5:.06;
+  rig.right.rotation.x=mode==='emote_heart'?.5:.06;
+  if(mode==='emote_hello'){rig.left.rotation.z=-.30;rig.right.rotation.z=.65+.24*wave;}
+  if(mode==='emote_laugh'){rig.left.rotation.z=-.46+.08*wave;rig.right.rotation.z=.46-.08*wave;}
+  if(mode==='emote_dance'){rig.left.rotation.z=-.55+wave*.35;rig.right.rotation.z=.55+wave*.35;}
+  rig.head.rotation.z=mode==='emote_laugh'?.07*wave:.035*wave;
+  rig.body.rotation.z=mode==='emote_dance'?.16*wave:.035*wave;
+  rig.feet.forEach((leg,i)=>{leg.node.rotation.x=mode==='emote_dance'?Math.sin(phase+i*Math.PI)*.28:0;});
+  if(rig.leftPalm){rig.leftPalm.rotation.z=0;rig.leftPalm.rotation.x=0;}
+  if(rig.rightPalm){rig.rightPalm.rotation.z=0;rig.rightPalm.rotation.x=0;}
  }else if(mode==='run'){
   rig.left.rotation.z=-.12+Math.sin(phase)*.22;
   rig.right.rotation.z=.12+Math.sin(phase+Math.PI)*.22;
