@@ -1,0 +1,241 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#080c1f"><title>RITMO CAOS 🎸 · MODO CAOS</title>
+<style>
+:root{--cyan:#65fbe2;--white:#f3ffff;--dark:#0a1127}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#060a1a;color:var(--white);font:15px system-ui,-apple-system,sans-serif}
+button,select{border:0;border-radius:12px;font:800 13px system-ui;min-height:42px;padding:9px 13px;cursor:pointer}
+button{background:#73ffe2;color:#09283c}button.alt{color:#f0ffff;background:#152d44;border:1px solid #497585}
+button:disabled{opacity:.38}small,p{line-height:1.5}a{color:#a7ffe9}
+#home{position:fixed;inset:0;z-index:30;overflow-y:auto;display:flex;align-items:center;flex-direction:column;padding:19px 17px 35px;text-align:center;background:radial-gradient(ellipse at 35% 12%,#194371,#0b1638 44%,#050817 88%)}
+#home .wrap{max-width:480px;width:100%}#back{display:block;text-align:left;text-decoration:none;font-weight:900;font-size:12px;color:#a6ffe2}
+.kicker{margin:28px 0 5px;font-size:10px;letter-spacing:3px;color:#a4ffd2;font-weight:1000}
+h1{font-size:clamp(45px,12vw,72px);letter-spacing:-3px;line-height:1;margin:8px 0;font-weight:1000;text-shadow:0 6px 30px #0008}
+h1 span{background:linear-gradient(95deg,#4cff85,#ff5274,#ffd34c,#438eff,#ff9b38);color:transparent;background-clip:text;-webkit-background-clip:text}
+.intro{margin:8px auto 15px;color:#ccdeef;font-size:13px;max-width:410px}
+.hero{position:relative;width:100%;height:185px;border:1px solid #547eb4;border-radius:22px;overflow:hidden;background:radial-gradient(ellipse at bottom,#1c5a75,#101a3c 58%,#121029)}
+.stage{position:absolute;left:12%;right:12%;top:-18%;height:133%;transform:perspective(270px) rotateX(45deg);display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.stage i{border:2px solid var(--c);background:linear-gradient(0deg,transparent,#ffffff15);box-shadow:0 0 20px var(--c)}
+.stage i:before{content:'●';position:absolute;bottom:10%;color:var(--c);font-size:31px;filter:drop-shadow(0 0 10px var(--c))}
+.stage i:nth-child(1){--c:#4cff85}.stage i:nth-child(2){--c:#ff5274}.stage i:nth-child(3){--c:#ffd34c}.stage i:nth-child(4){--c:#438eff}.stage i:nth-child(5){--c:#ff9b38}
+.hero strong{position:absolute;left:0;right:0;top:15px;font-size:16px;letter-spacing:3px;text-shadow:0 2px 15px #000}
+.features{display:flex;justify-content:center;flex-wrap:wrap;gap:5px;margin:12px 0 17px}.features b{font-size:10px;padding:7px 9px;border-radius:9px;background:#122b46;color:#c3e9ee;border:1px solid #335d75}
+.config{display:grid;grid-template-columns:1fr 1fr;gap:9px;text-align:left;margin:10px 0}
+.config label{display:grid;gap:5px;color:#bdd7e5;font-size:11px;font-weight:850}
+select{width:100%;background:#112c46;color:white;border:1px solid #467c9b;min-height:48px}
+#enter{width:100%;min-height:57px;font-size:15px;background:linear-gradient(115deg,#73ffde,#bfffe9)}
+#openChrome{display:block;margin:9px 0 4px;text-decoration:none;border:1px solid #3b7e91;background:#153853;color:#e4fff9;border-radius:10px;font-size:12px;font-weight:900;padding:12px 10px}#demo{width:100%;margin-top:9px;min-height:49px}
+#localPanel{display:none;text-align:left;border:1px solid #69bdba;background:#0b2944;border-radius:13px;padding:12px;margin:10px 0;font-size:12px;color:#d7eeef}
+#localPanel label{display:block;font-size:12px;font-weight:900;margin-bottom:5px}
+#localFile{display:block;width:100%;margin-top:7px;color:#e9ffff;font-size:12px}
+#fileStatus{font-size:11px;color:#ffe4a5;margin-top:7px}#beatOffset{width:100%}#beatOffsetLabel{color:#a7ffce}
+#precheck{color:#abc7da;font-size:11px;margin:16px 2px}
+#launchStatus[hidden]{display:none!important}#launchStatus{padding:12px 13px;margin:10px 0;border:2px solid #ffcf76;border-radius:13px;background:#271b28;color:#fff2b3;text-align:left;font-size:13px;font-weight:850;line-height:1.5}#audioStatus{margin:8px auto;max-width:460px;border:1px solid #52758b;background:#0b2339b9;color:#c3ecf4;font-size:11px;font-weight:800;border-radius:10px;padding:8px 10px}#bestIntro{color:#fddd83;font-size:12px;font-weight:850;margin:8px}
+.details{padding:10px;text-align:left;background:#0b1e37;border:1px solid #2d5570;border-radius:13px;margin-top:9px;font-size:11px;color:#c4dbe6}
+.details summary{font-weight:800;cursor:pointer}.details input{width:100%}
+#overlay{position:fixed;inset:0;display:none;pointer-events:none;z-index:10;overflow:hidden;background:transparent}
+#tiles,#rtSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#tiles{opacity:0}#rtSvg{z-index:2}
+#fxCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:12;pointer-events:none}
+#holdHud{display:none;position:absolute;z-index:13;left:16%;right:16%;bottom:clamp(180px,27vh,275px);pointer-events:none;text-align:center;border:2px solid #edffffa0;border-radius:15px;padding:9px 14px;background:#05172cdb;box-shadow:0 0 26px #65ffe94c}
+#holdText{font-size:17px;color:white;font-weight:1000;text-shadow:0 0 12px #6bf8ff;letter-spacing:1px}
+#holdTrack{height:10px;border:1px solid #f8ffff91;border-radius:16px;overflow:hidden;margin-top:7px;background:#18334f}
+#holdFill{height:100%;width:0;background:linear-gradient(90deg,#4cff85,#eaffff,#ffd34c);box-shadow:0 0 18px #66ffff;transition:width .075s linear}
+#holdCount{font-size:11px;margin-top:4px;color:#d8fff4;font-weight:900}
+.hudRow .streak{border-color:#ffe27e!important;box-shadow:0 0 16px #ffd15c8c,inset 0 0 13px #ffda8a2c;animation:comboGlow .65s ease-in-out infinite alternate}
+@keyframes comboGlow{from{filter:brightness(1)}to{filter:brightness(1.35)}}
+#gameCanvas{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:auto;touch-action:none}
+#reticle{position:absolute;left:50%;top:50%;width:28px;height:28px;border:3px solid var(--cyan);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 18px #69ffe7}
+#touchpad{position:absolute;left:0;right:0;top:20%;bottom:31%;display:none;pointer-events:auto;touch-action:none;z-index:6}
+#head{position:absolute;top:max(14px,env(safe-area-inset-top));left:12%;right:12%;text-align:center;z-index:4;text-shadow:0 2px 12px #000}
+#headline{font-size:clamp(20px,6vw,31px);font-weight:1000}
+#subtitle{font-size:11px;font-weight:700;color:#ccf2f1}
+#calibrate{position:absolute;top:19%;left:5%;right:5%;text-align:center;padding:7px;border-radius:10px;background:#10293ce5;color:#d4fff4;font-size:10px;font-weight:900;display:none}
+#fallback{position:absolute;top:40%;left:7%;right:7%;background:#08223de9;border:1px solid #54d8d7a8;color:#e1fffb;font-weight:800;line-height:1.55;text-align:center;border-radius:15px;padding:15px;display:none;z-index:10;pointer-events:none}
+#rescan{display:none;position:absolute;left:14%;right:14%;width:72%;top:62%;min-height:52px;color:#032a3f;background:#83ffe6;border:1px solid #b6ffff;box-shadow:0 2px 16px #0009;z-index:13;pointer-events:auto}
+#toolbar{display:none;position:absolute;bottom:max(125px,env(safe-area-inset-bottom) + 122px);left:7%;right:7%;gap:5px;pointer-events:auto;z-index:12}
+#toolbar button{flex:1;min-width:0;background:#142c49df;color:white;border:1px solid #55b8ac}
+#toolbar #size{flex:1.5;font-size:11px}
+#lock{display:block;position:absolute;bottom:max(49px,env(safe-area-inset-bottom) + 43px);left:7%;right:7%;width:86%;pointer-events:auto;z-index:11;min-height:56px;font-size:15px}
+#mock,#support,#notice,#play,#edit,#diagbtn,#debug{display:none!important}
+#topActions{position:absolute;top:max(10px,env(safe-area-inset-top));left:8px;right:8px;display:flex;justify-content:space-between;pointer-events:auto;z-index:14}
+#topActions button{background:#081d35dc;color:white;border:1px solid #628292;font-size:11px;padding:6px 9px;min-height:32px}
+#hud{position:absolute;top:54px;left:8px;right:8px;z-index:13;display:none;pointer-events:none}
+.hudRow{display:flex;justify-content:space-between;gap:7px}.hudRow div{background:#07162ad8;border:1px solid #406984;border-radius:11px;min-width:0;flex:1;text-align:center;font-size:9px;font-weight:900;padding:7px 3px;color:#c4dcec}
+.hudRow strong{font-size:18px;color:#ffffff;display:block;font-variant-numeric:tabular-nums}
+#progress{height:4px;border-radius:10px;background:#17465b;margin-top:7px;overflow:hidden}#progressFill{background:linear-gradient(90deg,#4cff85,#438eff,#ff9b38);height:100%;width:0}
+#where{position:absolute;left:50%;bottom:max(141px,env(safe-area-inset-bottom) + 129px);transform:translateX(-50%);padding:8px 13px;background:#051a32d9;border:1px solid #507b97;border-radius:22px;min-width:170px;text-align:center;font-size:12px;font-weight:1000;z-index:10;display:none;pointer-events:none;white-space:nowrap}
+#forecast{display:flex;gap:6px;justify-content:center;margin-top:8px}#forecast i{width:13px;height:13px;border:1px solid white;border-radius:50%}
+#toast{position:absolute;top:34%;left:5%;right:5%;font-size:clamp(24px,7vw,40px);font-weight:1000;text-align:center;text-shadow:0 3px 19px #000;pointer-events:none;z-index:14;opacity:0;transition:opacity .19s}
+#prepare{position:absolute;left:7%;right:7%;bottom:max(18px,env(safe-area-inset-bottom) + 12px);z-index:13;display:none;pointer-events:auto}
+#calPanel{border-radius:15px;border:1px solid #4e9eb0;background:#091d37ee;padding:11px;text-align:center;margin-bottom:8px}
+#calTitle{font-weight:1000;font-size:13px}#calHint{font-size:10px;color:#bad7e8;margin:5px}
+#pickLanes{display:flex;justify-content:center;gap:8px;margin:10px 0}
+#pickLanes button{border:2px solid #ffffff99;border-radius:50%;background:var(--lane);min-height:0;padding:0;width:clamp(48px,13vw,62px);height:clamp(48px,13vw,62px);color:#082137;font-weight:1000;font-size:18px}
+#pickLanes button.selected{border:4px solid white;box-shadow:0 0 17px var(--lane);transform:scale(1.07)}
+#calProgress{width:100%;height:5px;background:#26465b;border-radius:10px;overflow:hidden}
+#calFill{height:100%;background:var(--cyan);width:0}
+#rtStart{width:100%;min-height:56px;font-size:17px}
+#rtRecenter{margin-top:6px;width:100%;min-height:36px}
+#gamePause{display:none}
+#result{display:none;position:absolute;inset:0;z-index:18;pointer-events:auto;align-items:center;justify-content:center;background:#050b1def;padding:17px;text-align:center}
+#result .card{width:min(420px,100%);border:1px solid #6b98aa;background:linear-gradient(155deg,#153457,#0b1832);border-radius:23px;padding:21px 18px;box-shadow:0 20px 55px #000a}
+#result h2{font-size:clamp(28px,8vw,42px);letter-spacing:-1px;margin:9px 0}
+#result .rank{color:#ffe08d;font-size:13px;font-weight:1000}
+#resultStats{line-height:1.9;color:#d0e8f2;font-size:13px}
+#result button{width:100%;margin-top:7px}
+#demoControls{display:none;position:absolute;bottom:35px;left:14%;right:14%;justify-content:space-between;pointer-events:auto;z-index:12}
+#demoControls button{font-size:25px;font-weight:1000;background:#133450d9;color:white;border:1px solid #71d7db;min-width:78px}
+@media(max-height:700px){#prepare{bottom:6px}#where{bottom:124px}#hud{top:43px}#pickLanes button{width:32px;height:32px}#calPanel{padding:7px}}
+
+/* NEON LIVE 3D · compact camera-safe overlay; only changes Ritmo */
+#playerBadge{display:none;position:absolute;z-index:7;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;font-family:system-ui,sans-serif;letter-spacing:.12em;font-size:clamp(12px,3vw,15px);font-weight:1000;color:#eeffff;text-shadow:0 0 8px #5cfbff,0 0 20px #16c8ff,0 2px 3px #04111b}
+#playerBadge:after{content:"";display:block;margin:1px auto 0;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #bbffff;filter:drop-shadow(0 0 5px #61faff)}
+#topActions{top:max(7px,env(safe-area-inset-top));left:10px;right:10px}
+#topActions button{background:linear-gradient(135deg,#0a1629e8,#113452d9);border-color:#74c5db88;box-shadow:0 2px 9px #0008}
+#hud{top:max(49px,env(safe-area-inset-top) + 46px);left:12px;right:12px}
+.hudRow{gap:5px}
+.hudRow div{border:1px solid #73d7ff78;border-radius:12px;padding:7px 3px;background:linear-gradient(150deg,#0b2544c7,#07152bc2);box-shadow:inset 0 0 12px #38baff18,0 2px 9px #0008;backdrop-filter:blur(7px);font-size:9px}
+.hudRow strong{font-size:clamp(15px,4.5vw,20px);text-shadow:0 0 9px #ffffff40}
+#progress{height:3px;background:#0e2c53a5;margin:5px 3px}
+#forecast{margin-top:5px;gap:7px}
+#forecast i{width:12px;height:12px;border:1px solid #fff7;box-shadow:0 0 9px currentColor}
+#where{bottom:max(75px,env(safe-area-inset-bottom) + 64px);border:1px solid #68d6f2ad;font-size:11px;min-width:0;padding:6px 10px;background:#081b2acb}
+#prepare{left:7%;right:7%;bottom:max(12px,env(safe-area-inset-bottom) + 8px)}
+#calPanel{padding:13px 11px 10px;background:linear-gradient(165deg,#06142bef,#0c3353df);border:1px solid #7feaff86;border-radius:17px;box-shadow:0 4px 34px #0009,inset 0 0 22px #4ac7fb18;backdrop-filter:blur(11px)}
+#calTitle{font-size:15px;letter-spacing:.015em}
+#calHint{font-size:11px;line-height:1.5;color:#b8dfeb}
+#pickLanes{gap:12px;margin:9px 0}
+#pickLanes button{width:clamp(43px,12vw,56px);height:clamp(43px,12vw,56px);border:2px solid #ffffffb8;box-shadow:inset 0 3px 12px #ffffff44,0 3px 10px #0007}
+#rtStart{min-height:54px;background:linear-gradient(105deg,#66ffe2,#a6fff1);color:#063548;border:none;box-shadow:0 3px 18px #6bfad23d}
+#rtRecenter{min-height:32px;font-size:12px;margin-top:5px}
+#holdHud{bottom:clamp(128px,24vh,222px);left:18%;right:18%;padding:7px 10px;border-width:1px;box-shadow:0 0 23px #65ffe94c;background:linear-gradient(150deg,#05172bdc,#0f3550d9)}
+#holdText{font-size:13px}
+#holdTrack{height:9px}
+#holdCount{font-size:10px}
+#gamePause{font-size:12px!important}
+#quality{font-size:10px!important;letter-spacing:0!important;min-width:58px;padding-left:5px!important;padding-right:5px!important;background:#0a2236dc!important;border-color:#8ecafc88!important}
+@media(max-height:700px){#calPanel{padding:7px}#pickLanes button{width:42px;height:42px}#holdHud{bottom:145px}}
+
+
+/* NEON STUDIO | polished low-occlusion AR game HUD */
+#topActions{padding:2px 0;gap:7px;align-items:center;top:max(8px,env(safe-area-inset-top) + 2px)}
+#topActions button{border-radius:100px;background:linear-gradient(125deg,#071322e8,#0d2b44d7);border:1px solid #9cecff66;box-shadow:0 4px 15px #0009,inset 0 1px 0 #dcffff24;min-height:35px;font-weight:850}
+#topActions #exit{font-size:11px}
+#hud{top:max(54px,env(safe-area-inset-top) + 48px);left:13px;right:13px}
+.hudRow{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:0;background:linear-gradient(120deg,#04182ad4,#0a2440bf);border:1px solid #8aebff55;box-shadow:0 7px 25px #0006,inset 0 1px 0 #d9ffff20;backdrop-filter:blur(12px);border-radius:16px;overflow:hidden}
+.hudRow>div{min-width:0;background:transparent;border:0;border-radius:0;border-right:1px solid #7ca7bb37;box-shadow:none;padding:8px 3px 7px;font-size:9px;letter-spacing:.05em;color:#c4e5ef}
+.hudRow>div:last-child{border-right:0}
+.hudRow strong{font-size:clamp(17px,4.6vw,24px);font-weight:1000;line-height:1.35}
+.hudRow>div:nth-child(2) strong{color:#ffe9b5}
+.hudRow>div:nth-child(3) strong{color:#b3ffe9}
+#progress{margin:7px 7px 0;height:3px;box-shadow:0 0 9px #67f2ed66}
+#forecast{margin-top:5px;gap:9px}
+#forecast i{width:11px;height:11px;box-shadow:0 0 9px currentColor}
+#where{font-size:10px;min-width:0;bottom:max(47px,env(safe-area-inset-bottom) + 40px);padding:6px 11px;letter-spacing:.015em;background:#071729c9;border-color:#8bdeef65}
+#playerBadge{font-size:12px;letter-spacing:.15em}
+#playerBadge:after{border-top-color:#92fafe}
+#toast{font-size:clamp(20px,6vw,32px);text-shadow:0 0 15px #16ffffad,0 3px 13px #000}
+#holdHud{bottom:clamp(105px,19vh,175px);border-radius:100px;box-shadow:0 3px 25px #0009,0 0 18px #65ffe955}
+#prepare{left:8%;right:8%}
+#calPanel{background:linear-gradient(155deg,#061528ed,#102f48e8);box-shadow:0 13px 28px #0009,0 0 16px #76fbdf28;border:1px solid #7ceddb83}
+#calHint{max-width:300px;margin:6px auto 8px}
+#rtStart{border-radius:15px;box-shadow:0 3px 12px #20fbd444}
+@media(max-width:355px){#topActions button{font-size:10px!important;padding:5px 6px}#quality{min-width:48px!important}.hudRow>div{font-size:8px}.hudRow strong{font-size:16px}}
+
+
+/* V28 NEON PRISM: stronger focus on physically anchored stage instead of UI boxes. */
+#hud{top:max(57px,env(safe-area-inset-top) + 48px);left:18px;right:18px}
+.hudRow{border-radius:14px;background:linear-gradient(115deg,#071f2add,#05192abc);
+ border-color:#6cf7f16b;box-shadow:0 4px 20px #0005,inset 0 1px #d9ffff38}
+.hudRow>div{padding:6px 2px 5px;font-size:8px;color:#b8e8ec}
+.hudRow strong{font-size:clamp(16px,4.5vw,21px);color:#ecffff;letter-spacing:-.02em}
+#progress{margin-top:5px}
+#forecast{margin-top:4px}
+#where{opacity:.85;bottom:max(35px,env(safe-area-inset-bottom) + 22px);font-size:9px}
+#playerBadge{text-shadow:0 0 13px #65ffff,0 0 26px #22ccff,0 2px 2px #03131a}
+#playerBadge:after{filter:drop-shadow(0 0 10px #61e9ff)}
+@media(max-height:700px){#hud{top:48px}.hudRow strong{font-size:16px}}
+
+</style></head><body>
+<main id="home"><div class="wrap">
+<a id="back" href="/">← VOLVER AL ARCADE</a>
+<div class="kicker">MODO CAOS · JUEGOS CON TU CUERPO</div>
+<h1>RITMO <span>CAOS</span></h1>
+<p class="intro">🎸 Las notas vienen hacia vos. <b>Vos sos el joystick:</b> movete de costado hasta el color justo cuando suene.</p>
+<div class="hero"><div class="stage"><i></i><i></i><i></i><i></i></div><strong>EL ESCENARIO ES TU CASA</strong></div>
+<div class="features"><b>🎸 NEON STUDIO 3D</b><b>🎼 DESPACITO + 11 TEMAS · NEON PRISM</b><b>🟢 4 CARRILES</b><b>👣 MOVIMIENTO REAL</b></div>
+<div class="config"><label>CANCIÓN<select id="song"><option value="despacito_remix_justin" selected>🔥 DESPACITO (REMIX) · Fonsi, Daddy Yankee y Justin Bieber · 80 s</option><option value="neon">⚡ Neón sin freno</option><option value="fuego">🎸 Fuego en el escenario</option><option value="solar">☀️ Solar latino</option><optgroup label="MELODÍAS CONOCIDAS · INCLUIDAS">
+<option value="alegria">🎻 Oda a la Alegría · Beethoven</option>
+<option value="elise">🎹 Para Elisa · Beethoven</option>
+<option value="jingle">🎄 Jingle Bells · Remix</option>
+<option value="twinkle">⭐ Estrellita ¿dónde estás? · Remix</option>
+<option value="frere">🎶 Frère Jacques · Remix</option>
+<option value="cumple">🎂 Cumpleaños Feliz · Remix</option>
+<option value="cucaracha">💃 La Cucaracha · Fiesta latina</option>
+<option value="saints">🎺 When the Saints · Jazz remix</option>
+</optgroup></select></label>
+<label>DIFICULTAD<select id="difficulty"><option value="facil">Fácil · 2 carriles</option><option value="normal" selected>Normal · 4 carriles</option><option value="dificil">Difícil</option><option value="caos">MODO CAOS</option></select></label></div>
+<button id="enter">📷 JUGAR DESPACITO EN REALIDAD AUMENTADA</button>
+<div id="launchStatus" role="alert" aria-live="assertive" hidden></div>
+<a id="openChrome" href="intent://modo-caos-eta.vercel.app/ritmo.html#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=https%3A%2F%2Fmodo-caos-eta.vercel.app%2Fritmo.html;end">🌐 ¿NO ABRE LA CÁMARA? ABRIR EN CHROME</a>
+<button id="demo" class="alt">🎮 PROBAR DEMO 2D (SIN SEGUIMIENTO FÍSICO)</button>
+<div id="audioStatus" role="status" aria-live="polite">🎵 Preparando Despacito (Remix)…</div>
+<div id="bestIntro">RÉCORD PERSONAL · —</div>
+<details class="details"><summary>🎚 Ajuste fino de sincronización</summary>
+<p>Si las notas llegan antes o después del sonido, ajustá la compensación. Predeterminado: 0 ms.</p>
+<label>Latencia: <span id="latencyValue">0 ms</span><input id="latency" type="range" min="-300" max="300" value="0" step="10"></label></details>
+<p id="precheck">📱 Para jugar en AR abrí este enlace <b>directamente en Chrome Android</b>, no dentro de ChatGPT o WhatsApp (menú ⋮ → Abrir en Chrome). Requiere ARCore y un piso despejado; la demo 2D funciona sin AR. Ajustá la pista entre 0,8 y 1,28 m. No corras ni saltes: se sigue el <b>celular</b>, no tus pies.</p>
+</div></main>
+<div id="overlay">
+<svg id="tiles"></svg><svg id="rtSvg"></svg><canvas id="gameCanvas"></canvas><canvas id="fxCanvas" aria-hidden="true"></canvas><div id="playerBadge" aria-hidden="true">◆ VOS</div>
+<div id="head"><div id="headline">BUSCÁ EL PISO</div><div id="subtitle">Apuntá a una superficie real</div></div>
+<div id="reticle"></div><div id="mock"></div><button id="support"></button>
+<div id="calibrate">☝ DESLIZÁ · 🤏 ACHICÁ/AGRANDÁ · ↻ GIRÁ</div><div id="fallback" role="status" aria-live="polite"></div>
+<button id="rescan" type="button" aria-label="Reintentar detección del piso">↻ REINTENTAR DETECCIÓN</button>
+<div id="touchpad"></div><div id="toolbar"><button id="minus">−</button><button id="size" disabled>1,00 m</button><button id="plus">+</button><button id="rotate">↻</button></div>
+<div id="debug"></div><div id="notice"></div><button id="diagbtn"></button><button id="play"></button><button id="edit"></button>
+<button id="lock" disabled>📍 FIJAR LOS 4 CARRILES</button>
+<div id="topActions"><button id="exit">← MENÚ</button><button id="gamePause">Ⅱ PAUSA</button><button id="quality" title="Calidad gráfica" aria-label="Calidad gráfica">✨ AUTO</button><button id="sound">🔊</button></div>
+<div id="hud"><div class="hudRow"><div>PUNTOS<strong id="score">0</strong></div><div>COMBO<strong id="combo">×0</strong></div><div>ENERGÍA<strong id="energy">100%</strong></div><div>TIEMPO<strong id="clock">00:00</strong></div></div>
+<div id="progress"><div id="progressFill"></div></div><div id="forecast"></div></div>
+<div id="where">📍 VOS · CENTRO</div><div id="toast" aria-live="polite"></div>
+<div id="holdHud" aria-live="off"><div id="holdText">🎸 ¡MANTENÉ TU COLOR!</div><div id="holdTrack"><div id="holdFill"></div></div><div id="holdCount">SEGUÍ AHÍ…</div></div>
+<div id="prepare"><div id="calPanel"><div id="calTitle">👣 ¿SOBRE CUÁL COLOR ESTÁS?</div><div id="calHint">Elegí el círculo de tu posición real. Después mantené quieto el teléfono 1 segundo.</div>
+<div id="pickLanes"><button data-lane="0" style="--lane:#4cff85" aria-label="Carril verde">1</button><button data-lane="1" style="--lane:#ff5274" aria-label="Carril rojo">2</button><button data-lane="2" style="--lane:#ffd34c" aria-label="Carril amarillo">3</button><button data-lane="3" style="--lane:#438eff" aria-label="Carril azul">4</button></div>
+<div id="calProgress"><div id="calFill"></div></div></div>
+<button id="rtStart" disabled>CALIBRANDO POSICIÓN…</button><button id="rtRecenter" class="alt">🎯 VOLVER A MARCAR MI POSICIÓN</button></div>
+<div id="demoControls"><button id="left" aria-label="Ir a la izquierda">◀</button><button id="right" aria-label="Ir a la derecha">▶</button></div>
+<div id="result"><div class="card"><div class="kicker">EL ESCENARIO TE APLAUDE</div><h2 id="resultTitle">¡GRAN SHOW!</h2>
+<div class="rank" id="resultRank"></div><p id="resultStats"></p>
+<button id="retry">↻ REVANCHA</button><button id="share" class="alt">↗ COMPARTIR RESULTADO</button><button id="finishExit" class="alt">← VOLVER AL ARCADE</button></div></div>
+</div>
+<script>
+window.addEventListener('error',function(e){
+ const status=document.getElementById('launchStatus');
+ if(status){status.hidden=false;status.textContent='⚠️ No se pudo iniciar el juego: '+(e?.message||'Error de script')+'. Probá abrirlo en Chrome Android.';}
+ if(!e||!e.message)return;
+ const p=document.getElementById('precheck');
+ if(p){p.textContent='⚠️ El juego encontró un error: '+e.message+'. Probá actualizar la página o abrirla en Chrome Android.';p.style.color='#ffe28e'}
+});
+window.addEventListener('unhandledrejection',function(e){
+ const p=document.getElementById('precheck'),msg=String(e?.reason?.message||e?.reason||'Error al iniciar').slice(0,180);
+ if(p){p.textContent='⚠️ No se completó el inicio: '+msg+'. Probá de nuevo en Chrome Android.';p.style.color='#ffe28e'}
+ const status=document.getElementById('launchStatus');if(status){status.hidden=false;status.textContent='⚠️ No se completó el inicio: '+msg+'. Probá abrirlo en Chrome Android.'}
+});
+</script>
+<script defer src="/ritmo-engine.js?v=28"></script>
+<script defer src="/ritmo-core.js?v=28"></script>
+<script defer src="/ritmo-catalog.js?v=28"></script>
+<script defer src="/ritmo-licensed.js?v=28"></script>
+<script defer src="/ritmo-despacito.js?v=28"></script>
+<script defer src="/ritmo-audio.js?v=28"></script>
+<script defer src="/ritmo-art.js?v=28"></script>
+<script defer src="/ritmo-stage3d.js?v=28"></script>
+<script defer src="/ritmo-stage-premium.js?v=28"></script>
+<script defer src="/ritmo-stage-showtime.js?v=28"></script>
+<script defer src="/ritmo-kenney-vfx.js?v=28"></script>
+<script defer src="/ritmo-fx.js?v=28"></script>
+<script defer src="/ritmo-haptics.js?v=28"></script>
+<script defer src="/ritmo-runtime.js?v=28"></script>
+</body></html>
