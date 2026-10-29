@@ -1,0 +1,92 @@
+name: Color Rush visual-only regression
+on:
+  pull_request:
+    paths:
+      - 'color-solo.html'
+      - 'color-pro-3d.js'
+      - 'color-pro-finish.js'
+      - 'color-premium-art.js'
+      - 'color-premium.css'
+      - 'tests/color*visual*.cjs'
+      - 'tests/color-pro3d-smoke.test.cjs'
+      - 'tests/color-pro-finish.test.cjs'
+      - 'tests/color-pro3d-webgl.html'
+      - 'tests/color-pro-hud.html'
+      - '.github/workflows/color-rush-visual.yml'
+  push:
+    branches:
+      - 'design/color-rush-pro-polish-20261027'
+    paths:
+      - 'color-solo.html'
+      - 'color-pro-3d.js'
+      - 'color-premium-art.js'
+      - 'color-premium.css'
+      - 'tests/color*visual*.cjs'
+      - 'tests/color-pro3d-smoke.test.cjs'
+      - 'tests/color-pro-finish.test.cjs'
+      - 'tests/color-pro3d-webgl.html'
+      - 'tests/color-pro-hud.html'
+      - '.github/workflows/color-rush-visual.yml'
+permissions:
+  contents: read
+jobs:
+  visual-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Check Node runtime
+        run: node --version
+      - name: Verify visual-only patch doesn't modify game logic
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check color-pro-3d.js
+          node --check color-pro-finish.js
+          node --check color-premium-art.js
+          node tests/color-premium-visual.test.cjs
+          node tests/color-pro3d-smoke.test.cjs
+          node tests/color-pro-finish.test.cjs
+      - name: Compile GLSL shaders in real Chromium WebGL
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "::warning::Chromium not installed on runner. WebGL runtime test is unavailable."
+            exit 0
+          fi
+          URL="file://$PWD/tests/color-pro3d-webgl.html"
+          timeout 40s "$CHROME" --headless --no-sandbox --disable-dev-shm-usage --disable-gpu-sandbox --enable-webgl --enable-unsafe-swiftshader --use-angle=swiftshader --virtual-time-budget=5000 --dump-dom "$URL" 2>/tmp/color-chrome.log >/tmp/color-webgl.html || {
+            cat /tmp/color-chrome.log | tail -25
+            exit 1
+          }
+          grep -q 'data-status="PASS"' /tmp/color-webgl.html || {
+            grep -E 'id="result"|FAIL|NO_WEBGL' /tmp/color-webgl.html | head -10 || true
+            cat /tmp/color-chrome.log | tail -25
+            exit 1
+          }
+          echo "PASS: native WebGL 1 shaders compiled and rendered"
+
+      - name: Check compact HUD geometry in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "::warning::Chromium not installed for HUD layout test."
+            exit 0
+          fi
+          URL="file://$PWD/tests/color-pro-hud.html"
+          timeout 40s "$CHROME" --headless --no-sandbox --disable-dev-shm-usage --window-size=430,920 --virtual-time-budget=3000 --dump-dom "$URL" 2>/tmp/crp-hud-log >/tmp/crp-hud-dom || {
+            cat /tmp/crp-hud-log | tail -25
+            exit 1
+          }
+          grep -q 'data-status="PASS"' /tmp/crp-hud-dom || {
+            grep 'id="result"' /tmp/crp-hud-dom || true
+            cat /tmp/crp-hud-log | tail -25
+            exit 1
+          }
+          echo "PASS: compact accessible two-column HUD in Chromium"

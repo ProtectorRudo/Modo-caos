@@ -1,0 +1,46 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HUD VISUAL CHECK</title>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#384758;color:white;font:15px system-ui}
+#overlay{display:block;position:fixed;inset:0;pointer-events:none}
+#overlay button{pointer-events:auto}
+#head{position:absolute;top:11px;left:8px;right:8px;text-align:center}
+#top-chip{position:absolute;top:111px;left:50%;transform:translateX(-50%)}
+#timetrack{position:absolute;top:163px;left:10%;width:80%;height:8px}
+#diagbtn{position:absolute;right:8px;top:24%}
+#bottom{position:absolute;bottom:9px;left:9px;right:9px;display:grid;gap:6px}
+#hud{justify-content:space-between;align-items:center;gap:5px}
+#mainbuttons{display:flex;justify-content:center;gap:7px}
+#mainbuttons button{flex:1}
+button{border:0;border-radius:12px;padding:10px;min-height:43px;font:900 12px system-ui}
+#overlay #hud,#overlay #top-chip,#overlay #timetrack{display:block}
+#overlay #playerline,#overlay #calibration-btn{display:block}
+#overlay #play{display:none}
+#overlay #edit{display:block}
+#overlay #toolbar,#overlay #posnote,#overlay #debug,#overlay #health-warning{display:none}
+</style><link rel="stylesheet" href="../color-premium.css"></head><body>
+<div id="overlay" class="crp-live crp3d-ready">
+<div id="head"><div id="headline">¡VIOLETA!</div><div id="subtitle">BUSCÁ EL COLOR CORRECTO · 7 s</div></div>
+<div id="top-chip">⚡ MOVETE</div><div id="timetrack"><div id="timefill"></div></div>
+<button id="diagbtn">DIAGNÓSTICO</button>
+<div id="bottom">
+<div id="hud"><span>PUNTOS <b>0</b></span><span id="hearts">♥ ♥ ♥</span><span>COMBO <b>×1</b></span><span>RONDA <b>1/12</b></span></div>
+<div id="playerline">👣 POSICIÓN DEL CUERPO (ESTIMADA) · AZUL</div>
+<div id="health-warning"></div>
+<button id="calibration-btn">🎯 AJUSTAR MI POSICIÓN</button>
+<div id="debug"></div><div id="toolbar"></div>
+<div id="mainbuttons"><button id="play">EMPEZAR</button><button id="edit">REUBICAR</button></div>
+</div></div>
+<h2 id="result" data-status="PENDING" style="position:fixed;top:330px;color:white;">HUD TEST</h2>
+<script>
+window.addEventListener('load',function(){
+ const res=document.getElementById('result');
+ const rect=id=>document.getElementById(id).getBoundingClientRect();
+ const l=rect('calibration-btn'),r=rect('edit'),bottom=rect('bottom'),head=rect('headline'),hud=rect('hud');
+ const pass=l.width>95 && r.width>95 && l.height>=42 && r.height>=42 &&
+   (l.right+1<r.left) && bottom.bottom<=window.innerHeight &&
+   hud.bottom<=head.top && getComputedStyle(document.getElementById('bottom')).display==='grid';
+ res.dataset.status=pass?'PASS':'FAIL';
+ res.textContent=(pass?'PASS':'FAIL')+' HUD: l='+Math.round(l.width)+' r='+Math.round(r.width)+' h='+Math.round(l.height)+' hudB='+Math.round(hud.bottom)+' titleT='+Math.round(head.top);
+ document.title=pass?'PASS HUD':'FAIL HUD';
+});
+</script>
+</body></html>
